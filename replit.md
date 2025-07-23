@@ -1,0 +1,114 @@
+# PickNTrust - Product Discovery & Affiliate Marketing Platform
+
+## Overview
+
+PickNTrust is a modern web application that helps users discover trusted products and deals. The platform functions as an affiliate marketing site with a focus on user experience, featuring curated product recommendations, blog content, and newsletter subscriptions. The application follows a full-stack architecture with a React frontend and Express.js backend.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript
+- **Routing**: Wouter for client-side routing
+- **Styling**: Tailwind CSS with Shadcn/ui component library
+- **State Management**: TanStack Query (React Query) for server state management
+- **Build Tool**: Vite for development and build processes
+- **UI Components**: Radix UI primitives with custom styling
+
+### Backend Architecture
+- **Framework**: Express.js with TypeScript
+- **Runtime**: Node.js with ES modules
+- **API**: RESTful API design
+- **Development**: tsx for TypeScript execution in development
+- **Build**: esbuild for production bundling
+
+### Database Architecture
+- **ORM**: Drizzle ORM with PostgreSQL dialect
+- **Database**: PostgreSQL (configured for Neon Database)
+- **Schema**: Defined in shared TypeScript files with Zod validation
+- **Migrations**: Drizzle-kit for schema management
+
+## Key Components
+
+### Core Data Models
+- **Products**: Product catalog with pricing, ratings, categories, and affiliate links
+- **Categories**: Product categorization system with icons and colors
+- **Blog Posts**: Content management for articles and tips
+- **Newsletter Subscribers**: Email subscription management
+
+### Frontend Components
+- **Header**: Navigation and branding
+- **Hero**: Landing section with call-to-action
+- **Categories**: Product category browser
+- **Featured Products**: Curated product showcase
+- **Blog Section**: Article listings
+- **Newsletter**: Email subscription form
+- **Footer**: Site information and links
+
+### Backend Services
+- **Storage Layer**: Abstracted storage interface with in-memory implementation
+- **API Routes**: RESTful endpoints for products, categories, blog, and newsletter
+- **Affiliate Tracking**: Click tracking for affiliate links
+
+## Data Flow
+
+### Product Discovery Flow
+1. User visits homepage
+2. Frontend fetches featured products and categories from API
+3. Products display with affiliate links and ratings
+4. User clicks affiliate link → tracking event sent to backend → redirect to external retailer
+
+### Newsletter Subscription Flow
+1. User enters email in newsletter form
+2. Frontend validates input and sends POST request to `/api/newsletter/subscribe`
+3. Backend validates email and stores subscription
+4. Success/error toast notification displayed to user
+
+### Content Management Flow
+1. Blog posts and categories are stored in database
+2. Frontend fetches content via API endpoints
+3. Content is cached using React Query for performance
+4. Dynamic rendering of blog posts and category filters
+
+## External Dependencies
+
+### UI Framework
+- **Radix UI**: Headless UI components for accessibility
+- **Tailwind CSS**: Utility-first CSS framework
+- **Font Awesome**: Icon library for UI elements
+- **Google Fonts**: Inter font family for typography
+
+### Development Tools
+- **Vite**: Build tool with React plugin
+- **TypeScript**: Type safety across the application
+- **Replit Plugins**: Development environment integration
+
+### Database & ORM
+- **Neon Database**: Serverless PostgreSQL provider
+- **Drizzle ORM**: Type-safe database operations
+- **Drizzle Zod**: Schema validation integration
+
+## Deployment Strategy
+
+### Development Environment
+- **Local Development**: Vite dev server with HMR for frontend, tsx for backend
+- **Database**: PostgreSQL connection via environment variables
+- **Environment Variables**: `DATABASE_URL` required for database connection
+
+### Production Build
+1. **Frontend**: Vite builds React app to `dist/public`
+2. **Backend**: esbuild bundles Express server to `dist/index.js`
+3. **Static Assets**: Served from `attached_assets` directory
+4. **Database**: Drizzle migrations applied via `db:push` command
+
+### Key Considerations
+- **Session Management**: Uses `connect-pg-simple` for PostgreSQL session storage
+- **CORS**: Configured for cross-origin requests
+- **Error Handling**: Centralized error handling middleware
+- **Logging**: Request logging with response time tracking
+- **Asset Management**: Static asset serving with proper caching headers
+
+The application is designed as a monorepo with shared TypeScript schemas between frontend and backend, ensuring type safety across the entire stack. The architecture supports easy scaling and maintenance while providing a smooth user experience for product discovery and affiliate marketing.
