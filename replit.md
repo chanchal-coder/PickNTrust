@@ -112,3 +112,13 @@ Preferred communication style: Simple, everyday language.
 - **Asset Management**: Static asset serving with proper caching headers
 
 The application is designed as a monorepo with shared TypeScript schemas between frontend and backend, ensuring type safety across the entire stack. The architecture supports easy scaling and maintenance while providing a smooth user experience for product discovery and affiliate marketing.
+
+## Recent Changes
+
+### January 2025
+- **Dark/Light Mode Implementation**: Added comprehensive dark mode support with ThemeProvider component and theme toggle in header
+- **Logo Readability Fix**: Fixed PickNTrust logo visibility in dark mode with proper color variants
+- **Admin Panel Creation**: Built `/admin` page for daily content management with product addition form
+- **Content Management System**: Created comprehensive guide and simple interface for daily product updates
+- **API Enhancement**: Added POST endpoint for adding new products via admin interface
+- **Storage Extension**: Enhanced storage layer with addProduct method for admin functionality

@@ -91,6 +91,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new product (Admin functionality)
+  app.post("/api/products", async (req, res) => {
+    try {
+      const productData = req.body;
+      
+      // Basic validation
+      if (!productData.name || !productData.price || !productData.affiliateUrl) {
+        return res.status(400).json({ error: 'Name, price, and affiliate URL are required' });
+      }
+
+      await storage.addProduct(productData);
+      res.json({ success: true, message: 'Product added successfully' });
+    } catch (error) {
+      console.error('Add product error:', error);
+      res.status(500).json({ error: 'Failed to add product' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

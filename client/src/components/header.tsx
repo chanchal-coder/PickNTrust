@@ -28,11 +28,11 @@ export default function Header() {
             />
             <div>
               <h1 className="text-2xl font-bold">
-                <span className="navy">Pick</span>
-                <span className="gold">N</span>
-                <span className="navy">Trust</span>
+                <span className="text-navy dark:text-blue-400">Pick</span>
+                <span className="text-gold dark:text-yellow-400">N</span>
+                <span className="text-navy dark:text-blue-400">Trust</span>
               </h1>
-              <p className="gold text-xs">Pick. Click. Trust.</p>
+              <p className="text-gold dark:text-yellow-400 text-xs">Pick. Click. Trust.</p>
             </div>
           </Link>
 
@@ -67,6 +67,12 @@ export default function Header() {
               className="accent-orange hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors font-bold"
             >
               🔥 Deals
+            </Link>
+            <Link 
+              href="/admin" 
+              className="text-accent-orange hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors font-semibold px-3 py-1 border border-accent-orange rounded-lg"
+            >
+              Admin
             </Link>
           </nav>
 

@@ -28,6 +28,9 @@ export interface IStorage {
   
   // Newsletter
   subscribeToNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
+  
+  // Admin
+  addProduct(product: any): Promise<Product>;
 }
 
 export class MemStorage implements IStorage {
@@ -380,6 +383,22 @@ export class MemStorage implements IStorage {
     
     this.newsletterSubscribers.set(id, subscriber);
     return subscriber;
+  }
+
+  async addProduct(productData: any): Promise<Product> {
+    const id = this.currentProductId++;
+    const product: Product = {
+      ...productData,
+      id,
+      rating: parseFloat(productData.rating),
+      reviewCount: parseInt(productData.reviewCount),
+      discount: productData.discount ? parseInt(productData.discount) : undefined,
+      isNew: productData.isNew || false,
+      isFeatured: productData.isFeatured || false,
+    };
+    
+    this.products.set(id, product);
+    return product;
   }
 }
 

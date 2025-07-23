@@ -16,10 +16,10 @@ export default function Footer() {
               <div>
                 <h1 className="text-2xl font-bold">
                   <span className="text-white">Pick</span>
-                  <span className="gold">N</span>
+                  <span className="text-gold dark:text-yellow-400">N</span>
                   <span className="text-white">Trust</span>
                 </h1>
-                <p className="gold text-xs">Pick. Click. Trust.</p>
+                <p className="text-gold dark:text-yellow-400 text-xs">Pick. Click. Trust.</p>
               </div>
             </div>
             <p className="text-blue-100 text-lg mb-6">Making online shopping simple, safe, and fun. We're here to help you discover amazing products from trusted brands.</p>
