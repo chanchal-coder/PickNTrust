@@ -23,9 +23,9 @@ export default function Categories() {
   }
 
   return (
-    <section className="py-12 bg-white">
+    <section className="py-12 bg-white dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 className="text-3xl font-bold text-center text-navy mb-8">Shop by Category</h3>
+        <h3 className="text-3xl font-bold text-center text-navy dark:text-blue-400 mb-8">Shop by Category</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
           {categories?.map((category) => (
             <Link 

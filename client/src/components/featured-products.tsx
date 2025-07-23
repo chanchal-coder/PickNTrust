@@ -49,22 +49,22 @@ export default function FeaturedProducts() {
 
   if (isLoading) {
     return (
-      <section id="featured-products" className="py-16 bg-gray-50">
+      <section id="featured-products" className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h3 className="text-4xl font-bold text-navy mb-4">Today's Top Picks</h3>
-            <p className="text-xl text-gray-600">Hand-selected deals you can trust</p>
+            <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Today's Top Picks</h3>
+            <p className="text-xl text-gray-600 dark:text-gray-300">Hand-selected deals you can trust</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white rounded-3xl shadow-lg overflow-hidden animate-pulse">
-                <div className="w-full h-48 bg-gray-200"></div>
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse">
+                <div className="w-full h-48 bg-gray-200 dark:bg-gray-700"></div>
                 <div className="p-6">
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-12 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                  <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 </div>
               </div>
             ))}
@@ -75,18 +75,18 @@ export default function FeaturedProducts() {
   }
 
   return (
-    <section id="featured-products" className="py-16 bg-gray-50">
+    <section id="featured-products" className="py-16 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h3 className="text-4xl font-bold text-navy mb-4">Today's Top Picks</h3>
-          <p className="text-xl text-gray-600">Hand-selected deals you can trust</p>
+          <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Today's Top Picks</h3>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Hand-selected deals you can trust</p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {products?.map((product) => (
             <div 
               key={product.id}
-              className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
             >
               <img 
                 src={product.imageUrl} 
@@ -108,16 +108,16 @@ export default function FeaturedProducts() {
                   )}
                   <div className="flex items-center">
                     {renderStars(product.rating)}
-                    <span className="text-gray-600 ml-2 text-sm">({product.reviewCount})</span>
+                    <span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({product.reviewCount})</span>
                   </div>
                 </div>
-                <h4 className="font-bold text-lg text-navy mb-2">{product.name}</h4>
-                <p className="text-gray-600 text-sm mb-4">{product.description}</p>
+                <h4 className="font-bold text-lg text-navy dark:text-blue-400 mb-2">{product.name}</h4>
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{product.description}</p>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <span className="text-2xl font-bold text-navy">₹{product.price}</span>
+                    <span className="text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
                     {product.originalPrice && (
-                      <span className="text-gray-400 line-through ml-2">₹{product.originalPrice}</span>
+                      <span className="text-gray-400 dark:text-gray-500 line-through ml-2">₹{product.originalPrice}</span>
                     )}
                   </div>
                 </div>
@@ -137,7 +137,7 @@ export default function FeaturedProducts() {
                 >
                   <i className="fas fa-shopping-bag mr-2"></i>Pick Now
                 </button>
-                <p className="text-xs text-gray-500 mt-2 text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
                   🔗 Affiliate Link - We earn from purchases
                 </p>
               </div>
