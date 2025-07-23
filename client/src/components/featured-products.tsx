@@ -115,9 +115,9 @@ export default function FeaturedProducts() {
                 <p className="text-gray-600 text-sm mb-4">{product.description}</p>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <span className="text-2xl font-bold text-navy">${product.price}</span>
+                    <span className="text-2xl font-bold text-navy">₹{product.price}</span>
                     {product.originalPrice && (
-                      <span className="text-gray-400 line-through ml-2">${product.originalPrice}</span>
+                      <span className="text-gray-400 line-through ml-2">₹{product.originalPrice}</span>
                     )}
                   </div>
                 </div>

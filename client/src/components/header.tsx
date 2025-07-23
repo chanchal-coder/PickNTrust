@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_1753298844179.png";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [location] = useLocation();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -17,7 +19,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-3">
             <img 
               src={logoImage} 
               alt="PickNTrust Logo" 
@@ -31,40 +33,40 @@ export default function Header() {
               </h1>
               <p className="gold text-xs">Pick. Click. Trust.</p>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            <button 
-              onClick={() => scrollToSection('tech')} 
+            <Link 
+              href="/category/Tech" 
               className="text-gray-600 hover:text-navy transition-colors font-medium"
             >
               Tech
-            </button>
-            <button 
-              onClick={() => scrollToSection('home')} 
+            </Link>
+            <Link 
+              href="/category/Home" 
               className="text-gray-600 hover:text-navy transition-colors font-medium"
             >
               Home
-            </button>
-            <button 
-              onClick={() => scrollToSection('beauty')} 
+            </Link>
+            <Link 
+              href="/category/Beauty" 
               className="text-gray-600 hover:text-navy transition-colors font-medium"
             >
               Beauty
-            </button>
-            <button 
-              onClick={() => scrollToSection('fashion')} 
+            </Link>
+            <Link 
+              href="/category/Fashion" 
               className="text-gray-600 hover:text-navy transition-colors font-medium"
             >
               Fashion
-            </button>
-            <button 
-              onClick={() => scrollToSection('deals')} 
+            </Link>
+            <Link 
+              href="/category/Deals" 
               className="accent-orange hover:text-orange-600 transition-colors font-bold"
             >
               🔥 Deals
-            </button>
+            </Link>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -80,36 +82,41 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden pb-4">
             <nav className="flex flex-col space-y-4">
-              <button 
-                onClick={() => scrollToSection('tech')} 
+              <Link 
+                href="/category/Tech" 
                 className="text-gray-600 hover:text-navy transition-colors font-medium text-left"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Tech
-              </button>
-              <button 
-                onClick={() => scrollToSection('home')} 
+              </Link>
+              <Link 
+                href="/category/Home" 
                 className="text-gray-600 hover:text-navy transition-colors font-medium text-left"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Home
-              </button>
-              <button 
-                onClick={() => scrollToSection('beauty')} 
+              </Link>
+              <Link 
+                href="/category/Beauty" 
                 className="text-gray-600 hover:text-navy transition-colors font-medium text-left"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Beauty
-              </button>
-              <button 
-                onClick={() => scrollToSection('fashion')} 
+              </Link>
+              <Link 
+                href="/category/Fashion" 
                 className="text-gray-600 hover:text-navy transition-colors font-medium text-left"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Fashion
-              </button>
-              <button 
-                onClick={() => scrollToSection('deals')} 
+              </Link>
+              <Link 
+                href="/category/Deals" 
                 className="accent-orange hover:text-orange-600 transition-colors font-bold text-left"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 🔥 Deals
-              </button>
+              </Link>
             </nav>
           </div>
         )}
