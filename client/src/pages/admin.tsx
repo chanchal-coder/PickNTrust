@@ -385,6 +385,89 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
+          {/* Revenue Optimization */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-navy dark:text-blue-400">Revenue Optimization</CardTitle>
+                <CardDescription>Track performance and optimize earnings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Performance Tracking</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Monitor which products get the most clicks</li>
+                      <li>Track conversion rates by category</li>
+                      <li>Identify seasonal trending products</li>
+                      <li>Analyze mobile vs desktop performance</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">A/B Testing Ideas</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Test different product descriptions</li>
+                      <li>Compare image styles (lifestyle vs product)</li>
+                      <li>Try different "Pick Now" button colors</li>
+                      <li>Test product positioning on homepage</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Click-Through Rate Tips</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Use urgency words: "Limited time", "Flash sale"</li>
+                      <li>Highlight discounts prominently</li>
+                      <li>Add social proof with review counts</li>
+                      <li>Update bestsellers weekly</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-navy dark:text-blue-400">Seasonal Content Calendar</CardTitle>
+                <CardDescription>Plan content for maximum revenue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">January - March</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>New Year fitness products</li>
+                      <li>Valentine's Day gifts (Beauty, Fashion)</li>
+                      <li>Holi festival deals</li>
+                      <li>Summer prep products</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">April - June</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Summer cooling products</li>
+                      <li>Father's Day tech deals</li>
+                      <li>Student tech for exams</li>
+                      <li>Monsoon prep items</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">October - December</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Diwali festival shopping</li>
+                      <li>Winter clothing collection</li>
+                      <li>Year-end tech deals</li>
+                      <li>Christmas gifts and decor</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Quick Guide */}
           <Card>
             <CardHeader>

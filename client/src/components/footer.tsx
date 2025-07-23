@@ -26,17 +26,17 @@ export default function Footer() {
             
             {/* Social Links */}
             <div className="flex space-x-4">
-              <a href="#" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://facebook.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-facebook-f"></i>
               </a>
-              <a href="#" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://twitter.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-twitter"></i>
               </a>
-              <a href="#" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://instagram.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-instagram"></i>
               </a>
-              <a href="#" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-                <i className="fab fa-pinterest"></i>
+              <a href="https://youtube.com/@pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+                <i className="fab fa-youtube"></i>
               </a>
             </div>
           </div>
@@ -45,11 +45,11 @@ export default function Footer() {
           <div>
             <h4 className="font-bold text-lg mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-blue-100 hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" className="text-blue-100 hover:text-white transition-colors">How It Works</a></li>
-              <li><a href="#" className="text-blue-100 hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-blue-100 hover:text-white transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="text-blue-100 hover:text-white transition-colors">Affiliate Disclosure</a></li>
+              <li><a href="#why-trust-us" className="text-blue-100 hover:text-white transition-colors">About Us</a></li>
+              <li><a href="#blog" className="text-blue-100 hover:text-white transition-colors">How It Works</a></li>
+              <li><a href="/privacy-policy" className="text-blue-100 hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms-of-service" className="text-blue-100 hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="#footer" className="text-blue-100 hover:text-white transition-colors">Affiliate Disclosure</a></li>
             </ul>
           </div>
           
