@@ -34,6 +34,8 @@ export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
 
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products/featured']
@@ -105,6 +107,62 @@ export default function AdminPage() {
   const onSubmit = (data: ProductForm) => {
     addProductMutation.mutate(data);
   };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simple password check - you can change this password
+    if (password === 'pickntrust2025') {
+      setIsAuthenticated(true);
+      setPassword('');
+      toast({
+        title: 'Access Granted',
+        description: 'Welcome to PickNTrust Admin Panel',
+      });
+    } else {
+      toast({
+        title: 'Access Denied',
+        description: 'Incorrect password. Please try again.',
+        variant: 'destructive',
+      });
+      setPassword('');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-navy dark:text-blue-400">PickNTrust Admin</CardTitle>
+              <CardDescription>Enter password to access admin panel</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="password">Admin Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter admin password"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full bg-bright-blue hover:bg-navy">
+                  Access Admin Panel
+                </Button>
+              </form>
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                Only authorized users can access this panel
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

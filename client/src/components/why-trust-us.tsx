@@ -8,7 +8,7 @@ export default function WhyTrustUs() {
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl">
+          <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-800 dark:to-blue-700 rounded-3xl">
             <div className="w-20 h-20 bg-bright-blue rounded-full flex items-center justify-center mx-auto mb-6">
               <i className="fas fa-search text-white text-2xl"></i>
             </div>

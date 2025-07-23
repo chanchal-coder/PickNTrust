@@ -68,17 +68,20 @@ export default function Header() {
             >
               🔥 Deals
             </Link>
-            <Link 
-              href="/admin" 
-              className="text-accent-orange hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors font-semibold px-3 py-1 border border-accent-orange rounded-lg"
-            >
-              Admin
-            </Link>
+
           </nav>
 
           {/* Theme Toggle and Mobile Menu */}
           <div className="flex items-center space-x-3">
             <ThemeToggle />
+            {/* Discreet admin access - only visible to those who know */}
+            <Link 
+              href="/admin" 
+              className="hidden md:block text-xs text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 transition-colors opacity-50 hover:opacity-100"
+              title="Admin Access"
+            >
+              •
+            </Link>
             <button 
               className="md:hidden text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
