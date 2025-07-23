@@ -51,6 +51,12 @@ export default {
           "4": "var(--chart-4)",
           "5": "var(--chart-5)",
         },
+        // PickNTrust Brand Colors
+        navy: "var(--navy)",
+        "bright-blue": "var(--bright-blue)",
+        "accent-green": "var(--accent-green)",
+        "accent-orange": "var(--accent-orange)",
+        gold: "var(--gold)",
         sidebar: {
           DEFAULT: "var(--sidebar-background)",
           foreground: "var(--sidebar-foreground)",
