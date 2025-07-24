@@ -116,6 +116,11 @@ The application is designed as a monorepo with shared TypeScript schemas between
 ## Recent Changes
 
 ### January 2025
+- **Python Flask Migration**: Switched from React/TypeScript to Python Flask with BeautifulSoup for more accurate product data extraction
+- **Simple Web Interface**: Created clean, single-page application with URL input and product card display
+- **Enhanced Product Extraction**: Improved price detection with comprehensive pattern matching for Indian rupee prices
+- **Real-time Processing**: Direct web scraping without fallback data, ensuring authentic product information
+- **Mobile-Responsive Design**: Optimized interface for all device types with modern CSS styling
 - **Dark/Light Mode Implementation**: Added comprehensive dark mode support with ThemeProvider component and theme toggle in header
 - **Logo Readability Fix**: Fixed PickNTrust logo visibility in dark mode with proper color variants
 - **Admin Panel Creation**: Built `/admin` page for daily content management with product addition form
