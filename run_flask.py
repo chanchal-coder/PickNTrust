@@ -1,10 +1,35 @@
 #!/usr/bin/env python3
-
-import os
+import subprocess
 import sys
-from app import app
+import os
+import time
+
+def start_flask_service():
+    """Start the Flask extraction service on port 3000"""
+    try:
+        # Start Flask service in background
+        process = subprocess.Popen([
+            sys.executable, 'app.py'
+        ], cwd=os.getcwd())
+        
+        print(f"Flask service started with PID: {process.pid}")
+        
+        # Wait a moment for service to start
+        time.sleep(2)
+        
+        # Test if service is running
+        import requests
+        try:
+            response = requests.get('http://localhost:3000/', timeout=5)
+            print("Flask service is running successfully!")
+            return True
+        except:
+            print("Flask service may not be responding yet...")
+            return False
+            
+    except Exception as e:
+        print(f"Error starting Flask service: {e}")
+        return False
 
 if __name__ == '__main__':
-    print("Starting Flask Product Extractor...")
-    print("Visit http://localhost:3000 to use the product extractor")
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    start_flask_service()
