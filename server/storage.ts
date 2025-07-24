@@ -193,7 +193,7 @@ export class MemStorage implements IStorage {
       {
         name: "Kitchen",
         icon: "fas fa-utensils",
-        color: "from-red-500 to-pink-600",
+        color: "from-accent-orange to-red-600",
         description: "Cooking Essentials"
       },
       {
@@ -205,25 +205,25 @@ export class MemStorage implements IStorage {
       {
         name: "Travel",
         icon: "fas fa-plane",
-        color: "from-blue-500 to-bright-blue",
+        color: "from-bright-blue to-blue-600",
         description: "Adventure Gear"
       },
       {
         name: "Baby",
         icon: "fas fa-baby",
-        color: "from-pink-400 to-purple-500",
+        color: "from-pink-500 to-purple-600",
         description: "Baby & Kids"
       },
       {
         name: "Pets",
         icon: "fas fa-paw",
-        color: "from-green-400 to-accent-green",
+        color: "from-accent-green to-green-600",
         description: "Pet Care"
       },
       {
         name: "Automotive",
         icon: "fas fa-car",
-        color: "from-gray-600 to-blue-600",
+        color: "from-purple-500 to-indigo-600",
         description: "Car Accessories"
       }
     ];
