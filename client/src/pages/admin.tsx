@@ -475,21 +475,49 @@ export default function AdminPage() {
   const addExtractedProduct = async () => {
     if (!extractedProduct) return;
 
+    // Validation
+    if (!extractedProduct.name?.trim()) {
+      toast({
+        title: 'Name Required',
+        description: 'Please enter a product name.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!extractedProduct.imageUrl?.trim()) {
+      toast({
+        title: 'Image Required',
+        description: 'Please enter a valid image URL.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!extractedProduct.affiliateUrl?.trim()) {
+      toast({
+        title: 'Affiliate Link Required',
+        description: 'Please enter a valid affiliate link.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const productData = {
-        name: extractedProduct.name,
-        description: extractedProduct.description,
+        name: extractedProduct.name.trim(),
+        description: extractedProduct.description?.trim() || `Professional-grade ${extractedProduct.name} with industry-leading features.`,
         price: extractedProduct.price,
         originalPrice: extractedProduct.originalPrice || undefined,
-        rating: parseFloat(extractedProduct.rating),
-        reviewCount: parseInt(extractedProduct.reviewCount),
+        rating: parseFloat(extractedProduct.rating) || 4.5,
+        reviewCount: parseInt(extractedProduct.reviewCount) || 100,
         discount: extractedProduct.discount ? parseInt(extractedProduct.discount) : undefined,
         category: extractedProduct.category,
-        imageUrl: extractedProduct.imageUrl,
-        affiliateUrl: extractedProduct.affiliateUrl,
+        imageUrl: extractedProduct.imageUrl.trim(),
+        affiliateUrl: extractedProduct.affiliateUrl.trim(),
         affiliateNetworkId: extractedProduct.affiliateNetworkId ? parseInt(extractedProduct.affiliateNetworkId) : undefined,
-        isNew: false,
-        isFeatured: true,
+        isNew: extractedProduct.isNew || false,
+        isFeatured: extractedProduct.isFeatured !== false,
       };
 
       const addResponse = await fetch('/api/products', {
@@ -697,65 +725,171 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          {/* Product Preview Section */}
+          {/* Editable Product Preview Section */}
           {showPreview && extractedProduct && (
             <Card className="mb-8 border-green-200 dark:border-green-800">
               <CardHeader className="bg-green-50 dark:bg-green-900/20">
-                <CardTitle className="text-green-700 dark:text-green-400">📋 Product Preview</CardTitle>
+                <CardTitle className="text-green-700 dark:text-green-400">✏️ Edit Extracted Product</CardTitle>
                 <CardDescription>
-                  Review the extracted details and confirm to add to your catalog
+                  Review and edit the extracted details before adding to your catalog
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                <div className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-semibold text-navy dark:text-blue-400">Product Name</h4>
-                      <p className="text-sm">{extractedProduct.name}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-navy dark:text-blue-400">Description</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{extractedProduct.description}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Price</h4>
-                        <p className="text-lg font-bold text-green-600">₹{extractedProduct.price}</p>
-                      </div>
-                      {extractedProduct.originalPrice && (
-                        <div>
-                          <h4 className="font-semibold text-navy dark:text-blue-400">Original Price</h4>
-                          <p className="text-sm line-through text-gray-500">₹{extractedProduct.originalPrice}</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Rating</h4>
-                        <p className="text-sm">{extractedProduct.rating}/5 ⭐</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Reviews</h4>
-                        <p className="text-sm">{extractedProduct.reviewCount} reviews</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-navy dark:text-blue-400">Product Image</h4>
-                      <img 
-                        src={extractedProduct.imageUrl} 
-                        alt={extractedProduct.name}
-                        className="w-full h-48 object-cover rounded-lg border"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
-                        }}
+                      <Label htmlFor="edit-name">Product Name *</Label>
+                      <Input
+                        id="edit-name"
+                        value={extractedProduct.name}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, name: e.target.value})}
+                        placeholder="Enter product name"
                       />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-navy dark:text-blue-400">Category</h4>
-                      <p className="text-sm">{extractedProduct.category}</p>
+                      <Label htmlFor="edit-category">Category *</Label>
+                      <Select 
+                        value={extractedProduct.category}
+                        onValueChange={(value) => setExtractedProduct({...extractedProduct, category: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(categories as any[]).map((category: any) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name} - {category.description}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-description">Description *</Label>
+                    <Textarea
+                      id="edit-description"
+                      value={extractedProduct.description}
+                      onChange={(e) => setExtractedProduct({...extractedProduct, description: e.target.value})}
+                      placeholder="Enter product description"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="edit-price">Current Price (₹) *</Label>
+                      <Input
+                        id="edit-price"
+                        value={extractedProduct.price}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, price: e.target.value})}
+                        placeholder="9999.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-originalPrice">Original Price (₹)</Label>
+                      <Input
+                        id="edit-originalPrice"
+                        value={extractedProduct.originalPrice || ''}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, originalPrice: e.target.value})}
+                        placeholder="14999.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-discount">Discount %</Label>
+                      <Input
+                        id="edit-discount"
+                        value={extractedProduct.discount || ''}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, discount: e.target.value})}
+                        placeholder="33"
+                        type="number"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="edit-rating">Rating (1-5) *</Label>
+                      <Input
+                        id="edit-rating"
+                        value={extractedProduct.rating}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, rating: e.target.value})}
+                        placeholder="4.5"
+                        type="number"
+                        step="0.1"
+                        min="1"
+                        max="5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-reviewCount">Review Count *</Label>
+                      <Input
+                        id="edit-reviewCount"
+                        value={extractedProduct.reviewCount}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, reviewCount: e.target.value})}
+                        placeholder="1234"
+                        type="number"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-imageUrl">Product Image URL *</Label>
+                    <Input
+                      id="edit-imageUrl"
+                      value={extractedProduct.imageUrl}
+                      onChange={(e) => setExtractedProduct({...extractedProduct, imageUrl: e.target.value})}
+                      placeholder="https://images.unsplash.com/photo-..."
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Update with high-quality image URL if the extracted image is incorrect
+                    </p>
+                    {/* Image Preview */}
+                    {extractedProduct.imageUrl && (
+                      <div className="mt-3">
+                        <img 
+                          src={extractedProduct.imageUrl} 
+                          alt={extractedProduct.name}
+                          className="w-32 h-32 object-cover rounded-lg border"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-affiliateUrl">Affiliate Link *</Label>
+                    <Input
+                      id="edit-affiliateUrl"
+                      value={extractedProduct.affiliateUrl}
+                      onChange={(e) => setExtractedProduct({...extractedProduct, affiliateUrl: e.target.value})}
+                      placeholder="https://amzn.to/XXXXXXX"
+                    />
+                  </div>
+
+                  <div className="flex gap-4">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={extractedProduct.isNew || false}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, isNew: e.target.checked})}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Mark as NEW</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={extractedProduct.isFeatured !== false}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, isFeatured: e.target.checked})}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Featured Product</span>
+                    </label>
                   </div>
                 </div>
                 
