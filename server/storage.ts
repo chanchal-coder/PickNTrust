@@ -154,31 +154,31 @@ export class MemStorage implements IStorage {
       {
         name: "Electronics & Gadgets",
         icon: "fas fa-microchip",
-        color: "from-blue-500 to-blue-700",
+        color: "#3B82F6",
         description: "Latest Tech & Electronics"
       },
       {
         name: "Mobiles & Accessories",
         icon: "fas fa-mobile-alt",
-        color: "from-indigo-500 to-indigo-700",
+        color: "#6366F1",
         description: "Smartphones & Mobile Gear"
       },
       {
         name: "Computers & Laptops",
         icon: "fas fa-laptop",
-        color: "from-blue-600 to-blue-800",
+        color: "#1D4ED8",
         description: "Computing Solutions"
       },
       {
         name: "Cameras & Photography",
         icon: "fas fa-camera",
-        color: "from-slate-500 to-slate-700",
+        color: "#64748B",
         description: "Capture Perfect Moments"
       },
       {
         name: "Home Appliances",
         icon: "fas fa-blender",
-        color: "from-teal-500 to-teal-700",
+        color: "#14B8A6",
         description: "Smart Home Solutions"
       },
       
@@ -186,31 +186,31 @@ export class MemStorage implements IStorage {
       {
         name: "Men's Fashion",
         icon: "fas fa-male",
-        color: "from-green-600 to-green-800",
+        color: "#059669",
         description: "Stylish Men's Wear"
       },
       {
         name: "Women's Fashion",
         icon: "fas fa-female",
-        color: "from-pink-500 to-pink-700",
+        color: "#EC4899",
         description: "Elegant Women's Collection"
       },
       {
         name: "Kids' Fashion",
         icon: "fas fa-child",
-        color: "from-orange-400 to-orange-600",
+        color: "#FB923C",
         description: "Trendy Kids' Clothing"
       },
       {
         name: "Footwear & Accessories",
         icon: "fas fa-shoe-prints",
-        color: "from-purple-500 to-purple-700",
+        color: "#A855F7",
         description: "Shoes & Style Accessories"
       },
       {
         name: "Jewelry & Watches",
         icon: "fas fa-gem",
-        color: "from-violet-500 to-violet-700",
+        color: "#8B5CF6",
         description: "Luxury & Timepieces"
       },
       
@@ -218,25 +218,25 @@ export class MemStorage implements IStorage {
       {
         name: "Beauty & Grooming",
         icon: "fas fa-spa",
-        color: "from-pink-400 to-pink-600",
+        color: "#F472B6",
         description: "Beauty & Personal Care"
       },
       {
         name: "Health & Wellness",
         icon: "fas fa-heartbeat",
-        color: "from-red-500 to-red-700",
+        color: "#EF4444",
         description: "Health & Fitness Products"
       },
       {
         name: "Fitness & Nutrition",
         icon: "fas fa-dumbbell",
-        color: "from-orange-500 to-orange-700",
+        color: "#F97316",
         description: "Fitness & Sports Gear"
       },
       {
         name: "Personal Care Appliances",
         icon: "fas fa-cut",
-        color: "from-lime-500 to-lime-700",
+        color: "#84CC16",
         description: "Personal Care Devices"
       },
       
@@ -244,25 +244,25 @@ export class MemStorage implements IStorage {
       {
         name: "Furniture & Décor",
         icon: "fas fa-couch",
-        color: "from-emerald-500 to-emerald-700",
+        color: "#10B981",
         description: "Home Furniture & Decor"
       },
       {
         name: "Kitchen & Dining",
         icon: "fas fa-utensils",
-        color: "from-green-500 to-green-700",
+        color: "#22C55E",
         description: "Kitchen Essentials"
       },
       {
         name: "Bedding & Home Essentials",
         icon: "fas fa-bed",
-        color: "from-teal-600 to-teal-800",
+        color: "#0D9488",
         description: "Comfort & Home Basics"
       },
       {
         name: "Gardening & Outdoor",
         icon: "fas fa-seedling",
-        color: "from-lime-600 to-lime-800",
+        color: "#65A30D",
         description: "Garden & Outdoor Living"
       },
       
@@ -270,19 +270,19 @@ export class MemStorage implements IStorage {
       {
         name: "Books & Stationery",
         icon: "fas fa-book",
-        color: "from-amber-600 to-amber-800",
+        color: "#D97706",
         description: "Books & Learning Materials"
       },
       {
         name: "Music, Movies & Games",
         icon: "fas fa-play-circle",
-        color: "from-red-600 to-red-800",
+        color: "#DC2626",
         description: "Entertainment & Gaming"
       },
       {
         name: "E-learning & Courses",
         icon: "fas fa-graduation-cap",
-        color: "from-red-700 to-red-900",
+        color: "#B91C1C",
         description: "Online Learning & Skills"
       },
       
@@ -290,13 +290,13 @@ export class MemStorage implements IStorage {
       {
         name: "Groceries & Gourmet",
         icon: "fas fa-shopping-cart",
-        color: "from-yellow-500 to-yellow-700",
+        color: "#EAB308",
         description: "Fresh & Gourmet Foods"
       },
       {
         name: "Food Delivery & Meal Kits",
         icon: "fas fa-pizza-slice",
-        color: "from-orange-600 to-orange-800",
+        color: "#EA580C",
         description: "Ready Meals & Delivery"
       },
       
@@ -304,19 +304,19 @@ export class MemStorage implements IStorage {
       {
         name: "Flights & Hotels",
         icon: "fas fa-plane",
-        color: "from-sky-500 to-sky-700",
+        color: "#0EA5E9",
         description: "Travel Bookings"
       },
       {
         name: "Holiday Packages",
         icon: "fas fa-suitcase-rolling",
-        color: "from-cyan-500 to-cyan-700",
+        color: "#06B6D4",
         description: "Complete Travel Packages"
       },
       {
         name: "Experiences & Activities",
         icon: "fas fa-map-marked-alt",
-        color: "from-blue-700 to-blue-900",
+        color: "#1E40AF",
         description: "Adventure & Experiences"
       },
       
@@ -324,25 +324,25 @@ export class MemStorage implements IStorage {
       {
         name: "Credit Cards & Finance",
         icon: "fas fa-credit-card",
-        color: "from-indigo-600 to-indigo-800",
+        color: "#7C3AED",
         description: "Financial Services"
       },
       {
         name: "Loans & Insurance",
         icon: "fas fa-shield-alt",
-        color: "from-purple-600 to-purple-800",
+        color: "#9333EA",
         description: "Loans & Protection Plans"
       },
       {
         name: "Investments & Trading Tools",
         icon: "fas fa-chart-line",
-        color: "from-violet-600 to-violet-800",
+        color: "#C026D3",
         description: "Investment & Trading"
       },
       {
         name: "Utility & Bill Payments",
         icon: "fas fa-receipt",
-        color: "from-indigo-700 to-indigo-900",
+        color: "#5B21B6",
         description: "Bills & Utility Services"
       },
       
@@ -350,13 +350,13 @@ export class MemStorage implements IStorage {
       {
         name: "Cars & Bikes Accessories",
         icon: "fas fa-car",
-        color: "from-gray-600 to-gray-800",
+        color: "#4B5563",
         description: "Vehicle Accessories"
       },
       {
         name: "Parts & Maintenance",
         icon: "fas fa-tools",
-        color: "from-slate-600 to-slate-800",
+        color: "#374151",
         description: "Auto Parts & Services"
       },
       
@@ -364,19 +364,19 @@ export class MemStorage implements IStorage {
       {
         name: "Baby Products",
         icon: "fas fa-baby",
-        color: "from-pink-300 to-pink-500",
+        color: "#FBCFE8",
         description: "Baby Care & Products"
       },
       {
         name: "Pet Supplies",
         icon: "fas fa-paw",
-        color: "from-rose-400 to-rose-600",
+        color: "#FB7185",
         description: "Pet Care & Accessories"
       },
       {
         name: "Gifting & Occasions",
         icon: "fas fa-gift",
-        color: "from-red-400 to-red-600",
+        color: "#F87171",
         description: "Gifts & Special Occasions"
       }
     ];
