@@ -243,6 +243,67 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // Blog management routes
+  app.post('/api/admin/blog', async (req, res) => {
+    try {
+      const { password, ...blogPostData } = req.body;
+      
+      if (password !== 'pickntrust2025') {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const blogPost = await storage.addBlogPost(blogPostData);
+      res.json({ message: 'Blog post added successfully', blogPost });
+    } catch (error) {
+      console.error('Add blog post error:', error);
+      res.status(500).json({ message: 'Failed to add blog post' });
+    }
+  });
+
+  app.delete('/api/admin/blog/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (password !== 'pickntrust2025') {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteBlogPost(id);
+      
+      if (deleted) {
+        res.json({ message: 'Blog post deleted successfully' });
+      } else {
+        res.status(404).json({ message: 'Blog post not found' });
+      }
+    } catch (error) {
+      console.error('Delete blog post error:', error);
+      res.status(500).json({ message: 'Failed to delete blog post' });
+    }
+  });
+
+  app.put('/api/admin/blog/:id', async (req, res) => {
+    try {
+      const { password, ...updates } = req.body;
+      
+      if (password !== 'pickntrust2025') {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const blogPost = await storage.updateBlogPost(id, updates);
+      
+      if (blogPost) {
+        res.json({ message: 'Blog post updated successfully', blogPost });
+      } else {
+        res.status(404).json({ message: 'Blog post not found' });
+      }
+    } catch (error) {
+      console.error('Update blog post error:', error);
+      res.status(500).json({ message: 'Failed to update blog post' });
+    }
+  });
+
   // Helper functions
   function extractProductFromHtml(html: string, url: string): any {
     const domain = new URL(url).hostname.replace('www.', '');

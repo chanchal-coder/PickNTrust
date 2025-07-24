@@ -338,6 +338,10 @@ export default function AdminPage() {
     queryKey: ['/api/categories']
   });
 
+  const { data: blogPosts = [] } = useQuery({
+    queryKey: ['/api/blog']
+  });
+
   const addProductMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
       const productData = {

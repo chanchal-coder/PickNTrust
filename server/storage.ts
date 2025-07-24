@@ -42,6 +42,11 @@ export interface IStorage {
   addProduct(product: any): Promise<Product>;
   deleteProduct(id: number): Promise<boolean>;
   updateProduct(id: number, updates: Partial<Product>): Promise<Product | null>;
+  
+  // Blog Management
+  addBlogPost(blogPost: any): Promise<BlogPost>;
+  deleteBlogPost(id: number): Promise<boolean>;
+  updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null>;
 }
 
 export class MemStorage implements IStorage {
@@ -753,6 +758,37 @@ export class MemStorage implements IStorage {
 
     this.products.set(id, updatedProduct);
     return updatedProduct;
+  }
+
+  async addBlogPost(blogPostData: any): Promise<BlogPost> {
+    const id = this.currentBlogPostId++;
+    const blogPost: BlogPost = {
+      id,
+      title: blogPostData.title,
+      excerpt: blogPostData.excerpt,
+      imageUrl: blogPostData.imageUrl,
+      publishedAt: new Date(blogPostData.publishedAt || new Date()),
+      readTime: blogPostData.readTime,
+      slug: blogPostData.slug || blogPostData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    };
+    
+    this.blogPosts.set(id, blogPost);
+    return blogPost;
+  }
+
+  async deleteBlogPost(id: number): Promise<boolean> {
+    return this.blogPosts.delete(id);
+  }
+
+  async updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null> {
+    const blogPost = this.blogPosts.get(id);
+    if (!blogPost) {
+      return null;
+    }
+    
+    const updatedBlogPost = { ...blogPost, ...updates };
+    this.blogPosts.set(id, updatedBlogPost);
+    return updatedBlogPost;
   }
 }
 
