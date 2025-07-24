@@ -624,6 +624,7 @@ export class MemStorage implements IStorage {
         title: "This Week's Hottest Fashion Finds Under $50",
         excerpt: "Update your wardrobe without breaking the bank with these trending pieces...",
         imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250",
+        videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         publishedAt: new Date("2024-01-20"),
         readTime: "5 min read",
         slug: "hottest-fashion-finds-under-50"
@@ -767,6 +768,7 @@ export class MemStorage implements IStorage {
       title: blogPostData.title,
       excerpt: blogPostData.excerpt,
       imageUrl: blogPostData.imageUrl,
+      videoUrl: blogPostData.videoUrl || null,
       publishedAt: new Date(blogPostData.publishedAt || new Date()),
       readTime: blogPostData.readTime,
       slug: blogPostData.slug || blogPostData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')

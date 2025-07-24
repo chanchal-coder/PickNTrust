@@ -36,6 +36,7 @@ export const blogPosts = pgTable("blog_posts", {
   title: text("title").notNull(),
   excerpt: text("excerpt").notNull(),
   imageUrl: text("image_url").notNull(),
+  videoUrl: text("video_url"),
   publishedAt: timestamp("published_at").notNull(),
   readTime: text("read_time").notNull(),
   slug: text("slug").notNull(),

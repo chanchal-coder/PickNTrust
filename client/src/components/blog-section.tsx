@@ -53,11 +53,37 @@ export default function BlogSection() {
         <div className="grid md:grid-cols-3 gap-8">
           {blogPosts?.map((post) => (
             <article key={post.id} className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all overflow-hidden">
-              <img 
-                src={post.imageUrl} 
-                alt={post.title} 
-                className="w-full h-48 object-cover" 
-              />
+              <div className="w-full h-48 relative">
+                {post.videoUrl ? (
+                  <div className="w-full h-full">
+                    {post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={post.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allowFullScreen
+                        title={post.title}
+                      />
+                    ) : (
+                      <video 
+                        src={post.videoUrl} 
+                        className="w-full h-full object-cover"
+                        controls
+                        poster={post.imageUrl}
+                      />
+                    )}
+                    <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs">
+                      📹 Video
+                    </div>
+                  </div>
+                ) : (
+                  <img 
+                    src={post.imageUrl} 
+                    alt={post.title} 
+                    className="w-full h-full object-cover" 
+                  />
+                )}
+              </div>
               <div className="p-6">
                 <div className="flex items-center text-sm text-gray-500 mb-3">
                   <i className="far fa-calendar mr-2"></i>

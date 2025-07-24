@@ -317,6 +317,18 @@ export default function AdminPage() {
   const [extractedProduct, setExtractedProduct] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isEditingPreview, setIsEditingPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState('products');
+  const [showBlogForm, setShowBlogForm] = useState(false);
+  const [blogFormData, setBlogFormData] = useState({
+    title: '',
+    excerpt: '',
+    imageUrl: '',
+    videoUrl: '',
+    publishedAt: new Date().toISOString().split('T')[0],
+    readTime: '3 min read',
+    slug: ''
+  });
+  const [editingBlog, setEditingBlog] = useState<any>(null);
 
   // Check if admin session exists on page load
   useEffect(() => {
@@ -399,6 +411,67 @@ export default function AdminPage() {
         description: 'Failed to add product. Please try again.',
         variant: 'destructive',
       });
+    },
+  });
+
+  // Blog management mutations
+  const addBlogMutation = useMutation({
+    mutationFn: async (blogData: any) => {
+      const response = await fetch('/api/admin/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...blogData, password: 'pickntrust2025' }),
+      });
+      if (!response.ok) throw new Error('Failed to add blog post');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Blog Post Added!', description: 'Your blog post has been published successfully.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      setBlogFormData({ title: '', excerpt: '', imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '' });
+      setShowBlogForm(false);
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to add blog post. Please try again.', variant: 'destructive' });
+    },
+  });
+
+  const deleteBlogMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/admin/blog/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'pickntrust2025' }),
+      });
+      if (!response.ok) throw new Error('Failed to delete blog post');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Blog Post Deleted!', description: 'Blog post has been removed successfully.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete blog post. Please try again.', variant: 'destructive' });
+    },
+  });
+
+  const updateBlogMutation = useMutation({
+    mutationFn: async ({ id, ...blogData }: any) => {
+      const response = await fetch(`/api/admin/blog/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...blogData, password: 'pickntrust2025' }),
+      });
+      if (!response.ok) throw new Error('Failed to update blog post');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Blog Post Updated!', description: 'Blog post has been updated successfully.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      setEditingBlog(null);
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update blog post. Please try again.', variant: 'destructive' });
     },
   });
 
@@ -682,8 +755,37 @@ export default function AdminPage() {
             </Card>
           </div>
 
-          {/* Auto-Extract Section - Always Visible */}
-          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-blue-200 dark:border-blue-800">
+          {/* Admin Navigation Tabs */}
+          <div className="mb-8">
+            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-md">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  activeTab === 'products'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white'
+                }`}
+              >
+                Products
+              </button>
+              <button
+                onClick={() => setActiveTab('blog')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  activeTab === 'blog'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white'
+                }`}
+              >
+                Blog Posts
+              </button>
+            </div>
+          </div>
+
+          {/* Conditional Content Based on Active Tab */}
+          {activeTab === 'products' && (
+            <>
+              {/* Auto-Extract Section - Always Visible */}
+              <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-blue-200 dark:border-blue-800">
             <CardHeader>
               <CardTitle className="text-xl text-bright-blue">🚀 Auto-Extract Product Details</CardTitle>
               <CardDescription>
@@ -1349,6 +1451,227 @@ export default function AdminPage() {
               </div>
             </CardContent>
           </Card>
+          </>
+          )}
+
+          {/* Blog Management Tab */}
+          {activeTab === 'blog' && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-navy dark:text-blue-400">Blog Management</h2>
+                <Button 
+                  onClick={() => setShowBlogForm(true)}
+                  className="bg-bright-blue hover:bg-navy"
+                >
+                  Add New Blog Post
+                </Button>
+              </div>
+
+              {/* Blog Post Form */}
+              {showBlogForm && (
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-bright-blue">✍️ Create New Blog Post</CardTitle>
+                    <CardDescription>Add engaging content with video support to drive affiliate sales</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="blog-title">Blog Title *</Label>
+                      <Input
+                        id="blog-title"
+                        value={blogFormData.title}
+                        onChange={(e) => setBlogFormData({...blogFormData, title: e.target.value})}
+                        placeholder="10 Best Budget Smartphones Under ₹20,000"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="blog-excerpt">Excerpt *</Label>
+                      <Textarea
+                        id="blog-excerpt"
+                        value={blogFormData.excerpt}
+                        onChange={(e) => setBlogFormData({...blogFormData, excerpt: e.target.value})}
+                        placeholder="Short description that appears on the homepage..."
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="blog-image">Image URL</Label>
+                        <Input
+                          id="blog-image"
+                          value={blogFormData.imageUrl}
+                          onChange={(e) => setBlogFormData({...blogFormData, imageUrl: e.target.value})}
+                          placeholder="https://images.unsplash.com/photo-..."
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Use Unsplash.com for free high-quality images</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="blog-video">Video URL (Optional)</Label>
+                        <Input
+                          id="blog-video"
+                          value={blogFormData.videoUrl}
+                          onChange={(e) => setBlogFormData({...blogFormData, videoUrl: e.target.value})}
+                          placeholder="https://youtube.com/watch?v=... or any video URL"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">YouTube, Vimeo, or direct video links</p>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="blog-date">Publish Date</Label>
+                        <Input
+                          id="blog-date"
+                          type="date"
+                          value={blogFormData.publishedAt}
+                          onChange={(e) => setBlogFormData({...blogFormData, publishedAt: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="blog-readtime">Read Time</Label>
+                        <Input
+                          id="blog-readtime"
+                          value={blogFormData.readTime}
+                          onChange={(e) => setBlogFormData({...blogFormData, readTime: e.target.value})}
+                          placeholder="3 min read"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="blog-slug">URL Slug (Auto-generated)</Label>
+                      <Input
+                        id="blog-slug"
+                        value={blogFormData.slug || blogFormData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
+                        onChange={(e) => setBlogFormData({...blogFormData, slug: e.target.value})}
+                        placeholder="url-friendly-title"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => addBlogMutation.mutate(blogFormData)}
+                        disabled={!blogFormData.title || !blogFormData.excerpt || addBlogMutation.isPending}
+                        className="bg-accent-green hover:bg-green-600"
+                      >
+                        {addBlogMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowBlogForm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Blog Content Ideas */}
+              <Card className="mb-8 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
+                <CardHeader>
+                  <CardTitle className="text-xl text-purple-600 dark:text-purple-400">💡 Blog Content Ideas</CardTitle>
+                  <CardDescription>Proven topics that drive affiliate sales</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Shopping Tips & Guides</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• "10 Best Black Friday Deals Worth Waiting For"</li>
+                        <li>• "How to Spot Fake Reviews on Amazon"</li>
+                        <li>• "Secret Cashback Apps You Should Be Using"</li>
+                        <li>• "Budget vs Premium: When to Splurge"</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Product Reviews</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• "iPhone 15 vs iPhone 14: Which Should You Buy?"</li>
+                        <li>• "Best Budget Laptops Under ₹50,000"</li>
+                        <li>• "Top 5 Air Purifiers for Indian Homes"</li>
+                        <li>• "Wireless Earbuds: Premium vs Budget"</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Blog Posts List */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Current Blog Posts ({blogPosts.length})</h3>
+                
+                {blogPosts.length === 0 ? (
+                  <Card>
+                    <CardContent className="text-center py-8">
+                      <p className="text-gray-500 dark:text-gray-400">No blog posts yet. Create your first one!</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-4">
+                    {blogPosts.map((post: any) => (
+                      <Card key={post.id} className="p-4">
+                        <div className="flex gap-4">
+                          <img 
+                            src={post.imageUrl} 
+                            alt={post.title}
+                            className="w-24 h-24 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg text-navy dark:text-blue-400">{post.title}</h4>
+                            <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">{post.excerpt}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+                              <span>{post.readTime}</span>
+                              {post.videoUrl && (
+                                <span className="flex items-center gap-1">
+                                  <span>📹</span> Video Included
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setEditingBlog(post);
+                                setBlogFormData({
+                                  title: post.title,
+                                  excerpt: post.excerpt,
+                                  imageUrl: post.imageUrl,
+                                  videoUrl: post.videoUrl || '',
+                                  publishedAt: new Date(post.publishedAt).toISOString().split('T')[0],
+                                  readTime: post.readTime,
+                                  slug: post.slug
+                                });
+                                setShowBlogForm(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm('Delete this blog post?')) {
+                                  deleteBlogMutation.mutate(post.id);
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
