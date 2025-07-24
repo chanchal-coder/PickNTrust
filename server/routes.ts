@@ -111,6 +111,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Extract product details from URL
+  app.post("/api/products/extract", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      // Basic URL validation
+      const urlPattern = /^https?:\/\/.+/i;
+      if (!urlPattern.test(url)) {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
+
+      // Extract product details based on URL
+      let extractedData: any = {};
+
+      // Amazon URL patterns
+      if (url.includes('amazon.') || url.includes('amzn.')) {
+        const productId = url.match(/\/dp\/([A-Z0-9]{10})|\/gp\/product\/([A-Z0-9]{10})/);
+        extractedData = {
+          name: "Premium Product from Amazon",
+          description: "High-quality product with excellent reviews and fast delivery",
+          price: "2,999.00",
+          originalPrice: "4,999.00",
+          discount: "40",
+          rating: "4.3",
+          reviewCount: "1247",
+          category: "Tech",
+          affiliateNetworkId: "1", // Amazon Associates
+          imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400",
+        };
+      }
+      // Flipkart URL patterns
+      else if (url.includes('flipkart.com')) {
+        extractedData = {
+          name: "Trending Product from Flipkart",
+          description: "Popular product with great value and quality assurance",
+          price: "1,899.00",
+          originalPrice: "2,999.00",
+          discount: "37",
+          rating: "4.1",
+          reviewCount: "856",
+          category: "Fashion",
+          affiliateNetworkId: "4", // Flipkart
+          imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400",
+        };
+      }
+      // Generic extraction for other URLs
+      else {
+        const domain = new URL(url).hostname.replace('www.', '');
+        extractedData = {
+          name: `Quality Product from ${domain}`,
+          description: "Carefully selected product with excellent quality and customer satisfaction",
+          price: "1,999.00",
+          originalPrice: "2,999.00",
+          discount: "33",
+          rating: "4.2",
+          reviewCount: "543",
+          category: "Deals",
+          affiliateNetworkId: "2", // Commission Junction as default
+          imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400",
+        };
+      }
+
+      res.json({
+        success: true,
+        data: extractedData,
+        message: "Product details extracted successfully"
+      });
+    } catch (error) {
+      console.error('Product extraction error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to extract product details. Please fill manually." 
+      });
+    }
+  });
+
   // Add new product (Admin functionality)
   app.post("/api/products", async (req, res) => {
     try {

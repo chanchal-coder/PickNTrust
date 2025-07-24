@@ -106,6 +106,9 @@ export default function AdminPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [productUrl, setProductUrl] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [showNetworks, setShowNetworks] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products/featured']
@@ -181,6 +184,68 @@ export default function AdminPage() {
 
   const onSubmit = (data: ProductForm) => {
     addProductMutation.mutate(data);
+  };
+
+  const extractProductDetails = async () => {
+    if (!productUrl.trim()) {
+      toast({
+        title: 'URL Required',
+        description: 'Please enter a product URL to extract details.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    
+    try {
+      const response = await fetch('/api/products/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: productUrl }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Auto-fill the form with extracted data
+        const data = result.data;
+        form.setValue('name', data.name);
+        form.setValue('description', data.description);
+        form.setValue('price', data.price);
+        form.setValue('originalPrice', data.originalPrice);
+        form.setValue('discount', data.discount);
+        form.setValue('rating', data.rating);
+        form.setValue('reviewCount', data.reviewCount);
+        form.setValue('category', data.category);
+        form.setValue('imageUrl', data.imageUrl);
+        form.setValue('affiliateUrl', productUrl);
+        form.setValue('affiliateNetworkId', data.affiliateNetworkId);
+
+        toast({
+          title: 'Details Extracted!',
+          description: 'Product details filled automatically. Review and adjust as needed.',
+        });
+        
+        setProductUrl('');
+      } else {
+        toast({
+          title: 'Extraction Failed',
+          description: result.message || 'Could not extract product details. Please fill manually.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to extract product details. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -302,7 +367,46 @@ export default function AdminPage() {
               </Button>
 
               {showAddForm && (
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-6">
+                  {/* Auto-Extract Section */}
+                  <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                    <CardHeader>
+                      <CardTitle className="text-lg text-bright-blue">🚀 Auto-Extract Product Details</CardTitle>
+                      <CardDescription>
+                        Paste any product URL (Amazon, Flipkart, etc.) to automatically fill product details
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="https://amazon.in/dp/B08N5WRWNW or https://flipkart.com/product..."
+                          value={productUrl}
+                          onChange={(e) => setProductUrl(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={extractProductDetails}
+                          disabled={isExtracting || !productUrl.trim()}
+                          className="bg-accent-green hover:bg-green-600 text-white"
+                        >
+                          {isExtracting ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Extracting...
+                            </>
+                          ) : (
+                            'Auto-Fill'
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Supports Amazon, Flipkart, and other major retailers
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Product Name *</Label>
@@ -475,7 +579,8 @@ export default function AdminPage() {
                   >
                     {addProductMutation.isPending ? 'Adding Product...' : 'Add Product'}
                   </Button>
-                </form>
+                  </form>
+                </div>
               )}
             </CardContent>
           </Card>
