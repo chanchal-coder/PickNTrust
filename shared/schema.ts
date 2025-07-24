@@ -2,6 +2,18 @@ import { pgTable, text, serial, integer, boolean, decimal, timestamp } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const affiliateNetworks = pgTable("affiliate_networks", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description").notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).notNull(), // percentage
+  trackingParams: text("tracking_params"), // URL parameters for tracking
+  logoUrl: text("logo_url"),
+  isActive: boolean("is_active").default(true),
+  joinUrl: text("join_url"), // URL to join the network
+});
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -10,6 +22,7 @@ export const products = pgTable("products", {
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   imageUrl: text("image_url").notNull(),
   affiliateUrl: text("affiliate_url").notNull(),
+  affiliateNetworkId: integer("affiliate_network_id").references(() => affiliateNetworks.id),
   category: text("category").notNull(),
   rating: decimal("rating", { precision: 2, scale: 1 }).notNull(),
   reviewCount: integer("review_count").notNull(),
@@ -59,6 +72,10 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
   id: true,
 });
 
+export const insertAffiliateNetworkSchema = createInsertSchema(affiliateNetworks).omit({
+  id: true,
+});
+
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
@@ -67,3 +84,5 @@ export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type AffiliateNetwork = typeof affiliateNetworks.$inferSelect;
+export type InsertAffiliateNetwork = z.infer<typeof insertAffiliateNetworkSchema>;

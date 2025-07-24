@@ -45,6 +45,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all affiliate networks
+  app.get("/api/affiliate-networks", async (req, res) => {
+    try {
+      const networks = await storage.getAffiliateNetworks();
+      res.json(networks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch affiliate networks" });
+    }
+  });
+
+  // Get active affiliate networks
+  app.get("/api/affiliate-networks/active", async (req, res) => {
+    try {
+      const networks = await storage.getActiveAffiliateNetworks();
+      res.json(networks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active affiliate networks" });
+    }
+  });
+
   // Get blog posts
   app.get("/api/blog", async (req, res) => {
     try {

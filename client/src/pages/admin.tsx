@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
@@ -20,6 +21,7 @@ const productSchema = z.object({
   originalPrice: z.string().optional(),
   imageUrl: z.string().url('Must be a valid URL'),
   affiliateUrl: z.string().url('Must be a valid URL'),
+  affiliateNetworkId: z.string().optional(),
   category: z.enum(['Tech', 'Home', 'Beauty', 'Fashion', 'Deals']),
   rating: z.string().min(1, 'Rating is required'),
   reviewCount: z.string().min(1, 'Review count is required'),
@@ -29,6 +31,74 @@ const productSchema = z.object({
 });
 
 type ProductForm = z.infer<typeof productSchema>;
+
+// Affiliate Network Manager Component
+function AffiliateNetworkManager() {
+  const { data: networks = [], isLoading } = useQuery({
+    queryKey: ['/api/affiliate-networks']
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading networks...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {(networks as any[]).map((network: any) => (
+          <div key={network.id} className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-navy dark:text-blue-400">{network.name}</h4>
+              <Badge variant={network.isActive ? "default" : "secondary"}>
+                {network.isActive ? "Active" : "Inactive"}
+              </Badge>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-300">{network.description}</p>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Commission Rate:</span>
+                <span className="font-medium text-green-600">{network.commissionRate}%</span>
+              </div>
+              
+              {network.trackingParams && (
+                <div className="flex justify-between">
+                  <span>Tracking:</span>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                    {network.trackingParams}
+                  </code>
+                </div>
+              )}
+            </div>
+
+            {network.joinUrl && (
+              <a 
+                href={network.joinUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-bright-blue hover:underline"
+              >
+                Join Network →
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Network Integration Tips</h4>
+        <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+          <li>• Apply for networks with highest commission rates first</li>
+          <li>• Use proper tracking parameters in all affiliate links</li>
+          <li>• Test links regularly to ensure they work properly</li>
+          <li>• Monitor performance and focus on best-converting networks</li>
+          <li>• Diversify across multiple networks to maximize revenue</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -41,6 +111,10 @@ export default function AdminPage() {
     queryKey: ['/api/products/featured']
   });
 
+  const { data: affiliateNetworks = [] } = useQuery({
+    queryKey: ['/api/affiliate-networks']
+  });
+
   const addProductMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
       const productData = {
@@ -50,6 +124,7 @@ export default function AdminPage() {
         rating: parseFloat(data.rating),
         reviewCount: parseInt(data.reviewCount),
         discount: data.discount ? parseInt(data.discount) : undefined,
+        affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
         isNew: data.isNew || false,
         isFeatured: data.isFeatured || false,
       };
@@ -186,7 +261,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-navy dark:text-blue-400">
-                  {products.length}
+                  {(products as any[]).length}
                 </p>
               </CardContent>
             </Card>
@@ -196,7 +271,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-accent-green">
-                  {products.filter((p: any) => p.isFeatured).length}
+                  {(products as any[]).filter((p: any) => p.isFeatured).length}
                 </p>
               </CardContent>
             </Card>
@@ -340,17 +415,37 @@ export default function AdminPage() {
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="affiliateUrl">Affiliate Link *</Label>
-                    <Input
-                      id="affiliateUrl"
-                      {...form.register('affiliateUrl')}
-                      placeholder="https://amzn.to/XXXXXXX"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Your affiliate tracking link from Amazon, Flipkart, etc.
-                    </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="affiliateUrl">Affiliate Link *</Label>
+                      <Input
+                        id="affiliateUrl"
+                        {...form.register('affiliateUrl')}
+                        placeholder="https://amzn.to/XXXXXXX"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="affiliateNetworkId">Affiliate Network</Label>
+                      <Select 
+                        onValueChange={(value) => form.setValue('affiliateNetworkId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select network" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(affiliateNetworks as any[]).map((network: any) => (
+                            <SelectItem key={network.id} value={network.id.toString()}>
+                              {network.name} ({network.commissionRate}%)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Select the affiliate network and enter your tracking link
+                  </p>
 
                   <div className="flex gap-4">
                     <label className="flex items-center space-x-2">
@@ -467,6 +562,17 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Affiliate Networks Management */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Affiliate Networks</CardTitle>
+              <CardDescription>Manage your affiliate partnerships and commission rates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AffiliateNetworkManager />
+            </CardContent>
+          </Card>
 
           {/* Quick Guide */}
           <Card>

@@ -3,6 +3,7 @@ import {
   blogPosts, 
   newsletterSubscribers, 
   categories,
+  affiliateNetworks,
   type Product, 
   type InsertProduct,
   type BlogPost,
@@ -10,7 +11,9 @@ import {
   type NewsletterSubscriber,
   type InsertNewsletterSubscriber,
   type Category,
-  type InsertCategory
+  type InsertCategory,
+  type AffiliateNetwork,
+  type InsertAffiliateNetwork
 } from "@shared/schema";
 
 export interface IStorage {
@@ -29,6 +32,12 @@ export interface IStorage {
   // Newsletter
   subscribeToNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
   
+  // Affiliate Networks
+  getAffiliateNetworks(): Promise<AffiliateNetwork[]>;
+  getActiveAffiliateNetworks(): Promise<AffiliateNetwork[]>;
+  addAffiliateNetwork(network: InsertAffiliateNetwork): Promise<AffiliateNetwork>;
+  updateAffiliateNetwork(id: number, network: Partial<AffiliateNetwork>): Promise<AffiliateNetwork>;
+  
   // Admin
   addProduct(product: any): Promise<Product>;
 }
@@ -38,25 +47,105 @@ export class MemStorage implements IStorage {
   private blogPosts: Map<number, BlogPost>;
   private newsletterSubscribers: Map<number, NewsletterSubscriber>;
   private categories: Map<number, Category>;
+  private affiliateNetworks: Map<number, AffiliateNetwork>;
   private currentProductId: number;
   private currentBlogPostId: number;
   private currentSubscriberId: number;
   private currentCategoryId: number;
+  private currentNetworkId: number;
 
   constructor() {
     this.products = new Map();
     this.blogPosts = new Map();
     this.newsletterSubscribers = new Map();
     this.categories = new Map();
+    this.affiliateNetworks = new Map();
     this.currentProductId = 1;
     this.currentBlogPostId = 1;
     this.currentSubscriberId = 1;
     this.currentCategoryId = 1;
+    this.currentNetworkId = 1;
     
     this.seedData();
   }
 
   private seedData() {
+    // Seed affiliate networks
+    const networksData: InsertAffiliateNetwork[] = [
+      {
+        name: "Amazon Associates",
+        slug: "amazon",
+        description: "World's largest e-commerce affiliate program",
+        commissionRate: "4.00",
+        trackingParams: "tag=pickntrust-21",
+        logoUrl: "https://logo.clearbit.com/amazon.com",
+        joinUrl: "https://affiliate-program.amazon.com/",
+        isActive: true
+      },
+      {
+        name: "Commission Junction (CJ)",
+        slug: "cj",
+        description: "Global affiliate marketing network",
+        commissionRate: "8.00",
+        trackingParams: "sid=pickntrust",
+        logoUrl: "https://logo.clearbit.com/cj.com",
+        joinUrl: "https://www.cj.com/",
+        isActive: true
+      },
+      {
+        name: "ShareASale",
+        slug: "shareasale",
+        description: "Performance marketing network",
+        commissionRate: "6.50",
+        trackingParams: "afftrack=pickntrust",
+        logoUrl: "https://logo.clearbit.com/shareasale.com",
+        joinUrl: "https://www.shareasale.com/",
+        isActive: true
+      },
+      {
+        name: "Flipkart Affiliate",
+        slug: "flipkart",
+        description: "India's leading e-commerce affiliate program",
+        commissionRate: "5.00",
+        trackingParams: "affid=pickntrust",
+        logoUrl: "https://logo.clearbit.com/flipkart.com",
+        joinUrl: "https://affiliate.flipkart.com/",
+        isActive: true
+      },
+      {
+        name: "ClickBank",
+        slug: "clickbank",
+        description: "Digital products affiliate marketplace",
+        commissionRate: "15.00",
+        trackingParams: "hop=pickntrust",
+        logoUrl: "https://logo.clearbit.com/clickbank.com",
+        joinUrl: "https://www.clickbank.com/",
+        isActive: true
+      },
+      {
+        name: "Impact",
+        slug: "impact",
+        description: "Enterprise affiliate marketing platform",
+        commissionRate: "7.00",
+        trackingParams: "subid=pickntrust",
+        logoUrl: "https://logo.clearbit.com/impact.com",
+        joinUrl: "https://impact.com/",
+        isActive: true
+      }
+    ];
+
+    networksData.forEach(network => {
+      const id = this.currentNetworkId++;
+      this.affiliateNetworks.set(id, { 
+        ...network, 
+        id,
+        trackingParams: network.trackingParams || null,
+        logoUrl: network.logoUrl || null,
+        joinUrl: network.joinUrl || null,
+        isActive: network.isActive ?? true
+      });
+    });
+
     // Seed categories
     const categoriesData: InsertCategory[] = [
       {
@@ -104,7 +193,8 @@ export class MemStorage implements IStorage {
         price: "49,999.00",
         originalPrice: "66,599.00",
         imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        affiliateUrl: "https://example.com/affiliate/smartphone",
+        affiliateUrl: "https://amazon.in/dp/B08N5WRWNW?tag=pickntrust-21",
+        affiliateNetworkId: 1, // Amazon
         category: "Tech",
         rating: "5.0",
         reviewCount: 1234,
@@ -117,7 +207,8 @@ export class MemStorage implements IStorage {
         price: "24,999.00",
         originalPrice: "41,599.00",
         imageUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        affiliateUrl: "https://example.com/affiliate/kitchen-set",
+        affiliateUrl: "https://www.flipkart.com/kitchen-appliances?affid=pickntrust",
+        affiliateNetworkId: 4, // Flipkart
         category: "Home",
         rating: "4.0",
         reviewCount: 856,
@@ -302,7 +393,15 @@ export class MemStorage implements IStorage {
 
     productsData.forEach(product => {
       const id = this.currentProductId++;
-      this.products.set(id, { ...product, id });
+      this.products.set(id, { 
+        ...product, 
+        id,
+        originalPrice: product.originalPrice || null,
+        affiliateNetworkId: product.affiliateNetworkId || null,
+        discount: product.discount || null,
+        isNew: product.isNew ?? false,
+        isFeatured: product.isFeatured ?? false
+      });
     });
 
     // Seed blog posts
@@ -383,6 +482,40 @@ export class MemStorage implements IStorage {
     
     this.newsletterSubscribers.set(id, subscriber);
     return subscriber;
+  }
+
+  async getAffiliateNetworks(): Promise<AffiliateNetwork[]> {
+    return Array.from(this.affiliateNetworks.values());
+  }
+
+  async getActiveAffiliateNetworks(): Promise<AffiliateNetwork[]> {
+    return Array.from(this.affiliateNetworks.values()).filter(network => network.isActive);
+  }
+
+  async addAffiliateNetwork(networkData: InsertAffiliateNetwork): Promise<AffiliateNetwork> {
+    const id = this.currentNetworkId++;
+    const network: AffiliateNetwork = {
+      ...networkData,
+      id,
+      trackingParams: networkData.trackingParams || null,
+      logoUrl: networkData.logoUrl || null,
+      joinUrl: networkData.joinUrl || null,
+      isActive: networkData.isActive ?? true
+    };
+    
+    this.affiliateNetworks.set(id, network);
+    return network;
+  }
+
+  async updateAffiliateNetwork(id: number, updateData: Partial<AffiliateNetwork>): Promise<AffiliateNetwork> {
+    const existingNetwork = this.affiliateNetworks.get(id);
+    if (!existingNetwork) {
+      throw new Error("Affiliate network not found");
+    }
+
+    const updatedNetwork = { ...existingNetwork, ...updateData };
+    this.affiliateNetworks.set(id, updatedNetwork);
+    return updatedNetwork;
   }
 
   async addProduct(productData: any): Promise<Product> {
