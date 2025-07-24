@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Home from "@/pages/home";
 import CategoryPage from "@/pages/category";
 import AdminPage from "@/pages/admin";
+import AffiliateTrackerPage from "@/pages/affiliate-tracker";
 import PrivacyPolicyPage from "@/pages/privacy-policy";
 import TermsOfServicePage from "@/pages/terms-of-service";
 import NotFound from "@/pages/not-found";
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/category/:category" component={CategoryPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/affiliate-tracker" component={AffiliateTrackerPage} />
       <Route path="/privacy-policy" component={PrivacyPolicyPage} />
       <Route path="/terms-of-service" component={TermsOfServicePage} />
       <Route component={NotFound} />
