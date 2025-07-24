@@ -350,12 +350,61 @@ export default function AdminPage() {
             </Card>
           </div>
 
-          {/* Add Product Section */}
+          {/* Auto-Extract Section - Always Visible */}
+          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="text-xl text-bright-blue">🚀 Auto-Extract Product Details</CardTitle>
+              <CardDescription>
+                Paste any product URL (Amazon, Flipkart, etc.) to automatically extract and add products
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="Paste product URL here: https://amazon.in/dp/B08N5WRWNW or https://flipkart.com/product..."
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  className="flex-1 text-sm"
+                />
+                <Button
+                  type="button"
+                  onClick={extractProductDetails}
+                  disabled={isExtracting || !productUrl.trim()}
+                  className="bg-accent-green hover:bg-green-600 text-white px-6"
+                >
+                  {isExtracting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Extracting...
+                    </>
+                  ) : (
+                    'Auto-Fill & Add'
+                  )}
+                </Button>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4 text-xs text-gray-600 dark:text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  Amazon Products
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                  Flipkart Products  
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  Other Retailers
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Manual Add Product Section */}
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="text-navy dark:text-blue-400">Daily Product Management</CardTitle>
+              <CardTitle className="text-navy dark:text-blue-400">Manual Product Management</CardTitle>
               <CardDescription>
-                Add new products, update affiliate links, and manage your inventory
+                Add products manually or edit auto-extracted details
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -363,48 +412,11 @@ export default function AdminPage() {
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="bg-bright-blue hover:bg-navy text-white mb-4"
               >
-                {showAddForm ? 'Cancel' : 'Add New Product'}
+                {showAddForm ? 'Cancel Manual Entry' : 'Add Product Manually'}
               </Button>
 
               {showAddForm && (
                 <div className="space-y-6">
-                  {/* Auto-Extract Section */}
-                  <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                    <CardHeader>
-                      <CardTitle className="text-lg text-bright-blue">🚀 Auto-Extract Product Details</CardTitle>
-                      <CardDescription>
-                        Paste any product URL (Amazon, Flipkart, etc.) to automatically fill product details
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="https://amazon.in/dp/B08N5WRWNW or https://flipkart.com/product..."
-                          value={productUrl}
-                          onChange={(e) => setProductUrl(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          onClick={extractProductDetails}
-                          disabled={isExtracting || !productUrl.trim()}
-                          className="bg-accent-green hover:bg-green-600 text-white"
-                        >
-                          {isExtracting ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Extracting...
-                            </>
-                          ) : (
-                            'Auto-Fill'
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Supports Amazon, Flipkart, and other major retailers
-                      </p>
-                    </CardContent>
-                  </Card>
 
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
