@@ -152,7 +152,21 @@ export default function AdminPage() {
         description: 'New product has been added successfully.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
-      form.reset();
+      // Reset form to default values instead of clearing
+      form.reset({
+        name: '',
+        description: '',
+        price: '',
+        originalPrice: '',
+        imageUrl: '',
+        affiliateUrl: '',
+        category: 'Tech',
+        rating: '4.5',
+        reviewCount: '100',
+        discount: '',
+        isNew: false,
+        isFeatured: true,
+      });
       setShowAddForm(false);
     },
     onError: () => {
@@ -186,7 +200,7 @@ export default function AdminPage() {
     addProductMutation.mutate(data);
   };
 
-  const extractProductDetails = async () => {
+  const extractAndAddProduct = async () => {
     if (!productUrl.trim()) {
       toast({
         title: 'URL Required',
@@ -199,7 +213,8 @@ export default function AdminPage() {
     setIsExtracting(true);
     
     try {
-      const response = await fetch('/api/products/extract', {
+      // Step 1: Extract product details
+      const extractResponse = await fetch('/api/products/extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -207,40 +222,61 @@ export default function AdminPage() {
         body: JSON.stringify({ url: productUrl }),
       });
 
-      const result = await response.json();
+      const extractResult = await extractResponse.json();
 
-      if (result.success && result.data) {
-        // Auto-fill the form with extracted data
-        const data = result.data;
-        form.setValue('name', data.name);
-        form.setValue('description', data.description);
-        form.setValue('price', data.price);
-        form.setValue('originalPrice', data.originalPrice);
-        form.setValue('discount', data.discount);
-        form.setValue('rating', data.rating);
-        form.setValue('reviewCount', data.reviewCount);
-        form.setValue('category', data.category);
-        form.setValue('imageUrl', data.imageUrl);
-        form.setValue('affiliateUrl', productUrl);
-        form.setValue('affiliateNetworkId', data.affiliateNetworkId);
-
-        toast({
-          title: 'Details Extracted!',
-          description: 'Product details filled automatically. Review and adjust as needed.',
-        });
+      if (extractResult.success && extractResult.data) {
+        const data = extractResult.data;
         
-        setProductUrl('');
+        // Step 2: Immediately add the product
+        const productData = {
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          originalPrice: data.originalPrice || undefined,
+          rating: parseFloat(data.rating),
+          reviewCount: parseInt(data.reviewCount),
+          discount: data.discount ? parseInt(data.discount) : undefined,
+          category: data.category,
+          imageUrl: data.imageUrl,
+          affiliateUrl: productUrl,
+          affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
+          isNew: false,
+          isFeatured: true,
+        };
+
+        const addResponse = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(productData),
+        });
+
+        if (addResponse.ok) {
+          toast({
+            title: 'Product Added Successfully!',
+            description: `"${data.name}" has been extracted and added to your catalog.`,
+          });
+          
+          // Refresh the products list
+          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+          
+          // Clear the URL input
+          setProductUrl('');
+        } else {
+          throw new Error('Failed to add extracted product');
+        }
       } else {
         toast({
           title: 'Extraction Failed',
-          description: result.message || 'Could not extract product details. Please fill manually.',
+          description: extractResult.message || 'Could not extract product details from this URL.',
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to extract product details. Please try again.',
+        description: 'Failed to extract and add product. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -368,17 +404,17 @@ export default function AdminPage() {
                 />
                 <Button
                   type="button"
-                  onClick={extractProductDetails}
+                  onClick={extractAndAddProduct}
                   disabled={isExtracting || !productUrl.trim()}
                   className="bg-accent-green hover:bg-green-600 text-white px-6"
                 >
                   {isExtracting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Extracting...
+                      Adding Product...
                     </>
                   ) : (
-                    'Auto-Fill & Add'
+                    'Extract & Add Product'
                   )}
                 </Button>
               </div>
