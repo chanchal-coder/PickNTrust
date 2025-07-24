@@ -587,11 +587,19 @@ export default function AdminPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Tech">Tech</SelectItem>
-                          <SelectItem value="Home">Home</SelectItem>
-                          <SelectItem value="Beauty">Beauty</SelectItem>
-                          <SelectItem value="Fashion">Fashion</SelectItem>
-                          <SelectItem value="Deals">Deals</SelectItem>
+                          <SelectItem value="Tech">Tech - Gadgets & More</SelectItem>
+                          <SelectItem value="Home">Home - Living & Decor</SelectItem>
+                          <SelectItem value="Beauty">Beauty - Skincare & Makeup</SelectItem>
+                          <SelectItem value="Fashion">Fashion - Style & Trends</SelectItem>
+                          <SelectItem value="Fitness">Fitness - Health & Workout</SelectItem>
+                          <SelectItem value="Books">Books - Learning & Stories</SelectItem>
+                          <SelectItem value="Kitchen">Kitchen - Cooking Essentials</SelectItem>
+                          <SelectItem value="Gaming">Gaming - Gaming Gear</SelectItem>
+                          <SelectItem value="Travel">Travel - Adventure Gear</SelectItem>
+                          <SelectItem value="Baby">Baby - Baby & Kids</SelectItem>
+                          <SelectItem value="Pets">Pets - Pet Care</SelectItem>
+                          <SelectItem value="Automotive">Automotive - Car Accessories</SelectItem>
+                          <SelectItem value="Deals">Deals - Limited Time!</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
