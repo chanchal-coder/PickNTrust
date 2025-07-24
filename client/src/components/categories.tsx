@@ -1,11 +1,63 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useState, useEffect } from "react";
 import type { Category } from "@shared/schema";
+import { useToast } from '@/hooks/use-toast';
 
 export default function Categories() {
   const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', icon: '', color: '' });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Check admin status
+  useEffect(() => {
+    const adminSession = localStorage.getItem('pickntrust-admin-session');
+    setIsAdmin(adminSession === 'active');
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        setIsAdmin(e.newValue === 'active');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Add category mutation
+  const addCategoryMutation = useMutation({
+    mutationFn: async (category: any) => {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(category),
+      });
+      if (!response.ok) throw new Error('Failed to add category');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Category Added!', description: 'New category created successfully.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      setShowAddForm(false);
+      setNewCategory({ name: '', description: '', icon: '', color: '' });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to add category.', variant: 'destructive' });
+    },
+  });
+
+  const handleAddCategory = () => {
+    if (!newCategory.name.trim()) {
+      toast({ title: 'Name Required', description: 'Please enter a category name.', variant: 'destructive' });
+      return;
+    }
+    addCategoryMutation.mutate(newCategory);
+  };
 
   if (isLoading) {
     return (
@@ -25,7 +77,82 @@ export default function Categories() {
   return (
     <section className="py-12 bg-white dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 className="text-3xl font-bold text-center text-navy dark:text-blue-400 mb-8">Shop by Category</h3>
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="text-3xl font-bold text-navy dark:text-blue-400">Shop by Category</h3>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-semibold"
+            >
+              + Add Category
+            </button>
+          )}
+        </div>
+
+        {/* Add Category Form - Admin Only */}
+        {isAdmin && showAddForm && (
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-8">
+            <h4 className="text-lg font-semibold text-navy dark:text-blue-400 mb-4">Add New Category</h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category Name</label>
+                <input
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  placeholder="e.g., Sports"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <input
+                  type="text"
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  placeholder="Brief description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Icon (FontAwesome class)</label>
+                <input
+                  type="text"
+                  value={newCategory.icon}
+                  onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  placeholder="e.g., fas fa-dumbbell"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color (Tailwind classes)</label>
+                <input
+                  type="text"
+                  value={newCategory.color}
+                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  placeholder="e.g., from-blue-500 to-purple-600"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleAddCategory}
+                disabled={addCategoryMutation.isPending}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+              >
+                {addCategoryMutation.isPending ? 'Adding...' : 'Add Category'}
+              </button>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {categories?.map((category) => (
             <Link 

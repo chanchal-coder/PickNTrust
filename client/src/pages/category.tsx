@@ -252,11 +252,19 @@ export default function CategoryPage() {
               <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm">
                 {products?.length || 0} Products Available
               </span>
-              {/* Admin indicator - only visible when admin is active */}
+              {/* Admin indicator and quick add button */}
               {isAdmin && (
-                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
-                  ADMIN MODE
-                </span>
+                <>
+                  <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
+                    ADMIN MODE
+                  </span>
+                  <button
+                    onClick={() => window.open('/admin', '_blank')}
+                    className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold hover:bg-blue-600 transition-colors"
+                  >
+                    + Add Product
+                  </button>
+                </>
               )}
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_1753298844179.png";
@@ -6,6 +6,22 @@ import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_175329884
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location] = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    const adminSession = localStorage.getItem('pickntrust-admin-session');
+    setIsAdmin(adminSession === 'active');
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        setIsAdmin(e.newValue === 'active');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -37,7 +53,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex space-x-8 items-center">
             <Link 
               href="/category/Tech" 
               className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium"
@@ -68,7 +84,16 @@ export default function Header() {
             >
               🔥 Deals
             </Link>
-
+            
+            {/* Admin Dashboard Link - Only visible when logged in */}
+            {isAdmin && (
+              <Link 
+                href="/admin" 
+                className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-red-600 transition-colors animate-pulse"
+              >
+                ⚙️ Admin
+              </Link>
+            )}
           </nav>
 
           {/* Theme Toggle and Mobile Menu */}

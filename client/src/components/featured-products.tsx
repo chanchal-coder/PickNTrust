@@ -1,11 +1,65 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Product } from "@shared/schema";
+import { useToast } from '@/hooks/use-toast';
 
 export default function FeaturedProducts() {
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products/featured'],
   });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+  const { toast } = useToast();
+
+  // Check admin status
+  useEffect(() => {
+    const adminSession = localStorage.getItem('pickntrust-admin-session');
+    setIsAdmin(adminSession === 'active');
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        setIsAdmin(e.newValue === 'active');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const handleShare = (platform: string, product: Product) => {
+    const productUrl = `${window.location.origin}`;
+    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
+        break;
+      case 'instagram':
+        const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
+        navigator.clipboard.writeText(instagramText + '\n\n' + productUrl);
+        window.open('https://www.instagram.com/', '_blank');
+        toast({
+          title: 'Instagram Ready!',
+          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
+        });
+        return;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
+    setShowShareMenu(prev => ({...prev, [product.id]: false}));
+  };
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
@@ -88,11 +142,58 @@ export default function FeaturedProducts() {
               key={product.id}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
             >
-              <img 
-                src={product.imageUrl} 
-                alt={product.name} 
-                className="w-full h-48 object-cover" 
-              />
+              <div className="relative">
+                <img 
+                  src={product.imageUrl} 
+                  alt={product.name} 
+                  className="w-full h-48 object-cover" 
+                />
+                {isAdmin && (
+                  <div className="absolute top-2 right-2">
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
+                        className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-2 shadow-md"
+                      >
+                        <i className="fas fa-share text-blue-600"></i>
+                      </button>
+                      
+                      {showShareMenu[product.id] && (
+                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                          <button
+                            onClick={() => handleShare('facebook', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left"
+                          >
+                            <i className="fab fa-facebook text-blue-600"></i>
+                            Facebook
+                          </button>
+                          <button
+                            onClick={() => handleShare('twitter', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left"
+                          >
+                            <i className="fab fa-twitter text-blue-400"></i>
+                            Twitter
+                          </button>
+                          <button
+                            onClick={() => handleShare('whatsapp', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left"
+                          >
+                            <i className="fab fa-whatsapp text-green-600"></i>
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={() => handleShare('instagram', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left"
+                          >
+                            <i className="fab fa-instagram text-purple-600"></i>
+                            Instagram
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   {product.discount ? (
