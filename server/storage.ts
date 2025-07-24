@@ -40,6 +40,8 @@ export interface IStorage {
   
   // Admin
   addProduct(product: any): Promise<Product>;
+  deleteProduct(id: number): Promise<boolean>;
+  updateProduct(id: number, updates: Partial<Product>): Promise<Product | null>;
 }
 
 export class MemStorage implements IStorage {
@@ -580,6 +582,26 @@ export class MemStorage implements IStorage {
     
     this.products.set(id, product);
     return product;
+  }
+
+  async deleteProduct(id: number): Promise<boolean> {
+    return this.products.delete(id);
+  }
+
+  async updateProduct(id: number, updates: Partial<Product>): Promise<Product | null> {
+    const existingProduct = this.products.get(id);
+    if (!existingProduct) {
+      return null;
+    }
+
+    const updatedProduct: Product = {
+      ...existingProduct,
+      ...updates,
+      id // Ensure ID doesn't change
+    };
+
+    this.products.set(id, updatedProduct);
+    return updatedProduct;
   }
 }
 

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
+import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -31,6 +32,202 @@ const productSchema = z.object({
 });
 
 type ProductForm = z.infer<typeof productSchema>;
+
+// Product Management Card Component
+function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, onUpdate: () => void, onDelete: () => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const { toast } = useToast();
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Product Deleted!',
+        description: 'Product has been removed successfully.',
+      });
+      onDelete();
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete product. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to delete this product?')) {
+      deleteProductMutation.mutate(product.id);
+    }
+  };
+
+  const handleShare = (platform: string) => {
+    const productUrl = `${window.location.origin}`;
+    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct sharing via URL, so we copy to clipboard
+        navigator.clipboard.writeText(productText + ' ' + productUrl);
+        toast({
+          title: 'Copied!',
+          description: 'Product details copied to clipboard. Paste it in your Instagram post.',
+        });
+        return;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
+    setShowShareMenu(false);
+  };
+
+  return (
+    <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex gap-4 flex-1">
+          <img 
+            src={product.imageUrl} 
+            alt={product.name}
+            className="w-20 h-20 object-cover rounded-lg"
+          />
+          <div className="flex-1">
+            <h5 className="font-semibold text-navy dark:text-blue-400">{product.name}</h5>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{product.description}</p>
+            
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <DollarSign className="w-4 h-4 text-green-600" />
+                <span className="font-semibold text-green-600">₹{product.price}</span>
+                {product.originalPrice && (
+                  <span className="text-gray-500 line-through">₹{product.originalPrice}</span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-500" />
+                <span>{product.rating}</span>
+                <span className="text-gray-500">({product.reviewCount})</span>
+              </div>
+              
+              <Badge variant="outline" className="text-xs">
+                {product.category}
+              </Badge>
+              
+              {product.isNew && (
+                <Badge className="bg-green-100 text-green-800 text-xs">NEW</Badge>
+              )}
+              
+              {product.isFeatured && (
+                <Badge className="bg-blue-100 text-blue-800 text-xs">FEATURED</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              className="p-2"
+            >
+              <Share2 className="w-4 h-4" />
+            </Button>
+            
+            {showShareMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 border rounded-lg shadow-lg p-2 z-10">
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => handleShare('facebook')}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                  >
+                    <Facebook className="w-4 h-4 text-blue-600" />
+                    Facebook
+                  </button>
+                  <button
+                    onClick={() => handleShare('twitter')}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                  >
+                    <Twitter className="w-4 h-4 text-blue-400" />
+                    Twitter
+                  </button>
+                  <button
+                    onClick={() => handleShare('whatsapp')}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                  >
+                    <MessageCircle className="w-4 h-4 text-green-600" />
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={() => handleShare('instagram')}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded"
+                  >
+                    <Instagram className="w-4 h-4 text-purple-600" />
+                    Instagram
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(product.affiliateUrl, '_blank')}
+            className="p-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(!isEditing)}
+            className="p-2"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleteProductMutation.isPending}
+            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Affiliate Network Manager Component
 function AffiliateNetworkManager() {
@@ -835,6 +1032,32 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <AffiliateNetworkManager />
+            </CardContent>
+          </Card>
+
+          {/* Product Management Section */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Product Management</CardTitle>
+              <CardDescription>Manage all your products with full control</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Product List */}
+                <div>
+                  <h4 className="font-semibold text-navy dark:text-blue-400 mb-4">Current Products ({(products as any[]).length})</h4>
+                  <div className="grid gap-4">
+                    {(products as any[]).map((product: any) => (
+                      <ProductManagementCard 
+                        key={product.id} 
+                        product={product} 
+                        onUpdate={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                        onDelete={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

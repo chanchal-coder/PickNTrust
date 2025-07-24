@@ -560,11 +560,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Name, price, and affiliate URL are required' });
       }
 
-      await storage.addProduct(productData);
-      res.json({ success: true, message: 'Product added successfully' });
+      const addedProduct = await storage.addProduct(productData);
+      res.json({ success: true, message: 'Product added successfully', product: addedProduct });
     } catch (error) {
       console.error('Add product error:', error);
       res.status(500).json({ error: 'Failed to add product' });
+    }
+  });
+
+  // Delete product (Admin functionality)
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const productId = parseInt(id);
+      
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: 'Invalid product ID' });
+      }
+
+      const deleted = await storage.deleteProduct(productId);
+      if (deleted) {
+        res.json({ success: true, message: 'Product deleted successfully' });
+      } else {
+        res.status(404).json({ error: 'Product not found' });
+      }
+    } catch (error) {
+      console.error('Delete product error:', error);
+      res.status(500).json({ error: 'Failed to delete product' });
+    }
+  });
+
+  // Update product (Admin functionality)
+  app.put("/api/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const productId = parseInt(id);
+      const updateData = req.body;
+      
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: 'Invalid product ID' });
+      }
+
+      const updatedProduct = await storage.updateProduct(productId, updateData);
+      if (updatedProduct) {
+        res.json({ success: true, message: 'Product updated successfully', product: updatedProduct });
+      } else {
+        res.status(404).json({ error: 'Product not found' });
+      }
+    } catch (error) {
+      console.error('Update product error:', error);
+      res.status(500).json({ error: 'Failed to update product' });
     }
   });
 
