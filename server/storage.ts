@@ -181,49 +181,49 @@ export class MemStorage implements IStorage {
       {
         name: "Fitness",
         icon: "fas fa-dumbbell",
-        color: "from-green-500 to-green-700",
+        color: "from-accent-green to-green-600",
         description: "Health & Workout"
       },
       {
         name: "Books",
         icon: "fas fa-book",
-        color: "from-yellow-500 to-orange-600",
+        color: "from-accent-orange to-yellow-600",
         description: "Learning & Stories"
       },
       {
         name: "Kitchen",
         icon: "fas fa-utensils",
-        color: "from-red-500 to-red-700",
+        color: "from-red-500 to-pink-600",
         description: "Cooking Essentials"
       },
       {
         name: "Gaming",
         icon: "fas fa-gamepad",
-        color: "from-indigo-500 to-purple-700",
+        color: "from-bright-blue to-indigo-600",
         description: "Gaming Gear"
       },
       {
         name: "Travel",
         icon: "fas fa-plane",
-        color: "from-blue-500 to-blue-700",
+        color: "from-blue-500 to-bright-blue",
         description: "Adventure Gear"
       },
       {
         name: "Baby",
         icon: "fas fa-baby",
-        color: "from-pink-400 to-pink-600",
+        color: "from-pink-400 to-purple-500",
         description: "Baby & Kids"
       },
       {
         name: "Pets",
         icon: "fas fa-paw",
-        color: "from-green-400 to-green-600",
+        color: "from-green-400 to-accent-green",
         description: "Pet Care"
       },
       {
         name: "Automotive",
         icon: "fas fa-car",
-        color: "from-gray-500 to-gray-700",
+        color: "from-gray-600 to-blue-600",
         description: "Car Accessories"
       }
     ];
