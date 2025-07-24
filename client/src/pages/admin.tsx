@@ -114,74 +114,6 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
     setShowShareMenu(false);
   };
 
-  // File upload helper function
-  const uploadFile = async (file: File, type: 'image' | 'video') => {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const result = await response.json();
-      
-      if (type === 'image') {
-        setBlogFormData({...blogFormData, imageUrl: result.url});
-      } else {
-        setBlogFormData({...blogFormData, videoUrl: result.url});
-      }
-      
-      toast({ 
-        title: `${type.charAt(0).toUpperCase() + type.slice(1)} uploaded!`, 
-        description: `Your ${type} has been uploaded successfully.` 
-      });
-    } catch (error) {
-      toast({ 
-        title: 'Error', 
-        description: `Failed to upload ${type}.`, 
-        variant: 'destructive' 
-      });
-    }
-  };
-
-  // Drag and drop handlers
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        setUploadingImage(true);
-        await uploadFile(file, 'image');
-        setUploadingImage(false);
-      } else if (file.type.startsWith('video/')) {
-        setUploadingVideo(true);
-        await uploadFile(file, 'video');
-        setUploadingVideo(false);
-      } else {
-        toast({ 
-          title: 'Invalid file type', 
-          description: 'Please upload an image or video file.', 
-          variant: 'destructive' 
-        });
-      }
-    }
-  };
-
   return (
     <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -400,6 +332,74 @@ export default function AdminPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  // File upload helper function
+  const uploadFile = async (file: File, type: 'image' | 'video') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      
+      if (type === 'image') {
+        setBlogFormData({...blogFormData, imageUrl: result.url});
+      } else {
+        setBlogFormData({...blogFormData, videoUrl: result.url});
+      }
+      
+      toast({ 
+        title: `${type.charAt(0).toUpperCase() + type.slice(1)} uploaded!`, 
+        description: `Your ${type} has been uploaded successfully.` 
+      });
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: `Failed to upload ${type}.`, 
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        setUploadingImage(true);
+        await uploadFile(file, 'image');
+        setUploadingImage(false);
+      } else if (file.type.startsWith('video/')) {
+        setUploadingVideo(true);
+        await uploadFile(file, 'video');
+        setUploadingVideo(false);
+      } else {
+        toast({ 
+          title: 'Invalid file type', 
+          description: 'Please upload an image or video file.', 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
 
   // Check if admin session exists on page load
   useEffect(() => {
