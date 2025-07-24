@@ -364,7 +364,7 @@ export class MemStorage implements IStorage {
       {
         name: "Baby Products",
         icon: "fas fa-baby",
-        color: "#FBCFE8",
+        color: "#F472B6",
         description: "Baby Care & Products"
       },
       {

@@ -158,7 +158,8 @@ export default function Categories() {
             <Link 
               key={category.id}
               href={`/category/${category.name}`}
-              className={`bg-gradient-to-br ${category.color} rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block`}
+              className="rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block"
+              style={{ backgroundColor: category.color }}
             >
               <i className={`${category.icon} text-2xl mb-3`}></i>
               <h4 className="font-bold text-sm">{category.name}</h4>
