@@ -1,17 +1,49 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
+import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Product } from "@shared/schema";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { useToast } from '@/hooks/use-toast';
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products/category', category],
     queryFn: () => fetch(`/api/products/category/${category}`).then(res => res.json()),
   });
+
+  // Check if user is admin (simple password check)
+  const handleAdminToggle = () => {
+    if (!isAdmin) {
+      const password = prompt('Enter admin password:');
+      if (password === 'pickntrust2025') {
+        setIsAdmin(true);
+        toast({
+          title: 'Admin Mode Enabled',
+          description: 'You can now manage products in this category.',
+        });
+      } else {
+        toast({
+          title: 'Access Denied',
+          description: 'Incorrect password.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      setIsAdmin(false);
+      toast({
+        title: 'Admin Mode Disabled',
+        description: 'Switched back to user view.',
+      });
+    }
+  };
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
@@ -26,6 +58,76 @@ export default function CategoryPage() {
     });
     
     window.open(product.affiliateUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Product Deleted!',
+        description: 'Product has been removed successfully.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/category', category] });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete product. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDelete = (productId: number) => {
+    if (confirm('Are you sure you want to delete this product?')) {
+      deleteProductMutation.mutate(productId);
+    }
+  };
+
+  const handleShare = (platform: string, product: Product) => {
+    const productUrl = `${window.location.origin}`;
+    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
+        break;
+      case 'instagram':
+        const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
+        navigator.clipboard.writeText(instagramText + '\n\n' + productUrl);
+        const instagramUrl = 'https://www.instagram.com/';
+        window.open(instagramUrl, '_blank');
+        toast({
+          title: 'Instagram Ready!',
+          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
+        });
+        return;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
+    setShowShareMenu(prev => ({...prev, [product.id]: false}));
   };
 
   const renderStars = (rating: string) => {
@@ -140,10 +242,20 @@ export default function CategoryPage() {
             </div>
             <h1 className="text-5xl font-bold mb-4">{categoryInfo.title}</h1>
             <p className="text-xl text-white text-opacity-90 max-w-2xl mx-auto">{categoryInfo.description}</p>
-            <div className="mt-6">
+            <div className="mt-6 flex items-center justify-center gap-4">
               <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm">
                 {products?.length || 0} Products Available
               </span>
+              <button
+                onClick={handleAdminToggle}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  isAdmin 
+                    ? 'bg-red-500 text-white hover:bg-red-600' 
+                    : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+                }`}
+              >
+                {isAdmin ? '🔒 Exit Admin' : '⚙️ Admin Mode'}
+              </button>
             </div>
           </div>
         </section>
@@ -156,13 +268,68 @@ export default function CategoryPage() {
                 {products.map((product) => (
                   <div 
                     key={product.id}
-                    className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+                    className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
                   >
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.name} 
-                      className="w-full h-48 object-cover" 
-                    />
+                    <div className="relative">
+                      <img 
+                        src={product.imageUrl} 
+                        alt={product.name} 
+                        className="w-full h-48 object-cover" 
+                      />
+                      {isAdmin && (
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
+                              className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-2 shadow-md"
+                            >
+                              <i className="fas fa-share text-blue-600"></i>
+                            </button>
+                            
+                            {showShareMenu[product.id] && (
+                              <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                                <button
+                                  onClick={() => handleShare('facebook', product)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left"
+                                >
+                                  <i className="fab fa-facebook text-blue-600"></i>
+                                  Facebook
+                                </button>
+                                <button
+                                  onClick={() => handleShare('twitter', product)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left"
+                                >
+                                  <i className="fab fa-twitter text-blue-400"></i>
+                                  Twitter
+                                </button>
+                                <button
+                                  onClick={() => handleShare('whatsapp', product)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left"
+                                >
+                                  <i className="fab fa-whatsapp text-green-600"></i>
+                                  WhatsApp
+                                </button>
+                                <button
+                                  onClick={() => handleShare('instagram', product)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left"
+                                >
+                                  <i className="fab fa-instagram text-purple-600"></i>
+                                  Instagram
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="bg-red-500 bg-opacity-90 hover:bg-opacity-100 text-white rounded-full p-2 shadow-md"
+                          >
+                            <i className="fas fa-trash text-sm"></i>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
                         {product.discount ? (
@@ -178,14 +345,14 @@ export default function CategoryPage() {
                         )}
                         <div className="flex items-center">
                           {renderStars(product.rating)}
-                          <span className="text-gray-600 ml-2 text-sm">({product.reviewCount})</span>
+                          <span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({product.reviewCount})</span>
                         </div>
                       </div>
-                      <h4 className="font-bold text-lg text-navy mb-2">{product.name}</h4>
-                      <p className="text-gray-600 text-sm mb-4">{product.description}</p>
+                      <h4 className="font-bold text-lg text-navy dark:text-blue-400 mb-2">{product.name}</h4>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{product.description}</p>
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <span className="text-2xl font-bold text-navy">₹{product.price}</span>
+                          <span className="text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
                           {product.originalPrice && (
                             <span className="text-gray-400 line-through ml-2">₹{product.originalPrice}</span>
                           )}
