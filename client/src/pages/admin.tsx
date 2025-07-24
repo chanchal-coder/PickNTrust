@@ -22,7 +22,7 @@ const productSchema = z.object({
   imageUrl: z.string().url('Must be a valid URL'),
   affiliateUrl: z.string().url('Must be a valid URL'),
   affiliateNetworkId: z.string().optional(),
-  category: z.enum(['Tech', 'Home', 'Beauty', 'Fashion', 'Deals']),
+  category: z.enum(['Tech', 'Home', 'Beauty', 'Fashion', 'Deals', 'Fitness', 'Books', 'Kitchen', 'Gaming', 'Travel', 'Baby', 'Pets', 'Automotive']),
   rating: z.string().min(1, 'Rating is required'),
   reviewCount: z.string().min(1, 'Review count is required'),
   discount: z.string().optional(),
@@ -118,6 +118,10 @@ export default function AdminPage() {
 
   const { data: affiliateNetworks = [] } = useQuery({
     queryKey: ['/api/affiliate-networks']
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories']
   });
 
   const addProductMutation = useMutation({
@@ -405,7 +409,7 @@ export default function AdminPage() {
                 <CardTitle className="text-navy dark:text-blue-400">Categories</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-accent-orange">5</p>
+                <p className="text-3xl font-bold text-accent-orange">{(categories as any[]).length}</p>
               </CardContent>
             </Card>
           </div>
@@ -587,19 +591,11 @@ export default function AdminPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Tech">Tech - Gadgets & More</SelectItem>
-                          <SelectItem value="Home">Home - Living & Decor</SelectItem>
-                          <SelectItem value="Beauty">Beauty - Skincare & Makeup</SelectItem>
-                          <SelectItem value="Fashion">Fashion - Style & Trends</SelectItem>
-                          <SelectItem value="Fitness">Fitness - Health & Workout</SelectItem>
-                          <SelectItem value="Books">Books - Learning & Stories</SelectItem>
-                          <SelectItem value="Kitchen">Kitchen - Cooking Essentials</SelectItem>
-                          <SelectItem value="Gaming">Gaming - Gaming Gear</SelectItem>
-                          <SelectItem value="Travel">Travel - Adventure Gear</SelectItem>
-                          <SelectItem value="Baby">Baby - Baby & Kids</SelectItem>
-                          <SelectItem value="Pets">Pets - Pet Care</SelectItem>
-                          <SelectItem value="Automotive">Automotive - Car Accessories</SelectItem>
-                          <SelectItem value="Deals">Deals - Limited Time!</SelectItem>
+                          {(categories as any[]).map((category: any) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name} - {category.description}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
