@@ -26,16 +26,16 @@ export default function Footer() {
             
             {/* Social Links */}
             <div className="flex space-x-4">
-              <a href="https://facebook.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://facebook.com/yourpage" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-facebook-f"></i>
               </a>
-              <a href="https://twitter.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://twitter.com/youraccount" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-twitter"></i>
               </a>
-              <a href="https://instagram.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://instagram.com/youraccount" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-instagram"></i>
               </a>
-              <a href="https://youtube.com/@pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+              <a href="https://youtube.com/@yourchannel" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
                 <i className="fab fa-youtube"></i>
               </a>
             </div>
