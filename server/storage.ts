@@ -172,7 +172,7 @@ export class MemStorage implements IStorage {
       {
         name: "Cameras & Photography",
         icon: "fas fa-camera",
-        color: "#64748B",
+        color: "#8B5CF6",
         description: "Capture Perfect Moments"
       },
       {
