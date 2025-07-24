@@ -90,11 +90,19 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
         shareUrl = `https://wa.me/?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
         break;
       case 'instagram':
-        // Instagram doesn't support direct sharing via URL, so we copy to clipboard
-        navigator.clipboard.writeText(productText + ' ' + productUrl);
+        // Updated Instagram sharing - opens Instagram with better integration
+        const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
+        
+        // Copy to clipboard for easy sharing
+        navigator.clipboard.writeText(instagramText + '\n\n' + productUrl);
+        
+        // Try to open Instagram app or web
+        const instagramUrl = 'https://www.instagram.com/';
+        window.open(instagramUrl, '_blank');
+        
         toast({
-          title: 'Copied!',
-          description: 'Product details copied to clipboard. Paste it in your Instagram post.',
+          title: 'Instagram Ready!',
+          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
         });
         return;
     }
