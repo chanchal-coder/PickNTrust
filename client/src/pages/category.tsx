@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Product } from "@shared/schema";
 import Header from "@/components/header";
@@ -19,31 +19,63 @@ export default function CategoryPage() {
     queryFn: () => fetch(`/api/products/category/${category}`).then(res => res.json()),
   });
 
-  // Check if user is admin (simple password check)
-  const handleAdminToggle = () => {
-    if (!isAdmin) {
-      const password = prompt('Enter admin password:');
-      if (password === 'pickntrust2025') {
-        setIsAdmin(true);
+  // Check admin authentication from session/localStorage
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('pickntrust-admin-auth');
+    if (adminAuth === 'authenticated') {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  // Secret admin activation (only accessible via URL parameter or keyboard shortcut)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Secret keyboard combination: Ctrl+Shift+A
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        if (!isAdmin) {
+          const password = prompt('Admin Access Required:');
+          if (password === 'pickntrust2025') {
+            setIsAdmin(true);
+            localStorage.setItem('pickntrust-admin-auth', 'authenticated');
+            toast({
+              title: 'Admin Mode Activated',
+              description: 'Product management controls enabled.',
+            });
+          }
+        }
+      }
+      // Exit admin mode with Ctrl+Shift+X
+      if (e.ctrlKey && e.shiftKey && e.key === 'X' && isAdmin) {
+        setIsAdmin(false);
+        localStorage.removeItem('pickntrust-admin-auth');
         toast({
-          title: 'Admin Mode Enabled',
-          description: 'You can now manage products in this category.',
-        });
-      } else {
-        toast({
-          title: 'Access Denied',
-          description: 'Incorrect password.',
-          variant: 'destructive',
+          title: 'Admin Mode Deactivated',
+          description: 'Switched to public view.',
         });
       }
-    } else {
-      setIsAdmin(false);
-      toast({
-        title: 'Admin Mode Disabled',
-        description: 'Switched back to user view.',
-      });
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isAdmin, toast]);
+
+  // Check URL parameter for admin access
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true' && !isAdmin) {
+      const password = prompt('Admin Authentication Required:');
+      if (password === 'pickntrust2025') {
+        setIsAdmin(true);
+        localStorage.setItem('pickntrust-admin-auth', 'authenticated');
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        toast({
+          title: 'Admin Access Granted',
+          description: 'Management controls are now active.',
+        });
+      }
     }
-  };
+  }, [isAdmin, toast]);
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
@@ -246,16 +278,12 @@ export default function CategoryPage() {
               <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm">
                 {products?.length || 0} Products Available
               </span>
-              <button
-                onClick={handleAdminToggle}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                  isAdmin 
-                    ? 'bg-red-500 text-white hover:bg-red-600' 
-                    : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
-                }`}
-              >
-                {isAdmin ? '🔒 Exit Admin' : '⚙️ Admin Mode'}
-              </button>
+              {/* Admin indicator - only visible when admin is active */}
+              {isAdmin && (
+                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
+                  ADMIN MODE
+                </span>
+              )}
             </div>
           </div>
         </section>
