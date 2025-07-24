@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
-import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign } from 'lucide-react';
+import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -1912,9 +1912,9 @@ export default function AdminPage() {
 
               {/* Blog Posts List */}
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Current Blog Posts ({blogPosts.length})</h3>
+                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Current Blog Posts ({Array.isArray(blogPosts) ? blogPosts.length : 0})</h3>
                 
-                {blogPosts.length === 0 ? (
+                {!Array.isArray(blogPosts) || blogPosts.length === 0 ? (
                   <Card>
                     <CardContent className="text-center py-8">
                       <p className="text-gray-500 dark:text-gray-400">No blog posts yet. Create your first one!</p>
@@ -1922,7 +1922,7 @@ export default function AdminPage() {
                   </Card>
                 ) : (
                   <div className="grid gap-4">
-                    {blogPosts.map((post: any) => (
+                    {Array.isArray(blogPosts) && blogPosts.map((post: any) => (
                       <Card key={post.id} className="p-4">
                         <div className="flex gap-4">
                           <img 
