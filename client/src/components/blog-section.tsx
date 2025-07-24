@@ -86,10 +86,10 @@ export default function BlogSection() {
                         title={post.title}
                       />
                     ) : 
-                    /* Direct Video Files */
+                    /* Direct Video Files (uploaded or external) */
                     (
                       <video 
-                        src={post.videoUrl} 
+                        src={post.videoUrl.startsWith('/uploads/') ? `${window.location.origin}${post.videoUrl}` : post.videoUrl}
                         className="w-full h-full object-cover"
                         controls
                         poster={post.imageUrl}

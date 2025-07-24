@@ -114,6 +114,74 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
     setShowShareMenu(false);
   };
 
+  // File upload helper function
+  const uploadFile = async (file: File, type: 'image' | 'video') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      
+      if (type === 'image') {
+        setBlogFormData({...blogFormData, imageUrl: result.url});
+      } else {
+        setBlogFormData({...blogFormData, videoUrl: result.url});
+      }
+      
+      toast({ 
+        title: `${type.charAt(0).toUpperCase() + type.slice(1)} uploaded!`, 
+        description: `Your ${type} has been uploaded successfully.` 
+      });
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: `Failed to upload ${type}.`, 
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        setUploadingImage(true);
+        await uploadFile(file, 'image');
+        setUploadingImage(false);
+      } else if (file.type.startsWith('video/')) {
+        setUploadingVideo(true);
+        await uploadFile(file, 'video');
+        setUploadingVideo(false);
+      } else {
+        toast({ 
+          title: 'Invalid file type', 
+          description: 'Please upload an image or video file.', 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
+
   return (
     <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -329,6 +397,9 @@ export default function AdminPage() {
     slug: ''
   });
   const [editingBlog, setEditingBlog] = useState<any>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   // Check if admin session exists on page load
   useEffect(() => {
@@ -1496,27 +1567,95 @@ export default function AdminPage() {
                       />
                     </div>
 
+                    {/* Drag and Drop Zone */}
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        dragActive 
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                    >
+                      <div className="space-y-2">
+                        <div className="text-3xl">📁</div>
+                        <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                          Drag & Drop Your Files Here
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Images and videos up to 50MB each
+                        </p>
+                        <div className="flex justify-center gap-2 text-xs text-gray-400">
+                          <span>📷 JPG, PNG, GIF</span>
+                          <span>•</span>
+                          <span>🎥 MP4, WEBM, MOV</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="blog-image">Image URL</Label>
-                        <Input
-                          id="blog-image"
-                          value={blogFormData.imageUrl}
-                          onChange={(e) => setBlogFormData({...blogFormData, imageUrl: e.target.value})}
-                          placeholder="https://images.unsplash.com/photo-..."
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Use Unsplash.com for free high-quality images</p>
+                        <Label htmlFor="blog-image">Blog Image</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="blog-image"
+                            value={blogFormData.imageUrl}
+                            onChange={(e) => setBlogFormData({...blogFormData, imageUrl: e.target.value})}
+                            placeholder="https://images.unsplash.com/photo-... or use drag-drop above"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">OR</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setUploadingImage(true);
+                                  await uploadFile(file, 'image');
+                                  setUploadingImage(false);
+                                }
+                              }}
+                              className="text-xs"
+                              disabled={uploadingImage}
+                            />
+                            {uploadingImage && <span className="text-xs text-blue-600">Uploading...</span>}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">URL, file picker, or drag-drop</p>
                       </div>
                       <div>
-                        <Label htmlFor="blog-video">Video/Reel URL (Optional)</Label>
-                        <Input
-                          id="blog-video"
-                          value={blogFormData.videoUrl}
-                          onChange={(e) => setBlogFormData({...blogFormData, videoUrl: e.target.value})}
-                          placeholder="YouTube, Instagram Reel, Facebook Reel, or any video URL"
-                        />
+                        <Label htmlFor="blog-video">Video/Reel Content</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="blog-video"
+                            value={blogFormData.videoUrl}
+                            onChange={(e) => setBlogFormData({...blogFormData, videoUrl: e.target.value})}
+                            placeholder="YouTube, Instagram Reel, Facebook Reel, or upload below"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">OR</span>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setUploadingVideo(true);
+                                  await uploadFile(file, 'video');
+                                  setUploadingVideo(false);
+                                }
+                              }}
+                              className="text-xs"
+                              disabled={uploadingVideo}
+                            />
+                            {uploadingVideo && <span className="text-xs text-blue-600">Uploading...</span>}
+                          </div>
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          Supports: YouTube, Instagram Reels, Facebook Reels, Vimeo, or direct video links
+                          Social media URLs, drag-drop, or file picker (up to 50MB)
                         </p>
                         <div className="text-xs text-blue-600 mt-1 space-y-1">
                           <div>📱 Instagram: https://www.instagram.com/reel/ABC123/</div>
@@ -1525,9 +1664,40 @@ export default function AdminPage() {
                         </div>
                         <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
                           <p className="text-xs text-green-700 dark:text-green-300 font-medium">
-                            ✨ New: Now supports Instagram & Facebook Reels for maximum engagement!
+                            📁 Upload your own content or share social media links - perfect for personal blogging!
                           </p>
                         </div>
+                        
+                        {/* Preview uploaded content */}
+                        {blogFormData.imageUrl && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Image Preview:</p>
+                            <img 
+                              src={blogFormData.imageUrl.startsWith('/uploads/') ? `${window.location.origin}${blogFormData.imageUrl}` : blogFormData.imageUrl}
+                              alt="Preview" 
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                          </div>
+                        )}
+                        
+                        {blogFormData.videoUrl && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Video Preview:</p>
+                            {blogFormData.videoUrl.startsWith('/uploads/') ? (
+                              <video 
+                                src={`${window.location.origin}${blogFormData.videoUrl}`}
+                                className="w-32 h-20 object-cover rounded border"
+                                controls
+                              />
+                            ) : (
+                              <div className="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                                🔗 External video linked: {blogFormData.videoUrl.includes('youtube.com') ? 'YouTube' : 
+                                blogFormData.videoUrl.includes('instagram.com') ? 'Instagram Reel' : 
+                                blogFormData.videoUrl.includes('facebook.com') ? 'Facebook Reel' : 'Video'}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1588,7 +1758,7 @@ export default function AdminPage() {
                   <CardDescription>Proven topics with video/reel support that drive affiliate sales</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid md:grid-cols-4 gap-6">
                     <div>
                       <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Shopping Tips & Guides</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
@@ -1615,9 +1785,18 @@ export default function AdminPage() {
                         <li>• YouTube unboxing & reviews</li>
                         <li>• Mix text + video for engagement</li>
                       </ul>
-                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                          💡 Pro Tip: Video content gets 5x more engagement than text-only posts!
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">📁 Personal Content</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Upload your own product photos</li>
+                        <li>• Record personal review videos</li>
+                        <li>• Share behind-the-scenes content</li>
+                        <li>• Create authentic user experiences</li>
+                      </ul>
+                      <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 font-medium">
+                          📁 New: Upload images & videos up to 50MB each for personal touch!
                         </p>
                       </div>
                     </div>

@@ -1,4 +1,8 @@
 import { Request, Response, Express } from "express";
+import express from "express";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { 
   insertProductSchema, 
   insertNewsletterSubscriberSchema,
@@ -7,7 +11,89 @@ import {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
+// Configure multer for file uploads
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage_config = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage_config,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images and videos
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and video files are allowed!'));
+    }
+  }
+});
+
 export function setupRoutes(app: Express, storage: IStorage) {
+  // Serve uploaded files
+  app.use('/uploads', express.static(uploadDir));
+
+  // File upload endpoints
+  app.post('/api/upload', upload.single('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const fileUrl = `/uploads/${req.file.filename}`;
+      res.json({ 
+        message: 'File uploaded successfully',
+        url: fileUrl,
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      res.status(500).json({ message: 'Failed to upload file' });
+    }
+  });
+
+  // Multiple file upload for blog posts
+  app.post('/api/upload/multiple', upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 }
+  ]), (req, res) => {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const result: { image?: string; video?: string } = {};
+
+      if (files.image && files.image[0]) {
+        result.image = `/uploads/${files.image[0].filename}`;
+      }
+
+      if (files.video && files.video[0]) {
+        result.video = `/uploads/${files.video[0].filename}`;
+      }
+
+      res.json({ 
+        message: 'Files uploaded successfully',
+        files: result
+      });
+    } catch (error) {
+      console.error('Multiple upload error:', error);
+      res.status(500).json({ message: 'Failed to upload files' });
+    }
+  });
+
   // Get all products
   app.get("/api/products", async (req, res) => {
     try {
