@@ -150,83 +150,234 @@ export class MemStorage implements IStorage {
 
     // Seed categories
     const categoriesData: InsertCategory[] = [
+      // Electronics & Gadgets
       {
-        name: "Tech",
+        name: "Electronics & Gadgets",
+        icon: "fas fa-microchip",
+        color: "from-blue-500 to-blue-700",
+        description: "Latest Tech & Electronics"
+      },
+      {
+        name: "Mobiles & Accessories",
+        icon: "fas fa-mobile-alt",
+        color: "from-indigo-500 to-indigo-700",
+        description: "Smartphones & Mobile Gear"
+      },
+      {
+        name: "Computers & Laptops",
         icon: "fas fa-laptop",
-        color: "from-bright-blue to-blue-600",
-        description: "Gadgets & More"
+        color: "from-blue-600 to-blue-800",
+        description: "Computing Solutions"
       },
       {
-        name: "Home",
-        icon: "fas fa-home",
-        color: "from-accent-green to-green-600",
-        description: "Living & Decor"
+        name: "Cameras & Photography",
+        icon: "fas fa-camera",
+        color: "from-slate-500 to-slate-700",
+        description: "Capture Perfect Moments"
       },
       {
-        name: "Beauty",
-        icon: "fas fa-sparkles",
-        color: "from-pink-500 to-purple-600",
-        description: "Skincare & Makeup"
+        name: "Home Appliances",
+        icon: "fas fa-blender",
+        color: "from-teal-500 to-teal-700",
+        description: "Smart Home Solutions"
+      },
+      
+      // Fashion & Lifestyle
+      {
+        name: "Men's Fashion",
+        icon: "fas fa-male",
+        color: "from-green-600 to-green-800",
+        description: "Stylish Men's Wear"
       },
       {
-        name: "Fashion",
-        icon: "fas fa-tshirt",
-        color: "from-purple-500 to-indigo-600",
-        description: "Style & Trends"
+        name: "Women's Fashion",
+        icon: "fas fa-female",
+        color: "from-pink-500 to-pink-700",
+        description: "Elegant Women's Collection"
       },
       {
-        name: "Deals",
-        icon: "fas fa-fire",
-        color: "from-accent-orange to-red-600",
-        description: "Limited Time!"
+        name: "Kids' Fashion",
+        icon: "fas fa-child",
+        color: "from-orange-400 to-orange-600",
+        description: "Trendy Kids' Clothing"
       },
       {
-        name: "Fitness",
+        name: "Footwear & Accessories",
+        icon: "fas fa-shoe-prints",
+        color: "from-purple-500 to-purple-700",
+        description: "Shoes & Style Accessories"
+      },
+      {
+        name: "Jewelry & Watches",
+        icon: "fas fa-gem",
+        color: "from-violet-500 to-violet-700",
+        description: "Luxury & Timepieces"
+      },
+      
+      // Beauty, Health & Personal Care
+      {
+        name: "Beauty & Grooming",
+        icon: "fas fa-spa",
+        color: "from-pink-400 to-pink-600",
+        description: "Beauty & Personal Care"
+      },
+      {
+        name: "Health & Wellness",
+        icon: "fas fa-heartbeat",
+        color: "from-red-500 to-red-700",
+        description: "Health & Fitness Products"
+      },
+      {
+        name: "Fitness & Nutrition",
         icon: "fas fa-dumbbell",
-        color: "from-accent-green to-green-600",
-        description: "Health & Workout"
+        color: "from-orange-500 to-orange-700",
+        description: "Fitness & Sports Gear"
       },
       {
-        name: "Books",
-        icon: "fas fa-book",
-        color: "from-accent-orange to-yellow-600",
-        description: "Learning & Stories"
+        name: "Personal Care Appliances",
+        icon: "fas fa-cut",
+        color: "from-lime-500 to-lime-700",
+        description: "Personal Care Devices"
+      },
+      
+      // Home & Living
+      {
+        name: "Furniture & Décor",
+        icon: "fas fa-couch",
+        color: "from-emerald-500 to-emerald-700",
+        description: "Home Furniture & Decor"
       },
       {
-        name: "Kitchen",
+        name: "Kitchen & Dining",
         icon: "fas fa-utensils",
-        color: "from-accent-orange to-red-600",
-        description: "Cooking Essentials"
+        color: "from-green-500 to-green-700",
+        description: "Kitchen Essentials"
       },
       {
-        name: "Gaming",
-        icon: "fas fa-gamepad",
-        color: "from-bright-blue to-indigo-600",
-        description: "Gaming Gear"
+        name: "Bedding & Home Essentials",
+        icon: "fas fa-bed",
+        color: "from-teal-600 to-teal-800",
+        description: "Comfort & Home Basics"
       },
       {
-        name: "Travel",
+        name: "Gardening & Outdoor",
+        icon: "fas fa-seedling",
+        color: "from-lime-600 to-lime-800",
+        description: "Garden & Outdoor Living"
+      },
+      
+      // Books, Media & Entertainment
+      {
+        name: "Books & Stationery",
+        icon: "fas fa-book",
+        color: "from-amber-600 to-amber-800",
+        description: "Books & Learning Materials"
+      },
+      {
+        name: "Music, Movies & Games",
+        icon: "fas fa-play-circle",
+        color: "from-red-600 to-red-800",
+        description: "Entertainment & Gaming"
+      },
+      {
+        name: "E-learning & Courses",
+        icon: "fas fa-graduation-cap",
+        color: "from-red-700 to-red-900",
+        description: "Online Learning & Skills"
+      },
+      
+      // Food & Grocery
+      {
+        name: "Groceries & Gourmet",
+        icon: "fas fa-shopping-cart",
+        color: "from-yellow-500 to-yellow-700",
+        description: "Fresh & Gourmet Foods"
+      },
+      {
+        name: "Food Delivery & Meal Kits",
+        icon: "fas fa-pizza-slice",
+        color: "from-orange-600 to-orange-800",
+        description: "Ready Meals & Delivery"
+      },
+      
+      // Travel & Experiences
+      {
+        name: "Flights & Hotels",
         icon: "fas fa-plane",
-        color: "from-bright-blue to-blue-600",
-        description: "Adventure Gear"
+        color: "from-sky-500 to-sky-700",
+        description: "Travel Bookings"
       },
       {
-        name: "Baby",
-        icon: "fas fa-baby",
-        color: "from-pink-500 to-purple-600",
-        description: "Baby & Kids"
+        name: "Holiday Packages",
+        icon: "fas fa-suitcase-rolling",
+        color: "from-cyan-500 to-cyan-700",
+        description: "Complete Travel Packages"
       },
       {
-        name: "Pets",
-        icon: "fas fa-paw",
-        color: "from-accent-green to-green-600",
-        description: "Pet Care"
+        name: "Experiences & Activities",
+        icon: "fas fa-map-marked-alt",
+        color: "from-blue-700 to-blue-900",
+        description: "Adventure & Experiences"
+      },
+      
+      // Finance & Services
+      {
+        name: "Credit Cards & Finance",
+        icon: "fas fa-credit-card",
+        color: "from-indigo-600 to-indigo-800",
+        description: "Financial Services"
       },
       {
-        name: "Automotive",
+        name: "Loans & Insurance",
+        icon: "fas fa-shield-alt",
+        color: "from-purple-600 to-purple-800",
+        description: "Loans & Protection Plans"
+      },
+      {
+        name: "Investments & Trading Tools",
+        icon: "fas fa-chart-line",
+        color: "from-violet-600 to-violet-800",
+        description: "Investment & Trading"
+      },
+      {
+        name: "Utility & Bill Payments",
+        icon: "fas fa-receipt",
+        color: "from-indigo-700 to-indigo-900",
+        description: "Bills & Utility Services"
+      },
+      
+      // Automotive
+      {
+        name: "Cars & Bikes Accessories",
         icon: "fas fa-car",
-        color: "from-purple-500 to-indigo-600",
-        description: "Car Accessories"
+        color: "from-gray-600 to-gray-800",
+        description: "Vehicle Accessories"
+      },
+      {
+        name: "Parts & Maintenance",
+        icon: "fas fa-tools",
+        color: "from-slate-600 to-slate-800",
+        description: "Auto Parts & Services"
+      },
+      
+      // Other
+      {
+        name: "Baby Products",
+        icon: "fas fa-baby",
+        color: "from-pink-300 to-pink-500",
+        description: "Baby Care & Products"
+      },
+      {
+        name: "Pet Supplies",
+        icon: "fas fa-paw",
+        color: "from-rose-400 to-rose-600",
+        description: "Pet Care & Accessories"
+      },
+      {
+        name: "Gifting & Occasions",
+        icon: "fas fa-gift",
+        color: "from-red-400 to-red-600",
+        description: "Gifts & Special Occasions"
       }
     ];
 
