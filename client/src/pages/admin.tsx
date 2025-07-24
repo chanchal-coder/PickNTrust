@@ -109,6 +109,8 @@ export default function AdminPage() {
   const [productUrl, setProductUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [showNetworks, setShowNetworks] = useState(false);
+  const [extractedProduct, setExtractedProduct] = useState<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products/featured']
@@ -200,7 +202,7 @@ export default function AdminPage() {
     addProductMutation.mutate(data);
   };
 
-  const extractAndAddProduct = async () => {
+  const extractProductDetails = async () => {
     if (!productUrl.trim()) {
       toast({
         title: 'URL Required',
@@ -213,7 +215,6 @@ export default function AdminPage() {
     setIsExtracting(true);
     
     try {
-      // Step 1: Extract product details
       const extractResponse = await fetch('/api/products/extract', {
         method: 'POST',
         headers: {
@@ -226,46 +227,16 @@ export default function AdminPage() {
 
       if (extractResult.success && extractResult.data) {
         const data = extractResult.data;
-        
-        // Step 2: Immediately add the product
-        const productData = {
-          name: data.name,
-          description: data.description,
-          price: data.price,
-          originalPrice: data.originalPrice || undefined,
-          rating: parseFloat(data.rating),
-          reviewCount: parseInt(data.reviewCount),
-          discount: data.discount ? parseInt(data.discount) : undefined,
-          category: data.category,
-          imageUrl: data.imageUrl,
+        setExtractedProduct({
+          ...data,
           affiliateUrl: productUrl,
-          affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
-          isNew: false,
-          isFeatured: true,
-        };
-
-        const addResponse = await fetch('/api/products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(productData),
         });
-
-        if (addResponse.ok) {
-          toast({
-            title: 'Product Added Successfully!',
-            description: `"${data.name}" has been extracted and added to your catalog.`,
-          });
-          
-          // Refresh the products list
-          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
-          
-          // Clear the URL input
-          setProductUrl('');
-        } else {
-          throw new Error('Failed to add extracted product');
-        }
+        setShowPreview(true);
+        
+        toast({
+          title: 'Product Details Extracted!',
+          description: 'Review the details below and click "Add Product" to confirm.',
+        });
       } else {
         toast({
           title: 'Extraction Failed',
@@ -276,11 +247,64 @@ export default function AdminPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to extract and add product. Please try again.',
+        description: 'Failed to extract product details. Please try again.',
         variant: 'destructive',
       });
     } finally {
       setIsExtracting(false);
+    }
+  };
+
+  const addExtractedProduct = async () => {
+    if (!extractedProduct) return;
+
+    try {
+      const productData = {
+        name: extractedProduct.name,
+        description: extractedProduct.description,
+        price: extractedProduct.price,
+        originalPrice: extractedProduct.originalPrice || undefined,
+        rating: parseFloat(extractedProduct.rating),
+        reviewCount: parseInt(extractedProduct.reviewCount),
+        discount: extractedProduct.discount ? parseInt(extractedProduct.discount) : undefined,
+        category: extractedProduct.category,
+        imageUrl: extractedProduct.imageUrl,
+        affiliateUrl: extractedProduct.affiliateUrl,
+        affiliateNetworkId: extractedProduct.affiliateNetworkId ? parseInt(extractedProduct.affiliateNetworkId) : undefined,
+        isNew: false,
+        isFeatured: true,
+      };
+
+      const addResponse = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
+      });
+
+      if (addResponse.ok) {
+        toast({
+          title: 'Product Added Successfully!',
+          description: `"${extractedProduct.name}" has been added to your catalog.`,
+        });
+        
+        // Refresh the products list
+        queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+        
+        // Clear everything
+        setProductUrl('');
+        setExtractedProduct(null);
+        setShowPreview(false);
+      } else {
+        throw new Error('Failed to add product');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add product. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -404,17 +428,17 @@ export default function AdminPage() {
                 />
                 <Button
                   type="button"
-                  onClick={extractAndAddProduct}
+                  onClick={extractProductDetails}
                   disabled={isExtracting || !productUrl.trim()}
-                  className="bg-accent-green hover:bg-green-600 text-white px-6"
+                  className="bg-bright-blue hover:bg-navy text-white px-6"
                 >
                   {isExtracting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Adding Product...
+                      Extracting...
                     </>
                   ) : (
-                    'Extract & Add Product'
+                    'Extract Details'
                   )}
                 </Button>
               </div>
@@ -434,6 +458,89 @@ export default function AdminPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Product Preview Section */}
+          {showPreview && extractedProduct && (
+            <Card className="mb-8 border-green-200 dark:border-green-800">
+              <CardHeader className="bg-green-50 dark:bg-green-900/20">
+                <CardTitle className="text-green-700 dark:text-green-400">📋 Product Preview</CardTitle>
+                <CardDescription>
+                  Review the extracted details and confirm to add to your catalog
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400">Product Name</h4>
+                      <p className="text-sm">{extractedProduct.name}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400">Description</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{extractedProduct.description}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Price</h4>
+                        <p className="text-lg font-bold text-green-600">₹{extractedProduct.price}</p>
+                      </div>
+                      {extractedProduct.originalPrice && (
+                        <div>
+                          <h4 className="font-semibold text-navy dark:text-blue-400">Original Price</h4>
+                          <p className="text-sm line-through text-gray-500">₹{extractedProduct.originalPrice}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Rating</h4>
+                        <p className="text-sm">{extractedProduct.rating}/5 ⭐</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Reviews</h4>
+                        <p className="text-sm">{extractedProduct.reviewCount} reviews</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400">Product Image</h4>
+                      <img 
+                        src={extractedProduct.imageUrl} 
+                        alt={extractedProduct.name}
+                        className="w-full h-48 object-cover rounded-lg border"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400">Category</h4>
+                      <p className="text-sm">{extractedProduct.category}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 mt-6 pt-4 border-t">
+                  <Button
+                    onClick={addExtractedProduct}
+                    className="bg-accent-green hover:bg-green-600 text-white"
+                  >
+                    ✓ Add Product to Catalog
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPreview(false);
+                      setExtractedProduct(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Manual Add Product Section */}
           <Card className="mb-8">
