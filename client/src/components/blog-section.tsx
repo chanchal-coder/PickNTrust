@@ -56,7 +56,8 @@ export default function BlogSection() {
               <div className="w-full h-48 relative">
                 {post.videoUrl ? (
                   <div className="w-full h-full">
-                    {post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be') ? (
+                    {/* YouTube Videos */}
+                    {(post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be')) ? (
                       <iframe
                         src={post.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
                         className="w-full h-full"
@@ -64,7 +65,29 @@ export default function BlogSection() {
                         allowFullScreen
                         title={post.title}
                       />
-                    ) : (
+                    ) : 
+                    /* Instagram Reels */
+                    post.videoUrl.includes('instagram.com/reel/') ? (
+                      <iframe
+                        src={`${post.videoUrl}embed/`}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allowFullScreen
+                        title={post.title}
+                      />
+                    ) : 
+                    /* Facebook Reels */
+                    post.videoUrl.includes('facebook.com/reel/') ? (
+                      <iframe
+                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(post.videoUrl)}&show_text=false&width=400`}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allowFullScreen
+                        title={post.title}
+                      />
+                    ) : 
+                    /* Direct Video Files */
+                    (
                       <video 
                         src={post.videoUrl} 
                         className="w-full h-full object-cover"
@@ -72,8 +95,10 @@ export default function BlogSection() {
                         poster={post.imageUrl}
                       />
                     )}
-                    <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs">
-                      📹 Video
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                      {post.videoUrl.includes('instagram.com') ? '📱 Reel' : 
+                       post.videoUrl.includes('facebook.com') ? '📘 Reel' : 
+                       post.videoUrl.includes('youtube.com') ? '🎥 Video' : '📹 Video'}
                     </div>
                   </div>
                 ) : (

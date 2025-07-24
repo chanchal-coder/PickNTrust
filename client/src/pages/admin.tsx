@@ -1508,14 +1508,26 @@ export default function AdminPage() {
                         <p className="text-xs text-gray-500 mt-1">Use Unsplash.com for free high-quality images</p>
                       </div>
                       <div>
-                        <Label htmlFor="blog-video">Video URL (Optional)</Label>
+                        <Label htmlFor="blog-video">Video/Reel URL (Optional)</Label>
                         <Input
                           id="blog-video"
                           value={blogFormData.videoUrl}
                           onChange={(e) => setBlogFormData({...blogFormData, videoUrl: e.target.value})}
-                          placeholder="https://youtube.com/watch?v=... or any video URL"
+                          placeholder="YouTube, Instagram Reel, Facebook Reel, or any video URL"
                         />
-                        <p className="text-xs text-gray-500 mt-1">YouTube, Vimeo, or direct video links</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Supports: YouTube, Instagram Reels, Facebook Reels, Vimeo, or direct video links
+                        </p>
+                        <div className="text-xs text-blue-600 mt-1 space-y-1">
+                          <div>📱 Instagram: https://www.instagram.com/reel/ABC123/</div>
+                          <div>📘 Facebook: https://www.facebook.com/reel/123456789</div>
+                          <div>🎥 YouTube: https://youtube.com/watch?v=ABC123</div>
+                        </div>
+                        <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                          <p className="text-xs text-green-700 dark:text-green-300 font-medium">
+                            ✨ New: Now supports Instagram & Facebook Reels for maximum engagement!
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -1573,10 +1585,10 @@ export default function AdminPage() {
               <Card className="mb-8 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
                 <CardHeader>
                   <CardTitle className="text-xl text-purple-600 dark:text-purple-400">💡 Blog Content Ideas</CardTitle>
-                  <CardDescription>Proven topics that drive affiliate sales</CardDescription>
+                  <CardDescription>Proven topics with video/reel support that drive affiliate sales</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid md:grid-cols-3 gap-6">
                     <div>
                       <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Shopping Tips & Guides</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
@@ -1594,6 +1606,20 @@ export default function AdminPage() {
                         <li>• "Top 5 Air Purifiers for Indian Homes"</li>
                         <li>• "Wireless Earbuds: Premium vs Budget"</li>
                       </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">📱 Social Media Integration</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Share Instagram product reels</li>
+                        <li>• Embed Facebook shopping videos</li>
+                        <li>• YouTube unboxing & reviews</li>
+                        <li>• Mix text + video for engagement</li>
+                      </ul>
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                          💡 Pro Tip: Video content gets 5x more engagement than text-only posts!
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -1627,7 +1653,14 @@ export default function AdminPage() {
                               <span>{post.readTime}</span>
                               {post.videoUrl && (
                                 <span className="flex items-center gap-1">
-                                  <span>📹</span> Video Included
+                                  <span>
+                                    {post.videoUrl.includes('instagram.com') ? '📱' : 
+                                     post.videoUrl.includes('facebook.com') ? '📘' : 
+                                     post.videoUrl.includes('youtube.com') ? '🎥' : '📹'}
+                                  </span> 
+                                  {post.videoUrl.includes('instagram.com') ? 'Instagram Reel' : 
+                                   post.videoUrl.includes('facebook.com') ? 'Facebook Reel' : 
+                                   post.videoUrl.includes('youtube.com') ? 'YouTube Video' : 'Video'}
                                 </span>
                               )}
                             </div>
