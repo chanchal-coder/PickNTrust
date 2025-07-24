@@ -332,6 +332,10 @@ export default function AdminPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   // File upload helper function
   const uploadFile = async (file: File, type: 'image' | 'video') => {
@@ -424,6 +428,25 @@ export default function AdminPage() {
   const { data: blogPosts = [] } = useQuery({
     queryKey: ['/api/blog']
   });
+
+  // Achievement system
+  useEffect(() => {
+    if (blogPosts && Array.isArray(blogPosts)) {
+      setTotalPosts(blogPosts.length);
+      const newAchievements = [];
+      
+      if (blogPosts.length >= 1) newAchievements.push('First Post');
+      if (blogPosts.length >= 5) newAchievements.push('Content Creator');
+      if (blogPosts.length >= 10) newAchievements.push('Blog Master');
+      if (blogPosts.some((p: any) => p.videoUrl)) newAchievements.push('Video Pioneer');
+      
+      setAchievements(newAchievements);
+    }
+    
+    if (products && Array.isArray(products)) {
+      setTotalProducts(products.length);
+    }
+  }, [blogPosts, products]);
 
   const addProductMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
@@ -794,60 +817,97 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-navy dark:text-blue-400">Total Products</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-navy dark:text-blue-400">
-                  {(products as any[]).length}
-                </p>
+          {/* Gamified Dashboard Stats */}
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm">Total Products</p>
+                    <p className="text-2xl font-bold">{(products as any[]).length}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-blue-200" />
+                </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-navy dark:text-blue-400">Featured Products</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-accent-green">
-                  {(products as any[]).filter((p: any) => p.isFeatured).length}
-                </p>
+            
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-sm">Blog Posts</p>
+                    <p className="text-2xl font-bold">{totalPosts}</p>
+                  </div>
+                  <FileText className="w-8 h-8 text-green-200" />
+                </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-navy dark:text-blue-400">Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-accent-orange">{(categories as any[]).length}</p>
+            
+            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm">Achievements</p>
+                    <p className="text-2xl font-bold">{achievements.length}</p>
+                  </div>
+                  <Trophy className="w-8 h-8 text-purple-200" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm">Networks</p>
+                    <p className="text-2xl font-bold">{Array.isArray(affiliateNetworks) ? affiliateNetworks.length : 0}</p>
+                  </div>
+                  <Globe className="w-8 h-8 text-orange-200" />
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Admin Navigation Tabs */}
+          {/* Achievement Badges */}
+          {achievements.length > 0 && (
+            <div className="mb-8 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 transition-all duration-300 hover:shadow-lg">
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3 flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                Your Achievements
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {achievements.map((achievement, index) => (
+                  <div key={index} className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-3 py-1 rounded-full text-sm font-medium transition-transform hover:scale-105 animate-pulse">
+                    <span className="text-yellow-600">🏆</span>
+                    {achievement}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Admin Navigation Tabs with Animations */}
           <div className="mb-8">
             <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-md">
               <button
                 onClick={() => setActiveTab('products')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
                   activeTab === 'products'
-                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
                 }`}
               >
-                Products
+                📦 Products
               </button>
               <button
                 onClick={() => setActiveTab('blog')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
                   activeTab === 'blog'
-                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
                 }`}
               >
-                Blog Posts
+                📝 Blog Posts
               </button>
             </div>
           </div>
@@ -1732,20 +1792,66 @@ export default function AdminPage() {
                       />
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => addBlogMutation.mutate(blogFormData)}
-                        disabled={!blogFormData.title || !blogFormData.excerpt || addBlogMutation.isPending}
-                        className="bg-accent-green hover:bg-green-600"
+                    <div className="flex justify-between items-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowPreviewModal(true)}
+                        className="flex items-center gap-2"
+                        disabled={!blogFormData.title || !blogFormData.excerpt}
                       >
-                        {addBlogMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
+                        <Eye className="w-4 h-4" />
+                        Live Preview
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setShowBlogForm(false)}
-                      >
-                        Cancel
-                      </Button>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowBlogForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            // Smart content categorization and auto-tags
+                            const getAutoCategory = (content: string) => {
+                              const lower = content.toLowerCase();
+                              if (lower.includes('budget') || lower.includes('cheap') || lower.includes('affordable')) return 'Budget Shopping';
+                              if (lower.includes('review') || lower.includes('vs') || lower.includes('comparison')) return 'Product Reviews';
+                              if (lower.includes('tip') || lower.includes('guide') || lower.includes('how to')) return 'Shopping Tips';
+                              if (lower.includes('deal') || lower.includes('offer') || lower.includes('discount')) return 'Deals & Offers';
+                              if (lower.includes('tech') || lower.includes('gadget') || lower.includes('electronic')) return 'Tech News';
+                              return 'Shopping Tips';
+                            };
+
+                            const generateTags = (content: string) => {
+                              const lower = content.toLowerCase();
+                              const tags = [];
+                              
+                              if (lower.includes('budget')) tags.push('budget');
+                              if (lower.includes('premium')) tags.push('premium');
+                              if (lower.includes('smartphone') || lower.includes('phone')) tags.push('mobile');
+                              if (lower.includes('laptop') || lower.includes('computer')) tags.push('computing');
+                              if (lower.includes('fashion') || lower.includes('clothing')) tags.push('fashion');
+                              if (lower.includes('beauty') || lower.includes('skincare')) tags.push('beauty');
+                              if (lower.includes('amazon') || lower.includes('flipkart')) tags.push('ecommerce');
+                              if (lower.includes('deal') || lower.includes('offer')) tags.push('deals');
+                              
+                              return tags.slice(0, 3);
+                            };
+
+                            addBlogMutation.mutate({
+                              ...blogFormData,
+                              category: getAutoCategory(blogFormData.title + ' ' + blogFormData.excerpt),
+                              tags: generateTags(blogFormData.title + ' ' + blogFormData.excerpt)
+                            });
+                          }}
+                          disabled={!blogFormData.title || !blogFormData.excerpt || addBlogMutation.isPending}
+                          className="bg-accent-green hover:bg-green-600"
+                        >
+                          {addBlogMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1845,36 +1951,81 @@ export default function AdminPage() {
                             </div>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => {
-                                setEditingBlog(post);
-                                setBlogFormData({
-                                  title: post.title,
-                                  excerpt: post.excerpt,
-                                  imageUrl: post.imageUrl,
-                                  videoUrl: post.videoUrl || '',
-                                  publishedAt: new Date(post.publishedAt).toISOString().split('T')[0],
-                                  readTime: post.readTime,
-                                  slug: post.slug
-                                });
-                                setShowBlogForm(true);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => {
-                                if (confirm('Delete this blog post?')) {
-                                  deleteBlogMutation.mutate(post.id);
-                                }
-                              }}
-                            >
-                              Delete
-                            </Button>
+                            {/* Social Sharing Buttons */}
+                            <div className="flex gap-1 mb-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                title="Share on Facebook"
+                              >
+                                <Facebook className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm" 
+                                onClick={() => {
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+                                }}
+                                className="p-1.5 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20"
+                                title="Share on Twitter"
+                              >
+                                <Twitter className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400');
+                                }}
+                                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                title="Share on WhatsApp"
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingBlog(post);
+                                  setBlogFormData({
+                                    title: post.title,
+                                    excerpt: post.excerpt,
+                                    imageUrl: post.imageUrl,
+                                    videoUrl: post.videoUrl || '',
+                                    publishedAt: new Date(post.publishedAt).toISOString().split('T')[0],
+                                    readTime: post.readTime,
+                                    slug: post.slug
+                                  });
+                                  setShowBlogForm(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => {
+                                  if (confirm('Delete this blog post?')) {
+                                    deleteBlogMutation.mutate(post.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </Card>
@@ -1886,6 +2037,150 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+      
+      {/* Interactive Blog Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-navy dark:text-blue-400 flex items-center gap-2">
+                  <Eye className="w-6 h-6" />
+                  Live Blog Preview
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-2"
+                >
+                  ✕
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg p-6 bg-gray-50 dark:bg-gray-900 mb-4">
+                <article className="max-w-none">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      <span>📅 {blogFormData.publishedAt}</span>
+                      <span>•</span>
+                      <span>⏱ {blogFormData.readTime}</span>
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                      {blogFormData.title || "Your Blog Title"}
+                    </h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+                      {blogFormData.excerpt || "Your blog excerpt will appear here..."}
+                    </p>
+                  </div>
+                  
+                  {/* Media content */}
+                  <div className="mb-6">
+                    {blogFormData.videoUrl && (
+                      <div className="mb-4">
+                        {blogFormData.videoUrl.includes("youtube.com") || blogFormData.videoUrl.includes("youtu.be") ? (
+                          <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-gray-500 dark:text-gray-400">
+                              <div className="text-4xl mb-2">🎥</div>
+                              <p className="font-medium">YouTube Video</p>
+                              <p className="text-sm">Video will be embedded here</p>
+                            </div>
+                          </div>
+                        ) : blogFormData.videoUrl.includes("instagram.com") ? (
+                          <div className="flex items-center justify-center p-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg text-white">
+                            <div className="text-center">
+                              <Instagram className="w-12 h-12 mx-auto mb-2" />
+                              <p className="font-semibold">Instagram Reel</p>
+                              <p className="text-sm opacity-90">Click to view on Instagram</p>
+                            </div>
+                          </div>
+                        ) : blogFormData.videoUrl.includes("facebook.com") ? (
+                          <div className="flex items-center justify-center p-8 bg-blue-600 rounded-lg text-white">
+                            <div className="text-center">
+                              <Facebook className="w-12 h-12 mx-auto mb-2" />
+                              <p className="font-semibold">Facebook Reel</p>
+                              <p className="text-sm opacity-90">Click to view on Facebook</p>
+                            </div>
+                          </div>
+                        ) : blogFormData.videoUrl.startsWith("/uploads/") ? (
+                          <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-gray-500 dark:text-gray-400">
+                              <div className="text-4xl mb-2">📹</div>
+                              <p className="font-medium">Personal Video</p>
+                              <p className="text-sm">Uploaded video file</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center p-8 bg-gray-600 rounded-lg text-white">
+                            <div className="text-center">
+                              <div className="text-4xl mb-2">🎬</div>
+                              <p className="font-semibold">Video Content</p>
+                              <p className="text-sm opacity-90">Video will be embedded</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {blogFormData.imageUrl && (
+                      <img 
+                        src={blogFormData.imageUrl.startsWith("/uploads/") ? `${window.location.origin}${blogFormData.imageUrl}` : blogFormData.imageUrl}
+                        alt="Blog featured image" 
+                        className="w-full rounded-lg shadow-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                </article>
+              </div>
+              
+              {/* Social Media Sharing Preview */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Share2 className="w-5 h-5" />
+                  Social Media Preview
+                </h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Facebook className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium">Facebook</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400 line-clamp-1">{blogFormData.excerpt}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-sky-50 dark:bg-sky-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Twitter className="w-4 h-4 text-sky-500" />
+                      <span className="text-sm font-medium">Twitter</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{blogFormData.excerpt?.substring(0, 100)}...</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium">WhatsApp</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400">Ready to share via WhatsApp</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
