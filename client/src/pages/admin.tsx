@@ -1743,19 +1743,106 @@ export default function AdminPage() {
                         {blogFormData.videoUrl && (
                           <div className="mt-2">
                             <p className="text-xs text-gray-500 mb-1">Video Preview:</p>
-                            {blogFormData.videoUrl.startsWith('/uploads/') ? (
+                            {/* YouTube Videos */}
+                            {(blogFormData.videoUrl.includes('youtube.com') || blogFormData.videoUrl.includes('youtu.be')) ? (
+                              <div className="w-full h-32 border rounded">
+                                <iframe
+                                  src={blogFormData.videoUrl
+                                    .replace('watch?v=', 'embed/')
+                                    .replace('youtu.be/', 'youtube.com/embed/')
+                                    .split('&')[0]} // Remove extra parameters
+                                  className="w-full h-full rounded"
+                                  frameBorder="0"
+                                  allowFullScreen
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  title="YouTube video preview"
+                                />
+                              </div>
+                            ) : 
+                            /* Personal Uploaded Videos */
+                            blogFormData.videoUrl.startsWith('/uploads/') ? (
                               <video 
                                 src={`${window.location.origin}${blogFormData.videoUrl}`}
-                                className="w-32 h-20 object-cover rounded border"
+                                className="w-full h-32 object-cover rounded border"
                                 controls
-                              />
+                                preload="metadata"
+                                onError={(e) => {
+                                  console.error('Video load error:', e);
+                                }}
+                              >
+                                <source src={`${window.location.origin}${blogFormData.videoUrl}`} type="video/mp4" />
+                                <source src={`${window.location.origin}${blogFormData.videoUrl}`} type="video/webm" />
+                                Your browser does not support the video tag.
+                              </video>
+                            ) : 
+                            /* Instagram Reels */
+                            blogFormData.videoUrl.includes('instagram.com') ? (
+                              <div className="w-full h-32 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white rounded border flex items-center justify-center">
+                                <div className="text-center">
+                                  <Instagram className="w-8 h-8 mx-auto mb-1" />
+                                  <p className="text-sm font-medium">Instagram Reel</p>
+                                  <button 
+                                    onClick={() => window.open(blogFormData.videoUrl, '_blank')}
+                                    className="mt-1 px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 transition-colors"
+                                  >
+                                    Open Link
+                                  </button>
+                                </div>
+                              </div>
+                            ) : 
+                            /* Facebook Reels */
+                            blogFormData.videoUrl.includes('facebook.com') ? (
+                              <div className="w-full h-32 bg-blue-600 text-white rounded border flex items-center justify-center">
+                                <div className="text-center">
+                                  <Facebook className="w-8 h-8 mx-auto mb-1" />
+                                  <p className="text-sm font-medium">Facebook Reel</p>
+                                  <button 
+                                    onClick={() => window.open(blogFormData.videoUrl, '_blank')}
+                                    className="mt-1 px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 transition-colors"
+                                  >
+                                    Open Link
+                                  </button>
+                                </div>
+                              </div>
+                            ) : 
+                            /* Generic Video URLs */
+                            blogFormData.videoUrl.match(/\.(mp4|webm|ogg|mov|avi)(\?.*)?$/i) ? (
+                              <video 
+                                src={blogFormData.videoUrl}
+                                className="w-full h-32 object-cover rounded border"
+                                controls
+                                preload="metadata"
+                                onError={(e) => {
+                                  console.error('Video load error:', e);
+                                }}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
                             ) : (
-                              <div className="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
-                                🔗 External video linked: {blogFormData.videoUrl.includes('youtube.com') ? 'YouTube' : 
-                                blogFormData.videoUrl.includes('instagram.com') ? 'Instagram Reel' : 
-                                blogFormData.videoUrl.includes('facebook.com') ? 'Facebook Reel' : 'Video'}
+                              /* Fallback for unknown URLs */
+                              <div className="w-full h-32 bg-gray-600 text-white rounded border flex items-center justify-center">
+                                <div className="text-center">
+                                  <Play className="w-8 h-8 mx-auto mb-1" />
+                                  <p className="text-sm font-medium">Video Content</p>
+                                  <p className="text-xs opacity-75">Preview not available</p>
+                                </div>
                               </div>
                             )}
+                            
+                            {/* Video URL validation feedback */}
+                            <div className="mt-1 text-xs">
+                              {blogFormData.videoUrl.includes('youtube.com') || blogFormData.videoUrl.includes('youtu.be') ? (
+                                <span className="text-green-600 dark:text-green-400">✓ YouTube video embedded</span>
+                              ) : blogFormData.videoUrl.includes('instagram.com') ? (
+                                <span className="text-purple-600 dark:text-purple-400">✓ Instagram content linked</span>
+                              ) : blogFormData.videoUrl.includes('facebook.com') ? (
+                                <span className="text-blue-600 dark:text-blue-400">✓ Facebook content linked</span>
+                              ) : blogFormData.videoUrl.startsWith('/uploads/') ? (
+                                <span className="text-green-600 dark:text-green-400">✓ Personal video uploaded</span>
+                              ) : (
+                                <span className="text-orange-600 dark:text-orange-400">⚠ URL format may not be supported</span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
