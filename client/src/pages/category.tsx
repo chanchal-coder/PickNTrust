@@ -19,63 +19,37 @@ export default function CategoryPage() {
     queryFn: () => fetch(`/api/products/category/${category}`).then(res => res.json()),
   });
 
-  // Check admin authentication from session/localStorage
+  // Check admin authentication from main admin panel login
   useEffect(() => {
-    const adminAuth = localStorage.getItem('pickntrust-admin-auth');
-    if (adminAuth === 'authenticated') {
+    const adminAuth = localStorage.getItem('pickntrust-admin-session');
+    if (adminAuth === 'active') {
       setIsAdmin(true);
     }
   }, []);
 
-  // Secret admin activation (only accessible via URL parameter or keyboard shortcut)
+  // Listen for admin session changes (when user logs in/out of main admin panel)
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Secret keyboard combination: Ctrl+Shift+A
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        if (!isAdmin) {
-          const password = prompt('Admin Access Required:');
-          if (password === 'pickntrust2025') {
-            setIsAdmin(true);
-            localStorage.setItem('pickntrust-admin-auth', 'authenticated');
-            toast({
-              title: 'Admin Mode Activated',
-              description: 'Product management controls enabled.',
-            });
-          }
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        if (e.newValue === 'active') {
+          setIsAdmin(true);
+          toast({
+            title: 'Admin Mode Active',
+            description: 'You have admin controls in all categories.',
+          });
+        } else {
+          setIsAdmin(false);
+          toast({
+            title: 'Admin Session Ended',
+            description: 'Admin controls have been disabled.',
+          });
         }
-      }
-      // Exit admin mode with Ctrl+Shift+X
-      if (e.ctrlKey && e.shiftKey && e.key === 'X' && isAdmin) {
-        setIsAdmin(false);
-        localStorage.removeItem('pickntrust-admin-auth');
-        toast({
-          title: 'Admin Mode Deactivated',
-          description: 'Switched to public view.',
-        });
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isAdmin, toast]);
-
-  // Check URL parameter for admin access
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true' && !isAdmin) {
-      const password = prompt('Admin Authentication Required:');
-      if (password === 'pickntrust2025') {
-        setIsAdmin(true);
-        localStorage.setItem('pickntrust-admin-auth', 'authenticated');
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        toast({
-          title: 'Admin Access Granted',
-          description: 'Management controls are now active.',
-        });
-      }
-    }
-  }, [isAdmin, toast]);
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [toast]);
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {

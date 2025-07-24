@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -317,6 +317,14 @@ export default function AdminPage() {
   const [extractedProduct, setExtractedProduct] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Check if admin session exists on page load
+  useEffect(() => {
+    const adminSession = localStorage.getItem('pickntrust-admin-session');
+    if (adminSession === 'active') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products/featured']
   });
@@ -523,9 +531,11 @@ export default function AdminPage() {
     if (password === 'pickntrust2025') {
       setIsAuthenticated(true);
       setPassword('');
+      // Set admin session for all category pages
+      localStorage.setItem('pickntrust-admin-session', 'active');
       toast({
         title: 'Access Granted',
-        description: 'Welcome to PickNTrust Admin Panel',
+        description: 'Welcome to PickNTrust Admin Panel. You now have admin controls across all pages.',
       });
     } else {
       toast({
@@ -535,6 +545,16 @@ export default function AdminPage() {
       });
       setPassword('');
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    // Remove admin session from all category pages
+    localStorage.removeItem('pickntrust-admin-session');
+    toast({
+      title: 'Logged Out',
+      description: 'Admin session ended. Admin controls disabled across all pages.',
+    });
   };
 
   if (!isAuthenticated) {
@@ -578,13 +598,22 @@ export default function AdminPage() {
       <Header />
       <div className="pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-navy dark:text-blue-400 mb-2">
-              PickNTrust Admin Panel
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Manage your products and affiliate links daily
-            </p>
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-navy dark:text-blue-400 mb-2">
+                PickNTrust Admin Panel
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Manage your products and affiliate links daily
+              </p>
+            </div>
+            <Button 
+              onClick={handleLogout}
+              variant="outline"
+              className="text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              Logout
+            </Button>
           </div>
 
           {/* Quick Stats */}
