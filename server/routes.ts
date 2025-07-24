@@ -115,7 +115,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Extract product details from URL
+  // Extract product details from URL - Uses Flask Python service for accurate extraction
   app.post("/api/products/extract", async (req, res) => {
     try {
       const { url } = req.body;
@@ -132,28 +132,60 @@ export function setupRoutes(app: Express, storage: IStorage) {
       let extractedData: any = {};
 
       try {
-        // Fetch the webpage content
-        const response = await fetch(url, {
+        // First, try to use the Python Flask extraction service (most accurate)
+        console.log('Attempting Python Flask extraction for:', url);
+        
+        const flaskResponse = await fetch('http://localhost:3000/extract', {
+          method: 'POST',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url: url }),
+          // @ts-ignore
+          timeout: 8000
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        if (flaskResponse.ok) {
+          const flaskResult = await flaskResponse.json();
+          if (flaskResult.success && flaskResult.data) {
+            extractedData = flaskResult.data;
+            console.log('Python Flask extraction successful:', extractedData.name);
+          } else {
+            throw new Error('Flask extraction failed: ' + (flaskResult.error || 'Unknown error'));
+          }
+        } else {
+          throw new Error(`Flask service returned ${flaskResponse.status}`);
         }
 
-        const html = await response.text();
+      } catch (flaskError) {
+        console.log(`Flask extraction failed: ${flaskError}`);
+        console.log('Falling back to HTML extraction...');
         
-        // Extract product details from HTML
-        extractedData = extractProductFromHtml(html, url);
-        console.log('HTML extraction successful:', extractedData.name);
+        try {
+          // Fallback to basic HTML extraction
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
 
-      } catch (fetchError) {
-        console.log(`Fetch failed, using URL-based extraction: ${fetchError}`);
-        
-        // Use URL-based extraction as fallback
-        extractedData = extractFromUrlPattern(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const html = await response.text();
+          
+          // Extract product details from HTML
+          extractedData = extractProductFromHtml(html, url);
+          console.log('HTML extraction successful:', extractedData.name);
+
+        } catch (fetchError) {
+          console.log(`HTML extraction failed: ${fetchError}`);
+          console.log('Using URL-based extraction as final fallback...');
+          
+          // Use URL-based extraction as final fallback
+          extractedData = extractFromUrlPattern(url);
+        }
       }
 
       res.json({
