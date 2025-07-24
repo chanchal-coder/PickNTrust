@@ -350,13 +350,13 @@ export class MemStorage implements IStorage {
       {
         name: "Cars & Bikes Accessories",
         icon: "fas fa-car",
-        color: "#4B5563",
+        color: "#F59E0B",
         description: "Vehicle Accessories"
       },
       {
         name: "Parts & Maintenance",
         icon: "fas fa-tools",
-        color: "#374151",
+        color: "#EF4444",
         description: "Auto Parts & Services"
       },
       
