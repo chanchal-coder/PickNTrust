@@ -777,8 +777,11 @@ export function setupRoutes(app: Express, storage: IStorage) {
       
       const admin = await storage.getAdminByEmail(validatedData.email);
       if (!admin) {
-        // Don't reveal if email exists for security
-        return res.json({ message: 'If the email exists, a reset link has been sent' });
+        // Don't reveal if email exists for security, but for demo we'll be helpful
+        if (validatedData.email === 'admin@pickntrust.com') {
+          return res.status(404).json({ message: 'Admin email found but user not found. Please check admin setup.' });
+        }
+        return res.status(404).json({ message: 'Email not found. Please use: admin@pickntrust.com' });
       }
 
       // Generate reset token (expires in 1 hour)
@@ -789,13 +792,15 @@ export function setupRoutes(app: Express, storage: IStorage) {
       
       if (success) {
         // In a real app, you would send an email here
-        // For demo purposes, we'll log the token
-        console.log('Password reset token for', validatedData.email, ':', resetToken);
+        // For demo purposes, we'll log the token and return it
+        console.log('🔑 Password reset token for', validatedData.email, ':', resetToken);
+        console.log('📧 In production, this would be sent via email');
         
         res.json({ 
-          message: 'If the email exists, a reset link has been sent',
-          // In development only - remove in production
-          resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
+          message: 'Reset token generated successfully! In production, this would be sent via email.',
+          resetToken: resetToken, // Always show in demo
+          email: validatedData.email,
+          expiresIn: '1 hour'
         });
       } else {
         res.status(500).json({ message: 'Failed to generate reset token' });

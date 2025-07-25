@@ -2447,6 +2447,15 @@ export default function AdminPage() {
             </div>
             
             <div className="space-y-4">
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  <strong>Current Password:</strong> pickntrust2025
+                </p>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                  Use this to change to your own secure password
+                </p>
+              </div>
+              
               <div>
                 <Label htmlFor="current-password">Current Password</Label>
                 <Input
@@ -2545,8 +2554,17 @@ export default function AdminPage() {
             </div>
             
             <div className="space-y-4">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                  <strong>Demo Mode:</strong> Use email "admin@pickntrust.com"
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Reset token will be displayed for testing (normally sent via email)
+                </p>
+              </div>
+              
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Enter your admin email address and we'll send you a password reset link.
+                Enter your admin email address and we'll generate a password reset token.
               </p>
               
               <div>

@@ -669,7 +669,7 @@ export class MemStorage implements IStorage {
     const defaultAdmin: InsertAdminUser = {
       username: "admin",
       email: "admin@pickntrust.com",
-      passwordHash: "b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", // hashed "pickntrust2025"
+      passwordHash: "7cc8b0731d6b4463bd7d280639fd1ae374c7a1f1374952ac8eefa8362908f68cc7e103900c4de289b875502f273ad9441b901d822d05ac4c1cf8f8e0d584a878", // hashed "pickntrust2025"
       isActive: true
     };
 
