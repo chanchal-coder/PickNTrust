@@ -88,14 +88,24 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         {/* Main Header Row */}
         <div className="flex justify-between items-center py-2 sm:py-3">
-          {/* Logo in Corner */}
-          <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
-            <img 
-              src={logoImage} 
-              alt="PickNTrust Logo" 
-              className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-            />
-          </Link>
+          {/* Logo in Corner with hidden admin access */}
+          <div className="flex-shrink-0 relative">
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <img 
+                src={logoImage} 
+                alt="PickNTrust Logo" 
+                className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+              />
+            </Link>
+            {/* Hidden admin access dot */}
+            {!isAdmin && (
+              <button
+                onClick={() => setShowAdminLogin(true)}
+                className="absolute -bottom-1 -right-1 w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full opacity-30 hover:opacity-100 transition-opacity"
+                title="Admin"
+              />
+            )}
+          </div>
 
           {/* Centered Brand Name & Slogan */}
           <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-80 transition-opacity">
@@ -165,6 +175,43 @@ export default function Header() {
         </div>
 
 
+
+        {/* Admin Login Modal - appears when dot is clicked */}
+        {showAdminLogin && !isAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Admin Access</h3>
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  autoFocus
+                />
+                <div className="flex space-x-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-navy dark:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Login
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAdminLogin(false);
+                      setAdminPassword('');
+                    }}
+                    className="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Hamburger Menu - Now for both mobile and desktop */}
         {mobileMenuOpen && (
