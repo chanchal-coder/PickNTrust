@@ -6,6 +6,7 @@ import WhyTrustUs from "@/components/why-trust-us";
 import BlogSection from "@/components/blog-section";
 import Newsletter from "@/components/newsletter";
 import Footer from "@/components/footer";
+import ScrollNavigation from "@/components/scroll-navigation";
 
 export default function Home() {
   return (
@@ -20,6 +21,7 @@ export default function Home() {
         <Newsletter />
       </div>
       <Footer />
+      <ScrollNavigation />
     </div>
   );
 }

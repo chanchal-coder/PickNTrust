@@ -144,6 +144,28 @@
   .blog-content * {
     pointer-events: auto;
   }
+  
+  /* Scroll navigation enhancements */
+  .scroll-nav-button {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  /* Mobile adjustments for scroll navigation */
+  @media (max-width: 768px) {
+    .scroll-nav-container {
+      right: 1rem;
+      bottom: 1rem;
+    }
+    
+    .scroll-nav-container button {
+      padding: 0.625rem;
+    }
+    
+    .scroll-nav-container .tooltip {
+      display: none;
+    }
+  }
 }
 
 @layer utilities {
