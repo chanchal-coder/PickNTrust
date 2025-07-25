@@ -1,10 +1,11 @@
 import Header from '@/components/header';
+import Footer from '@/components/footer';
 
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <div className="pt-20">
+      <div className="header-spacing">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <h1 className="text-4xl font-bold text-navy dark:text-blue-400 mb-8">Terms of Service</h1>
           
@@ -108,6 +109,7 @@ export default function TermsOfServicePage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
