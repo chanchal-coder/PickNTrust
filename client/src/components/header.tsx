@@ -59,61 +59,17 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6 items-center">
-            <Link 
-              href="/" 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium"
-            >
-              Home
-            </Link>
-            
-            {/* Show first 5 categories in desktop */}
-            {categories.slice(0, 5).map((category: any) => (
-              <Link 
-                key={category.name}
-                href={`/category/${category.name.replace(/\s+/g, '')}`}
-                className={`transition-colors font-medium ${
-                  category.name.toLowerCase().includes('deal') 
-                    ? 'text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-bold'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
-                }`}
-              >
-                {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
-              </Link>
-            ))}
-            
-            {/* Show "More" dropdown if there are more than 5 categories */}
-            {categories.length > 5 && (
-              <div className="relative group">
-                <button className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium">
-                  More <i className="fas fa-chevron-down text-xs ml-1"></i>
-                </button>
-                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  {categories.slice(5).map((category: any) => (
-                    <Link 
-                      key={category.name}
-                      href={`/category/${category.name.replace(/\s+/g, '')}`}
-                      className="block px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-navy dark:hover:text-blue-400 transition-colors"
-                    >
-                      <i className={`${category.icon} text-sm mr-2`} style={{color: category.color}}></i>
-                      {category.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Admin Dashboard Link - Only visible when logged in */}
-            {isAdmin && (
+          {/* Admin Dashboard Link - Only visible when logged in as desktop item */}
+          {isAdmin && (
+            <div className="hidden md:block">
               <Link 
                 href="/admin" 
                 className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-red-600 transition-colors animate-pulse"
               >
                 ⚙️ Admin
               </Link>
-            )}
-          </nav>
+            </div>
+          )}
 
           {/* Theme Toggle and Mobile Menu */}
           <div className="flex items-center space-x-3">
@@ -127,7 +83,7 @@ export default function Header() {
               •
             </Link>
             <button 
-              className="md:hidden text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400"
+              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <i className="fas fa-bars text-xl"></i>
@@ -135,9 +91,9 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Hamburger Menu - Now for both mobile and desktop */}
         {mobileMenuOpen && (
-          <div className="md:hidden pb-4 max-h-96 overflow-y-auto">
+          <div className="pb-4 max-h-96 overflow-y-auto">
             <nav className="flex flex-col space-y-3">
               <Link 
                 href="/" 
@@ -147,7 +103,7 @@ export default function Header() {
                 🏠 Home
               </Link>
               
-              {/* Show ALL categories in mobile menu */}
+              {/* Show ALL categories in hamburger menu */}
               {categories.map((category: any) => (
                 <Link 
                   key={category.name}
@@ -164,7 +120,7 @@ export default function Header() {
                 </Link>
               ))}
               
-              {/* Admin link in mobile if logged in */}
+              {/* Admin link in hamburger menu if logged in */}
               {isAdmin && (
                 <Link 
                   href="/admin" 
