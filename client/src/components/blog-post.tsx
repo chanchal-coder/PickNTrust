@@ -117,16 +117,16 @@ export default function BlogPost({
       html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
     }
     
-    // Convert affiliate links with special styling
+    // Convert affiliate links with special styling - this runs on all link patterns
     html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, linkText, url) => {
       const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly');
       const linkClass = isAffiliate 
-        ? 'inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-800'
-        : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline font-medium transition-colors';
+        ? 'inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-800 dark:hover:text-blue-300 underline decoration-2 underline-offset-2 transition-all bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-800 cursor-pointer'
+        : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline decoration-2 underline-offset-2 font-medium transition-colors cursor-pointer';
       
-      const icon = isAffiliate ? '<svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>' : '';
+      const icon = isAffiliate ? '<svg class="w-3 h-3 ml-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>' : '';
       
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${linkClass}">${linkText}${icon}</a>`;
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${linkClass}" onclick="window.open('${url}', '_blank')">${linkText}${icon}</a>`;
     });
     
     // Convert images with full-width display

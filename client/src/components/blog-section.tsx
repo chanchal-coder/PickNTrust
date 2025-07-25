@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import type { BlogPost } from "@shared/schema";
 
 export default function BlogSection() {
@@ -17,22 +18,22 @@ export default function BlogSection() {
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h3 className="text-4xl font-bold text-navy mb-4">Quick Tips & Trending 📝</h3>
-            <p className="text-xl text-gray-600">Stay updated with the latest deals and shopping hacks</p>
+            <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
+            <p className="text-xl text-gray-600 dark:text-gray-300">Stay updated with the latest deals and shopping hacks</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
             {[...Array(3)].map((_, i) => (
-              <article key={i} className="bg-white rounded-3xl shadow-lg overflow-hidden animate-pulse">
-                <div className="w-full h-48 bg-gray-200"></div>
+              <article key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse border border-gray-100 dark:border-gray-700">
+                <div className="w-full h-48 bg-gray-200 dark:bg-gray-700"></div>
                 <div className="p-6">
-                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-6 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
                 </div>
               </article>
             ))}
@@ -52,7 +53,7 @@ export default function BlogSection() {
         
         <div className="grid md:grid-cols-3 gap-8">
           {blogPosts?.map((post) => (
-            <article key={post.id} className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all overflow-hidden">
+            <article key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:-translate-y-2 hover:scale-105 group">
               <div className="w-full h-48 relative">
                 {post.videoUrl ? (
                   <div className="w-full h-full">
@@ -105,7 +106,7 @@ export default function BlogSection() {
                   <img 
                     src={post.imageUrl} 
                     alt={post.title} 
-                    className="w-full h-full object-cover" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
                   />
                 )}
               </div>
@@ -130,23 +131,23 @@ export default function BlogSection() {
                     <>
                       <span>{post.excerpt.substring(0, 120)}...</span>
                       <br />
-                      <a 
+                      <Link 
                         href={`/blog/${post.slug}`} 
-                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2"
+                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline"
                       >
                         Read More <span>→</span>
-                      </a>
+                      </Link>
                     </>
                   ) : (
                     <>
                       <span>{post.excerpt}</span>
                       <br />
-                      <a 
+                      <Link 
                         href={`/blog/${post.slug}`} 
-                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2"
+                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline"
                       >
                         Read More <span>→</span>
-                      </a>
+                      </Link>
                     </>
                   )}
                 </div>

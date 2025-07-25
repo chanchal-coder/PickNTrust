@@ -11,6 +11,8 @@ export default function BlogPostPage() {
   const { data: blogPost, isLoading } = useQuery({
     queryKey: ['/api/blog', slug],
     enabled: !!slug,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    cacheTime: 10 * 60 * 1000, // 10 minutes cache
   });
 
   // Sample blog post data - fallback for demo
@@ -204,15 +206,14 @@ Each of these gadgets has been carefully selected based on:
       <Header />
       <div className="header-spacing">
         <BlogPost 
-          title={postData.title}
-          content={postData.content}
-          publishDate={postData.publishedAt || postData.publishDate}
-          readTime={postData.readTime}
-          featuredImage={postData.imageUrl || postData.featuredImage}
-          tags={postData.tags || []}
-          author={postData.author || "PickNTrust Team"}
-          videoUrl={postData.videoUrl}
-          category={postData.category}
+          title={postData?.title || sampleBlogPost.title}
+          content={postData?.content || sampleBlogPost.content}
+          publishDate={postData?.publishedAt || postData?.publishDate || sampleBlogPost.publishDate}
+          readTime={postData?.readTime || sampleBlogPost.readTime}
+          featuredImage={postData?.imageUrl || postData?.featuredImage || sampleBlogPost.featuredImage}
+          tags={postData?.tags || []}
+          author={postData?.author || "PickNTrust Team"}
+          slug={slug || 'sample-post'}
         />
       </div>
       <Footer />

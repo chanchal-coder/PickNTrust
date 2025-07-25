@@ -117,6 +117,23 @@
     word-wrap: break-word;
     text-decoration: underline;
     text-decoration-skip-ink: auto;
+    color: #2563eb !important;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  
+  .dark .blog-content a {
+    color: #60a5fa !important;
+  }
+  
+  .blog-content a:hover {
+    color: #1d4ed8 !important;
+    text-decoration-thickness: 3px;
+  }
+  
+  .dark .blog-content a:hover {
+    color: #93c5fd !important;
   }
 }
 
