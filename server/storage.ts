@@ -4,6 +4,7 @@ import {
   newsletterSubscribers, 
   categories,
   affiliateNetworks,
+  adminUsers,
   type Product, 
   type InsertProduct,
   type BlogPost,
@@ -13,7 +14,12 @@ import {
   type Category,
   type InsertCategory,
   type AffiliateNetwork,
-  type InsertAffiliateNetwork
+  type InsertAffiliateNetwork,
+  type AdminUser,
+  type InsertAdminUser,
+  type ChangePassword,
+  type ForgotPassword,
+  type ResetPassword
 } from "@shared/schema";
 
 export interface IStorage {
@@ -47,6 +53,17 @@ export interface IStorage {
   addBlogPost(blogPost: any): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<boolean>;
   updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null>;
+  
+  // Admin User Management
+  getAdminByEmail(email: string): Promise<AdminUser | undefined>;
+  getAdminByUsername(username: string): Promise<AdminUser | undefined>;
+  getAdminById(id: number): Promise<AdminUser | undefined>;
+  createAdmin(admin: InsertAdminUser): Promise<AdminUser>;
+  updateAdminPassword(id: number, passwordHash: string): Promise<boolean>;
+  setResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
+  validateResetToken(token: string): Promise<AdminUser | undefined>;
+  clearResetToken(id: number): Promise<boolean>;
+  updateLastLogin(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -55,11 +72,13 @@ export class MemStorage implements IStorage {
   private newsletterSubscribers: Map<number, NewsletterSubscriber>;
   private categories: Map<number, Category>;
   private affiliateNetworks: Map<number, AffiliateNetwork>;
+  private adminUsers: Map<number, AdminUser>;
   private currentProductId: number;
   private currentBlogPostId: number;
   private currentSubscriberId: number;
   private currentCategoryId: number;
   private currentNetworkId: number;
+  private currentAdminId: number;
 
   constructor() {
     this.products = new Map();
@@ -67,11 +86,13 @@ export class MemStorage implements IStorage {
     this.newsletterSubscribers = new Map();
     this.categories = new Map();
     this.affiliateNetworks = new Map();
+    this.adminUsers = new Map();
     this.currentProductId = 1;
     this.currentBlogPostId = 1;
     this.currentSubscriberId = 1;
     this.currentCategoryId = 1;
     this.currentNetworkId = 1;
+    this.currentAdminId = 1;
     
     this.seedData();
   }
@@ -643,6 +664,24 @@ export class MemStorage implements IStorage {
       const id = this.currentBlogPostId++;
       this.blogPosts.set(id, { ...blogPost, id });
     });
+
+    // Seed default admin user
+    const defaultAdmin: InsertAdminUser = {
+      username: "admin",
+      email: "admin@pickntrust.com",
+      passwordHash: "b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", // hashed "pickntrust2025"
+      isActive: true
+    };
+
+    const adminId = this.currentAdminId++;
+    this.adminUsers.set(adminId, {
+      ...defaultAdmin,
+      id: adminId,
+      resetToken: null,
+      resetTokenExpiry: null,
+      lastLogin: null,
+      createdAt: new Date()
+    });
   }
 
   async getProducts(): Promise<Product[]> {
@@ -791,6 +830,92 @@ export class MemStorage implements IStorage {
     const updatedBlogPost = { ...blogPost, ...updates };
     this.blogPosts.set(id, updatedBlogPost);
     return updatedBlogPost;
+  }
+
+  // Admin User Management Methods
+  async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
+    for (const admin of this.adminUsers.values()) {
+      if (admin.email === email) {
+        return admin;
+      }
+    }
+    return undefined;
+  }
+
+  async getAdminByUsername(username: string): Promise<AdminUser | undefined> {
+    for (const admin of this.adminUsers.values()) {
+      if (admin.username === username) {
+        return admin;
+      }
+    }
+    return undefined;
+  }
+
+  async getAdminById(id: number): Promise<AdminUser | undefined> {
+    return this.adminUsers.get(id);
+  }
+
+  async createAdmin(adminData: InsertAdminUser): Promise<AdminUser> {
+    const id = this.currentAdminId++;
+    const admin: AdminUser = {
+      id,
+      username: adminData.username,
+      email: adminData.email,
+      passwordHash: adminData.passwordHash,
+      resetToken: adminData.resetToken || null,
+      resetTokenExpiry: adminData.resetTokenExpiry || null,
+      lastLogin: adminData.lastLogin || null,
+      createdAt: new Date(),
+      isActive: adminData.isActive ?? true,
+    };
+    
+    this.adminUsers.set(id, admin);
+    return admin;
+  }
+
+  async updateAdminPassword(id: number, passwordHash: string): Promise<boolean> {
+    const admin = this.adminUsers.get(id);
+    if (!admin) return false;
+    
+    const updatedAdmin = { ...admin, passwordHash };
+    this.adminUsers.set(id, updatedAdmin);
+    return true;
+  }
+
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const admin = await this.getAdminByEmail(email);
+    if (!admin) return false;
+    
+    const updatedAdmin = { ...admin, resetToken: token, resetTokenExpiry: expiry };
+    this.adminUsers.set(admin.id, updatedAdmin);
+    return true;
+  }
+
+  async validateResetToken(token: string): Promise<AdminUser | undefined> {
+    for (const admin of this.adminUsers.values()) {
+      if (admin.resetToken === token && admin.resetTokenExpiry && admin.resetTokenExpiry > new Date()) {
+        return admin;
+      }
+    }
+    return undefined;
+  }
+
+  async clearResetToken(id: number): Promise<boolean> {
+    const admin = this.adminUsers.get(id);
+    if (!admin) return false;
+    
+    const updatedAdmin = { ...admin, resetToken: null, resetTokenExpiry: null };
+    this.adminUsers.set(id, updatedAdmin);
+    return true;
+  }
+
+  async updateLastLogin(id: number): Promise<boolean> {
+    const admin = this.adminUsers.get(id);
+    if (!admin) return false;
+    
+    const updatedAdmin = { ...admin, lastLogin: new Date() };
+    this.adminUsers.set(id, updatedAdmin);
+    return true;
   }
 }
 

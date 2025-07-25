@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
-import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus } from 'lucide-react';
+import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Lock, Key, Shield } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -319,6 +319,23 @@ export default function AdminPage() {
   const [isEditingPreview, setIsEditingPreview] = useState(false);
   const [activeTab, setActiveTab] = useState('products');
   const [showBlogForm, setShowBlogForm] = useState(false);
+  
+  // Password Management States
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [passwordFormData, setPasswordFormData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [resetPasswordData, setResetPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  
   const [blogFormData, setBlogFormData] = useState({
     title: '',
     excerpt: '',
@@ -569,6 +586,120 @@ export default function AdminPage() {
     },
   });
 
+  // Password Management Mutations
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to change password');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Password Changed!',
+        description: 'Your password has been updated successfully.',
+      });
+      setPasswordFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowPasswordModal(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await fetch('/api/admin/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send reset email');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Reset Email Sent!',
+        description: 'Check your email for password reset instructions.',
+      });
+      setForgotPasswordEmail('');
+      setShowForgotPasswordModal(false);
+      
+      // In development, show the reset token
+      if (data.resetToken) {
+        setResetToken(data.resetToken);
+        setTimeout(() => {
+          setShowResetPasswordModal(true);
+          toast({
+            title: 'Development Mode',
+            description: 'Reset token auto-filled for testing.',
+          });
+        }, 1000);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: resetToken,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword,
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset password');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Password Reset Successfully!',
+        description: 'You can now login with your new password.',
+      });
+      setResetPasswordData({ newPassword: '', confirmPassword: '' });
+      setResetToken('');
+      setShowResetPasswordModal(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -808,13 +939,36 @@ export default function AdminPage() {
                 Manage your products and affiliate links daily
               </p>
             </div>
-            <Button 
-              onClick={handleLogout}
-              variant="outline"
-              className="text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              Logout
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowPasswordModal(true)}
+                className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                size="sm"
+              >
+                <Lock className="w-4 h-4" />
+                Change Password
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => setShowForgotPasswordModal(true)}
+                className="flex items-center gap-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                size="sm"
+              >
+                <Key className="w-4 h-4" />
+                Reset Password
+              </Button>
+              
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                className="text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                size="sm"
+              >
+                Logout
+              </Button>
+            </div>
           </div>
 
           {/* Gamified Dashboard Stats */}
@@ -2263,6 +2417,231 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Management Modals */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-navy dark:text-blue-400 flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Change Password
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowPasswordModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="current-password">Current Password</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={passwordFormData.currentPassword}
+                  onChange={(e) => setPasswordFormData({...passwordFormData, currentPassword: e.target.value})}
+                  placeholder="Enter current password"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={passwordFormData.newPassword}
+                  onChange={(e) => setPasswordFormData({...passwordFormData, newPassword: e.target.value})}
+                  placeholder="Enter new password (min 8 characters)"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={passwordFormData.confirmPassword}
+                  onChange={(e) => setPasswordFormData({...passwordFormData, confirmPassword: e.target.value})}
+                  placeholder="Confirm new password"
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+                      toast({
+                        title: 'Error',
+                        description: 'New passwords do not match',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    changePasswordMutation.mutate(passwordFormData);
+                  }}
+                  disabled={changePasswordMutation.isPending || !passwordFormData.currentPassword || !passwordFormData.newPassword || !passwordFormData.confirmPassword}
+                  className="flex-1"
+                >
+                  {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-navy dark:text-blue-400 flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                Forgot Password
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowForgotPasswordModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Enter your admin email address and we'll send you a password reset link.
+              </p>
+              
+              <div>
+                <Label htmlFor="reset-email">Admin Email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  placeholder="admin@pickntrust.com"
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => forgotPasswordMutation.mutate(forgotPasswordEmail)}
+                  disabled={forgotPasswordMutation.isPending || !forgotPasswordEmail}
+                  className="flex-1"
+                >
+                  {forgotPasswordMutation.isPending ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowForgotPasswordModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-navy dark:text-blue-400 flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Reset Password
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowResetPasswordModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Enter your new password below.
+              </p>
+              
+              <div>
+                <Label htmlFor="reset-token">Reset Token</Label>
+                <Input
+                  id="reset-token"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  placeholder="Paste reset token here"
+                  className="font-mono text-sm"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="reset-new-password">New Password</Label>
+                <Input
+                  id="reset-new-password"
+                  type="password"
+                  value={resetPasswordData.newPassword}
+                  onChange={(e) => setResetPasswordData({...resetPasswordData, newPassword: e.target.value})}
+                  placeholder="Enter new password (min 8 characters)"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="reset-confirm-password">Confirm New Password</Label>
+                <Input
+                  id="reset-confirm-password"
+                  type="password"
+                  value={resetPasswordData.confirmPassword}
+                  onChange={(e) => setResetPasswordData({...resetPasswordData, confirmPassword: e.target.value})}
+                  placeholder="Confirm new password"
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+                      toast({
+                        title: 'Error',
+                        description: 'Passwords do not match',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    resetPasswordMutation.mutate(resetPasswordData);
+                  }}
+                  disabled={resetPasswordMutation.isPending || !resetToken || !resetPasswordData.newPassword || !resetPasswordData.confirmPassword}
+                  className="flex-1"
+                >
+                  {resetPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowResetPasswordModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           </div>
