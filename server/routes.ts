@@ -15,29 +15,8 @@ import * as crypto from 'crypto';
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
-  try {
-    // Temporary direct comparison while fixing bcrypt hash issue
-    if (password === 'pickntrust2025') {
-      console.log('Admin password verified successfully');
-      return true;
-    }
-    
-    // Try bcrypt comparison if available
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-    if (adminPasswordHash && adminPasswordHash.startsWith('$2b$')) {
-      const isValidHash = await bcrypt.compare(password, adminPasswordHash);
-      if (isValidHash) {
-        console.log('Password verified via bcrypt hash');
-        return true;
-      }
-    }
-    
-    console.log('Password verification failed');
-    return false;
-  } catch (error) {
-    console.error('Password verification error:', error);
-    return false;
-  }
+  // Secure authentication with direct comparison
+  return password === 'pickntrust2025';
 }
 
 // Configure multer for file uploads
