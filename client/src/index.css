@@ -110,4 +110,34 @@
   .animate-bounce-slow {
     animation: bounce 3s infinite;
   }
+
+  /* Prevent header overlap issues */
+  .header-spacing {
+    padding-top: 60px;
+  }
+
+  @media (min-width: 640px) {
+    .header-spacing {
+      padding-top: 80px;
+    }
+  }
+
+  /* Fix text wrapping and overflow issues */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Responsive font sizes for better mobile display */
+  @media (max-width: 640px) {
+    .text-responsive-sm {
+      font-size: 0.875rem;
+    }
+    
+    .text-responsive-base {
+      font-size: 1rem;
+    }
+  }
 }

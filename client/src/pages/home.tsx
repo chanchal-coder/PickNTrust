@@ -11,12 +11,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <Hero />
-      <Categories />
-      <FeaturedProducts />
-      <WhyTrustUs />
-      <BlogSection />
-      <Newsletter />
+      <div className="header-spacing">
+        <Hero />
+        <Categories />
+        <FeaturedProducts />
+        <WhyTrustUs />
+        <BlogSection />
+        <Newsletter />
+      </div>
       <Footer />
     </div>
   );

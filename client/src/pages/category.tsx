@@ -228,7 +228,7 @@ export default function CategoryPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
-        <div className="pt-20">
+        <div className="header-spacing">
           <section className={`py-16 bg-gradient-to-r ${categoryInfo.color} text-white`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <div className="animate-pulse">
@@ -267,7 +267,7 @@ export default function CategoryPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
-        <div className="pt-20 pb-16">
+        <div className="header-spacing pb-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Error Loading Category</h1>
             <p className="text-gray-600 dark:text-gray-300 mb-8">There was an issue loading this category. Please try again.</p>
@@ -294,7 +294,7 @@ export default function CategoryPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
-        <div className="pt-20 pb-16">
+        <div className="header-spacing pb-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Category Not Found</h1>
             <p className="text-gray-600 dark:text-gray-300 mb-8">The requested category could not be found.</p>
@@ -311,7 +311,7 @@ export default function CategoryPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <div className="pt-20">
+      <div className="header-spacing">
         {/* Category Hero Section */}
         <section className={`py-16 bg-gradient-to-r ${categoryInfo.color} text-white`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

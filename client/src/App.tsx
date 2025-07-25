@@ -10,6 +10,8 @@ import CategoryPage from "@/pages/category";
 import AdminPage from "@/pages/admin";
 import WishlistPage from "@/pages/wishlist";
 import AffiliateTrackerPage from "@/pages/affiliate-tracker";
+import AffiliateDisclosurePage from "@/pages/affiliate-disclosure";
+import HowItWorksPage from "@/pages/how-it-works";
 import PrivacyPolicyPage from "@/pages/privacy-policy";
 import TermsOfServicePage from "@/pages/terms-of-service";
 import NotFound from "@/pages/not-found";
@@ -45,6 +47,8 @@ function AppRouter() {
         <Route path="/admin" component={AdminPage} />
         <Route path="/wishlist" component={WishlistPage} />
         <Route path="/affiliate-tracker" component={AffiliateTrackerPage} />
+        <Route path="/affiliate-disclosure" component={AffiliateDisclosurePage} />
+        <Route path="/how-it-works" component={HowItWorksPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route component={NotFound} />
