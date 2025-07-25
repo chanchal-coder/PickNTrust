@@ -940,6 +940,11 @@ export default function AdminPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <Shield className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-700 dark:text-green-400 font-medium">Secure Admin</span>
+              </div>
+              
               <Button
                 variant="outline"
                 onClick={() => setShowPasswordModal(true)}
@@ -2462,6 +2467,13 @@ export default function AdminPage() {
                   onChange={(e) => setPasswordFormData({...passwordFormData, newPassword: e.target.value})}
                   placeholder="Enter new password (min 8 characters)"
                 />
+                {passwordFormData.newPassword && (
+                  <div className="mt-1 text-xs">
+                    <span className={passwordFormData.newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                      {passwordFormData.newPassword.length >= 8 ? '✓' : '✗'} At least 8 characters
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div>
@@ -2478,6 +2490,14 @@ export default function AdminPage() {
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={() => {
+                    if (passwordFormData.newPassword.length < 8) {
+                      toast({
+                        title: 'Error',
+                        description: 'New password must be at least 8 characters long',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
                     if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
                       toast({
                         title: 'Error',
@@ -2604,6 +2624,13 @@ export default function AdminPage() {
                   onChange={(e) => setResetPasswordData({...resetPasswordData, newPassword: e.target.value})}
                   placeholder="Enter new password (min 8 characters)"
                 />
+                {resetPasswordData.newPassword && (
+                  <div className="mt-1 text-xs">
+                    <span className={resetPasswordData.newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                      {resetPasswordData.newPassword.length >= 8 ? '✓' : '✗'} At least 8 characters
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div>
@@ -2620,6 +2647,14 @@ export default function AdminPage() {
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={() => {
+                    if (resetPasswordData.newPassword.length < 8) {
+                      toast({
+                        title: 'Error',
+                        description: 'New password must be at least 8 characters long',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
                     if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
                       toast({
                         title: 'Error',
