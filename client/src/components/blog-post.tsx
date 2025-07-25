@@ -43,38 +43,99 @@ export default function BlogPost({
 
   // Parse Markdown content
   const parseMarkdown = (text: string) => {
-    // Convert headers
-    text = text.replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold text-navy dark:text-blue-400 mt-8 mb-4">$1</h3>');
-    text = text.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold text-navy dark:text-blue-400 mt-10 mb-6">$1</h2>');
-    text = text.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold text-navy dark:text-blue-400 mt-12 mb-8">$1</h1>');
+    // Split into lines for better processing
+    const lines = text.split('\n');
+    let html = '';
+    let inOrderedList = false;
+    let listItems = [];
     
-    // Convert numbered lists
-    text = text.replace(/^\d+\.\s+(.*$)/gim, '<li class="mb-3 pl-2">$1</li>');
-    text = text.replace(/(<li.*<\/li>)/gim, '<ol class="list-decimal list-inside space-y-2 mb-6 ml-4">$1</ol>');
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      
+      // Handle headers
+      if (line.startsWith('### ')) {
+        if (inOrderedList) {
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+          listItems = [];
+          inOrderedList = false;
+        }
+        html += `<h3 class="text-xl font-semibold text-navy dark:text-blue-400 mt-8 mb-4">${line.substring(4)}</h3>`;
+      } else if (line.startsWith('## ')) {
+        if (inOrderedList) {
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+          listItems = [];
+          inOrderedList = false;
+        }
+        html += `<h2 class="text-2xl font-bold text-navy dark:text-blue-400 mt-10 mb-6">${line.substring(3)}</h2>`;
+      } else if (line.startsWith('# ')) {
+        if (inOrderedList) {
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+          listItems = [];
+          inOrderedList = false;
+        }
+        html += `<h1 class="text-3xl font-bold text-navy dark:text-blue-400 mt-12 mb-8">${line.substring(2)}</h1>`;
+      }
+      // Handle numbered lists
+      else if (line.match(/^\d+\.\s+/)) {
+        const content = line.replace(/^\d+\.\s+/, '');
+        if (!inOrderedList) {
+          inOrderedList = true;
+        }
+        listItems.push(`<li class="mb-3 pl-2 text-gray-700 dark:text-gray-300">${content}</li>`);
+      }
+      // Handle bullet points
+      else if (line.startsWith('- ')) {
+        if (inOrderedList) {
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+          listItems = [];
+          inOrderedList = false;
+        }
+        html += `<li class="mb-2 ml-4 text-gray-700 dark:text-gray-300">${line.substring(2)}</li>`;
+      }
+      // Handle empty lines
+      else if (line === '') {
+        if (inOrderedList) {
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+          listItems = [];
+          inOrderedList = false;
+        }
+        html += '<br>';
+      }
+      // Handle regular paragraphs
+      else if (line.length > 0) {
+        if (inOrderedList) {
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+          listItems = [];
+          inOrderedList = false;
+        }
+        html += `<p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">${line}</p>`;
+      }
+    }
+    
+    // Close any remaining ordered list
+    if (inOrderedList) {
+      html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
+    }
     
     // Convert affiliate links with special styling
-    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, linkText, url) => {
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, linkText, url) => {
       const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly');
       const linkClass = isAffiliate 
         ? 'inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-800'
-        : 'text-blue-600 dark:text-blue-400 hover:underline';
+        : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline font-medium transition-colors';
       
-      const icon = isAffiliate ? '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>' : '';
+      const icon = isAffiliate ? '<svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>' : '';
       
       return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${linkClass}">${linkText}${icon}</a>`;
     });
     
-    // Convert images with SEO-friendly alt text
-    text = text.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<img src="$2" alt="$1" class="w-full max-w-2xl mx-auto rounded-lg shadow-md my-6" loading="lazy" />');
-    
-    // Convert paragraphs
-    text = text.replace(/\n\s*\n/g, '</p><p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">');
-    text = '<p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">' + text + '</p>';
+    // Convert images with full-width display
+    html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<div class="my-8"><img src="$2" alt="$1" class="w-full rounded-lg shadow-lg" loading="lazy" /></div>');
     
     // Convert bold text
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-navy dark:text-blue-400">$1</strong>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-navy dark:text-blue-400">$1</strong>');
     
-    return text;
+    return html;
   };
 
   const shareUrl = `${window.location.origin}/blog/${slug}`;
@@ -112,11 +173,11 @@ export default function BlogPost({
       {/* Hero Section */}
       <header className="relative">
         {featuredImage && (
-          <div className="w-full h-96 overflow-hidden rounded-t-xl">
+          <div className="w-full h-[500px] overflow-hidden rounded-t-xl">
             <img 
               src={featuredImage} 
               alt={`Featured image for ${title}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center"
               loading="eager"
             />
           </div>
@@ -159,7 +220,7 @@ export default function BlogPost({
       {/* Content */}
       <main className="px-8 lg:px-12 pb-12">
         <div 
-          className="prose prose-lg max-w-none prose-headings:text-navy dark:prose-headings:text-blue-400 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-navy dark:prose-strong:text-blue-400"
+          className="blog-content max-w-none text-base leading-relaxed"
           dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
         />
       </main>

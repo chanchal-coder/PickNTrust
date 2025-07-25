@@ -30,6 +30,10 @@
   --accent-green: hsl(160, 84%, 39%);
   --accent-orange: hsl(43, 96%, 50%);
   --gold: hsl(48, 77%, 52%);
+  
+  /* Blog content text colors */
+  --blog-text: #374151;
+  --blog-text-light: #6b7280;
 }
 
 .dark {
@@ -53,6 +57,10 @@
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(240, 4.9%, 83.9%);
   --radius: 0.5rem;
+  
+  /* Blog content text colors for dark mode */
+  --blog-text: #d1d5db;
+  --blog-text-light: #9ca3af;
 }
 
 @layer base {
@@ -63,6 +71,52 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+  }
+  
+  /* Blog post content styling */
+  .blog-content {
+    color: var(--blog-text);
+  }
+  
+  .blog-content h1, .blog-content h2, .blog-content h3 {
+    color: var(--navy);
+  }
+  
+  .dark .blog-content h1, .dark .blog-content h2, .dark .blog-content h3 {
+    color: hsl(207, 90%, 70%);
+  }
+  
+  .blog-content p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+  }
+  
+  .blog-content ol {
+    counter-reset: item;
+    padding-left: 0;
+  }
+  
+  .blog-content ol > li {
+    display: block;
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+    position: relative;
+  }
+  
+  .blog-content ol > li:before {
+    content: counter(item) ".";
+    counter-increment: item;
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: 600;
+    color: var(--bright-blue);
+  }
+  
+  .blog-content a {
+    word-wrap: break-word;
+    text-decoration: underline;
+    text-decoration-skip-ink: auto;
   }
 }
 
