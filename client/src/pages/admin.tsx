@@ -465,9 +465,10 @@ export default function AdminPage() {
         affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
         isNew: data.isNew || false,
         isFeatured: data.isFeatured || false,
+        password: 'pickntrust2025', // Add admin password for authentication
       };
       
-      const response = await fetch('/api/products', {
+      const response = await fetch('/api/admin/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -700,12 +701,15 @@ export default function AdminPage() {
         isFeatured: extractedProduct.isFeatured !== false,
       };
 
-      const addResponse = await fetch('/api/products', {
+      const addResponse = await fetch('/api/admin/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(productData),
+        body: JSON.stringify({
+          ...productData,
+          password: 'pickntrust2025', // Add admin password for authentication
+        }),
       });
 
       if (addResponse.ok) {

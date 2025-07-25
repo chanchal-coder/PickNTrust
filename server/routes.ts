@@ -256,7 +256,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
         totalProducts: products.length,
         totalCategories: categories.length,
         totalBlogPosts: blogPosts.length,
-        featuredProducts: products.filter(p => p.featured).length,
+        featuredProducts: products.filter(p => p.isFeatured).length,
         lastUpdated: new Date().toISOString()
       });
     } catch (error) {
