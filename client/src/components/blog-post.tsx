@@ -31,12 +31,9 @@ export default function BlogPost({
   const handleContentClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     const link = target.closest('a');
-    if (link && link.hasAttribute('data-url')) {
-      e.preventDefault();
-      const url = link.getAttribute('data-url');
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+    if (link && link.href) {
+      // Let the browser handle the link normally for better compatibility
+      return;
     }
   };
 
@@ -130,16 +127,15 @@ export default function BlogPost({
       html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
     }
     
-    // Convert all markdown links to clickable HTML links with proper event handling
+    // First process all links BEFORE other markdown processing
     html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, linkText, url) => {
-      const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly');
-      const linkClass = isAffiliate 
-        ? 'inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-800 dark:hover:text-blue-300 underline decoration-2 underline-offset-2 transition-all bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-800 cursor-pointer'
-        : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline decoration-2 underline-offset-2 font-medium transition-colors cursor-pointer';
+      const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly') || url.includes('affiliate');
       
-      const icon = isAffiliate ? '<svg class="w-3 h-3 ml-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>' : '';
-      
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${linkClass}" data-url="${url}" style="pointer-events: auto;">${linkText}${icon}</a>`;
+      if (isAffiliate) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb !important; text-decoration: underline !important; cursor: pointer !important; background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600;">${linkText} 🔗</a>`;
+      } else {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb !important; text-decoration: underline !important; cursor: pointer !important; font-weight: 500;">${linkText}</a>`;
+      }
     });
     
     // Convert images with full-width display
