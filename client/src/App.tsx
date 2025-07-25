@@ -14,6 +14,7 @@ import AffiliateDisclosurePage from "@/pages/affiliate-disclosure";
 import HowItWorksPage from "@/pages/how-it-works";
 import PrivacyPolicyPage from "@/pages/privacy-policy";
 import TermsOfServicePage from "@/pages/terms-of-service";
+import BlogPostPage from "@/pages/blog-post";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
@@ -51,6 +52,7 @@ function AppRouter() {
         <Route path="/how-it-works" component={HowItWorksPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
+        <Route path="/blog/:slug" component={BlogPostPage} />
         <Route component={NotFound} />
       </Switch>
     </Router>
