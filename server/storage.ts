@@ -16,10 +16,7 @@ import {
   type AffiliateNetwork,
   type InsertAffiliateNetwork,
   type AdminUser,
-  type InsertAdminUser,
-  type ChangePassword,
-  type ForgotPassword,
-  type ResetPassword
+  type InsertAdminUser
 } from "@shared/schema";
 
 export interface IStorage {

@@ -95,11 +95,34 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Get all products
+  // Get all products with pagination and search
   app.get("/api/products", async (req, res) => {
     try {
-      const products = await storage.getProducts();
-      res.json(products);
+      const { search, limit = 20, offset = 0 } = req.query;
+      let products = await storage.getProducts();
+      
+      // Search functionality
+      if (search && typeof search === 'string') {
+        const searchTerm = search.toLowerCase();
+        products = products.filter(product => 
+          product.name.toLowerCase().includes(searchTerm) ||
+          product.description.toLowerCase().includes(searchTerm) ||
+          product.category.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Pagination
+      const total = products.length;
+      const startIndex = parseInt(offset as string);
+      const endIndex = startIndex + parseInt(limit as string);
+      const paginatedProducts = products.slice(startIndex, endIndex);
+      
+      res.json({
+        products: paginatedProducts,
+        total,
+        hasMore: endIndex < total,
+        page: Math.floor(startIndex / parseInt(limit as string)) + 1
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch products" });
     }
@@ -189,6 +212,25 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(409).json({ message: "This email is already subscribed to our newsletter" });
       }
       res.status(500).json({ message: "Failed to subscribe to newsletter" });
+    }
+  });
+
+  // Analytics endpoints for Android app
+  app.get("/api/analytics/stats", async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const categories = await storage.getCategories();
+      const blogPosts = await storage.getBlogPosts();
+      
+      res.json({
+        totalProducts: products.length,
+        totalCategories: categories.length,
+        totalBlogPosts: blogPosts.length,
+        featuredProducts: products.filter(p => p.featured).length,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 
