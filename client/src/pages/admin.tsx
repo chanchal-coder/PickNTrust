@@ -485,11 +485,8 @@ export default function AdminPage() {
         description: 'New product has been added successfully.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
-      // Reset extracted product data
-      setExtractedProduct(null);
-      setShowPreview(false);
-      // Form reset would go here if form was available
-      /*form.reset({
+      // Reset form to default values instead of clearing
+      form.reset({
         name: '',
         description: '',
         price: '',
@@ -502,7 +499,7 @@ export default function AdminPage() {
         discount: '',
         isNew: false,
         isFeatured: true,
-      });*/
+      });
       setShowAddForm(false);
     },
     onError: () => {
@@ -575,25 +572,176 @@ export default function AdminPage() {
     },
   });
 
+  // Authentication complete - password management removed per user request
 
+  const form = useForm<ProductForm>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      price: '',
+      originalPrice: '',
+      imageUrl: '',
+      affiliateUrl: '',
+      category: 'Tech',
+      rating: '4.5',
+      reviewCount: '100',
+      discount: '',
+      isNew: false,
+      isFeatured: true,
+    },
+  });
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('pickntrust-admin-session');
-    toast({
-      title: 'Logged Out',
-      description: 'Admin session ended.',
-    });
+  const onSubmit = (data: ProductForm) => {
+    addProductMutation.mutate(data);
   };
 
-  const handlePasswordSubmit = (e: any) => {
+  const extractProductDetails = async () => {
+    if (!productUrl.trim()) {
+      toast({
+        title: 'URL Required',
+        description: 'Please enter a product URL to extract details.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    
+    try {
+      const extractResponse = await fetch('/api/products/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: productUrl }),
+      });
+
+      const extractResult = await extractResponse.json();
+
+      if (extractResult.success && extractResult.data) {
+        const data = extractResult.data;
+        setExtractedProduct({
+          ...data,
+          affiliateUrl: productUrl,
+        });
+        setShowPreview(true);
+        setIsEditingPreview(false);
+        
+        toast({
+          title: 'Product Details Extracted!',
+          description: 'Review the details below and click "Add Product" to confirm.',
+        });
+      } else {
+        toast({
+          title: 'Extraction Failed',
+          description: extractResult.message || 'Could not extract product details from this URL.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to extract product details. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const addExtractedProduct = async () => {
+    if (!extractedProduct) return;
+
+    // Validation
+    if (!extractedProduct.name?.trim()) {
+      toast({
+        title: 'Name Required',
+        description: 'Please enter a product name.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!extractedProduct.imageUrl?.trim()) {
+      toast({
+        title: 'Image Required',
+        description: 'Please enter a valid image URL.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!extractedProduct.affiliateUrl?.trim()) {
+      toast({
+        title: 'Affiliate Link Required',
+        description: 'Please enter a valid affiliate link.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const productData = {
+        name: extractedProduct.name.trim(),
+        description: extractedProduct.description?.trim() || `Professional-grade ${extractedProduct.name} with industry-leading features.`,
+        price: extractedProduct.price,
+        originalPrice: extractedProduct.originalPrice || undefined,
+        rating: parseFloat(extractedProduct.rating) || 4.5,
+        reviewCount: parseInt(extractedProduct.reviewCount) || 100,
+        discount: extractedProduct.discount ? parseInt(extractedProduct.discount) : undefined,
+        category: extractedProduct.category,
+        imageUrl: extractedProduct.imageUrl.trim(),
+        affiliateUrl: extractedProduct.affiliateUrl.trim(),
+        affiliateNetworkId: extractedProduct.affiliateNetworkId ? parseInt(extractedProduct.affiliateNetworkId) : undefined,
+        isNew: extractedProduct.isNew || false,
+        isFeatured: extractedProduct.isFeatured !== false,
+      };
+
+      const addResponse = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
+      });
+
+      if (addResponse.ok) {
+        toast({
+          title: 'Product Added Successfully!',
+          description: `"${extractedProduct.name}" has been added to your catalog.`,
+        });
+        
+        // Refresh the products list
+        queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+        
+        // Clear everything
+        setProductUrl('');
+        setExtractedProduct(null);
+        setShowPreview(false);
+      } else {
+        throw new Error('Failed to add product');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add product. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Simple password check - you can change this password
     if (password === 'pickntrust2025') {
       setIsAuthenticated(true);
+      setPassword('');
+      // Set admin session for all category pages
       localStorage.setItem('pickntrust-admin-session', 'active');
       toast({
         title: 'Access Granted',
-        description: 'Welcome to PickNTrust Admin Panel',
+        description: 'Welcome to PickNTrust Admin Panel. You now have admin controls across all pages.',
       });
     } else {
       toast({
@@ -603,6 +751,16 @@ export default function AdminPage() {
       });
       setPassword('');
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    // Remove admin session from all category pages
+    localStorage.removeItem('pickntrust-admin-session');
+    toast({
+      title: 'Logged Out',
+      description: 'Admin session ended. Admin controls disabled across all pages.',
+    });
   };
 
   if (!isAuthenticated) {
@@ -632,7 +790,7 @@ export default function AdminPage() {
                 </Button>
               </form>
               <p className="text-xs text-gray-500 mt-4 text-center">
-                Password management features have been removed
+                Only authorized users can access this panel
               </p>
             </CardContent>
           </Card>
@@ -640,7 +798,7 @@ export default function AdminPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
@@ -674,7 +832,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-blue-100 text-sm">Total Products</p>
-                    <p className="text-2xl font-bold">{totalProducts}</p>
+                    <p className="text-2xl font-bold">{(products as any[]).length}</p>
                   </div>
                   <Package className="w-8 h-8 text-blue-200" />
                 </div>
@@ -720,142 +878,1404 @@ export default function AdminPage() {
 
           {/* Achievement Badges */}
           {achievements.length > 0 && (
-            <div className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-              <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-300 mb-3 flex items-center gap-2">
+            <div className="mb-8 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 transition-all duration-300 hover:shadow-lg">
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3 flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
-                Achievements Unlocked
+                Your Achievements
               </h3>
               <div className="flex flex-wrap gap-2">
                 {achievements.map((achievement, index) => (
-                  <Badge key={index} className="bg-purple-600 text-white px-3 py-1">
+                  <div key={index} className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-3 py-1 rounded-full text-sm font-medium transition-transform hover:scale-105 animate-pulse">
+                    <span className="text-yellow-600">🏆</span>
                     {achievement}
-                  </Badge>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Tab Navigation */}
-          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`px-4 py-2 font-medium text-sm ${
-                activeTab === 'products'
-                  ? 'border-b-2 border-bright-blue text-bright-blue'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Product Management
-            </button>
-            <button
-              onClick={() => setActiveTab('blog')}
-              className={`px-4 py-2 font-medium text-sm ${
-                activeTab === 'blog'
-                  ? 'border-b-2 border-bright-blue text-bright-blue'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Blog Management
-            </button>
-            <button
-              onClick={() => setActiveTab('networks')}
-              className={`px-4 py-2 font-medium text-sm ${
-                activeTab === 'networks'
-                  ? 'border-b-2 border-bright-blue text-bright-blue'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Affiliate Networks
-            </button>
+          {/* Admin Navigation Tabs with Animations */}
+          <div className="mb-8">
+            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-md">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'products'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                📦 Products
+              </button>
+              <button
+                onClick={() => setActiveTab('blog')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'blog'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                📝 Blog Posts
+              </button>
+            </div>
           </div>
 
-          {/* Tab Content */}
+          {/* Conditional Content Based on Active Tab */}
           {activeTab === 'products' && (
-            <div className="space-y-6">
-              {/* Simple note about simplified system */}
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>Note:</strong> Complex password management features have been removed for simplicity. 
-                  This panel now focuses on core content management.
-                </p>
-              </div>
-
-              {/* Add Product Button */}
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Product Catalog</h3>
-                <Button 
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-bright-blue hover:bg-navy text-white"
+            <>
+              {/* Auto-Extract Section - Always Visible */}
+              <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="text-xl text-bright-blue">🚀 Auto-Extract Product Details</CardTitle>
+              <CardDescription>
+                Paste any product URL (Amazon, Flipkart, etc.) to automatically extract and add products
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="Paste product URL here: https://amazon.in/dp/B08N5WRWNW or https://flipkart.com/product..."
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  className="flex-1 text-sm"
+                />
+                <Button
+                  type="button"
+                  onClick={extractProductDetails}
+                  disabled={isExtracting || !productUrl.trim()}
+                  className="bg-bright-blue hover:bg-navy text-white px-6"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New Product
+                  {isExtracting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Extracting...
+                    </>
+                  ) : (
+                    'Extract Details'
+                  )}
                 </Button>
               </div>
-
-              {/* Products Grid */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.isArray(products) && products.map((product: any) => (
-                  <ProductManagementCard 
-                    key={product.id} 
-                    product={product} 
-                    onUpdate={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
-                    onDelete={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
-                  />
-                ))}
+              <div className="grid md:grid-cols-3 gap-4 text-xs text-gray-600 dark:text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  Amazon Products
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                  Flipkart Products  
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  Other Retailers
+                </div>
               </div>
-            </div>
-          )}
+            </CardContent>
+          </Card>
 
-          {activeTab === 'blog' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Blog Management</h3>
-                <Button 
-                  onClick={() => setShowBlogForm(true)}
-                  className="bg-bright-blue hover:bg-navy text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Post
-                </Button>
-              </div>
+          {/* Product Preview Section */}
+          {showPreview && extractedProduct && (
+            <Card className="mb-8 border-green-200 dark:border-green-800">
+              <CardHeader className="bg-green-50 dark:bg-green-900/20">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-green-700 dark:text-green-400">
+                      {isEditingPreview ? '✏️ Edit Product Details' : '📋 Product Preview'}
+                    </CardTitle>
+                    <CardDescription>
+                      {isEditingPreview 
+                        ? 'Edit the extracted details before adding to your catalog'
+                        : 'Review the extracted details and confirm to add to your catalog'
+                      }
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditingPreview(!isEditingPreview)}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    {isEditingPreview ? 'Preview' : 'Edit'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {isEditingPreview ? (
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-name">Product Name *</Label>
+                        <Input
+                          id="edit-name"
+                          value={extractedProduct.name}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, name: e.target.value})}
+                          placeholder="Enter product name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-category">Category *</Label>
+                        <Select 
+                          value={extractedProduct.category}
+                          onValueChange={(value) => setExtractedProduct({...extractedProduct, category: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(categories as any[]).map((category: any) => (
+                              <SelectItem key={category.id} value={category.name}>
+                                {category.name} - {category.description}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-              {/* Blog Posts Grid */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.isArray(blogPosts) && blogPosts.map((post: any) => (
-                  <Card key={post.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-semibold text-navy dark:text-blue-400 line-clamp-2">{post.title}</h4>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingBlog(post)}
-                            className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                    <div>
+                      <Label htmlFor="edit-description">Description *</Label>
+                      <Textarea
+                        id="edit-description"
+                        value={extractedProduct.description}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, description: e.target.value})}
+                        placeholder="Enter product description"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="edit-price">Current Price (₹) *</Label>
+                        <Input
+                          id="edit-price"
+                          value={extractedProduct.price}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, price: e.target.value})}
+                          placeholder="9999.00"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-originalPrice">Original Price (₹)</Label>
+                        <Input
+                          id="edit-originalPrice"
+                          value={extractedProduct.originalPrice || ''}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, originalPrice: e.target.value})}
+                          placeholder="14999.00"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-discount">Discount %</Label>
+                        <Input
+                          id="edit-discount"
+                          value={extractedProduct.discount || ''}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, discount: e.target.value})}
+                          placeholder="33"
+                          type="number"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-rating">Rating (1-5) *</Label>
+                        <Input
+                          id="edit-rating"
+                          value={extractedProduct.rating}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, rating: e.target.value})}
+                          placeholder="4.5"
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          max="5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-reviewCount">Review Count *</Label>
+                        <Input
+                          id="edit-reviewCount"
+                          value={extractedProduct.reviewCount}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, reviewCount: e.target.value})}
+                          placeholder="1234"
+                          type="number"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-imageUrl">Product Image URL *</Label>
+                      <Input
+                        id="edit-imageUrl"
+                        value={extractedProduct.imageUrl}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, imageUrl: e.target.value})}
+                        placeholder="https://images.unsplash.com/photo-..."
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Update with high-quality image URL if the extracted image is incorrect
+                      </p>
+                      {/* Image Preview */}
+                      {extractedProduct.imageUrl && (
+                        <div className="mt-3">
+                          <img 
+                            src={extractedProduct.imageUrl} 
+                            alt={extractedProduct.name}
+                            className="w-32 h-32 object-cover rounded-lg border"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-affiliateUrl">Affiliate Link *</Label>
+                      <Input
+                        id="edit-affiliateUrl"
+                        value={extractedProduct.affiliateUrl}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, affiliateUrl: e.target.value})}
+                        placeholder="https://amzn.to/XXXXXXX"
+                      />
+                    </div>
+
+                    <div className="flex gap-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={extractedProduct.isNew || false}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, isNew: e.target.checked})}
+                          className="rounded"
+                        />
+                        <span className="text-sm">Mark as NEW</span>
+                      </label>
+
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={extractedProduct.isFeatured !== false}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, isFeatured: e.target.checked})}
+                          className="rounded"
+                        />
+                        <span className="text-sm">Featured Product</span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Product Name</h4>
+                        <p className="text-sm">{extractedProduct.name}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Description</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{extractedProduct.description}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-semibold text-navy dark:text-blue-400">Price</h4>
+                          <p className="text-lg font-bold text-green-600">₹{extractedProduct.price}</p>
+                        </div>
+                        {extractedProduct.originalPrice && (
+                          <div>
+                            <h4 className="font-semibold text-navy dark:text-blue-400">Original Price</h4>
+                            <p className="text-sm line-through text-gray-500">₹{extractedProduct.originalPrice}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-semibold text-navy dark:text-blue-400">Rating</h4>
+                          <p className="text-sm">{extractedProduct.rating}/5 ⭐</p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-navy dark:text-blue-400">Reviews</h4>
+                          <p className="text-sm">{extractedProduct.reviewCount} reviews</p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-3">
-                        {post.excerpt}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{post.readTime}</span>
-                        <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Product Image</h4>
+                        <img 
+                          src={extractedProduct.imageUrl} 
+                          alt={extractedProduct.name}
+                          className="w-full h-48 object-cover rounded-lg border"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                          }}
+                        />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Category</h4>
+                        <p className="text-sm">{extractedProduct.category}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-3 mt-6 pt-4 border-t">
+                  <Button
+                    onClick={addExtractedProduct}
+                    className="bg-accent-green hover:bg-green-600 text-white"
+                  >
+                    ✓ Add Product to Catalog
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPreview(false);
+                      setExtractedProduct(null);
+                      setIsEditingPreview(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
-          {activeTab === 'networks' && (
-            <AffiliateNetworkManagement networks={affiliateNetworks} />
+          {/* Manual Add Product Section */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Manual Product Management</CardTitle>
+              <CardDescription>
+                Add products manually or edit auto-extracted details
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-bright-blue hover:bg-navy text-white mb-4"
+              >
+                {showAddForm ? 'Cancel Manual Entry' : 'Add Product Manually'}
+              </Button>
+
+              {showAddForm && (
+                <div className="space-y-6">
+
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Product Name *</Label>
+                      <Input
+                        id="name"
+                        {...form.register('name')}
+                        placeholder="Premium Wireless Smartphone"
+                      />
+                      {form.formState.errors.name && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {form.formState.errors.name.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="category">Category *</Label>
+                      <Select 
+                        onValueChange={(value) => form.setValue('category', value as any)}
+                        defaultValue="Tech"
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(categories as any[]).map((category: any) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name} - {category.description}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      {...form.register('description')}
+                      placeholder="High-quality product with amazing features..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="price">Current Price (₹) *</Label>
+                      <Input
+                        id="price"
+                        {...form.register('price')}
+                        placeholder="₹9,999.00"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="originalPrice">Original Price (₹)</Label>
+                      <Input
+                        id="originalPrice"
+                        {...form.register('originalPrice')}
+                        placeholder="₹14,999.00"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="discount">Discount %</Label>
+                      <Input
+                        id="discount"
+                        {...form.register('discount')}
+                        placeholder="33"
+                        type="number"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="rating">Rating (1-5) *</Label>
+                      <Input
+                        id="rating"
+                        {...form.register('rating')}
+                        placeholder="4.5"
+                        type="number"
+                        step="0.1"
+                        min="1"
+                        max="5"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="reviewCount">Review Count *</Label>
+                      <Input
+                        id="reviewCount"
+                        {...form.register('reviewCount')}
+                        placeholder="1234"
+                        type="number"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="imageUrl">Product Image URL *</Label>
+                    <Input
+                      id="imageUrl"
+                      {...form.register('imageUrl')}
+                      placeholder="https://images.unsplash.com/photo-..."
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Use high-quality images from Unsplash or official product websites
+                    </p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="affiliateUrl">Affiliate Link *</Label>
+                      <Input
+                        id="affiliateUrl"
+                        {...form.register('affiliateUrl')}
+                        placeholder="https://amzn.to/XXXXXXX"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="affiliateNetworkId">Affiliate Network</Label>
+                      <Select 
+                        onValueChange={(value) => form.setValue('affiliateNetworkId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select network" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(affiliateNetworks as any[]).map((network: any) => (
+                            <SelectItem key={network.id} value={network.id.toString()}>
+                              {network.name} ({network.commissionRate}%)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Select the affiliate network and enter your tracking link
+                  </p>
+
+                  <div className="flex gap-4">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        {...form.register('isNew')}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Mark as NEW</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        {...form.register('isFeatured')}
+                        className="rounded"
+                        defaultChecked
+                      />
+                      <span className="text-sm">Featured Product</span>
+                    </label>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={addProductMutation.isPending}
+                    className="bg-accent-green hover:bg-green-600 text-white"
+                  >
+                    {addProductMutation.isPending ? 'Adding Product...' : 'Add Product'}
+                  </Button>
+                  </form>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Revenue Optimization */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-navy dark:text-blue-400">Revenue Optimization</CardTitle>
+                <CardDescription>Track performance and optimize earnings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Performance Tracking</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Monitor which products get the most clicks</li>
+                      <li>Track conversion rates by category</li>
+                      <li>Identify seasonal trending products</li>
+                      <li>Analyze mobile vs desktop performance</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">A/B Testing Ideas</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Test different product descriptions</li>
+                      <li>Compare image styles (lifestyle vs product)</li>
+                      <li>Try different "Pick Now" button colors</li>
+                      <li>Test product positioning on homepage</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Click-Through Rate Tips</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Use urgency words: "Limited time", "Flash sale"</li>
+                      <li>Highlight discounts prominently</li>
+                      <li>Add social proof with review counts</li>
+                      <li>Update bestsellers weekly</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-navy dark:text-blue-400">Seasonal Content Calendar</CardTitle>
+                <CardDescription>Plan content for maximum revenue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">January - March</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>New Year fitness products</li>
+                      <li>Valentine's Day gifts (Beauty, Fashion)</li>
+                      <li>Holi festival deals</li>
+                      <li>Summer prep products</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">April - June</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Summer cooling products</li>
+                      <li>Father's Day tech deals</li>
+                      <li>Student tech for exams</li>
+                      <li>Monsoon prep items</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">October - December</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5 space-y-1">
+                      <li>Diwali festival shopping</li>
+                      <li>Winter clothing collection</li>
+                      <li>Year-end tech deals</li>
+                      <li>Christmas gifts and decor</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Affiliate Networks Management */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Affiliate Networks</CardTitle>
+              <CardDescription>Manage your affiliate partnerships and commission rates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AffiliateNetworkManager />
+            </CardContent>
+          </Card>
+
+          {/* Product Management Section */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Product Management</CardTitle>
+              <CardDescription>Manage all your products with full control</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Product List */}
+                <div>
+                  <h4 className="font-semibold text-navy dark:text-blue-400 mb-4">Current Products ({(products as any[]).length})</h4>
+                  <div className="grid gap-4">
+                    {(products as any[]).map((product: any) => (
+                      <ProductManagementCard 
+                        key={product.id} 
+                        product={product} 
+                        onUpdate={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                        onDelete={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Guide */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Daily Management Tips</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-navy dark:text-blue-400">Morning Routine (10 min)</h4>
+                  <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5">
+                    <li>Check affiliate partner sites for new deals</li>
+                    <li>Update 2-3 products with current prices</li>
+                    <li>Add 1 new product to "Deals" category</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold text-navy dark:text-blue-400">Best Practices</h4>
+                  <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5">
+                    <li>Always test affiliate links before adding</li>
+                    <li>Use high-quality product images</li>
+                    <li>Update seasonal content regularly</li>
+                    <li>Monitor click-through rates</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-navy dark:text-blue-400">Content Sources</h4>
+                  <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc ml-5">
+                    <li>Amazon Best Sellers & Daily Deals</li>
+                    <li>Flipkart Super Deals & Flash Sales</li>
+                    <li>Brand websites with affiliate programs</li>
+                    <li>Social media trending products</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          </>
+          )}
+
+          {/* Blog Management Tab */}
+          {activeTab === 'blog' && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-navy dark:text-blue-400">Blog Management</h2>
+                <Button 
+                  onClick={() => setShowBlogForm(true)}
+                  className="bg-bright-blue hover:bg-navy"
+                >
+                  Add New Blog Post
+                </Button>
+              </div>
+
+              {/* Blog Post Form */}
+              {showBlogForm && (
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-bright-blue">✍️ Create New Blog Post</CardTitle>
+                    <CardDescription>Add engaging content with video support to drive affiliate sales</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="blog-title">Blog Title *</Label>
+                      <Input
+                        id="blog-title"
+                        value={blogFormData.title}
+                        onChange={(e) => setBlogFormData({...blogFormData, title: e.target.value})}
+                        placeholder="10 Best Budget Smartphones Under ₹20,000"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="blog-excerpt">Excerpt *</Label>
+                      <Textarea
+                        id="blog-excerpt"
+                        value={blogFormData.excerpt}
+                        onChange={(e) => setBlogFormData({...blogFormData, excerpt: e.target.value})}
+                        placeholder="Short description that appears on the homepage..."
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Drag and Drop Zone */}
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        dragActive 
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                    >
+                      <div className="space-y-2">
+                        <div className="text-3xl">📁</div>
+                        <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                          Drag & Drop Your Files Here
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Images and videos up to 50MB each
+                        </p>
+                        <div className="flex justify-center gap-2 text-xs text-gray-400">
+                          <span>📷 JPG, PNG, GIF</span>
+                          <span>•</span>
+                          <span>🎥 MP4, WEBM, MOV</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="blog-image">Blog Image</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="blog-image"
+                            value={blogFormData.imageUrl}
+                            onChange={(e) => setBlogFormData({...blogFormData, imageUrl: e.target.value})}
+                            placeholder="https://images.unsplash.com/photo-... or use drag-drop above"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">OR</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setUploadingImage(true);
+                                  await uploadFile(file, 'image');
+                                  setUploadingImage(false);
+                                }
+                              }}
+                              className="text-xs"
+                              disabled={uploadingImage}
+                            />
+                            {uploadingImage && <span className="text-xs text-blue-600">Uploading...</span>}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">URL, file picker, or drag-drop</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="blog-video">Video/Reel Content</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="blog-video"
+                            value={blogFormData.videoUrl}
+                            onChange={(e) => setBlogFormData({...blogFormData, videoUrl: e.target.value})}
+                            placeholder="YouTube, Instagram Reel, Facebook Reel, or upload below"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">OR</span>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setUploadingVideo(true);
+                                  await uploadFile(file, 'video');
+                                  setUploadingVideo(false);
+                                }
+                              }}
+                              className="text-xs"
+                              disabled={uploadingVideo}
+                            />
+                            {uploadingVideo && <span className="text-xs text-blue-600">Uploading...</span>}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Social media URLs, drag-drop, or file picker (up to 50MB)
+                        </p>
+                        <div className="text-xs text-blue-600 mt-1 space-y-1">
+                          <div>📱 Instagram: https://www.instagram.com/reel/ABC123/</div>
+                          <div>📘 Facebook: https://www.facebook.com/reel/123456789</div>
+                          <div>🎥 YouTube: https://youtube.com/watch?v=ABC123</div>
+                        </div>
+                        <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                          <p className="text-xs text-green-700 dark:text-green-300 font-medium">
+                            📁 Upload your own content or share social media links - perfect for personal blogging!
+                          </p>
+                        </div>
+                        
+                        {/* Preview uploaded content */}
+                        {blogFormData.imageUrl && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Image Preview:</p>
+                            <img 
+                              src={blogFormData.imageUrl.startsWith('/uploads/') ? `${window.location.origin}${blogFormData.imageUrl}` : blogFormData.imageUrl}
+                              alt="Preview" 
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                          </div>
+                        )}
+                        
+                        {blogFormData.videoUrl && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Video Preview:</p>
+                            {/* YouTube Videos */}
+                            {(blogFormData.videoUrl.includes('youtube.com') || blogFormData.videoUrl.includes('youtu.be')) ? (
+                              <div className="w-full h-32 border rounded">
+                                <iframe
+                                  src={blogFormData.videoUrl
+                                    .replace('watch?v=', 'embed/')
+                                    .replace('youtu.be/', 'youtube.com/embed/')
+                                    .split('&')[0]} // Remove extra parameters
+                                  className="w-full h-full rounded"
+                                  frameBorder="0"
+                                  allowFullScreen
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  title="YouTube video preview"
+                                />
+                              </div>
+                            ) : 
+                            /* Personal Uploaded Videos */
+                            blogFormData.videoUrl.startsWith('/uploads/') ? (
+                              <video 
+                                src={`${window.location.origin}${blogFormData.videoUrl}`}
+                                className="w-full h-32 object-cover rounded border"
+                                controls
+                                preload="metadata"
+                                onError={(e) => {
+                                  console.error('Video load error:', e);
+                                }}
+                              >
+                                <source src={`${window.location.origin}${blogFormData.videoUrl}`} type="video/mp4" />
+                                <source src={`${window.location.origin}${blogFormData.videoUrl}`} type="video/webm" />
+                                Your browser does not support the video tag.
+                              </video>
+                            ) : 
+                            /* Instagram Reels */
+                            blogFormData.videoUrl.includes('instagram.com') ? (
+                              <div className="w-full h-32 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white rounded border flex items-center justify-center">
+                                <div className="text-center">
+                                  <Instagram className="w-8 h-8 mx-auto mb-1" />
+                                  <p className="text-sm font-medium">Instagram Reel</p>
+                                  <button 
+                                    onClick={() => window.open(blogFormData.videoUrl, '_blank')}
+                                    className="mt-1 px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 transition-colors"
+                                  >
+                                    Open Link
+                                  </button>
+                                </div>
+                              </div>
+                            ) : 
+                            /* Facebook Reels */
+                            blogFormData.videoUrl.includes('facebook.com') ? (
+                              <div className="w-full h-32 bg-blue-600 text-white rounded border flex items-center justify-center">
+                                <div className="text-center">
+                                  <Facebook className="w-8 h-8 mx-auto mb-1" />
+                                  <p className="text-sm font-medium">Facebook Reel</p>
+                                  <button 
+                                    onClick={() => window.open(blogFormData.videoUrl, '_blank')}
+                                    className="mt-1 px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 transition-colors"
+                                  >
+                                    Open Link
+                                  </button>
+                                </div>
+                              </div>
+                            ) : 
+                            /* Generic Video URLs */
+                            blogFormData.videoUrl.match(/\.(mp4|webm|ogg|mov|avi)(\?.*)?$/i) ? (
+                              <video 
+                                src={blogFormData.videoUrl}
+                                className="w-full h-32 object-cover rounded border"
+                                controls
+                                preload="metadata"
+                                onError={(e) => {
+                                  console.error('Video load error:', e);
+                                }}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            ) : (
+                              /* Fallback for unknown URLs */
+                              <div className="w-full h-32 bg-gray-600 text-white rounded border flex items-center justify-center">
+                                <div className="text-center">
+                                  <Play className="w-8 h-8 mx-auto mb-1" />
+                                  <p className="text-sm font-medium">Video Content</p>
+                                  <p className="text-xs opacity-75">Preview not available</p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Video URL validation feedback */}
+                            <div className="mt-1 text-xs">
+                              {blogFormData.videoUrl.includes('youtube.com') || blogFormData.videoUrl.includes('youtu.be') ? (
+                                <span className="text-green-600 dark:text-green-400">✓ YouTube video embedded</span>
+                              ) : blogFormData.videoUrl.includes('instagram.com') ? (
+                                <span className="text-purple-600 dark:text-purple-400">✓ Instagram content linked</span>
+                              ) : blogFormData.videoUrl.includes('facebook.com') ? (
+                                <span className="text-blue-600 dark:text-blue-400">✓ Facebook content linked</span>
+                              ) : blogFormData.videoUrl.startsWith('/uploads/') ? (
+                                <span className="text-green-600 dark:text-green-400">✓ Personal video uploaded</span>
+                              ) : (
+                                <span className="text-orange-600 dark:text-orange-400">⚠ URL format may not be supported</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="blog-date">Publish Date</Label>
+                        <Input
+                          id="blog-date"
+                          type="date"
+                          value={blogFormData.publishedAt}
+                          onChange={(e) => setBlogFormData({...blogFormData, publishedAt: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="blog-readtime">Read Time</Label>
+                        <Input
+                          id="blog-readtime"
+                          value={blogFormData.readTime}
+                          onChange={(e) => setBlogFormData({...blogFormData, readTime: e.target.value})}
+                          placeholder="3 min read"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="blog-slug">URL Slug (Auto-generated)</Label>
+                      <Input
+                        id="blog-slug"
+                        value={blogFormData.slug || blogFormData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
+                        onChange={(e) => setBlogFormData({...blogFormData, slug: e.target.value})}
+                        placeholder="url-friendly-title"
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowPreviewModal(true)}
+                        className="flex items-center gap-2"
+                        disabled={!blogFormData.title || !blogFormData.excerpt}
+                      >
+                        <Eye className="w-4 h-4" />
+                        Live Preview
+                      </Button>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowBlogForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            // Smart content categorization and auto-tags
+                            const getAutoCategory = (content: string) => {
+                              const lower = content.toLowerCase();
+                              if (lower.includes('budget') || lower.includes('cheap') || lower.includes('affordable')) return 'Budget Shopping';
+                              if (lower.includes('review') || lower.includes('vs') || lower.includes('comparison')) return 'Product Reviews';
+                              if (lower.includes('tip') || lower.includes('guide') || lower.includes('how to')) return 'Shopping Tips';
+                              if (lower.includes('deal') || lower.includes('offer') || lower.includes('discount')) return 'Deals & Offers';
+                              if (lower.includes('tech') || lower.includes('gadget') || lower.includes('electronic')) return 'Tech News';
+                              return 'Shopping Tips';
+                            };
+
+                            const generateTags = (content: string) => {
+                              const lower = content.toLowerCase();
+                              const tags = [];
+                              
+                              if (lower.includes('budget')) tags.push('budget');
+                              if (lower.includes('premium')) tags.push('premium');
+                              if (lower.includes('smartphone') || lower.includes('phone')) tags.push('mobile');
+                              if (lower.includes('laptop') || lower.includes('computer')) tags.push('computing');
+                              if (lower.includes('fashion') || lower.includes('clothing')) tags.push('fashion');
+                              if (lower.includes('beauty') || lower.includes('skincare')) tags.push('beauty');
+                              if (lower.includes('amazon') || lower.includes('flipkart')) tags.push('ecommerce');
+                              if (lower.includes('deal') || lower.includes('offer')) tags.push('deals');
+                              
+                              return tags.slice(0, 3);
+                            };
+
+                            addBlogMutation.mutate({
+                              ...blogFormData,
+                              category: getAutoCategory(blogFormData.title + ' ' + blogFormData.excerpt),
+                              tags: generateTags(blogFormData.title + ' ' + blogFormData.excerpt)
+                            });
+                          }}
+                          disabled={!blogFormData.title || !blogFormData.excerpt || addBlogMutation.isPending}
+                          className="bg-accent-green hover:bg-green-600"
+                        >
+                          {addBlogMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Blog Content Ideas */}
+              <Card className="mb-8 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
+                <CardHeader>
+                  <CardTitle className="text-xl text-purple-600 dark:text-purple-400">💡 Blog Content Ideas</CardTitle>
+                  <CardDescription>Proven topics with video/reel support that drive affiliate sales</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-4 gap-6">
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Shopping Tips & Guides</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• "10 Best Black Friday Deals Worth Waiting For"</li>
+                        <li>• "How to Spot Fake Reviews on Amazon"</li>
+                        <li>• "Secret Cashback Apps You Should Be Using"</li>
+                        <li>• "Budget vs Premium: When to Splurge"</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">Product Reviews</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• "iPhone 15 vs iPhone 14: Which Should You Buy?"</li>
+                        <li>• "Best Budget Laptops Under ₹50,000"</li>
+                        <li>• "Top 5 Air Purifiers for Indian Homes"</li>
+                        <li>• "Wireless Earbuds: Premium vs Budget"</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">📱 Social Media Integration</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Share Instagram product reels</li>
+                        <li>• Embed Facebook shopping videos</li>
+                        <li>• YouTube unboxing & reviews</li>
+                        <li>• Mix text + video for engagement</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">📁 Personal Content</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Upload your own product photos</li>
+                        <li>• Record personal review videos</li>
+                        <li>• Share behind-the-scenes content</li>
+                        <li>• Create authentic user experiences</li>
+                      </ul>
+                      <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 font-medium">
+                          📁 New: Upload images & videos up to 50MB each for personal touch!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Blog Posts List */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Current Blog Posts ({Array.isArray(blogPosts) ? blogPosts.length : 0})</h3>
+                
+                {!Array.isArray(blogPosts) || blogPosts.length === 0 ? (
+                  <Card>
+                    <CardContent className="text-center py-8">
+                      <p className="text-gray-500 dark:text-gray-400">No blog posts yet. Create your first one!</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-4">
+                    {Array.isArray(blogPosts) && blogPosts.map((post: any) => (
+                      <Card key={post.id} className="p-4">
+                        <div className="flex gap-4">
+                          <img 
+                            src={post.imageUrl} 
+                            alt={post.title}
+                            className="w-24 h-24 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg text-navy dark:text-blue-400">{post.title}</h4>
+                            <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">{post.excerpt}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+                              <span>{post.readTime}</span>
+                              {post.videoUrl && (
+                                <span className="flex items-center gap-1">
+                                  <span>
+                                    {post.videoUrl.includes('instagram.com') ? '📱' : 
+                                     post.videoUrl.includes('facebook.com') ? '📘' : 
+                                     post.videoUrl.includes('youtube.com') ? '🎥' : '📹'}
+                                  </span> 
+                                  {post.videoUrl.includes('instagram.com') ? 'Instagram Reel' : 
+                                   post.videoUrl.includes('facebook.com') ? 'Facebook Reel' : 
+                                   post.videoUrl.includes('youtube.com') ? 'YouTube Video' : 'Video'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {/* Social Sharing Buttons */}
+                            <div className="flex gap-1 mb-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                title="Share on Facebook"
+                              >
+                                <Facebook className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm" 
+                                onClick={() => {
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+                                }}
+                                className="p-1.5 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20"
+                                title="Share on Twitter"
+                              >
+                                <Twitter className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400');
+                                }}
+                                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                title="Share on WhatsApp"
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingBlog(post);
+                                  setBlogFormData({
+                                    title: post.title,
+                                    excerpt: post.excerpt,
+                                    imageUrl: post.imageUrl,
+                                    videoUrl: post.videoUrl || '',
+                                    publishedAt: new Date(post.publishedAt).toISOString().split('T')[0],
+                                    readTime: post.readTime,
+                                    slug: post.slug
+                                  });
+                                  setShowBlogForm(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => {
+                                  if (confirm('Delete this blog post?')) {
+                                    deleteBlogMutation.mutate(post.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
+      
+      {/* Interactive Blog Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-navy dark:text-blue-400 flex items-center gap-2">
+                  <Eye className="w-6 h-6" />
+                  Live Blog Preview
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-2"
+                >
+                  ✕
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg p-6 bg-gray-50 dark:bg-gray-900 mb-4">
+                <article className="max-w-none">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      <span>📅 {blogFormData.publishedAt}</span>
+                      <span>•</span>
+                      <span>⏱ {blogFormData.readTime}</span>
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                      {blogFormData.title || "Your Blog Title"}
+                    </h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+                      {blogFormData.excerpt || "Your blog excerpt will appear here..."}
+                    </p>
+                  </div>
+                  
+                  {/* Media content */}
+                  <div className="mb-6">
+                    {blogFormData.videoUrl && (
+                      <div className="mb-4">
+                        {blogFormData.videoUrl.includes("youtube.com") || blogFormData.videoUrl.includes("youtu.be") ? (
+                          <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-gray-500 dark:text-gray-400">
+                              <div className="text-4xl mb-2">🎥</div>
+                              <p className="font-medium">YouTube Video</p>
+                              <p className="text-sm">Video will be embedded here</p>
+                            </div>
+                          </div>
+                        ) : blogFormData.videoUrl.includes("instagram.com") ? (
+                          <div className="flex items-center justify-center p-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg text-white">
+                            <div className="text-center">
+                              <Instagram className="w-12 h-12 mx-auto mb-2" />
+                              <p className="font-semibold">Instagram Reel</p>
+                              <p className="text-sm opacity-90">Click to view on Instagram</p>
+                            </div>
+                          </div>
+                        ) : blogFormData.videoUrl.includes("facebook.com") ? (
+                          <div className="flex items-center justify-center p-8 bg-blue-600 rounded-lg text-white">
+                            <div className="text-center">
+                              <Facebook className="w-12 h-12 mx-auto mb-2" />
+                              <p className="font-semibold">Facebook Reel</p>
+                              <p className="text-sm opacity-90">Click to view on Facebook</p>
+                            </div>
+                          </div>
+                        ) : blogFormData.videoUrl.startsWith("/uploads/") ? (
+                          <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-gray-500 dark:text-gray-400">
+                              <div className="text-4xl mb-2">📹</div>
+                              <p className="font-medium">Personal Video</p>
+                              <p className="text-sm">Uploaded video file</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center p-8 bg-gray-600 rounded-lg text-white">
+                            <div className="text-center">
+                              <div className="text-4xl mb-2">🎬</div>
+                              <p className="font-semibold">Video Content</p>
+                              <p className="text-sm opacity-90">Video will be embedded</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {blogFormData.imageUrl && (
+                      <img 
+                        src={blogFormData.imageUrl.startsWith("/uploads/") ? `${window.location.origin}${blogFormData.imageUrl}` : blogFormData.imageUrl}
+                        alt="Blog featured image" 
+                        className="w-full rounded-lg shadow-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                </article>
+              </div>
+              
+              {/* Social Media Sharing Preview */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Share2 className="w-5 h-5" />
+                  Social Media Preview
+                </h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Facebook className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium">Facebook</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400 line-clamp-1">{blogFormData.excerpt}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-sky-50 dark:bg-sky-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Twitter className="w-4 h-4 text-sky-500" />
+                      <span className="text-sm font-medium">Twitter</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{blogFormData.excerpt?.substring(0, 100)}...</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium">WhatsApp</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400">Ready to share via WhatsApp</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
