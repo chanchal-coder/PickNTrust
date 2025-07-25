@@ -38,6 +38,7 @@ type ProductForm = z.infer<typeof productSchema>;
 function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, onUpdate: () => void, onDelete: () => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [editData, setEditData] = useState(product);
   const { toast } = useToast();
 
   const deleteProductMutation = useMutation({
@@ -72,10 +73,54 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
     },
   });
 
+  const updateProductMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...data, password: 'pickntrust2025' }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update product');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Product Updated!',
+        description: 'Product has been updated successfully.',
+      });
+      setIsEditing(false);
+      onUpdate();
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update product. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this product?')) {
       deleteProductMutation.mutate(product.id);
     }
+  };
+
+  const handleUpdate = () => {
+    updateProductMutation.mutate(editData);
+  };
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setEditData(product); // Reset to original data
+    }
+    setIsEditing(!isEditing);
   };
 
   const handleShare = (platform: string) => {
@@ -221,7 +266,7 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={handleEditToggle}
             className="p-2"
           >
             <Edit className="w-4 h-4" />
@@ -238,6 +283,90 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
           </Button>
         </div>
       </div>
+      
+      {isEditing && (
+        <div className="mt-4 p-4 border-t bg-gray-50 dark:bg-gray-700/50 space-y-4">
+          <h5 className="font-medium text-navy dark:text-blue-400">Edit Product</h5>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-name">Product Name</Label>
+              <Input
+                id="edit-name"
+                value={editData.name}
+                onChange={(e) => setEditData({...editData, name: e.target.value})}
+                placeholder="Enter product name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-price">Price (₹)</Label>
+              <Input
+                id="edit-price"
+                value={editData.price}
+                onChange={(e) => setEditData({...editData, price: e.target.value})}
+                placeholder="999"
+              />
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-originalPrice">Original Price (₹)</Label>
+              <Input
+                id="edit-originalPrice"
+                value={editData.originalPrice || ''}
+                onChange={(e) => setEditData({...editData, originalPrice: e.target.value})}
+                placeholder="1299"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-category">Category</Label>
+              <Input
+                id="edit-category"
+                value={editData.category}
+                onChange={(e) => setEditData({...editData, category: e.target.value})}
+                placeholder="Electronics & Gadgets"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="edit-description">Description</Label>
+            <Input
+              id="edit-description"
+              value={editData.description}
+              onChange={(e) => setEditData({...editData, description: e.target.value})}
+              placeholder="Product description"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="edit-imageUrl">Image URL</Label>
+            <Input
+              id="edit-imageUrl"
+              value={editData.imageUrl}
+              onChange={(e) => setEditData({...editData, imageUrl: e.target.value})}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleUpdate} 
+              disabled={updateProductMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {updateProductMutation.isPending ? 'Updating...' : 'Save Changes'}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleEditToggle}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
