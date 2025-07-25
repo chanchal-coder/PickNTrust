@@ -1037,22 +1037,34 @@ export default function AdminPage() {
           </div>
 
           {/* Achievement Badges */}
-          {achievements.length > 0 && (
-            <div className="mb-8 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 transition-all duration-300 hover:shadow-lg">
-              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3 flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Your Achievements
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {achievements.map((achievement, index) => (
-                  <div key={index} className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-3 py-1 rounded-full text-sm font-medium transition-transform hover:scale-105 animate-pulse">
-                    <span className="text-yellow-600">🏆</span>
-                    {achievement}
-                  </div>
-                ))}
+          {(() => {
+            const dynamicAchievements = [];
+            if (Array.isArray(blogPosts)) {
+              if (blogPosts.length >= 1) dynamicAchievements.push('First Post');
+              if (blogPosts.length >= 5) dynamicAchievements.push('Content Creator');
+              if (blogPosts.length >= 10) dynamicAchievements.push('Blog Master');
+              if (blogPosts.some((p: any) => p.videoUrl)) dynamicAchievements.push('Video Pioneer');
+            }
+            if (Array.isArray(products) && products.length >= 10) dynamicAchievements.push('Product Master');
+            if (Array.isArray(products) && products.length >= 50) dynamicAchievements.push('Catalog King');
+            
+            return dynamicAchievements.length > 0 && (
+              <div className="mb-8 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 transition-all duration-300 hover:shadow-lg">
+                <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3 flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Your Achievements
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {dynamicAchievements.map((achievement, index) => (
+                    <div key={index} className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-3 py-1 rounded-full text-sm font-medium transition-transform hover:scale-105 animate-pulse">
+                      <span className="text-yellow-600">🏆</span>
+                      {achievement}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Admin Navigation Tabs with Animations */}
           <div className="mb-8">
