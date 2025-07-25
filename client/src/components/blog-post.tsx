@@ -127,14 +127,29 @@ export default function BlogPost({
       html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
     }
     
-    // First process all links BEFORE other markdown processing
+    // First process markdown-style links [text](url)
     html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, linkText, url) => {
       const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly') || url.includes('affiliate');
       
+      const baseStyle = 'color: #2563eb; text-decoration: underline; cursor: pointer; display: inline; pointer-events: auto;';
+      
       if (isAffiliate) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb !important; text-decoration: underline !important; cursor: pointer !important; background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600;">${linkText} 🔗</a>`;
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600; margin: 2px;">${linkText} 🔗</a>`;
       } else {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb !important; text-decoration: underline !important; cursor: pointer !important; font-weight: 500;">${linkText}</a>`;
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} font-weight: 500;">${linkText}</a>`;
+      }
+    });
+    
+    // Then process plain URLs and make them clickable
+    html = html.replace(/(^|[^"'>])(https?:\/\/[^\s<>&"']+)/g, (match, prefix, url) => {
+      const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly') || url.includes('affiliate');
+      
+      const baseStyle = 'color: #2563eb; text-decoration: underline; cursor: pointer; display: inline; pointer-events: auto; word-break: break-all;';
+      
+      if (isAffiliate) {
+        return `${prefix}<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600; margin: 2px;">${url} 🔗</a>`;
+      } else {
+        return `${prefix}<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} font-weight: 500;">${url}</a>`;
       }
     });
     
@@ -231,7 +246,6 @@ export default function BlogPost({
         <div 
           className="blog-content max-w-none text-base leading-relaxed"
           dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
-          onClick={handleContentClick}
         />
       </main>
 

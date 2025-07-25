@@ -131,6 +131,13 @@
     color: #2563eb !important;
     text-decoration: underline !important;
     cursor: pointer !important;
+    word-break: break-all;
+  }
+  
+  /* Ensure blog links are always visible and clickable */
+  .blog-content a:not([style*="color"]) {
+    color: #2563eb !important;
+    text-decoration: underline !important;
   }
   
   .dark .blog-content a {
