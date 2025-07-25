@@ -42,8 +42,12 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
 
   const deleteProductMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/products/${id}`, {
+      const response = await fetch(`/api/admin/products/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: 'pickntrust2025' }),
       });
       
       if (!response.ok) {
