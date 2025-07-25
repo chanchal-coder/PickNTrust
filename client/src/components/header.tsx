@@ -71,9 +71,19 @@ export default function Header() {
             </div>
           )}
 
-          {/* Theme Toggle and Mobile Menu */}
+          {/* Navigation Icons and Menu */}
           <div className="flex items-center space-x-3">
+            {/* Home Icon - Always visible for easy navigation */}
+            <Link 
+              href="/" 
+              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              title="Go to Homepage"
+            >
+              <i className="fas fa-home text-xl"></i>
+            </Link>
+            
             <ThemeToggle />
+            
             {/* Discreet admin access - only visible to those who know */}
             <Link 
               href="/admin" 
@@ -82,9 +92,11 @@ export default function Header() {
             >
               •
             </Link>
+            
             <button 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400"
+              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              title="Open Categories Menu"
             >
               <i className="fas fa-bars text-xl"></i>
             </button>
