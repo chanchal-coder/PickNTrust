@@ -150,5 +150,5 @@ The application is designed as a monorepo with shared TypeScript schemas between
 - **Enhanced Logo Functionality**: Made PickNTrust brand name in header clickable with hover effects, ensuring users can easily return to homepage by clicking the logo from any page
 - **Fixed Footer Navigation**: Resolved About Us navigation to properly scroll to homepage section, added scroll-to-top functionality for all footer quick links, ensured consistent footer presence across all pages including Privacy Policy and Terms of Service
 - **Updated Brand Logo**: Replaced logo with refined shopping bag and checkmark design (Logoo_1753451593641.png) featuring elegant cream shopping bag with checkmark on blue circular background, applied across header, footer, favicon, and Open Graph metadata for complete brand consistency
-- **Enhanced Admin Access**: Added admin login/logout functionality directly in hamburger menu for easy access, allowing admins to re-login after logout without navigating to /admin page manually
+- **Hidden Admin Controls**: Admin controls (dashboard link and logout) only visible to authenticated admins in hamburger menu, completely hidden from public users for security
 - **Persistent Navigation Menu**: Modified hamburger menu to stay open when browsing categories, improving user experience by allowing multiple category clicks without menu auto-closing

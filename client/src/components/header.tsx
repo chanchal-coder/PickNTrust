@@ -196,66 +196,24 @@ export default function Header() {
                 </Link>
               ))}
               
-              {/* Admin Controls */}
-              <div className="border-t border-gray-200 dark:border-gray-600 mt-4 pt-4">
-                {isAdmin ? (
-                  <>
-                    <Link 
-                      href="/admin" 
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors text-center block mb-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      ⚙️ Admin Dashboard
-                    </Link>
-                    <button
-                      onClick={handleAdminLogout}
-                      className="w-full bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center"
-                    >
-                      🚪 Logout Admin
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {!showAdminLogin ? (
-                      <button
-                        onClick={() => setShowAdminLogin(true)}
-                        className="w-full bg-navy dark:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
-                      >
-                        🔐 Admin Login
-                      </button>
-                    ) : (
-                      <form onSubmit={handleAdminLogin} className="space-y-2">
-                        <input
-                          type="password"
-                          value={adminPassword}
-                          onChange={(e) => setAdminPassword(e.target.value)}
-                          placeholder="Enter admin password"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                          autoFocus
-                        />
-                        <div className="flex space-x-2">
-                          <button
-                            type="submit"
-                            className="flex-1 bg-navy dark:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
-                          >
-                            Login
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowAdminLogin(false);
-                              setAdminPassword('');
-                            }}
-                            className="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                  </>
-                )}
-              </div>
+              {/* Admin Controls - Only visible to authenticated admins */}
+              {isAdmin && (
+                <div className="border-t border-gray-200 dark:border-gray-600 mt-4 pt-4">
+                  <Link 
+                    href="/admin" 
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors text-center block mb-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    ⚙️ Admin Dashboard
+                  </Link>
+                  <button
+                    onClick={handleAdminLogout}
+                    className="w-full bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center"
+                  >
+                    🚪 Logout Admin
+                  </button>
+                </div>
+              )}
             </nav>
           </div>
         )}
