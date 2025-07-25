@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
+import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/Logoo_1753451593641.png";
 
 export default function Header() {
@@ -10,6 +11,9 @@ export default function Header() {
   const [location] = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   const { wishlistCount } = useWishlist();
+  const { toast } = useToast();
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
 
   // Fetch all categories dynamically
   const { data: categories = [] } = useQuery({
@@ -38,6 +42,45 @@ export default function Header() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
     setMobileMenuOpen(false);
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === 'pickntrust2025') {
+      localStorage.setItem('pickntrust-admin-session', 'active');
+      setIsAdmin(true);
+      setShowAdminLogin(false);
+      setAdminPassword('');
+      toast({
+        title: 'Admin Login Successful!',
+        description: 'You now have admin access across all pages.',
+      });
+      // Trigger storage event for other components
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'pickntrust-admin-session',
+        newValue: 'active'
+      }));
+    } else {
+      toast({
+        title: 'Invalid Password',
+        description: 'Please enter the correct admin password.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('pickntrust-admin-session');
+    setIsAdmin(false);
+    toast({
+      title: 'Logged Out',
+      description: 'Admin session ended.',
+    });
+    // Trigger storage event for other components
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'pickntrust-admin-session',
+      newValue: null
+    }));
   };
 
   return (
@@ -137,7 +180,7 @@ export default function Header() {
               
 
               
-              {/* Show ALL categories in hamburger menu */}
+              {/* Show ALL categories in hamburger menu - PERSISTENT (no auto-close) */}
               {categories.map((category: any) => (
                 <Link 
                   key={category.name}
@@ -147,23 +190,72 @@ export default function Header() {
                       ? 'text-orange-600 dark:text-orange-400 font-bold'
                       : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
                   }`}
-                  onClick={() => setMobileMenuOpen(false)}
                 >
                   <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
                   {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
                 </Link>
               ))}
               
-              {/* Admin link in hamburger menu if logged in */}
-              {isAdmin && (
-                <Link 
-                  href="/admin" 
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors text-center mt-4"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  ⚙️ Admin Dashboard
-                </Link>
-              )}
+              {/* Admin Controls */}
+              <div className="border-t border-gray-200 dark:border-gray-600 mt-4 pt-4">
+                {isAdmin ? (
+                  <>
+                    <Link 
+                      href="/admin" 
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors text-center block mb-2"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      ⚙️ Admin Dashboard
+                    </Link>
+                    <button
+                      onClick={handleAdminLogout}
+                      className="w-full bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center"
+                    >
+                      🚪 Logout Admin
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {!showAdminLogin ? (
+                      <button
+                        onClick={() => setShowAdminLogin(true)}
+                        className="w-full bg-navy dark:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                      >
+                        🔐 Admin Login
+                      </button>
+                    ) : (
+                      <form onSubmit={handleAdminLogin} className="space-y-2">
+                        <input
+                          type="password"
+                          value={adminPassword}
+                          onChange={(e) => setAdminPassword(e.target.value)}
+                          placeholder="Enter admin password"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          autoFocus
+                        />
+                        <div className="flex space-x-2">
+                          <button
+                            type="submit"
+                            className="flex-1 bg-navy dark:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                          >
+                            Login
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAdminLogin(false);
+                              setAdminPassword('');
+                            }}
+                            className="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         )}
