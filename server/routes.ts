@@ -119,9 +119,13 @@ export function setupRoutes(app: Express, storage: IStorage) {
   app.get("/api/products/category/:category", async (req, res) => {
     try {
       const { category } = req.params;
-      const products = await storage.getProductsByCategory(category);
+      // URL decode the category parameter to handle spaces and special characters
+      const decodedCategory = decodeURIComponent(category);
+      console.log(`Getting products for category: "${decodedCategory}"`);
+      const products = await storage.getProductsByCategory(decodedCategory);
       res.json(products);
     } catch (error) {
+      console.error(`Error fetching products for category "${req.params.category}":`, error);
       res.status(500).json({ message: "Failed to fetch products by category" });
     }
   });

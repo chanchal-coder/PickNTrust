@@ -107,7 +107,7 @@ export default function Header() {
               {categories.map((category: any) => (
                 <Link 
                   key={category.name}
-                  href={`/category/${category.name.replace(/\s+/g, '')}`}
+                  href={`/category/${encodeURIComponent(category.name)}`}
                   className={`transition-colors font-medium text-left py-2 flex items-center ${
                     category.name.toLowerCase().includes('deal') 
                       ? 'text-orange-600 dark:text-orange-400 font-bold'

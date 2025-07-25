@@ -16,7 +16,7 @@ export default function CategoryPage() {
   
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products/category', category],
-    queryFn: () => fetch(`/api/products/category/${category}`).then(res => res.json()),
+    queryFn: () => fetch(`/api/products/category/${encodeURIComponent(category || '')}`).then(res => res.json()),
   });
 
   // Fetch all categories for navigation
@@ -166,32 +166,33 @@ export default function CategoryPage() {
   };
 
   const getCategoryInfo = (categoryName: string) => {
+    const decodedCategory = decodeURIComponent(categoryName);
     const categoryMap: { [key: string]: { title: string; description: string; color: string; icon: string } } = {
-      'Tech': {
-        title: 'Tech & Gadgets',
+      'Electronics & Gadgets': {
+        title: 'Electronics & Gadgets',
         description: 'Latest technology and smart devices to enhance your life',
         color: 'from-bright-blue to-navy',
         icon: 'fas fa-laptop'
       },
-      'Home': {
+      'Home & Living': {
         title: 'Home & Living',
         description: 'Transform your space with smart home solutions and decor',
         color: 'from-accent-green to-green-600',
         icon: 'fas fa-home'
       },
-      'Beauty': {
-        title: 'Beauty & Skincare',
+      'Beauty & Personal Care': {
+        title: 'Beauty & Personal Care',
         description: 'Premium beauty products for your self-care routine',
         color: 'from-pink-500 to-purple-600',
         icon: 'fas fa-sparkles'
       },
-      'Fashion': {
-        title: 'Fashion & Style',
+      'Fashion & Clothing': {
+        title: 'Fashion & Clothing',
         description: 'Trendy clothing and accessories to express your style',
         color: 'from-purple-500 to-indigo-600',
         icon: 'fas fa-tshirt'
       },
-      'Deals': {
+      'Special Deals': {
         title: 'Special Deals',
         description: 'Limited time offers and exclusive discounts',
         color: 'from-accent-orange to-red-600',
@@ -199,14 +200,20 @@ export default function CategoryPage() {
       }
     };
     
-    return categoryMap[categoryName] || categoryMap['Tech'];
+    // Return the matching category or a default based on the first word
+    return categoryMap[decodedCategory] || {
+      title: decodedCategory,
+      description: `Discover amazing products in ${decodedCategory}`,
+      color: 'from-bright-blue to-navy',
+      icon: 'fas fa-tags'
+    };
   };
 
   const categoryInfo = getCategoryInfo(category || '');
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="pt-20">
           <section className={`py-16 bg-gradient-to-r ${categoryInfo.color} text-white`}>
@@ -223,19 +230,38 @@ export default function CategoryPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-3xl shadow-lg overflow-hidden animate-pulse">
-                    <div className="w-full h-48 bg-gray-200"></div>
+                  <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse">
+                    <div className="w-full h-48 bg-gray-200 dark:bg-gray-700"></div>
                     <div className="p-6">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                      <div className="h-12 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                      <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </section>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Handle category not found or empty
+  if (!category) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="pt-20 pb-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Category Not Found</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-8">The requested category could not be found.</p>
+            <Link href="/" className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+              Return to Homepage
+            </Link>
+          </div>
         </div>
         <Footer />
       </div>
@@ -284,14 +310,14 @@ export default function CategoryPage() {
               {allCategories.map((cat: any) => (
                 <Link
                   key={cat.name}
-                  href={`/category/${cat.name.replace(/\s+/g, '')}`}
+                  href={`/category/${encodeURIComponent(cat.name)}`}
                   className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                    cat.name.replace(/\s+/g, '') === category
+                    decodeURIComponent(category || '') === cat.name
                       ? 'bg-blue-500 text-white border-blue-500'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
                   }`}
                 >
-                  <i className={`${cat.icon} text-xs mr-2`} style={{color: cat.name.replace(/\s+/g, '') === category ? 'white' : cat.color}}></i>
+                  <i className={`${cat.icon} text-xs mr-2`} style={{color: decodeURIComponent(category || '') === cat.name ? 'white' : cat.color}}></i>
                   {cat.name}
                 </Link>
               ))}
