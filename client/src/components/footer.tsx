@@ -1,7 +1,28 @@
 import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_1753298844179.png";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function Footer() {
+  const [, setLocation] = useLocation();
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAboutUsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLocation('/');
+    setTimeout(() => {
+      const element = document.getElementById('why-trust-us');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const handleLinkClick = () => {
+    setTimeout(scrollToTop, 100);
+  };
+
   return (
     <footer className="bg-navy text-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -46,11 +67,11 @@ export default function Footer() {
           <div>
             <h4 className="font-bold text-lg mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="#why-trust-us" className="text-blue-100 hover:text-white transition-colors">About Us</a></li>
-              <li><Link href="/how-it-works" className="text-blue-100 hover:text-white transition-colors">How It Works</Link></li>
-              <li><Link href="/privacy-policy" className="text-blue-100 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms-of-service" className="text-blue-100 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><Link href="/affiliate-disclosure" className="text-blue-100 hover:text-white transition-colors">Affiliate Disclosure</Link></li>
+              <li><a href="#why-trust-us" onClick={handleAboutUsClick} className="text-blue-100 hover:text-white transition-colors cursor-pointer">About Us</a></li>
+              <li><Link href="/how-it-works" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">How It Works</Link></li>
+              <li><Link href="/privacy-policy" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms-of-service" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/affiliate-disclosure" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Affiliate Disclosure</Link></li>
             </ul>
           </div>
           
