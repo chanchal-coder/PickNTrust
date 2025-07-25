@@ -158,6 +158,26 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // Get admin stats - separate counts for total and featured products
+  app.get('/api/admin/stats', async (req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      const featuredProducts = await storage.getFeaturedProducts();
+      const blogPosts = await storage.getBlogPosts();
+      const affiliateNetworks = await storage.getAffiliateNetworks();
+      
+      res.json({
+        totalProducts: allProducts.length,
+        featuredProducts: featuredProducts.length,
+        blogPosts: blogPosts.length,
+        affiliateNetworks: affiliateNetworks.length
+      });
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      res.status(500).json({ message: 'Failed to fetch admin stats' });
+    }
+  });
+
   // Get featured products
   app.get("/api/products/featured", async (req, res) => {
     try {

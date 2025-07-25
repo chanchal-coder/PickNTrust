@@ -568,6 +568,11 @@ export default function AdminPage() {
     queryKey: ['/api/blog']
   });
 
+  // Get admin stats for accurate dashboard counts
+  const { data: adminStats = { totalProducts: 0, featuredProducts: 0, blogPosts: 0, affiliateNetworks: 0 } } = useQuery({
+    queryKey: ['/api/admin/stats']
+  });
+
 
 
   const addProductMutation = useMutation({
@@ -605,6 +610,7 @@ export default function AdminPage() {
         description: 'New product has been added successfully.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       // Reset form to default values instead of clearing
       form.reset({
         name: '',
@@ -645,6 +651,7 @@ export default function AdminPage() {
     onSuccess: () => {
       toast({ title: 'Blog Post Added!', description: 'Your blog post has been published successfully.' });
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       setBlogFormData({ title: '', excerpt: '', content: '', category: '', tags: [], imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '' });
       setShowBlogForm(false);
     },
@@ -666,6 +673,7 @@ export default function AdminPage() {
     onSuccess: () => {
       toast({ title: 'Blog Post Deleted!', description: 'Blog post has been removed successfully.' });
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
     },
     onError: () => {
       toast({ title: 'Error', description: 'Failed to delete blog post. Please try again.', variant: 'destructive' });
@@ -685,6 +693,7 @@ export default function AdminPage() {
     onSuccess: () => {
       toast({ title: 'Blog Post Updated!', description: 'Blog post has been updated successfully.' });
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       setEditingBlog(null);
     },
     onError: () => {
@@ -835,8 +844,9 @@ export default function AdminPage() {
           description: `"${extractedProduct.name}" has been added to your catalog.`,
         });
         
-        // Refresh the products list
+        // Refresh the products list and admin stats
         queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
         
         // Clear everything
         setProductUrl('');
@@ -982,9 +992,21 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-blue-100 text-sm">Total Products</p>
-                    <p className="text-2xl font-bold">{Array.isArray(products) ? products.length : 0}</p>
+                    <p className="text-2xl font-bold">{adminStats.totalProducts}</p>
                   </div>
                   <Package className="w-8 h-8 text-blue-200" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-indigo-100 text-sm">Featured Products</p>
+                    <p className="text-2xl font-bold">{adminStats.featuredProducts}</p>
+                  </div>
+                  <Star className="w-8 h-8 text-indigo-200" />
                 </div>
               </CardContent>
             </Card>
@@ -994,7 +1016,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-green-100 text-sm">Blog Posts</p>
-                    <p className="text-2xl font-bold">{Array.isArray(blogPosts) ? blogPosts.length : 0}</p>
+                    <p className="text-2xl font-bold">{adminStats.blogPosts}</p>
                   </div>
                   <FileText className="w-8 h-8 text-green-200" />
                 </div>
@@ -1031,7 +1053,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-orange-100 text-sm">Networks</p>
-                    <p className="text-2xl font-bold">{Array.isArray(affiliateNetworks) ? affiliateNetworks.length : 0}</p>
+                    <p className="text-2xl font-bold">{adminStats.affiliateNetworks}</p>
                   </div>
                   <Globe className="w-8 h-8 text-orange-200" />
                 </div>
@@ -1717,8 +1739,14 @@ export default function AdminPage() {
                       <ProductManagementCard 
                         key={product.id} 
                         product={product} 
-                        onUpdate={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
-                        onDelete={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                        onUpdate={() => {
+                          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+                        }}
+                        onDelete={() => {
+                          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+                        }}
                       />
                     ))}
                   </div>
