@@ -1,4 +1,4 @@
-import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_1753298844179.png";
+import logoImage from "@assets/logo_1753451297893.png";
 import { Link, useLocation } from "wouter";
 
 export default function Footer() {
