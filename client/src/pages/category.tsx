@@ -13,10 +13,23 @@ export default function CategoryPage() {
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Clear any previous state when category changes
+  useEffect(() => {
+    setShowShareMenu({});
+  }, [category]);
   
-  const { data: products, isLoading } = useQuery<Product[]>({
+  const { data: products, isLoading, error } = useQuery<Product[]>({
     queryKey: ['/api/products/category', category],
-    queryFn: () => fetch(`/api/products/category/${encodeURIComponent(category || '')}`).then(res => res.json()),
+    queryFn: async () => {
+      if (!category) throw new Error('No category specified');
+      const response = await fetch(`/api/products/category/${encodeURIComponent(category)}`);
+      if (!response.ok) throw new Error(`Failed to fetch products: ${response.status}`);
+      return response.json();
+    },
+    enabled: !!category,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch all categories for navigation
@@ -243,6 +256,33 @@ export default function CategoryPage() {
               </div>
             </div>
           </section>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Handle errors
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="pt-20 pb-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Error Loading Category</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-8">There was an issue loading this category. Please try again.</p>
+            <div className="space-x-4">
+              <button 
+                onClick={() => window.location.reload()} 
+                className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Refresh Page
+              </button>
+              <Link href="/" className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                Return to Homepage
+              </Link>
+            </div>
+          </div>
         </div>
         <Footer />
       </div>
