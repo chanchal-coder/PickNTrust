@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_1753298844179.png";
 
@@ -7,6 +8,12 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location] = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Fetch all categories dynamically
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories'],
+    queryFn: () => fetch('/api/categories').then(res => res.json()),
+  });
 
   // Check admin status
   useEffect(() => {
@@ -53,37 +60,49 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8 items-center">
+          <nav className="hidden md:flex space-x-6 items-center">
             <Link 
-              href="/category/Tech" 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium"
-            >
-              Tech
-            </Link>
-            <Link 
-              href="/category/Home" 
+              href="/" 
               className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium"
             >
               Home
             </Link>
-            <Link 
-              href="/category/Beauty" 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium"
-            >
-              Beauty
-            </Link>
-            <Link 
-              href="/category/Fashion" 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium"
-            >
-              Fashion
-            </Link>
-            <Link 
-              href="/category/Deals" 
-              className="accent-orange hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors font-bold"
-            >
-              🔥 Deals
-            </Link>
+            
+            {/* Show first 5 categories in desktop */}
+            {categories.slice(0, 5).map((category: any) => (
+              <Link 
+                key={category.name}
+                href={`/category/${category.name.replace(/\s+/g, '')}`}
+                className={`transition-colors font-medium ${
+                  category.name.toLowerCase().includes('deal') 
+                    ? 'text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-bold'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
+                }`}
+              >
+                {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
+              </Link>
+            ))}
+            
+            {/* Show "More" dropdown if there are more than 5 categories */}
+            {categories.length > 5 && (
+              <div className="relative group">
+                <button className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium">
+                  More <i className="fas fa-chevron-down text-xs ml-1"></i>
+                </button>
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  {categories.slice(5).map((category: any) => (
+                    <Link 
+                      key={category.name}
+                      href={`/category/${category.name.replace(/\s+/g, '')}`}
+                      className="block px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-navy dark:hover:text-blue-400 transition-colors"
+                    >
+                      <i className={`${category.icon} text-sm mr-2`} style={{color: category.color}}></i>
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Admin Dashboard Link - Only visible when logged in */}
             {isAdmin && (
@@ -118,43 +137,43 @@ export default function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden pb-4">
-            <nav className="flex flex-col space-y-4">
+          <div className="md:hidden pb-4 max-h-96 overflow-y-auto">
+            <nav className="flex flex-col space-y-3">
               <Link 
-                href="/category/Tech" 
-                className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium text-left"
+                href="/" 
+                className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium text-left py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Tech
+                🏠 Home
               </Link>
-              <Link 
-                href="/category/Home" 
-                className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium text-left"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link 
-                href="/category/Beauty" 
-                className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium text-left"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Beauty
-              </Link>
-              <Link 
-                href="/category/Fashion" 
-                className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium text-left"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Fashion
-              </Link>
-              <Link 
-                href="/category/Deals" 
-                className="accent-orange hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors font-bold text-left"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                🔥 Deals
-              </Link>
+              
+              {/* Show ALL categories in mobile menu */}
+              {categories.map((category: any) => (
+                <Link 
+                  key={category.name}
+                  href={`/category/${category.name.replace(/\s+/g, '')}`}
+                  className={`transition-colors font-medium text-left py-2 flex items-center ${
+                    category.name.toLowerCase().includes('deal') 
+                      ? 'text-orange-600 dark:text-orange-400 font-bold'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
+                  {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
+                </Link>
+              ))}
+              
+              {/* Admin link in mobile if logged in */}
+              {isAdmin && (
+                <Link 
+                  href="/admin" 
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors text-center mt-4"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  ⚙️ Admin Dashboard
+                </Link>
+              )}
             </nav>
           </div>
         )}
