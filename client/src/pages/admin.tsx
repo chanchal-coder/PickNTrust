@@ -471,9 +471,7 @@ export default function AdminPage() {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [achievements, setAchievements] = useState<string[]>([]);
-  const [totalPosts, setTotalPosts] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
+
 
   // File upload helper function
   const uploadFile = async (file: File, type: 'image' | 'video') => {
@@ -567,24 +565,7 @@ export default function AdminPage() {
     queryKey: ['/api/blog']
   });
 
-  // Achievement system
-  useEffect(() => {
-    if (blogPosts && Array.isArray(blogPosts)) {
-      setTotalPosts(blogPosts.length);
-      const newAchievements = [];
-      
-      if (blogPosts.length >= 1) newAchievements.push('First Post');
-      if (blogPosts.length >= 5) newAchievements.push('Content Creator');
-      if (blogPosts.length >= 10) newAchievements.push('Blog Master');
-      if (blogPosts.some((p: any) => p.videoUrl)) newAchievements.push('Video Pioneer');
-      
-      setAchievements(newAchievements);
-    }
-    
-    if (products && Array.isArray(products)) {
-      setTotalProducts(products.length);
-    }
-  }, [blogPosts, products]);
+
 
   const addProductMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
@@ -998,7 +979,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-blue-100 text-sm">Total Products</p>
-                    <p className="text-2xl font-bold">{(products as any[]).length}</p>
+                    <p className="text-2xl font-bold">{Array.isArray(products) ? products.length : 0}</p>
                   </div>
                   <Package className="w-8 h-8 text-blue-200" />
                 </div>
@@ -1010,7 +991,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-green-100 text-sm">Blog Posts</p>
-                    <p className="text-2xl font-bold">{totalPosts}</p>
+                    <p className="text-2xl font-bold">{Array.isArray(blogPosts) ? blogPosts.length : 0}</p>
                   </div>
                   <FileText className="w-8 h-8 text-green-200" />
                 </div>
@@ -1022,7 +1003,20 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-purple-100 text-sm">Achievements</p>
-                    <p className="text-2xl font-bold">{achievements.length}</p>
+                    <p className="text-2xl font-bold">{
+                      (() => {
+                        const dynamicAchievements = [];
+                        if (Array.isArray(blogPosts)) {
+                          if (blogPosts.length >= 1) dynamicAchievements.push('First Post');
+                          if (blogPosts.length >= 5) dynamicAchievements.push('Content Creator');
+                          if (blogPosts.length >= 10) dynamicAchievements.push('Blog Master');
+                          if (blogPosts.some((p: any) => p.videoUrl)) dynamicAchievements.push('Video Pioneer');
+                        }
+                        if (Array.isArray(products) && products.length >= 10) dynamicAchievements.push('Product Master');
+                        if (Array.isArray(products) && products.length >= 50) dynamicAchievements.push('Catalog King');
+                        return dynamicAchievements.length;
+                      })()
+                    }</p>
                   </div>
                   <Trophy className="w-8 h-8 text-purple-200" />
                 </div>
@@ -1702,7 +1696,7 @@ export default function AdminPage() {
               <div className="space-y-6">
                 {/* Product List */}
                 <div>
-                  <h4 className="font-semibold text-navy dark:text-blue-400 mb-4">Current Products ({(products as any[]).length})</h4>
+                  <h4 className="font-semibold text-navy dark:text-blue-400 mb-4">Current Products ({Array.isArray(products) ? products.length : 0})</h4>
                   <div className="grid gap-4">
                     {(products as any[]).map((product: any) => (
                       <ProductManagementCard 
