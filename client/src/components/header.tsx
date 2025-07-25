@@ -44,15 +44,15 @@ export default function Header() {
     <header className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center py-2 sm:py-4">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          {/* Logo - Clickable to home */}
+          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 hover:opacity-80 transition-opacity">
             <img 
               src={logoImage} 
               alt="PickNTrust Logo" 
               className="w-8 h-8 sm:w-12 sm:h-12 object-contain"
             />
             <div>
-              <h1 className="text-lg sm:text-2xl font-bold">
+              <h1 className="text-lg sm:text-2xl font-bold cursor-pointer">
                 <span className="text-navy dark:text-blue-400">Pick</span>
                 <span className="text-gold dark:text-yellow-400">N</span>
                 <span className="text-navy dark:text-blue-400">Trust</span>
@@ -98,9 +98,7 @@ export default function Header() {
               )}
             </Link>
             
-            <div className="hidden sm:block">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
             
             {/* Discreet admin access - only visible to those who know */}
             <Link 
@@ -132,6 +130,12 @@ export default function Header() {
               >
                 🏠 Home
               </Link>
+              
+              {/* Mobile Theme Toggle in Menu */}
+              <div className="flex items-center justify-between py-2 sm:hidden">
+                <span className="text-gray-600 dark:text-gray-300 font-medium">Dark Mode</span>
+                <ThemeToggle />
+              </div>
               
               {/* Show ALL categories in hamburger menu */}
               {categories.map((category: any) => (
