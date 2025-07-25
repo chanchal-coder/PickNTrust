@@ -110,20 +110,65 @@ export default function BlogSection() {
                 )}
               </div>
               <div className="p-6">
-                <div className="flex items-center text-sm text-gray-500 mb-3">
-                  <i className="far fa-calendar mr-2"></i>
-                  <span>{formatDate(post.publishedAt)}</span>
-                  <span className="mx-2">•</span>
-                  <span>{post.readTime}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center text-sm text-gray-500">
+                    <i className="far fa-calendar mr-2"></i>
+                    <span>{formatDate(post.publishedAt)}</span>
+                    <span className="mx-2">•</span>
+                    <span>{post.readTime}</span>
+                  </div>
+                  {post.category && (
+                    <span className="bg-bright-blue text-white px-2 py-1 rounded-full text-xs font-medium">
+                      {post.category}
+                    </span>
+                  )}
                 </div>
-                <h4 className="text-xl font-bold text-navy mb-3">{post.title}</h4>
-                <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                <a 
-                  href={`/blog/${post.slug}`} 
-                  className="text-bright-blue hover:text-navy font-semibold"
-                >
-                  Read More →
-                </a>
+                <h4 className="text-xl font-bold text-navy dark:text-blue-400 mb-3">{post.title}</h4>
+                <div className="text-gray-600 dark:text-gray-300 mb-4">
+                  {/* Show only first 4-5 lines of excerpt */}
+                  {post.excerpt.length > 120 ? (
+                    <>
+                      <span>{post.excerpt.substring(0, 120)}...</span>
+                      <br />
+                      <a 
+                        href={`/blog/${post.slug}`} 
+                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2"
+                      >
+                        Read More <span>→</span>
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <span>{post.excerpt}</span>
+                      <br />
+                      <a 
+                        href={`/blog/${post.slug}`} 
+                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2"
+                      >
+                        Read More <span>→</span>
+                      </a>
+                    </>
+                  )}
+                </div>
+                
+                {/* Tags */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    {post.tags.slice(0, 3).map((tag, index) => (
+                      <span 
+                        key={index}
+                        className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded text-xs"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                    {post.tags.length > 3 && (
+                      <span className="text-gray-400 text-xs px-2 py-1">
+                        +{post.tags.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </article>
           ))}

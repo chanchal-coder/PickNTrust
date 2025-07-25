@@ -460,6 +460,9 @@ export default function AdminPage() {
   const [blogFormData, setBlogFormData] = useState({
     title: '',
     excerpt: '',
+    content: '',
+    category: '',
+    tags: [] as string[],
     imageUrl: '',
     videoUrl: '',
     publishedAt: new Date().toISOString().split('T')[0],
@@ -642,7 +645,7 @@ export default function AdminPage() {
     onSuccess: () => {
       toast({ title: 'Blog Post Added!', description: 'Your blog post has been published successfully.' });
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
-      setBlogFormData({ title: '', excerpt: '', imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '' });
+      setBlogFormData({ title: '', excerpt: '', content: '', category: '', tags: [], imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '' });
       setShowBlogForm(false);
     },
     onError: () => {
@@ -1797,14 +1800,86 @@ export default function AdminPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="blog-excerpt">Excerpt *</Label>
+                      <Label htmlFor="blog-excerpt">Excerpt (4-5 lines for homepage) *</Label>
                       <Textarea
                         id="blog-excerpt"
                         value={blogFormData.excerpt}
                         onChange={(e) => setBlogFormData({...blogFormData, excerpt: e.target.value})}
-                        placeholder="Short description that appears on the homepage..."
+                        placeholder="Short description that appears on the homepage. You can include affiliate links here: [Product Name](https://amzn.to/link)"
                         rows={3}
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Add affiliate links in excerpt using [text](url) format - they'll work on homepage and full post
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="blog-content">Full Content *</Label>
+                      <Textarea
+                        id="blog-content"
+                        value={blogFormData.content || ''}
+                        onChange={(e) => setBlogFormData({...blogFormData, content: e.target.value})}
+                        placeholder="Full blog post content with unlimited affiliate links. Use Markdown formatting:
+
+# Main Heading
+## Sub Heading
+### Small Heading
+
+**Bold text**
+*Italic text*
+
+1. Numbered list item
+2. Another item
+
+[Affiliate Product Link](https://amzn.to/product-link)
+![Image Description](https://image-url.com/image.jpg)
+
+Add as many affiliate links as needed!"
+                        rows={12}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        📝 Supports Markdown formatting. Add unlimited affiliate links using [text](url) format
+                      </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="blog-category">Category *</Label>
+                        <Select
+                          value={blogFormData.category || ''}
+                          onValueChange={(value) => setBlogFormData({...blogFormData, category: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Shopping Tips">🛍️ Shopping Tips</SelectItem>
+                            <SelectItem value="Product Reviews">⭐ Product Reviews</SelectItem>
+                            <SelectItem value="Budget Shopping">💰 Budget Shopping</SelectItem>
+                            <SelectItem value="Deals & Offers">🔥 Deals & Offers</SelectItem>
+                            <SelectItem value="Tech News">📱 Tech News</SelectItem>
+                            <SelectItem value="Fashion">👗 Fashion</SelectItem>
+                            <SelectItem value="Beauty & Health">💄 Beauty & Health</SelectItem>
+                            <SelectItem value="Home & Living">🏠 Home & Living</SelectItem>
+                            <SelectItem value="Lifestyle">✨ Lifestyle</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="blog-tags">Tags (comma separated)</Label>
+                        <Input
+                          id="blog-tags"
+                          value={blogFormData.tags?.join(', ') || ''}
+                          onChange={(e) => setBlogFormData({
+                            ...blogFormData, 
+                            tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)
+                          })}
+                          placeholder="deals, budget, tech, gadgets, amazon"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Auto-suggested: budget, premium, mobile, computing, fashion, beauty, deals
+                        </p>
+                      </div>
                     </div>
 
                     {/* Drag and Drop Zone */}
@@ -2113,7 +2188,7 @@ export default function AdminPage() {
                               tags: generateTags(blogFormData.title + ' ' + blogFormData.excerpt)
                             });
                           }}
-                          disabled={!blogFormData.title || !blogFormData.excerpt || addBlogMutation.isPending}
+                          disabled={!blogFormData.title || !blogFormData.excerpt || !blogFormData.content || !blogFormData.category || addBlogMutation.isPending}
                           className="bg-accent-green hover:bg-green-600"
                         >
                           {addBlogMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
@@ -2270,6 +2345,9 @@ export default function AdminPage() {
                                   setBlogFormData({
                                     title: post.title,
                                     excerpt: post.excerpt,
+                                    content: post.content || '',
+                                    category: post.category || '',
+                                    tags: post.tags || [],
                                     imageUrl: post.imageUrl,
                                     videoUrl: post.videoUrl || '',
                                     publishedAt: new Date(post.publishedAt).toISOString().split('T')[0],

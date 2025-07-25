@@ -709,19 +709,85 @@ export class MemStorage implements IStorage {
       });
     });
 
-    // Seed blog posts
+    // Seed blog posts with enhanced content, categories, and tags
     const blogPostsData: InsertBlogPost[] = [
       {
         title: "5 Smart Ways to Save Money While Shopping Online",
-        excerpt: "Discover the insider secrets to getting the best deals every time you shop online...",
+        excerpt: "Discover proven strategies to get the best deals on your favorite products. From cashback apps to price tracking tools, learn how to build a budget-friendly lifestyle that actually works for you.",
+        content: `# 5 Smart Ways to Save Money While Shopping Online
+
+Shopping online doesn't have to drain your wallet. With the right strategies, you can save significant money while still getting everything you need. Here are five proven methods that will transform your online shopping experience.
+
+## 1. Use Cashback and Reward Apps
+
+Start earning money back on every purchase with apps like [Paisa Portal](https://paisaportal.com) and [CashKaro](https://cashkaro.com). These platforms partner with major retailers to give you percentage-based returns on your spending.
+
+**Pro tip**: Stack cashback offers with credit card rewards for maximum savings!
+
+## 2. Compare Prices Across Multiple Platforms
+
+Never buy from the first site you visit. Use tools like [PriceDekho](https://pricedekho.com) to compare prices across Amazon, Flipkart, and other major retailers. Price differences of 20-30% are common for the same product.
+
+## 3. Time Your Purchases Right
+
+- **Best times to buy**: End of season clearances, festival sales (Diwali, Christmas)
+- **Electronics**: Launch new models to get discounts on previous versions
+- **Fashion**: Buy winter clothes in spring, summer clothes in fall
+
+## 4. Abandon Your Cart Strategically
+
+Add items to your cart, then wait 24-48 hours. Many retailers will send you discount codes to complete your purchase. This works especially well with fashion and lifestyle brands.
+
+## 5. Use Coupon Aggregator Sites
+
+Before checking out, always visit [CouponDunia](https://coupondunia.in) or [GrabOn](https://grabon.in) for the latest discount codes. This extra 2-minute step can save you 10-50% on your order.
+
+Start implementing these strategies today and watch your savings grow!`,
+        category: "Shopping Tips",
+        tags: ["budget", "deals", "ecommerce", "cashback"],
         imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250",
         publishedAt: new Date("2024-01-23"),
         readTime: "3 min read",
         slug: "smart-ways-save-money-online-shopping"
       },
       {
-        title: "This Week's Hottest Fashion Finds Under $50",
-        excerpt: "Update your wardrobe without breaking the bank with these trending pieces...",
+        title: "This Week's Hottest Fashion Finds Under ₹3,000",
+        excerpt: "Stay stylish without breaking the bank! Check out these amazing fashion discoveries from trusted brands that won't hurt your wallet. Perfect for college students and young professionals.",
+        content: `# This Week's Hottest Fashion Finds Under ₹3,000
+
+Looking stylish doesn't have to cost a fortune. Here are the best budget-friendly fashion finds that will elevate your wardrobe without breaking the bank.
+
+## Top Picks for Women
+
+### 1. Kurta Sets - ₹899-₹1,499
+Perfect for office and casual outings. Check out [Libas](https://libas.in) and [Aurelia](https://aurelia.co.in) for trendy designs.
+
+### 2. Statement Earrings - ₹299-₹599
+Transform any basic outfit instantly. [Voylla](https://voylla.com) has beautiful collections starting at ₹299.
+
+### 3. Comfortable Sneakers - ₹1,299-₹2,499
+[Campus Shoes](https://campussutra.com) and [Asian Footwear](https://asian-shoes.com) offer great quality at budget prices.
+
+## Top Picks for Men
+
+### 1. Casual Shirts - ₹699-₹1,299
+[Dennis Lingo](https://dennislingo.com) and [The Indian Garage Co.](https://theindiangarageco.com) have excellent fits and quality.
+
+### 2. Jeans - ₹999-₹1,999
+Look for sales at [Flying Machine](https://flyingmachine.in) and [Spykar](https://spykar.com).
+
+### 3. T-Shirts - ₹399-₹899
+[Bewakoof](https://bewakoof.com) and [The Souled Store](https://thesouledstore.com) have unique designs at great prices.
+
+## Shopping Tips
+
+- **End-of-season sales**: Buy winter wear in March, summer clothes in August
+- **Bundle deals**: Many brands offer 2+1 or 3+2 deals
+- **First-time buyer discounts**: Most fashion sites offer 15-20% off for new customers
+
+Quality doesn't always mean expensive - these brands prove you can look great on any budget!`,
+        category: "Fashion",
+        tags: ["fashion", "budget", "style", "clothing"],
         imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250",
         videoUrl: "https://www.instagram.com/reel/C2abc123xyz/",
         publishedAt: new Date("2024-01-20"),
@@ -730,7 +796,51 @@ export class MemStorage implements IStorage {
       },
       {
         title: "Must-Have Tech Gadgets That Are Actually Worth It",
-        excerpt: "Cut through the hype and find the tech products that will actually improve your life...",
+        excerpt: "Cut through the tech hype and find gadgets that will genuinely improve your daily life. From productivity boosters to entertainment essentials - these picks deliver real value.",
+        content: `# Must-Have Tech Gadgets That Are Actually Worth It
+
+The tech world is full of flashy gadgets, but which ones actually improve your life? Here are proven picks that deliver real value for money.
+
+## Productivity Game-Changers
+
+### 1. Wireless Earbuds - ₹2,999-₹8,999
+**Why they're worth it**: Freedom of movement during calls and workouts
+**Top picks**: [Boat Airdopes](https://boat-lifestyle.com), [Realme Buds Air](https://realme.com)
+
+### 2. Power Banks - ₹1,499-₹3,999
+**Essential for**: Remote workers, frequent travelers, students
+**Recommended**: [Mi Power Bank 3i](https://mi.com), [Ambrane PowerBank](https://ambrane.com)
+
+### 3. Bluetooth Speakers - ₹1,999-₹5,999
+**Perfect for**: Work-from-home setups, small gatherings
+**Best value**: [JBL Go 3](https://jbl.com), [Boat Stone](https://boat-lifestyle.com)
+
+## Entertainment Essentials
+
+### 1. Streaming Device - ₹2,999-₹4,999
+Turn any TV into a smart TV with [Mi TV Stick](https://mi.com) or [Amazon Fire TV Stick](https://amazon.in).
+
+### 2. Gaming Controllers - ₹1,999-₹4,999
+For mobile gaming: [ASUS ROG Phone controllers](https://asus.com) work great with any smartphone.
+
+## Smart Home Basics
+
+### 1. Smart Plugs - ₹699-₹1,299
+Control any device remotely. [TP-Link Kasa](https://tp-link.com) plugs are reliable and affordable.
+
+### 2. LED Smart Bulbs - ₹999-₹1,999
+[Philips Wiz](https://philips.com) and [Syska Smart](https://syska.com) offer great color options.
+
+## Before You Buy Checklist
+
+- ✅ Read reviews from multiple sources
+- ✅ Check warranty and service centers
+- ✅ Compare prices across platforms
+- ✅ Look for bundle deals
+
+Remember: The best gadget is the one you'll actually use consistently!`,
+        category: "Tech News",
+        tags: ["tech", "gadgets", "productivity", "gaming"],
         imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250",
         publishedAt: new Date("2024-01-18"),
         readTime: "4 min read",
@@ -884,6 +994,9 @@ export class MemStorage implements IStorage {
       id,
       title: blogPostData.title,
       excerpt: blogPostData.excerpt,
+      content: blogPostData.content || '',
+      category: blogPostData.category || 'Shopping Tips',
+      tags: blogPostData.tags || [],
       imageUrl: blogPostData.imageUrl,
       videoUrl: blogPostData.videoUrl || null,
       publishedAt: new Date(blogPostData.publishedAt || new Date()),

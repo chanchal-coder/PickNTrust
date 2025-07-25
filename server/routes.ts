@@ -423,6 +423,67 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  app.get('/api/blog/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const blogPosts = await storage.getBlogPosts();
+      const blogPost = blogPosts.find(post => post.slug === slug);
+      
+      if (!blogPost) {
+        return res.status(404).json({ message: 'Blog post not found' });
+      }
+      
+      res.json(blogPost);
+    } catch (error) {
+      console.error('Get blog post error:', error);
+      res.status(500).json({ message: 'Failed to fetch blog post' });
+    }
+  });
+
+  app.delete('/api/admin/blog/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteBlogPost(id);
+      
+      if (deleted) {
+        res.json({ message: 'Blog post deleted successfully' });
+      } else {
+        res.status(404).json({ message: 'Blog post not found' });
+      }
+    } catch (error) {
+      console.error('Delete blog post error:', error);
+      res.status(500).json({ message: 'Failed to delete blog post' });
+    }
+  });
+
+  app.put('/api/admin/blog/:id', async (req, res) => {
+    try {
+      const { password, ...updates } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const blogPost = await storage.updateBlogPost(id, updates);
+      
+      if (blogPost) {
+        res.json({ message: 'Blog post updated successfully', blogPost });
+      } else {
+        res.status(404).json({ message: 'Blog post not found' });
+      }
+    } catch (error) {
+      console.error('Update blog post error:', error);
+      res.status(500).json({ message: 'Failed to update blog post' });
+    }
+  });
+
   app.delete('/api/admin/blog/:id', async (req, res) => {
     try {
       const { password } = req.body;

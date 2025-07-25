@@ -7,7 +7,13 @@ import Footer from "@/components/footer";
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  // Sample blog post data - in a real app, this would come from your API
+  // Fetch blog post data from API based on slug
+  const { data: blogPost, isLoading } = useQuery({
+    queryKey: ['/api/blog', slug],
+    enabled: !!slug,
+  });
+
+  // Sample blog post data - fallback for demo
   const sampleBlogPost = {
     title: "10 Must-Have Gadgets Under ₹999 You Can Buy Today",
     content: `
@@ -172,11 +178,42 @@ Each of these gadgets has been carefully selected based on:
     slug: slug || "10-must-have-gadgets-under-999"
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="header-spacing">
+          <div className="max-w-4xl mx-auto p-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
+              <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const postData = blogPost || sampleBlogPost;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="header-spacing">
-        <BlogPost {...sampleBlogPost} />
+        <BlogPost 
+          title={postData.title}
+          content={postData.content}
+          publishDate={postData.publishedAt || postData.publishDate}
+          readTime={postData.readTime}
+          featuredImage={postData.imageUrl || postData.featuredImage}
+          tags={postData.tags || []}
+          author={postData.author || "PickNTrust Team"}
+          videoUrl={postData.videoUrl}
+          category={postData.category}
+        />
       </div>
       <Footer />
     </div>
