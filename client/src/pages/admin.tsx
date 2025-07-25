@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -308,6 +309,7 @@ function AffiliateNetworkManager() {
 export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -759,8 +761,12 @@ export default function AdminPage() {
     localStorage.removeItem('pickntrust-admin-session');
     toast({
       title: 'Logged Out',
-      description: 'Admin session ended. Admin controls disabled across all pages.',
+      description: 'Redirecting to homepage...',
     });
+    // Redirect to homepage after logout
+    setTimeout(() => {
+      setLocation('/');
+    }, 1000);
   };
 
   if (!isAuthenticated) {
