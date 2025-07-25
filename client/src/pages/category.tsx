@@ -454,6 +454,215 @@ export default function CategoryPage() {
                         + Add Product
                       </button>
                     </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl text-navy dark:text-blue-400">Add Product to {categoryInfo.title}</DialogTitle>
+                        <DialogDescription>
+                          Add a new product by extracting details from a URL or entering manually
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="space-y-6">
+                        {/* URL Extraction Section */}
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg text-bright-blue">🔗 Auto-Extract from URL</CardTitle>
+                            <CardDescription>Paste a product URL to automatically extract details</CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div>
+                              <Label htmlFor="product-url">Product URL</Label>
+                              <Input
+                                id="product-url"
+                                type="url"
+                                value={productUrl}
+                                onChange={(e) => setProductUrl(e.target.value)}
+                                placeholder="https://www.amazon.in/product-link or https://www.flipkart.com/product-link"
+                                className="text-base"
+                              />
+                            </div>
+                            <Button 
+                              onClick={extractProductDetails}
+                              disabled={isExtracting || !productUrl.trim()}
+                              className="bg-bright-blue hover:bg-navy text-white"
+                            >
+                              {isExtracting ? 'Extracting...' : 'Extract Product Details'}
+                            </Button>
+                          </CardContent>
+                        </Card>
+
+                        {/* Extracted Product Preview */}
+                        {showPreview && extractedProduct && (
+                          <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+                            <CardHeader>
+                              <CardTitle className="text-green-800 dark:text-green-300">✅ Product Details Extracted</CardTitle>
+                              <CardDescription>Review and edit details before adding to catalog</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              {isEditingPreview ? (
+                                <div className="space-y-4">
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                      <Label>Product Name</Label>
+                                      <Input
+                                        value={extractedProduct.name}
+                                        onChange={(e) => setExtractedProduct({...extractedProduct, name: e.target.value})}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Price (₹)</Label>
+                                      <Input
+                                        value={extractedProduct.price}
+                                        onChange={(e) => setExtractedProduct({...extractedProduct, price: e.target.value})}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label>Description</Label>
+                                    <Textarea
+                                      value={extractedProduct.description}
+                                      onChange={(e) => setExtractedProduct({...extractedProduct, description: e.target.value})}
+                                      rows={3}
+                                    />
+                                  </div>
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                      <Label>Original Price (₹)</Label>
+                                      <Input
+                                        value={extractedProduct.originalPrice || ''}
+                                        onChange={(e) => setExtractedProduct({...extractedProduct, originalPrice: e.target.value})}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Category</Label>
+                                      <Input
+                                        value={extractedProduct.category}
+                                        onChange={(e) => setExtractedProduct({...extractedProduct, category: e.target.value})}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                      <Label>Rating</Label>
+                                      <Input
+                                        value={extractedProduct.rating}
+                                        onChange={(e) => setExtractedProduct({...extractedProduct, rating: e.target.value})}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Review Count</Label>
+                                      <Input
+                                        value={extractedProduct.reviewCount}
+                                        onChange={(e) => setExtractedProduct({...extractedProduct, reviewCount: e.target.value})}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label>Image URL</Label>
+                                    <Input
+                                      value={extractedProduct.imageUrl}
+                                      onChange={(e) => setExtractedProduct({...extractedProduct, imageUrl: e.target.value})}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="grid md:grid-cols-2 gap-6">
+                                  <div className="space-y-4">
+                                    <div>
+                                      <h4 className="font-semibold text-navy dark:text-blue-400">Product Name</h4>
+                                      <p className="text-sm">{extractedProduct.name}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-navy dark:text-blue-400">Description</h4>
+                                      <p className="text-sm text-gray-600 dark:text-gray-300">{extractedProduct.description}</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <h4 className="font-semibold text-navy dark:text-blue-400">Price</h4>
+                                        <p className="text-lg font-bold text-green-600">₹{extractedProduct.price}</p>
+                                      </div>
+                                      {extractedProduct.originalPrice && (
+                                        <div>
+                                          <h4 className="font-semibold text-navy dark:text-blue-400">Original Price</h4>
+                                          <p className="text-sm line-through text-gray-500">₹{extractedProduct.originalPrice}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <h4 className="font-semibold text-navy dark:text-blue-400">Product Image</h4>
+                                      <img 
+                                        src={extractedProduct.imageUrl} 
+                                        alt={extractedProduct.name}
+                                        className="w-full h-48 object-cover rounded-lg border"
+                                        onError={(e) => {
+                                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                                        }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-navy dark:text-blue-400">Category</h4>
+                                      <p className="text-sm">{extractedProduct.category}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="flex gap-3 mt-6 pt-4 border-t">
+                                <Button
+                                  onClick={addExtractedProduct}
+                                  className="bg-accent-green hover:bg-green-600 text-white"
+                                >
+                                  ✓ Add Product to Catalog
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setIsEditingPreview(!isEditingPreview)}
+                                >
+                                  {isEditingPreview ? 'Preview' : 'Edit Details'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowPreview(false);
+                                    setExtractedProduct(null);
+                                    setIsEditingPreview(false);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Manual Entry Option */}
+                        <div className="text-center">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowManualForm(!showManualForm)}
+                            className="border-dashed"
+                          >
+                            {showManualForm ? 'Hide Manual Entry' : 'Or Add Product Manually'}
+                          </Button>
+                        </div>
+
+                        {showManualForm && (
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg text-navy dark:text-blue-400">✍️ Manual Product Entry</CardTitle>
+                              <CardDescription>Enter product details manually</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                                Manual entry form would go here (similar to admin panel form)
+                              </p>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    </DialogContent>
                   </Dialog>
                 </>
               )}
@@ -618,217 +827,6 @@ export default function CategoryPage() {
         </section>
       </div>
       <Footer />
-
-      {/* Add Product Modal */}
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-navy dark:text-blue-400">Add Product to {categoryInfo.title}</DialogTitle>
-          <DialogDescription>
-            Add a new product by extracting details from a URL or entering manually
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* URL Extraction Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg text-bright-blue">🔗 Auto-Extract from URL</CardTitle>
-              <CardDescription>Paste a product URL to automatically extract details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="product-url">Product URL</Label>
-                <Input
-                  id="product-url"
-                  type="url"
-                  value={productUrl}
-                  onChange={(e) => setProductUrl(e.target.value)}
-                  placeholder="https://www.amazon.in/product-link or https://www.flipkart.com/product-link"
-                  className="text-base"
-                />
-              </div>
-              <Button 
-                onClick={extractProductDetails}
-                disabled={isExtracting || !productUrl.trim()}
-                className="bg-bright-blue hover:bg-navy text-white"
-              >
-                {isExtracting ? 'Extracting...' : 'Extract Product Details'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Extracted Product Preview */}
-          {showPreview && extractedProduct && (
-            <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
-              <CardHeader>
-                <CardTitle className="text-green-800 dark:text-green-300">✅ Product Details Extracted</CardTitle>
-                <CardDescription>Review and edit details before adding to catalog</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isEditingPreview ? (
-                  <div className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Product Name</Label>
-                        <Input
-                          value={extractedProduct.name}
-                          onChange={(e) => setExtractedProduct({...extractedProduct, name: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label>Price (₹)</Label>
-                        <Input
-                          value={extractedProduct.price}
-                          onChange={(e) => setExtractedProduct({...extractedProduct, price: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Textarea
-                        value={extractedProduct.description}
-                        onChange={(e) => setExtractedProduct({...extractedProduct, description: e.target.value})}
-                        rows={3}
-                      />
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Original Price (₹)</Label>
-                        <Input
-                          value={extractedProduct.originalPrice || ''}
-                          onChange={(e) => setExtractedProduct({...extractedProduct, originalPrice: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label>Category</Label>
-                        <Input
-                          value={extractedProduct.category}
-                          onChange={(e) => setExtractedProduct({...extractedProduct, category: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Rating</Label>
-                        <Input
-                          value={extractedProduct.rating}
-                          onChange={(e) => setExtractedProduct({...extractedProduct, rating: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label>Review Count</Label>
-                        <Input
-                          value={extractedProduct.reviewCount}
-                          onChange={(e) => setExtractedProduct({...extractedProduct, reviewCount: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Image URL</Label>
-                      <Input
-                        value={extractedProduct.imageUrl}
-                        onChange={(e) => setExtractedProduct({...extractedProduct, imageUrl: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Product Name</h4>
-                        <p className="text-sm">{extractedProduct.name}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Description</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{extractedProduct.description}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="font-semibold text-navy dark:text-blue-400">Price</h4>
-                          <p className="text-lg font-bold text-green-600">₹{extractedProduct.price}</p>
-                        </div>
-                        {extractedProduct.originalPrice && (
-                          <div>
-                            <h4 className="font-semibold text-navy dark:text-blue-400">Original Price</h4>
-                            <p className="text-sm line-through text-gray-500">₹{extractedProduct.originalPrice}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Product Image</h4>
-                        <img 
-                          src={extractedProduct.imageUrl} 
-                          alt={extractedProduct.name}
-                          className="w-full h-48 object-cover rounded-lg border"
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-navy dark:text-blue-400">Category</h4>
-                        <p className="text-sm">{extractedProduct.category}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex gap-3 mt-6 pt-4 border-t">
-                  <Button
-                    onClick={addExtractedProduct}
-                    className="bg-accent-green hover:bg-green-600 text-white"
-                  >
-                    ✓ Add Product to Catalog
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditingPreview(!isEditingPreview)}
-                  >
-                    {isEditingPreview ? 'Preview' : 'Edit Details'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowPreview(false);
-                      setExtractedProduct(null);
-                      setIsEditingPreview(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Manual Entry Option */}
-          <div className="text-center">
-            <Button
-              variant="outline"
-              onClick={() => setShowManualForm(!showManualForm)}
-              className="border-dashed"
-            >
-              {showManualForm ? 'Hide Manual Entry' : 'Or Add Product Manually'}
-            </Button>
-          </div>
-
-          {showManualForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg text-navy dark:text-blue-400">✍️ Manual Product Entry</CardTitle>
-                <CardDescription>Enter product details manually</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                  Manual entry form would go here (similar to admin panel form)
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </DialogContent>
     </div>
   );
 }
