@@ -1,4 +1,4 @@
-import logoImage from "@assets/logo_1753451297893.png";
+import logoImage from "@assets/Logoo_1753451593641.png";
 import { Link, useLocation } from "wouter";
 
 export default function Footer() {
