@@ -121,6 +121,9 @@
     text-decoration-thickness: 2px;
     text-underline-offset: 2px;
     cursor: pointer;
+    pointer-events: auto;
+    display: inline-block;
+    transition: all 0.2s ease;
   }
   
   .dark .blog-content a {
@@ -130,10 +133,16 @@
   .blog-content a:hover {
     color: #1d4ed8 !important;
     text-decoration-thickness: 3px;
+    transform: translateY(-1px);
   }
   
   .dark .blog-content a:hover {
     color: #93c5fd !important;
+  }
+  
+  /* Ensure all interactive elements in blog content work */
+  .blog-content * {
+    pointer-events: auto;
   }
 }
 

@@ -127,29 +127,17 @@ export default function BlogSection() {
                 <h4 className="text-xl font-bold text-navy dark:text-blue-400 mb-3">{post.title}</h4>
                 <div className="text-gray-600 dark:text-gray-300 mb-4">
                   {/* Show only first 4-5 lines of excerpt */}
-                  {post.excerpt.length > 120 ? (
-                    <>
-                      <span>{post.excerpt.substring(0, 120)}...</span>
-                      <br />
-                      <Link 
-                        href={`/blog/${post.slug}`} 
-                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline"
-                      >
-                        Read More <span>→</span>
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <span>{post.excerpt}</span>
-                      <br />
-                      <Link 
-                        href={`/blog/${post.slug}`} 
-                        className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline"
-                      >
-                        Read More <span>→</span>
-                      </Link>
-                    </>
-                  )}
+                  <span>{post.excerpt.length > 120 ? `${post.excerpt.substring(0, 120)}...` : post.excerpt}</span>
+                  <br />
+                  <Link 
+                    href={`/blog/${post.slug}`} 
+                    className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline cursor-pointer"
+                    onClick={() => {
+                      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+                    }}
+                  >
+                    Read More <span>→</span>
+                  </Link>
                 </div>
                 
                 {/* Tags */}
