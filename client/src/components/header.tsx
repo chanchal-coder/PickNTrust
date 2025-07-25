@@ -43,81 +43,85 @@ export default function Header() {
   return (
     <header className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-        <div className="flex justify-between items-center py-2 sm:py-4">
-          {/* Logo - Clickable to home */}
-          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 hover:opacity-80 transition-opacity">
+        {/* Main Header Row */}
+        <div className="flex justify-between items-center py-2 sm:py-3">
+          {/* Logo in Corner */}
+          <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <img 
               src={logoImage} 
               alt="PickNTrust Logo" 
-              className="w-8 h-8 sm:w-12 sm:h-12 object-contain"
+              className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
             />
-            <div>
-              <h1 className="text-lg sm:text-2xl font-bold cursor-pointer">
-                <span className="text-navy dark:text-blue-400">Pick</span>
-                <span className="text-gold dark:text-yellow-400">N</span>
-                <span className="text-navy dark:text-blue-400">Trust</span>
-              </h1>
-              <p className="text-gold dark:text-yellow-400 text-xs hidden sm:block">Pick. Click. Trust.</p>
-            </div>
           </Link>
 
-          {/* Admin Dashboard Link - Only visible when logged in as desktop item */}
-          {isAdmin && (
-            <div className="hidden md:block">
+          {/* Centered Brand Name & Slogan */}
+          <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-80 transition-opacity">
+            <h1 className="text-xl sm:text-3xl font-bold cursor-pointer">
+              <span className="text-navy dark:text-blue-400">Pick</span>
+              <span className="text-gold dark:text-yellow-400">N</span>
+              <span className="text-navy dark:text-blue-400">Trust</span>
+            </h1>
+            <p className="text-gold dark:text-yellow-400 text-xs sm:text-sm">Pick. Click. Trust.</p>
+          </Link>
+
+          {/* Admin indicator for corner balance */}
+          <div className="w-8 sm:w-10 flex justify-end">
+            {isAdmin && (
               <Link 
                 href="/admin" 
-                className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-red-600 transition-colors animate-pulse"
+                className="text-red-500 hover:text-red-600 transition-colors"
+                title="Admin Panel"
               >
-                ⚙️ Admin
+                <i className="fas fa-cog text-sm"></i>
               </Link>
-            </div>
-          )}
-
-          {/* Navigation Icons and Menu */}
-          <div className="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
-            {/* Home Icon - Always visible for easy navigation */}
-            <Link 
-              href="/" 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              title="Go to Homepage"
-            >
-              <i className="fas fa-home text-lg sm:text-xl"></i>
-            </Link>
-
-            {/* Wishlist Icon with count */}
-            <Link 
-              href="/wishlist" 
-              className="relative text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              title={`Wishlist (${wishlistCount} items)`}
-            >
-              <i className="fas fa-heart text-lg sm:text-xl"></i>
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-medium">
-                  {wishlistCount > 9 ? '9+' : wishlistCount}
-                </span>
-              )}
-            </Link>
-            
-            <ThemeToggle />
-            
-            {/* Discreet admin access - only visible to those who know */}
-            <Link 
-              href="/admin" 
-              className="hidden lg:block text-xs text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 transition-colors opacity-50 hover:opacity-100"
-              title="Admin Access"
-            >
-              •
-            </Link>
-            
-            <button 
-              className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              title="Open Categories Menu"
-            >
-              <i className="fas fa-bars text-lg sm:text-xl"></i>
-            </button>
+            )}
           </div>
         </div>
+
+        {/* Centered Navigation Row */}
+        <div className="flex justify-center items-center space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2">
+          {/* Home link */}
+          <Link 
+            href="/" 
+            className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors flex items-center space-x-1"
+            title="Home"
+          >
+            <i className="fas fa-home text-sm sm:text-base"></i>
+            <span className="text-sm font-medium">Home</span>
+          </Link>
+          
+          {/* Wishlist link */}
+          <Link 
+            href="/wishlist" 
+            className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors flex items-center space-x-1 relative"
+            title="Wishlist"
+          >
+            <i className="fas fa-heart text-sm sm:text-base"></i>
+            <span className="text-sm font-medium">Wishlist</span>
+            {wishlistCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+                {wishlistCount > 9 ? '9+' : wishlistCount}
+              </span>
+            )}
+          </Link>
+          
+          {/* Theme Toggle */}
+          <div className="flex items-center">
+            <ThemeToggle />
+          </div>
+          
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors flex items-center space-x-1"
+            aria-label="Menu"
+          >
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-sm sm:text-base`}></i>
+            <span className="text-sm font-medium">Menu</span>
+          </button>
+        </div>
+
+
 
         {/* Hamburger Menu - Now for both mobile and desktop */}
         {mobileMenuOpen && (
@@ -131,11 +135,7 @@ export default function Header() {
                 🏠 Home
               </Link>
               
-              {/* Mobile Theme Toggle in Menu */}
-              <div className="flex items-center justify-between py-2 sm:hidden">
-                <span className="text-gray-600 dark:text-gray-300 font-medium">Dark Mode</span>
-                <ThemeToggle />
-              </div>
+
               
               {/* Show ALL categories in hamburger menu */}
               {categories.map((category: any) => (
