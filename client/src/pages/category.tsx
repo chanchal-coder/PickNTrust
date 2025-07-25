@@ -25,6 +25,19 @@ export default function CategoryPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [isEditingPreview, setIsEditingPreview] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [manualProduct, setManualProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    originalPrice: '',
+    category: category ? decodeURIComponent(category) : '',
+    rating: '4.0',
+    reviewCount: '100',
+    imageUrl: '',
+    affiliateUrl: '',
+    isFeatured: false,
+    isAvailable: true
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -233,6 +246,67 @@ export default function CategoryPage() {
       toast({
         title: 'Error',
         description: 'Failed to add product. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Add manual product
+  const addManualProduct = async () => {
+    if (!manualProduct.name || !manualProduct.price || !manualProduct.affiliateUrl) {
+      toast({
+        title: 'Missing Required Fields',
+        description: 'Please fill in product name, price, and affiliate URL.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...manualProduct,
+          password: 'pickntrust2025',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add product');
+      }
+
+      toast({
+        title: 'Product Added!',
+        description: 'Manual product has been added to the catalog successfully.',
+      });
+
+      // Reset all states
+      setShowAddModal(false);
+      setShowManualForm(false);
+      setManualProduct({
+        name: '',
+        description: '',
+        price: '',
+        originalPrice: '',
+        category: category ? decodeURIComponent(category) : '',
+        rating: '4.0',
+        reviewCount: '100',
+        imageUrl: '',
+        affiliateUrl: '',
+        isFeatured: false,
+        isAvailable: true
+      });
+      
+      // Refresh category products and featured products
+      queryClient.invalidateQueries({ queryKey: ['/api/products/category', category] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add manual product. Please try again.',
         variant: 'destructive',
       });
     }
@@ -652,12 +726,169 @@ export default function CategoryPage() {
                           <Card>
                             <CardHeader>
                               <CardTitle className="text-lg text-navy dark:text-blue-400">✍️ Manual Product Entry</CardTitle>
-                              <CardDescription>Enter product details manually</CardDescription>
+                              <CardDescription>Enter product details manually for {categoryInfo.title}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                                Manual entry form would go here (similar to admin panel form)
-                              </p>
+                              <div className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="manual-name">Product Name *</Label>
+                                    <Input
+                                      id="manual-name"
+                                      value={manualProduct.name}
+                                      onChange={(e) => setManualProduct({...manualProduct, name: e.target.value})}
+                                      placeholder="Enter product name"
+                                      required
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="manual-price">Price (₹) *</Label>
+                                    <Input
+                                      id="manual-price"
+                                      type="number"
+                                      value={manualProduct.price}
+                                      onChange={(e) => setManualProduct({...manualProduct, price: e.target.value})}
+                                      placeholder="999"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="manual-description">Description</Label>
+                                  <Textarea
+                                    id="manual-description"
+                                    value={manualProduct.description}
+                                    onChange={(e) => setManualProduct({...manualProduct, description: e.target.value})}
+                                    placeholder="Enter product description"
+                                    rows={3}
+                                  />
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="manual-original-price">Original Price (₹)</Label>
+                                    <Input
+                                      id="manual-original-price"
+                                      type="number"
+                                      value={manualProduct.originalPrice}
+                                      onChange={(e) => setManualProduct({...manualProduct, originalPrice: e.target.value})}
+                                      placeholder="1299"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="manual-category">Category</Label>
+                                    <Input
+                                      id="manual-category"
+                                      value={manualProduct.category}
+                                      onChange={(e) => setManualProduct({...manualProduct, category: e.target.value})}
+                                      placeholder="Electronics & Gadgets"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="manual-rating">Rating</Label>
+                                    <Input
+                                      id="manual-rating"
+                                      type="number"
+                                      min="1"
+                                      max="5"
+                                      step="0.1"
+                                      value={manualProduct.rating}
+                                      onChange={(e) => setManualProduct({...manualProduct, rating: e.target.value})}
+                                      placeholder="4.0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="manual-review-count">Review Count</Label>
+                                    <Input
+                                      id="manual-review-count"
+                                      type="number"
+                                      value={manualProduct.reviewCount}
+                                      onChange={(e) => setManualProduct({...manualProduct, reviewCount: e.target.value})}
+                                      placeholder="100"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="manual-image-url">Product Image URL</Label>
+                                  <Input
+                                    id="manual-image-url"
+                                    type="url"
+                                    value={manualProduct.imageUrl}
+                                    onChange={(e) => setManualProduct({...manualProduct, imageUrl: e.target.value})}
+                                    placeholder="https://example.com/product-image.jpg"
+                                  />
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="manual-affiliate-url">Affiliate URL *</Label>
+                                  <Input
+                                    id="manual-affiliate-url"
+                                    type="url"
+                                    value={manualProduct.affiliateUrl}
+                                    onChange={(e) => setManualProduct({...manualProduct, affiliateUrl: e.target.value})}
+                                    placeholder="https://www.amazon.in/product-link or https://www.flipkart.com/product-link"
+                                    required
+                                  />
+                                </div>
+
+                                <div className="flex items-center space-x-4">
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id="manual-featured"
+                                      checked={manualProduct.isFeatured}
+                                      onChange={(e) => setManualProduct({...manualProduct, isFeatured: e.target.checked})}
+                                      className="rounded"
+                                    />
+                                    <Label htmlFor="manual-featured">Featured Product</Label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id="manual-available"
+                                      checked={manualProduct.isAvailable}
+                                      onChange={(e) => setManualProduct({...manualProduct, isAvailable: e.target.checked})}
+                                      className="rounded"
+                                    />
+                                    <Label htmlFor="manual-available">Available</Label>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-4 border-t">
+                                  <Button
+                                    onClick={addManualProduct}
+                                    className="bg-accent-green hover:bg-green-600 text-white"
+                                  >
+                                    ✓ Add Product to Catalog
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowManualForm(false);
+                                      setManualProduct({
+                                        name: '',
+                                        description: '',
+                                        price: '',
+                                        originalPrice: '',
+                                        category: category ? decodeURIComponent(category) : '',
+                                        rating: '4.0',
+                                        reviewCount: '100',
+                                        imageUrl: '',
+                                        affiliateUrl: '',
+                                        isFeatured: false,
+                                        isAvailable: true
+                                      });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
                             </CardContent>
                           </Card>
                         )}
