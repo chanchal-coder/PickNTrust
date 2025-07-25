@@ -152,4 +152,5 @@ The application is designed as a monorepo with shared TypeScript schemas between
 - **Updated Brand Logo**: Replaced logo with refined shopping bag and checkmark design (Logoo_1753451593641.png) featuring elegant cream shopping bag with checkmark on blue circular background, applied across header, footer, favicon, and Open Graph metadata for complete brand consistency
 - **Hidden Admin Controls**: Admin controls (dashboard link and logout) only visible to authenticated admins in hamburger menu, completely hidden from public users for security
 - **Discrete Admin Access**: Added tiny, nearly invisible dot below logo for admin login access - only visible to those who know to look for it, maintaining clean public interface
+- **Enhanced Security**: Implemented bcrypt-based password hashing with secure authentication API, replacing hardcoded passwords with environment variable-stored hash for production-ready security
 - **Persistent Navigation Menu**: Modified hamburger menu to stay open when browsing categories, improving user experience by allowing multiple category clicks without menu auto-closing

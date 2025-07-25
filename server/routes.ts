@@ -3,6 +3,7 @@ import express from "express";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
 import { 
   insertProductSchema, 
   insertNewsletterSubscriberSchema,
@@ -11,6 +12,21 @@ import {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import * as crypto from 'crypto';
+
+// Helper function to verify admin password
+async function verifyAdminPassword(password: string): Promise<boolean> {
+  try {
+    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+    if (!adminPasswordHash) {
+      console.error('ADMIN_PASSWORD_HASH environment variable not set');
+      return false;
+    }
+    return await bcrypt.compare(password, adminPasswordHash);
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
+}
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -46,6 +62,35 @@ const upload = multer({
 export function setupRoutes(app: Express, storage: IStorage) {
   // Serve uploaded files
   app.use('/uploads', express.static(uploadDir));
+
+  // Secure admin authentication endpoint
+  app.post('/api/admin/auth', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required' });
+      }
+
+      const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+      if (!adminPasswordHash) {
+        console.error('ADMIN_PASSWORD_HASH environment variable not set');
+        return res.status(500).json({ message: 'Server configuration error' });
+      }
+
+      // Verify admin password
+      const isValid = await verifyAdminPassword(password);
+      
+      if (isValid) {
+        res.json({ success: true, message: 'Authentication successful' });
+      } else {
+        res.status(401).json({ success: false, message: 'Invalid password' });
+      }
+    } catch (error) {
+      console.error('Admin authentication error:', error);
+      res.status(500).json({ message: 'Authentication failed' });
+    }
+  });
 
   // File upload endpoints
   app.post('/api/upload', upload.single('file'), (req, res) => {
@@ -320,7 +365,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     try {
       const { password, ...productData } = req.body;
       
-      if (password !== 'pickntrust2025') {
+      if (!await verifyAdminPassword(password)) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
@@ -336,7 +381,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     try {
       const { password } = req.body;
       
-      if (password !== 'pickntrust2025') {
+      if (!await verifyAdminPassword(password)) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
@@ -358,7 +403,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     try {
       const { password, ...updates } = req.body;
       
-      if (password !== 'pickntrust2025') {
+      if (!await verifyAdminPassword(password)) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
@@ -381,7 +426,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     try {
       const { password, ...blogPostData } = req.body;
       
-      if (password !== 'pickntrust2025') {
+      if (!await verifyAdminPassword(password)) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
@@ -397,7 +442,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     try {
       const { password } = req.body;
       
-      if (password !== 'pickntrust2025') {
+      if (!await verifyAdminPassword(password)) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
@@ -419,7 +464,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     try {
       const { password, ...updates } = req.body;
       
-      if (password !== 'pickntrust2025') {
+      if (!await verifyAdminPassword(password)) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 

@@ -44,26 +44,45 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassword === 'pickntrust2025') {
-      localStorage.setItem('pickntrust-admin-session', 'active');
-      setIsAdmin(true);
-      setShowAdminLogin(false);
-      setAdminPassword('');
-      toast({
-        title: 'Admin Login Successful!',
-        description: 'You now have admin access across all pages.',
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
       });
-      // Trigger storage event for other components
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'pickntrust-admin-session',
-        newValue: 'active'
-      }));
-    } else {
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('pickntrust-admin-session', 'active');
+        setIsAdmin(true);
+        setShowAdminLogin(false);
+        setAdminPassword('');
+        toast({
+          title: 'Admin Login Successful!',
+          description: 'You now have admin access across all pages.',
+        });
+        // Trigger storage event for other components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'pickntrust-admin-session',
+          newValue: 'active'
+        }));
+      } else {
+        toast({
+          title: 'Invalid Password',
+          description: 'Please enter the correct admin password.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       toast({
-        title: 'Invalid Password',
-        description: 'Please enter the correct admin password.',
+        title: 'Login Failed',
+        description: 'Unable to connect to server. Please try again.',
         variant: 'destructive',
       });
     }

@@ -733,22 +733,45 @@ export default function AdminPage() {
     }
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple password check - you can change this password
-    if (password === 'pickntrust2025') {
-      setIsAuthenticated(true);
-      setPassword('');
-      // Set admin session for all category pages
-      localStorage.setItem('pickntrust-admin-session', 'active');
-      toast({
-        title: 'Access Granted',
-        description: 'Welcome to PickNTrust Admin Panel. You now have admin controls across all pages.',
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
       });
-    } else {
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsAuthenticated(true);
+        setPassword('');
+        localStorage.setItem('pickntrust-admin-session', 'active');
+        toast({
+          title: 'Access Granted',
+          description: 'Welcome to PickNTrust Admin Panel. You now have admin controls across all pages.',
+        });
+        // Trigger storage event for other components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'pickntrust-admin-session',
+          newValue: 'active'
+        }));
+      } else {
+        toast({
+          title: 'Access Denied',
+          description: 'Incorrect password. Please try again.',
+          variant: 'destructive',
+        });
+        setPassword('');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       toast({
-        title: 'Access Denied',
-        description: 'Incorrect password. Please try again.',
+        title: 'Login Failed',
+        description: 'Unable to connect to server. Please try again.',
         variant: 'destructive',
       });
       setPassword('');
