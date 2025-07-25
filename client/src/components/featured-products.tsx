@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Product } from "@shared/schema";
 import { useToast } from '@/hooks/use-toast';
+import { useWishlist } from "@/hooks/use-wishlist";
 
 export default function FeaturedProducts() {
   const { data: products, isLoading } = useQuery<Product[]>({
@@ -11,6 +12,7 @@ export default function FeaturedProducts() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const { toast } = useToast();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   // Check admin status
   useEffect(() => {
@@ -76,6 +78,22 @@ export default function FeaturedProducts() {
     
     // Open affiliate link in new tab
     window.open(product.affiliateUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleWishlistToggle = (product: Product) => {
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id);
+      toast({
+        title: "Removed from wishlist",
+        description: `${product.name} removed from your wishlist`,
+      });
+    } else {
+      addToWishlist(product);
+      toast({
+        title: "Added to wishlist",
+        description: `${product.name} added to your wishlist`,
+      });
+    }
   };
 
   const renderStars = (rating: string) => {
@@ -148,6 +166,20 @@ export default function FeaturedProducts() {
                   alt={product.name} 
                   className="w-full h-48 object-cover" 
                 />
+                
+                {/* Wishlist Heart Icon */}
+                <button
+                  onClick={() => handleWishlistToggle(product)}
+                  className={`absolute top-2 left-2 p-2 rounded-full shadow-md transition-colors ${
+                    isInWishlist(product.id) 
+                      ? 'bg-red-500 text-white hover:bg-red-600' 
+                      : 'bg-white text-gray-400 hover:text-red-500'
+                  }`}
+                  title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <i className={`fas fa-heart text-sm`}></i>
+                </button>
+
                 {isAdmin && (
                   <div className="absolute top-2 right-2">
                     <div className="relative">

@@ -156,6 +156,87 @@ export class MemStorage implements IStorage {
         logoUrl: "https://logo.clearbit.com/impact.com",
         joinUrl: "https://impact.com/",
         isActive: true
+      },
+      // Additional affiliate networks
+      {
+        name: "Rakuten Advertising",
+        slug: "rakuten",
+        description: "Global performance marketing platform",
+        commissionRate: "6.00",
+        trackingParams: "ranMID=pickntrust",
+        logoUrl: "https://logo.clearbit.com/rakuten.com",
+        joinUrl: "https://rakutenadvertising.com/",
+        isActive: true
+      },
+      {
+        name: "PartnerStack",
+        slug: "partnerstack",
+        description: "Partner ecosystem management platform",
+        commissionRate: "9.00",
+        trackingParams: "ref=pickntrust",
+        logoUrl: "https://logo.clearbit.com/partnerstack.com",
+        joinUrl: "https://partnerstack.com/",
+        isActive: true
+      },
+      {
+        name: "Admitad",
+        slug: "admitad",
+        description: "Global affiliate marketing network",
+        commissionRate: "6.50",
+        trackingParams: "subid=pickntrust",
+        logoUrl: "https://logo.clearbit.com/admitad.com",
+        joinUrl: "https://www.admitad.com/",
+        isActive: true
+      },
+      {
+        name: "Awin",
+        slug: "awin",
+        description: "Global affiliate marketing network",
+        commissionRate: "5.50",
+        trackingParams: "clickref=pickntrust",
+        logoUrl: "https://logo.clearbit.com/awin.com",
+        joinUrl: "https://www.awin.com/",
+        isActive: true
+      },
+      {
+        name: "FlexOffers",
+        slug: "flexoffers",
+        description: "Performance marketing network",
+        commissionRate: "8.50",
+        trackingParams: "fobs=pickntrust",
+        logoUrl: "https://logo.clearbit.com/flexoffers.com",
+        joinUrl: "https://www.flexoffers.com/",
+        isActive: true
+      },
+      {
+        name: "MaxBounty",
+        slug: "maxbounty",
+        description: "CPA affiliate marketing network",
+        commissionRate: "12.00",
+        trackingParams: "s1=pickntrust",
+        logoUrl: "https://logo.clearbit.com/maxbounty.com",
+        joinUrl: "https://www.maxbounty.com/",
+        isActive: true
+      },
+      {
+        name: "CueLinks",
+        slug: "cuelinks",
+        description: "Intelligent link monetization platform",
+        commissionRate: "4.50",
+        trackingParams: "subId=pickntrust",
+        logoUrl: "https://logo.clearbit.com/cuelinks.com",
+        joinUrl: "https://www.cuelinks.com/",
+        isActive: true
+      },
+      {
+        name: "VCommission",
+        slug: "vcommission",
+        description: "India's leading affiliate marketing network",
+        commissionRate: "7.50",
+        trackingParams: "source=pickntrust",
+        logoUrl: "https://logo.clearbit.com/vcommission.com",
+        joinUrl: "https://www.vcommission.com/",
+        isActive: true
       }
     ];
 

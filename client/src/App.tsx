@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import Home from "@/pages/home";
 import CategoryPage from "@/pages/category";
 import AdminPage from "@/pages/admin";
+import WishlistPage from "@/pages/wishlist";
 import AffiliateTrackerPage from "@/pages/affiliate-tracker";
 import PrivacyPolicyPage from "@/pages/privacy-policy";
 import TermsOfServicePage from "@/pages/terms-of-service";
@@ -42,6 +43,7 @@ function AppRouter() {
         <Route path="/" component={Home} />
         <Route path="/category/:category" component={CategoryPage} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/wishlist" component={WishlistPage} />
         <Route path="/affiliate-tracker" component={AffiliateTrackerPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />

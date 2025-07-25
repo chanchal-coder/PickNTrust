@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useWishlist } from "@/hooks/use-wishlist";
 import logoImage from "@assets/ChatGPT Image Jul 23, 2025, 11_34_10 PM_1753298844179.png";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location] = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { wishlistCount } = useWishlist();
 
   // Fetch all categories dynamically
   const { data: categories = [] } = useQuery({
@@ -80,6 +82,20 @@ export default function Header() {
               title="Go to Homepage"
             >
               <i className="fas fa-home text-xl"></i>
+            </Link>
+
+            {/* Wishlist Icon with count */}
+            <Link 
+              href="/wishlist" 
+              className="relative text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              title={`Wishlist (${wishlistCount} items)`}
+            >
+              <i className="fas fa-heart text-xl"></i>
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
             </Link>
             
             <ThemeToggle />
