@@ -667,17 +667,193 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-navy dark:text-blue-400 mb-4">
-              Password Management Removed
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              All password management features have been removed per your request.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Admin panel now uses simple authentication only.
-            </p>
+          {/* Gamified Dashboard Stats */}
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm">Total Products</p>
+                    <p className="text-2xl font-bold">{totalProducts}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-blue-200" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-sm">Blog Posts</p>
+                    <p className="text-2xl font-bold">{totalPosts}</p>
+                  </div>
+                  <FileText className="w-8 h-8 text-green-200" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm">Achievements</p>
+                    <p className="text-2xl font-bold">{achievements.length}</p>
+                  </div>
+                  <Trophy className="w-8 h-8 text-purple-200" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white transition-transform hover:scale-105">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm">Networks</p>
+                    <p className="text-2xl font-bold">{Array.isArray(affiliateNetworks) ? affiliateNetworks.length : 0}</p>
+                  </div>
+                  <Globe className="w-8 h-8 text-orange-200" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Achievement Badges */}
+          {achievements.length > 0 && (
+            <div className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-300 mb-3 flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                Achievements Unlocked
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {achievements.map((achievement, index) => (
+                  <Badge key={index} className="bg-purple-600 text-white px-3 py-1">
+                    {achievement}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab Navigation */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'products'
+                  ? 'border-b-2 border-bright-blue text-bright-blue'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Product Management
+            </button>
+            <button
+              onClick={() => setActiveTab('blog')}
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'blog'
+                  ? 'border-b-2 border-bright-blue text-bright-blue'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Blog Management
+            </button>
+            <button
+              onClick={() => setActiveTab('networks')}
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'networks'
+                  ? 'border-b-2 border-bright-blue text-bright-blue'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Affiliate Networks
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'products' && (
+            <div className="space-y-6">
+              {/* Simple note about simplified system */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Note:</strong> Complex password management features have been removed for simplicity. 
+                  This panel now focuses on core content management.
+                </p>
+              </div>
+
+              {/* Add Product Button */}
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Product Catalog</h3>
+                <Button 
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-bright-blue hover:bg-navy text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Product
+                </Button>
+              </div>
+
+              {/* Products Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.isArray(products) && products.map((product: any) => (
+                  <ProductManagementCard 
+                    key={product.id} 
+                    product={product} 
+                    onUpdate={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                    onDelete={() => queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] })}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'blog' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-navy dark:text-blue-400">Blog Management</h3>
+                <Button 
+                  onClick={() => setShowBlogForm(true)}
+                  className="bg-bright-blue hover:bg-navy text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Post
+                </Button>
+              </div>
+
+              {/* Blog Posts Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.isArray(blogPosts) && blogPosts.map((post: any) => (
+                  <Card key={post.id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-semibold text-navy dark:text-blue-400 line-clamp-2">{post.title}</h4>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingBlog(post)}
+                            className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-3">
+                        {post.excerpt}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{post.readTime}</span>
+                        <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'networks' && (
+            <AffiliateNetworkManagement networks={affiliateNetworks} />
+          )}
         </div>
       </div>
     </div>
