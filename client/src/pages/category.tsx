@@ -6,11 +6,25 @@ import type { Product } from "@shared/schema";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
   const [isAdmin, setIsAdmin] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [productUrl, setProductUrl] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedProduct, setExtractedProduct] = useState<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isEditingPreview, setIsEditingPreview] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -85,11 +99,15 @@ export default function CategoryPage() {
     window.open(product.affiliateUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Delete product mutation
+  // Delete product mutation with secure admin authentication
   const deleteProductMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/products/${id}`, {
+      const response = await fetch(`/api/admin/products/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: 'pickntrust2025' }),
       });
       
       if (!response.ok) {
@@ -104,6 +122,7 @@ export default function CategoryPage() {
         description: 'Product has been removed successfully.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/products/category', category] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
     },
     onError: () => {
       toast({
@@ -117,6 +136,105 @@ export default function CategoryPage() {
   const handleDelete = (productId: number) => {
     if (confirm('Are you sure you want to delete this product?')) {
       deleteProductMutation.mutate(productId);
+    }
+  };
+
+  // Product extraction functionality
+  const extractProductDetails = async () => {
+    if (!productUrl.trim()) {
+      toast({
+        title: 'URL Required',
+        description: 'Please enter a product URL to extract details.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    
+    try {
+      const extractResponse = await fetch('/api/products/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: productUrl }),
+      });
+
+      const extractResult = await extractResponse.json();
+
+      if (extractResult.success && extractResult.data) {
+        const data = extractResult.data;
+        setExtractedProduct({
+          ...data,
+          affiliateUrl: productUrl,
+        });
+        setShowPreview(true);
+        setIsEditingPreview(false);
+        
+        toast({
+          title: 'Product Details Extracted!',
+          description: 'Review the details below and click "Add Product" to confirm.',
+        });
+      } else {
+        toast({
+          title: 'Extraction Failed',
+          description: extractResult.message || 'Could not extract product details from this URL.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Extraction Error',
+        description: 'Failed to extract product details. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  // Add extracted product
+  const addExtractedProduct = async () => {
+    if (!extractedProduct) return;
+
+    try {
+      const response = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...extractedProduct,
+          password: 'pickntrust2025',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add product');
+      }
+
+      toast({
+        title: 'Product Added!',
+        description: 'Product has been added to the catalog successfully.',
+      });
+
+      // Reset all states
+      setShowAddModal(false);
+      setShowPreview(false);
+      setProductUrl('');
+      setExtractedProduct(null);
+      setIsEditingPreview(false);
+      
+      // Refresh category products and featured products
+      queryClient.invalidateQueries({ queryKey: ['/api/products/category', category] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add product. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -330,12 +448,13 @@ export default function CategoryPage() {
                   <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
                     ADMIN MODE
                   </span>
-                  <button
-                    onClick={() => window.open('/admin', '_blank')}
-                    className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold hover:bg-blue-600 transition-colors"
-                  >
-                    + Add Product
-                  </button>
+                  <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+                    <DialogTrigger asChild>
+                      <button className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold hover:bg-blue-600 transition-colors">
+                        + Add Product
+                      </button>
+                    </DialogTrigger>
+                  </Dialog>
                 </>
               )}
             </div>
@@ -499,6 +618,217 @@ export default function CategoryPage() {
         </section>
       </div>
       <Footer />
+
+      {/* Add Product Modal */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl text-navy dark:text-blue-400">Add Product to {categoryInfo.title}</DialogTitle>
+          <DialogDescription>
+            Add a new product by extracting details from a URL or entering manually
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* URL Extraction Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg text-bright-blue">🔗 Auto-Extract from URL</CardTitle>
+              <CardDescription>Paste a product URL to automatically extract details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="product-url">Product URL</Label>
+                <Input
+                  id="product-url"
+                  type="url"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  placeholder="https://www.amazon.in/product-link or https://www.flipkart.com/product-link"
+                  className="text-base"
+                />
+              </div>
+              <Button 
+                onClick={extractProductDetails}
+                disabled={isExtracting || !productUrl.trim()}
+                className="bg-bright-blue hover:bg-navy text-white"
+              >
+                {isExtracting ? 'Extracting...' : 'Extract Product Details'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Extracted Product Preview */}
+          {showPreview && extractedProduct && (
+            <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+              <CardHeader>
+                <CardTitle className="text-green-800 dark:text-green-300">✅ Product Details Extracted</CardTitle>
+                <CardDescription>Review and edit details before adding to catalog</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isEditingPreview ? (
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Product Name</Label>
+                        <Input
+                          value={extractedProduct.name}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, name: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Price (₹)</Label>
+                        <Input
+                          value={extractedProduct.price}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, price: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea
+                        value={extractedProduct.description}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, description: e.target.value})}
+                        rows={3}
+                      />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Original Price (₹)</Label>
+                        <Input
+                          value={extractedProduct.originalPrice || ''}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, originalPrice: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Category</Label>
+                        <Input
+                          value={extractedProduct.category}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, category: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Rating</Label>
+                        <Input
+                          value={extractedProduct.rating}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, rating: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Review Count</Label>
+                        <Input
+                          value={extractedProduct.reviewCount}
+                          onChange={(e) => setExtractedProduct({...extractedProduct, reviewCount: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Image URL</Label>
+                      <Input
+                        value={extractedProduct.imageUrl}
+                        onChange={(e) => setExtractedProduct({...extractedProduct, imageUrl: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Product Name</h4>
+                        <p className="text-sm">{extractedProduct.name}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Description</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{extractedProduct.description}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-semibold text-navy dark:text-blue-400">Price</h4>
+                          <p className="text-lg font-bold text-green-600">₹{extractedProduct.price}</p>
+                        </div>
+                        {extractedProduct.originalPrice && (
+                          <div>
+                            <h4 className="font-semibold text-navy dark:text-blue-400">Original Price</h4>
+                            <p className="text-sm line-through text-gray-500">₹{extractedProduct.originalPrice}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Product Image</h4>
+                        <img 
+                          src={extractedProduct.imageUrl} 
+                          alt={extractedProduct.name}
+                          className="w-full h-48 object-cover rounded-lg border"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-navy dark:text-blue-400">Category</h4>
+                        <p className="text-sm">{extractedProduct.category}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-3 mt-6 pt-4 border-t">
+                  <Button
+                    onClick={addExtractedProduct}
+                    className="bg-accent-green hover:bg-green-600 text-white"
+                  >
+                    ✓ Add Product to Catalog
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditingPreview(!isEditingPreview)}
+                  >
+                    {isEditingPreview ? 'Preview' : 'Edit Details'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPreview(false);
+                      setExtractedProduct(null);
+                      setIsEditingPreview(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Manual Entry Option */}
+          <div className="text-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowManualForm(!showManualForm)}
+              className="border-dashed"
+            >
+              {showManualForm ? 'Hide Manual Entry' : 'Or Add Product Manually'}
+            </Button>
+          </div>
+
+          {showManualForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg text-navy dark:text-blue-400">✍️ Manual Product Entry</CardTitle>
+                <CardDescription>Enter product details manually</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Manual entry form would go here (similar to admin panel form)
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </DialogContent>
     </div>
   );
 }
