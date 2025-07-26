@@ -18,6 +18,8 @@ import {
   type AdminUser,
   type InsertAdminUser
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Products
@@ -1110,4 +1112,184 @@ Remember: The best gadget is the one you'll actually use consistently!`,
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // Products
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products).orderBy(desc(products.id));
+  }
+
+  async getFeaturedProducts(): Promise<Product[]> {
+    return await db.select().from(products).where(eq(products.isFeatured, true)).orderBy(desc(products.id));
+  }
+
+  async getProductsByCategory(category: string): Promise<Product[]> {
+    return await db.select().from(products).where(eq(products.category, category)).orderBy(desc(products.id));
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product || undefined;
+  }
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    return await db.select().from(categories).orderBy(categories.name);
+  }
+
+  // Blog Posts
+  async getBlogPosts(): Promise<BlogPost[]> {
+    return await db.select().from(blogPosts).orderBy(desc(blogPosts.publishedAt));
+  }
+
+  // Newsletter
+  async subscribeToNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const [newSubscriber] = await db
+      .insert(newsletterSubscribers)
+      .values(subscriber)
+      .returning();
+    return newSubscriber;
+  }
+
+  // Affiliate Networks
+  async getAffiliateNetworks(): Promise<AffiliateNetwork[]> {
+    return await db.select().from(affiliateNetworks).orderBy(affiliateNetworks.name);
+  }
+
+  async getActiveAffiliateNetworks(): Promise<AffiliateNetwork[]> {
+    return await db.select().from(affiliateNetworks).where(eq(affiliateNetworks.isActive, true)).orderBy(affiliateNetworks.name);
+  }
+
+  async addAffiliateNetwork(network: InsertAffiliateNetwork): Promise<AffiliateNetwork> {
+    const [newNetwork] = await db
+      .insert(affiliateNetworks)
+      .values(network)
+      .returning();
+    return newNetwork;
+  }
+
+  async updateAffiliateNetwork(id: number, network: Partial<AffiliateNetwork>): Promise<AffiliateNetwork> {
+    const [updatedNetwork] = await db
+      .update(affiliateNetworks)
+      .set(network)
+      .where(eq(affiliateNetworks.id, id))
+      .returning();
+    return updatedNetwork;
+  }
+
+  // Admin Product Management
+  async addProduct(product: any): Promise<Product> {
+    const [newProduct] = await db
+      .insert(products)
+      .values(product)
+      .returning();
+    return newProduct;
+  }
+
+  async deleteProduct(id: number): Promise<boolean> {
+    const result = await db.delete(products).where(eq(products.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateProduct(id: number, updates: Partial<Product>): Promise<Product | null> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set(updates)
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct || null;
+  }
+
+  // Blog Management
+  async addBlogPost(blogPost: any): Promise<BlogPost> {
+    const [newBlogPost] = await db
+      .insert(blogPosts)
+      .values(blogPost)
+      .returning();
+    return newBlogPost;
+  }
+
+  async deleteBlogPost(id: number): Promise<boolean> {
+    const result = await db.delete(blogPosts).where(eq(blogPosts.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null> {
+    const [updatedBlogPost] = await db
+      .update(blogPosts)
+      .set(updates)
+      .where(eq(blogPosts.id, id))
+      .returning();
+    return updatedBlogPost || null;
+  }
+
+  // Admin User Management
+  async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
+    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
+    return admin || undefined;
+  }
+
+  async getAdminByUsername(username: string): Promise<AdminUser | undefined> {
+    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.username, username));
+    return admin || undefined;
+  }
+
+  async getAdminById(id: number): Promise<AdminUser | undefined> {
+    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
+    return admin || undefined;
+  }
+
+  async createAdmin(admin: InsertAdminUser): Promise<AdminUser> {
+    const [newAdmin] = await db
+      .insert(adminUsers)
+      .values(admin)
+      .returning();
+    return newAdmin;
+  }
+
+  async updateAdminPassword(id: number, passwordHash: string): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ passwordHash })
+      .where(eq(adminUsers.id, id));
+    return result.rowCount > 0;
+  }
+
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ resetToken: token, resetTokenExpiry: expiry })
+      .where(eq(adminUsers.email, email));
+    return result.rowCount > 0;
+  }
+
+  async validateResetToken(token: string): Promise<AdminUser | undefined> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.resetToken, token));
+    
+    if (!admin || !admin.resetTokenExpiry || admin.resetTokenExpiry < new Date()) {
+      return undefined;
+    }
+    
+    return admin;
+  }
+
+  async clearResetToken(id: number): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ resetToken: null, resetTokenExpiry: null })
+      .where(eq(adminUsers.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateLastLogin(id: number): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ lastLogin: new Date() })
+      .where(eq(adminUsers.id, id));
+    return result.rowCount > 0;
+  }
+}
+
+export const storage = new DatabaseStorage();
