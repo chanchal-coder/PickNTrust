@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
-import logoImage from "@assets/Logoo_1753451593641.png";
+import logoImage from "@assets/ll_1753511630331.png";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
