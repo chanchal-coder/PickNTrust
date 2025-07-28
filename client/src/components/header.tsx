@@ -107,7 +107,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+    <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-700">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         {/* Main Header Row */}
         <div className="flex justify-between items-center py-2 sm:py-3">
