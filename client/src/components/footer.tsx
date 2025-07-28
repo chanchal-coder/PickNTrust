@@ -1,4 +1,4 @@
-import logoImage from "@assets/ll_1753511630331.png";
+import BrandLogo from "@/components/brand-logo";
 import { Link, useLocation } from "wouter";
 
 export default function Footer() {
@@ -29,19 +29,13 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="md:col-span-2">
-            <div className="flex items-center space-x-3 mb-6">
-              <img 
-                src={logoImage} 
-                alt="PickNTrust Logo" 
-                className="w-12 h-12 object-contain"
-              />
+            <div className="flex items-center space-x-3 mb-6 group">
+              <BrandLogo className="w-12 h-12 group-hover:scale-110 transition-transform duration-300" />
               <div>
-                <h1 className="text-2xl font-bold">
-                  <span className="text-white">Pick</span>
-                  <span className="text-gold dark:text-yellow-400">N</span>
-                  <span className="text-white">Trust</span>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  PickNTrust
                 </h1>
-                <p className="text-gold dark:text-yellow-400 text-xs">Pick. Click. Trust.</p>
+                <p className="text-sm font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">✨ Pick. Click. Trust. Shop Smart. ✨</p>
               </div>
             </div>
             <p className="text-blue-100 text-lg mb-6">Making online shopping simple, safe, and fun. We're here to help you discover amazing products from trusted brands.</p>

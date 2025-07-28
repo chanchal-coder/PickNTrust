@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
-import logoImage from "@assets/ll_1753511630331.png";
+import BrandLogo from "@/components/brand-logo";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -109,12 +109,8 @@ export default function Header() {
         <div className="flex justify-between items-center py-2 sm:py-3">
           {/* Logo in Corner with hidden admin access */}
           <div className="flex-shrink-0 relative">
-            <Link href="/" className="hover:opacity-80 transition-opacity">
-              <img 
-                src={logoImage} 
-                alt="PickNTrust Logo" 
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-              />
+            <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-110">
+              <BrandLogo className="w-10 h-10 sm:w-12 sm:h-12" />
             </Link>
             {/* Hidden admin access dot */}
             {!isAdmin && (
@@ -126,14 +122,31 @@ export default function Header() {
             )}
           </div>
 
-          {/* Centered Brand Name & Slogan */}
-          <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-80 transition-opacity">
-            <h1 className="text-xl sm:text-3xl font-bold cursor-pointer">
-              <span className="text-navy dark:text-blue-400">Pick</span>
-              <span className="text-gold dark:text-yellow-400">N</span>
-              <span className="text-navy dark:text-blue-400">Trust</span>
-            </h1>
-            <p className="text-gold dark:text-yellow-400 text-xs sm:text-sm">Pick. Click. Trust.</p>
+          {/* Centered Brand Name & Slogan - Beautiful Design */}
+          <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-90 transition-all duration-300 group">
+            <div className="relative">
+              <h1 className="text-2xl sm:text-4xl font-black cursor-pointer bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300">
+                <span className="relative">
+                  Pick
+                  <span className="absolute -top-1 -right-1 text-xs">✨</span>
+                </span>
+                <span className="mx-1 text-amber-500 dark:text-yellow-400 text-shadow">N</span>
+                <span className="relative">
+                  Trust
+                  <span className="absolute -top-1 -right-1 text-xs">🛡️</span>
+                </span>
+              </h1>
+              {/* Subtle underline effect */}
+              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </div>
+            <div className="mt-1 relative">
+              <p className="text-sm sm:text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
+                ✨ Pick. Click. Trust. Shop Smart. ✨
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 italic">
+                "Your trusted shopping companion"
+              </p>
+            </div>
           </Link>
 
           {/* Admin indicator for corner balance */}
