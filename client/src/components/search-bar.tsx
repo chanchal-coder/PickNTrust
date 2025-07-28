@@ -46,14 +46,16 @@ export default function SearchBar() {
     setSearchQuery("");
   };
 
-  const handleProductClick = () => {
+  const handleProductClick = (product: any) => {
+    // Navigate to a product detail page or search results with that product
+    setLocation(`/search?q=${encodeURIComponent(product.name)}&product=${product.id}`);
     setShowResults(false);
     setSearchQuery("");
   };
 
   return (
-    <section className="bg-white dark:bg-gray-800 py-8 shadow-sm">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="bg-white dark:bg-gray-800 py-4 sm:py-8 shadow-sm">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="relative">
           {/* Search Form */}
           <form onSubmit={handleSearch} className="relative">
@@ -67,12 +69,12 @@ export default function SearchBar() {
                 }}
                 onFocus={() => setShowResults(searchQuery.length > 0)}
                 placeholder="Search for products, categories, deals..."
-                className="w-full pl-12 pr-20 py-4 text-lg border-2 border-gray-300 dark:border-gray-600 rounded-full focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full pl-8 sm:pl-12 pr-16 sm:pr-20 py-2 sm:py-4 text-sm sm:text-lg border-2 border-gray-300 dark:border-gray-600 rounded-full focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
-              <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl"></i>
+              <i className="fas fa-search absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm sm:text-xl"></i>
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full transition-colors font-semibold"
+                className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-6 py-1 sm:py-2 rounded-full transition-colors font-semibold text-xs sm:text-sm"
               >
                 Search
               </button>
@@ -112,7 +114,7 @@ export default function SearchBar() {
                     {searchResults.products.map((product: any) => (
                       <div
                         key={product.id}
-                        onClick={handleProductClick}
+                        onClick={() => handleProductClick(product)}
                         className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                       >
                         <img
@@ -152,8 +154,8 @@ export default function SearchBar() {
         </div>
 
         {/* Popular Searches - Colorful & Functional */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Popular searches:</p>
+        <div className="mt-3 sm:mt-6 text-center">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2">Popular searches:</p>
           <PopularSearchButtons setSearchQuery={setSearchQuery} handleSearch={handleSearch} />
         </div>
       </div>
@@ -222,21 +224,21 @@ function PopularSearchButtons({ setSearchQuery, handleSearch }: {
 
   return (
     <>
-      <div className="flex flex-wrap justify-center gap-3">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
         {popularSearches.map((search) => (
           <button
             key={search.name}
             onClick={() => handleClick(search)}
-            className={`group bg-gradient-to-r ${search.gradient} hover:scale-105 text-white px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 relative ${
+            className={`group bg-gradient-to-r ${search.gradient} hover:scale-105 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 relative ${
               search.isNew ? 'ring-2 ring-yellow-300 ring-opacity-70 animate-pulse' : ''
             }`}
           >
             {search.isNew && (
-              <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[8px] font-bold px-1 rounded-full animate-bounce">
+              <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[6px] sm:text-[8px] font-bold px-1 rounded-full animate-bounce">
                 NEW!
               </div>
             )}
-            <i className={`${search.icon} text-sm group-hover:rotate-12 transition-transform ${search.isNew ? 'animate-pulse' : ''}`}></i>
+            <i className={`${search.icon} text-xs sm:text-sm group-hover:rotate-12 transition-transform ${search.isNew ? 'animate-pulse' : ''}`}></i>
             <span>{search.name}</span>
           </button>
         ))}
