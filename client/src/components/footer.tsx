@@ -1,4 +1,5 @@
-import BrandLogo from "@/components/brand-logo";
+import AmazingBrandLogo from "@/components/amazing-brand-logo";
+import CenteredBrandText from "@/components/centered-brand-text";
 import { Link, useLocation } from "wouter";
 
 export default function Footer() {
@@ -29,15 +30,10 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="md:col-span-2">
-            <div className="flex items-center space-x-3 mb-6 group">
-              <BrandLogo className="w-14 h-14 sm:w-16 sm:h-16 group-hover:scale-110 transition-transform duration-300" />
-              <div>
-                <h1 className="text-2xl font-bold">
-                  <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">Pick</span>
-                  <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">N</span>
-                  <span className="bg-gradient-to-r from-pink-400 via-red-400 to-orange-400 bg-clip-text text-transparent">Trust</span>
-                </h1>
-                <p className="text-sm font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">Pick. Click. Trust. Shop Smart.</p>
+            <div className="flex items-start space-x-4 mb-6 group">
+              <AmazingBrandLogo className="flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+              <div className="flex-1">
+                <CenteredBrandText />
               </div>
             </div>
             <p className="text-blue-100 text-lg mb-6">Making online shopping simple, safe, and fun. We're here to help you discover amazing products from trusted brands.</p>
