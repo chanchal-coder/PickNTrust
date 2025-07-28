@@ -2355,7 +2355,9 @@ Add as many affiliate links as needed!"
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  window.open('https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C', '_blank');
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `${post.title} - ${post.excerpt}`;
+                                  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400');
                                 }}
                                 className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                                 title="Share on WhatsApp"
