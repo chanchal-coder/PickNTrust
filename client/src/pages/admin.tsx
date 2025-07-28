@@ -137,7 +137,7 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
         shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
         break;
       case 'whatsapp':
-        shareUrl = `https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        shareUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
         break;
       case 'instagram':
         // Updated Instagram sharing - opens Instagram with better integration
@@ -2355,7 +2355,9 @@ Add as many affiliate links as needed!"
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  window.open(`https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`, '_blank', 'width=1200,height=800');
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  const text = `Check out this amazing article: ${post.title} - ${post.excerpt}`;
+                                  window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=1200,height=800');
                                 }}
                                 className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                                 title="Share on WhatsApp"
