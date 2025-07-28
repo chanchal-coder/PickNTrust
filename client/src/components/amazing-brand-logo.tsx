@@ -6,25 +6,25 @@ export default function AmazingBrandLogo({ className = "flex items-center justif
       {/* Clean Icon - Design 2 */}
       <div className="relative">
         {/* Main Shopping Cart Icon with Gradient */}
-        <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-300">
-          <ShoppingCart className="w-6 h-6 text-white" />
+        <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-300">
+          <ShoppingCart className="w-8 h-8 text-white" />
           
           {/* Floating Checkmark to the Right */}
-          <div className="absolute -right-2 top-0 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-xl animate-bounce">
-            <Check className="w-4 h-4 text-white font-bold" />
+          <div className="absolute -right-3 top-0 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-xl animate-bounce">
+            <Check className="w-5 h-5 text-white font-bold" />
           </div>
           
           {/* Trust Shield at Bottom */}
-          <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-            <Shield className="w-3 h-3 text-white" />
+          <div className="absolute -bottom-2 -left-1 w-6 h-6 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+            <Shield className="w-4 h-4 text-white" />
           </div>
           
           {/* Sparkle Effects */}
-          <div className="absolute -top-1 -left-1 text-yellow-400 animate-pulse">
-            <Sparkles className="w-3 h-3" />
+          <div className="absolute -top-2 -left-2 text-yellow-400 animate-pulse">
+            <Sparkles className="w-4 h-4" />
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 text-pink-400 animate-pulse">
-            <Star className="w-2 h-2" />
+          <div className="absolute -bottom-1 -right-1 text-pink-400 animate-pulse">
+            <Star className="w-3 h-3" />
           </div>
           
           {/* Animated Ring */}
