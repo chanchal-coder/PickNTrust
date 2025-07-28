@@ -119,11 +119,11 @@ export default function BlogSection() {
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center text-sm text-white dark:text-white">
-                    <i className="far fa-calendar mr-2 text-white"></i>
+                  <div className="flex items-center text-sm text-gray-600 dark:text-white">
+                    <i className="far fa-calendar mr-2 text-gray-600 dark:text-white"></i>
                     <span>{formatDate(post.publishedAt)}</span>
                     <span className="mx-2">•</span>
-                    <i className="far fa-clock mr-1 text-white"></i>
+                    <i className="far fa-clock mr-1 text-gray-600 dark:text-white"></i>
                     <span>{post.readTime}</span>
                   </div>
                   {post.category && (

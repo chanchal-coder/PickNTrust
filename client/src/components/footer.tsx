@@ -38,17 +38,17 @@ export default function Footer() {
             
             {/* Social Links */}
             <div className="flex space-x-4">
-              <a href="https://www.facebook.com/profile.php?id=61578764277648" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-                <i className="fab fa-facebook-f"></i>
+              <a href="https://www.facebook.com/profile.php?id=61578764277648" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
+                <i className="fab fa-facebook-f text-white"></i>
               </a>
-              <a href="https://x.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-                <i className="fab fa-twitter"></i>
+              <a href="https://x.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
+                <i className="fab fa-x-twitter text-white"></i>
               </a>
-              <a href="https://www.instagram.com/pickntrust/?hl=en" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-                <i className="fab fa-instagram"></i>
+              <a href="https://www.instagram.com/pickntrust/?hl=en" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-full flex items-center justify-center hover:scale-110 transition-all">
+                <i className="fab fa-instagram text-white"></i>
               </a>
-              <a href="https://www.youtube.com/@PickNTrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-bright-blue rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-                <i className="fab fa-youtube"></i>
+              <a href="https://www.youtube.com/@PickNTrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors">
+                <i className="fab fa-youtube text-white"></i>
               </a>
             </div>
           </div>

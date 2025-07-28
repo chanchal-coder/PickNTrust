@@ -2342,12 +2342,14 @@ Add as many affiliate links as needed!"
                                 onClick={() => {
                                   const url = `${window.location.origin}/blog/${post.slug}`;
                                   const text = `${post.title} - ${post.excerpt}`;
-                                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+                                  window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
                                 }}
-                                className="p-1.5 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20"
-                                title="Share on Twitter"
+                                className="p-1.5 text-black hover:bg-gray-50 dark:hover:bg-gray-800"
+                                title="Share on X (Twitter)"
                               >
-                                <Twitter className="w-3 h-3" />
+                                <div className="w-3 h-3 bg-black rounded-sm flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">𝕏</span>
+                                </div>
                               </Button>
                               <Button
                                 variant="outline"
@@ -2361,6 +2363,23 @@ Add as many affiliate links as needed!"
                                 title="Share on WhatsApp"
                               >
                                 <MessageCircle className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // Instagram doesn't have direct sharing API, so copy link to clipboard
+                                  const url = `${window.location.origin}/blog/${post.slug}`;
+                                  navigator.clipboard.writeText(url);
+                                  toast({
+                                    title: "Link Copied!",
+                                    description: "Paste this link in your Instagram story or bio.",
+                                  });
+                                }}
+                                className="p-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 text-white hover:scale-110 transition-all"
+                                title="Copy link for Instagram"
+                              >
+                                <Instagram className="w-3 h-3" />
                               </Button>
                             </div>
                             
@@ -2515,7 +2534,7 @@ Add as many affiliate links as needed!"
                   <Share2 className="w-5 h-5" />
                   Social Media Preview
                 </h3>
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-4 gap-4">
                   <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
                     <div className="flex items-center gap-2 mb-2">
                       <Facebook className="w-4 h-4 text-blue-600" />
@@ -2527,14 +2546,29 @@ Add as many affiliate links as needed!"
                     </div>
                   </div>
                   
-                  <div className="p-3 border rounded-lg bg-sky-50 dark:bg-sky-900/20">
+                  <div className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
                     <div className="flex items-center gap-2 mb-2">
-                      <Twitter className="w-4 h-4 text-sky-500" />
-                      <span className="text-sm font-medium">Twitter</span>
+                      <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">𝕏</span>
+                      </div>
+                      <span className="text-sm font-medium">X (Twitter)</span>
                     </div>
                     <div className="text-sm">
                       <p className="line-clamp-2">{blogFormData.title}</p>
                       <p className="text-gray-600 dark:text-gray-400">{blogFormData.excerpt?.substring(0, 100)}...</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-orange-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-4 h-4 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 rounded flex items-center justify-center">
+                        <Instagram className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium">Instagram</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="line-clamp-2">{blogFormData.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400">Link copied for story/bio</p>
                     </div>
                   </div>
                   
