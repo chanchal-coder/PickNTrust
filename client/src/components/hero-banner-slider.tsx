@@ -75,18 +75,38 @@ export default function HeroBannerSlider() {
             <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient} opacity-80`}></div>
           </div>
 
-          {/* Content */}
+          {/* Content - Brand Text from Logo */}
           <div className="relative h-full flex items-center justify-center text-center px-4">
-            <div className="max-w-4xl mx-auto text-white">
-              <h2 className="text-3xl md:text-5xl font-bold mb-2 text-shadow-lg">
-                {slide.title}
-              </h2>
-              <p className="text-xl md:text-2xl font-semibold mb-4 text-yellow-300">
-                {slide.subtitle}
-              </p>
-              <p className="text-lg md:text-xl mb-8 text-blue-100 max-w-2xl mx-auto">
-                {slide.description}
-              </p>
+            <div className="max-w-4xl mx-auto">
+              {/* Main Brand Name - Pick N Trust */}
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-4xl md:text-6xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Pick
+                </span>
+                <span className="text-4xl md:text-6xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  N
+                </span>
+                <span className="text-4xl md:text-6xl font-black bg-gradient-to-r from-pink-400 via-red-400 to-orange-400 bg-clip-text text-transparent">
+                  Trust
+                </span>
+              </div>
+              
+              {/* Shop Smart, Shop Trusted */}
+              <div className="text-xl md:text-3xl font-bold text-white mb-4 text-shadow-lg">
+                Shop Smart, Shop Trusted
+              </div>
+              
+              {/* Action Phrase with Gradient */}
+              <div className="text-lg md:text-2xl font-medium bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent mb-4">
+                Pick. Click. Trust. Shop Smart.
+              </div>
+              
+              {/* Tagline */}
+              <div className="text-base md:text-xl text-gray-200 font-medium mb-8">
+                Your trusted shopping companion
+              </div>
+
+              {/* CTA Buttons */}
               {slide.ctaText === "Shop Fashion" ? (
                 <div className="relative">
                   <button 
