@@ -22,8 +22,8 @@ export default function Home() {
         <SearchBar />
         <FeaturedProducts />
         <Categories />
-        <WhyTrustUs />
         <BlogSection />
+        <WhyTrustUs />
         <Newsletter />
       </div>
       <Footer />

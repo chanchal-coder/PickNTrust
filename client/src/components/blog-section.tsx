@@ -18,7 +18,7 @@ export default function BlogSection() {
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
@@ -44,11 +44,11 @@ export default function BlogSection() {
   }
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h3 className="text-4xl font-bold text-navy mb-4">Quick Tips & Trending 📝</h3>
-          <p className="text-xl text-gray-600">Stay updated with the latest deals and shopping hacks</p>
+          <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Stay updated with the latest deals and shopping hacks</p>
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">

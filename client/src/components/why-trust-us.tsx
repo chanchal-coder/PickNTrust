@@ -43,7 +43,7 @@ export default function WhyTrustUs() {
         
         {/* Main Heading */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Why Trust Us</h2>
+          <h2 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Why Trust Us?</h2>
           <p className="text-xl text-gray-600 dark:text-gray-300">Here's why thousands of shoppers choose PickNTrust for their shopping needs</p>
         </div>
         
