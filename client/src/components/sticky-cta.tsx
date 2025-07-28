@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { ShoppingBag, ArrowRight, Sparkles, Gift } from "lucide-react";
+import { ShoppingBag, ArrowRight, Sparkles, Gift, Clock } from "lucide-react";
 
 export default function StickyCTA() {
   const [isVisible, setIsVisible] = useState(false);
   const [showHappyBox, setShowHappyBox] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,6 +29,30 @@ export default function StickyCTA() {
     }
   }, [isVisible]);
 
+  useEffect(() => {
+    // Countdown timer for limited time offer
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const difference = endOfDay.getTime() - now.getTime();
+      
+      if (difference > 0) {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        
+        setTimeLeft({ hours, minutes, seconds });
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   if (!isVisible) return null;
 
   return (
@@ -43,23 +68,28 @@ export default function StickyCTA() {
               element.scrollIntoView({ behavior: 'smooth' });
             }
           }}
-          className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-6 py-3 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
+          className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 text-white px-5 py-3 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
         >
           {/* Glow Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-300 -z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-300 -z-10"></div>
           
-          {/* Shopping Bag Icon */}
+          {/* Clock Icon for Limited Time */}
           <div className="relative">
-            <ShoppingBag className="w-5 h-5 group-hover:animate-bounce" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse">
+            <Clock className="w-5 h-5 group-hover:animate-pulse text-yellow-300" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-500 to-orange-600 rounded-full animate-bounce">
               <Sparkles className="w-2 h-2 text-white absolute top-0.5 left-0.5" />
             </div>
           </div>
           
           {/* Text */}
-          <span className="font-semibold text-sm whitespace-nowrap">
-            Shop Now
-          </span>
+          <div className="flex flex-col items-start">
+            <span className="font-bold text-sm whitespace-nowrap leading-tight">
+              Today's Top Picks
+            </span>
+            <span className="text-xs opacity-90 whitespace-nowrap leading-tight">
+              Ends in {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+            </span>
+          </div>
           
           {/* Arrow Icon */}
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
@@ -86,8 +116,8 @@ export default function StickyCTA() {
               <Gift className="w-5 h-5 text-white animate-bounce" />
             </div>
             <div>
-              <p className="font-bold text-sm">Happy Shopping! 🎉</p>
-              <p className="text-xs opacity-90">Great deals await you!</p>
+              <p className="font-bold text-sm">Flash Sale! 🔥</p>
+              <p className="text-xs opacity-90">Hurry, limited time deals!</p>
             </div>
           </div>
           
