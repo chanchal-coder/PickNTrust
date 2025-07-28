@@ -323,7 +323,7 @@ export default function CategoryPage() {
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
         break;
       case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
+        shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
         break;
       case 'whatsapp':
         shareUrl = `https://wa.me/?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
@@ -961,10 +961,12 @@ export default function CategoryPage() {
                                 </button>
                                 <button
                                   onClick={() => handleShare('twitter', product)}
-                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left"
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left"
                                 >
-                                  <i className="fab fa-twitter text-blue-400"></i>
-                                  Twitter
+                                  <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                                    <span className="text-white text-xs font-bold">𝕏</span>
+                                  </div>
+                                  X (Twitter)
                                 </button>
                                 <button
                                   onClick={() => handleShare('whatsapp', product)}

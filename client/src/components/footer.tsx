@@ -42,7 +42,7 @@ export default function Footer() {
                 <i className="fab fa-facebook-f text-white"></i>
               </a>
               <a href="https://x.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
-                <i className="fab fa-x-twitter text-white"></i>
+                <div className="text-white text-lg font-bold">𝕏</div>
               </a>
               <a href="https://www.instagram.com/pickntrust/?hl=en" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-full flex items-center justify-center hover:scale-110 transition-all">
                 <i className="fab fa-instagram text-white"></i>
