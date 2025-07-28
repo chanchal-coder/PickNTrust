@@ -1,10 +1,10 @@
 import { ShoppingCart, Shield, Star, Sparkles, Check } from "lucide-react";
 
-export default function AmazingBrandLogo({ className = "flex flex-col items-center text-center" }: { className?: string }) {
+export default function AmazingBrandLogo({ className = "flex items-center justify-center" }: { className?: string }) {
   return (
     <div className={className}>
       {/* Clean Icon - Design 2 */}
-      <div className="relative mb-4">
+      <div className="relative">
         {/* Main Shopping Cart Icon with Gradient */}
         <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-300">
           <ShoppingCart className="w-8 h-8 text-white" />
@@ -35,36 +35,7 @@ export default function AmazingBrandLogo({ className = "flex flex-col items-cent
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full blur-xl opacity-50 -z-10 animate-pulse"></div>
       </div>
       
-      {/* Centered Brand Text - Exact Layout from Screenshot */}
-      <div className="flex flex-col items-center text-center">
-        {/* Main Brand Name - Pick N Trust */}
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-3xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Pick
-          </span>
-          <span className="text-3xl font-black bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
-            N
-          </span>
-          <span className="text-3xl font-black bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent">
-            Trust
-          </span>
-        </div>
-        
-        {/* Shop Smart, Shop Trusted */}
-        <div className="text-lg font-bold text-white dark:text-gray-200 mb-2">
-          Shop Smart, Shop Trusted
-        </div>
-        
-        {/* Action Phrase with Gradient */}
-        <div className="text-base font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-          Pick. Click. Trust. Shop Smart.
-        </div>
-        
-        {/* Tagline */}
-        <div className="text-base text-gray-300 dark:text-gray-400 font-medium">
-          Your trusted shopping companion
-        </div>
-      </div>
+
     </div>
   );
 }
