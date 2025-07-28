@@ -171,12 +171,12 @@ export default function Header() {
           {/* Home link - Functional */}
           <Link 
             href="/" 
-            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2"
             title="Home"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <i className="fas fa-home text-sm group-hover:rotate-12 transition-transform"></i>
-            <span className="text-sm font-semibold">Home</span>
+            <i className="fas fa-home text-xs sm:text-sm group-hover:rotate-12 transition-transform"></i>
+            <span className="text-xs sm:text-sm font-semibold">Home</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
 
@@ -185,37 +185,37 @@ export default function Header() {
           {/* Wishlist link - Stylish */}
           <Link 
             href="/wishlist" 
-            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2"
             title="Wishlist"
           >
-            <i className="fas fa-heart text-sm group-hover:scale-125 transition-transform text-pink-100"></i>
-            <span className="text-sm font-semibold">Wishlist</span>
+            <i className="fas fa-heart text-xs sm:text-sm group-hover:scale-125 transition-transform text-pink-100"></i>
+            <span className="text-xs sm:text-sm font-semibold">Wishlist</span>
             {wishlistCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-800 text-xs rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md animate-bounce">
+              <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-800 text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[8px] sm:text-[10px] font-bold shadow-md animate-bounce">
                 {wishlistCount > 9 ? '9+' : wishlistCount}
               </span>
             )}
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
           
-          {/* Theme Toggle - Enhanced */}
-          <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-            <ThemeToggle />
-          </div>
-
           {/* Sticky CTA Button with Countdown */}
           <StickyCtaButton />
           
           {/* Hamburger Menu Button - Stylish */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2"
             aria-label="Menu"
           >
-            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-sm group-hover:rotate-180 transition-transform duration-300`}></i>
-            <span className="text-sm font-semibold">Menu</span>
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xs sm:text-sm group-hover:rotate-180 transition-transform duration-300`}></i>
+            <span className="text-xs sm:text-sm font-semibold">Menu</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
+
+          {/* Theme Toggle - Enhanced - Moved after menu */}
+          <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-1 sm:p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Social Proof Bar - Full Original Version in Header */}
