@@ -2357,7 +2357,7 @@ Add as many affiliate links as needed!"
                                 onClick={() => {
                                   const url = `${window.location.origin}/blog/${post.slug}`;
                                   const text = `${post.title} - ${post.excerpt}`;
-                                  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400');
+                                  window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=1200,height=800');
                                 }}
                                 className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                                 title="Share on WhatsApp"

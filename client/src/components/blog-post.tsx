@@ -169,7 +169,7 @@ export default function BlogPost({
     let url = '';
     switch (platform) {
       case 'whatsapp':
-        url = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+        url = `https://web.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
         break;
       case 'facebook':
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
