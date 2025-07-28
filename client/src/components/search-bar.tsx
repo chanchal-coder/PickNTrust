@@ -151,25 +151,131 @@ export default function SearchBar() {
           )}
         </div>
 
-        {/* Popular Searches */}
+        {/* Popular Searches - Colorful & Functional */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Popular searches:</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {['Smartphones', 'Laptops', 'Fashion', 'Home Appliances', 'Beauty'].map((term) => (
-              <button
-                key={term}
-                onClick={() => {
-                  setSearchQuery(term);
-                  handleSearch({ preventDefault: () => {} } as React.FormEvent);
-                }}
-                className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                {term}
-              </button>
-            ))}
-          </div>
+          <PopularSearchButtons setSearchQuery={setSearchQuery} handleSearch={handleSearch} />
         </div>
       </div>
     </section>
+  );
+}
+
+// Colorful Popular Search Buttons Component
+function PopularSearchButtons({ setSearchQuery, handleSearch }: { 
+  setSearchQuery: (query: string) => void; 
+  handleSearch: (e: React.FormEvent) => void; 
+}) {
+  const [showFashionPopup, setShowFashionPopup] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const popularSearches = [
+    {
+      name: 'Smartphones',
+      icon: 'fas fa-mobile-alt',
+      gradient: 'from-blue-500 to-cyan-500',
+      category: 'Mobiles & Accessories'
+    },
+    {
+      name: 'Laptops',
+      icon: 'fas fa-laptop',
+      gradient: 'from-purple-500 to-indigo-500',
+      category: 'Computers & Laptops'
+    },
+    {
+      name: 'Fashion',
+      icon: 'fas fa-tshirt',
+      gradient: 'from-pink-500 to-rose-500',
+      category: null // Special case for popup
+    },
+    {
+      name: 'Home Appliances',
+      icon: 'fas fa-home',
+      gradient: 'from-green-500 to-emerald-500',
+      category: 'Home & Kitchen'
+    },
+    {
+      name: 'Beauty',
+      icon: 'fas fa-heart',
+      gradient: 'from-red-500 to-pink-500',
+      category: 'Beauty & Personal Care'
+    }
+  ];
+
+  const handleClick = (search: {name: string; category: string | null}) => {
+    if (search.name === 'Fashion') {
+      setShowFashionPopup(true);
+    } else if (search.category) {
+      setLocation(`/category/${encodeURIComponent(search.category)}`);
+    } else {
+      setSearchQuery(search.name);
+      handleSearch({ preventDefault: () => {} } as React.FormEvent);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex flex-wrap justify-center gap-3">
+        {popularSearches.map((search) => (
+          <button
+            key={search.name}
+            onClick={() => handleClick(search)}
+            className={`group bg-gradient-to-r ${search.gradient} hover:scale-105 text-white px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2`}
+          >
+            <i className={`${search.icon} text-sm group-hover:rotate-12 transition-transform`}></i>
+            <span>{search.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Fashion Popup Modal */}
+      {showFashionPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-xl font-bold text-center mb-4 text-gray-900 dark:text-white">
+              Choose Fashion Category
+            </h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setLocation("/category/Men's Fashion");
+                  setShowFashionPopup(false);
+                }}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+              >
+                <i className="fas fa-male"></i>
+                <span>Men's Fashion</span>
+              </button>
+              <button
+                onClick={() => {
+                  setLocation("/category/Women's Fashion");
+                  setShowFashionPopup(false);
+                }}
+                className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+              >
+                <i className="fas fa-female"></i>
+                <span>Women's Fashion</span>
+              </button>
+              <button
+                onClick={() => {
+                  setLocation("/category/Kid's Fashion");
+                  setShowFashionPopup(false);
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+              >
+                <i className="fas fa-child"></i>
+                <span>Kid's Fashion</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFashionPopup(false)}
+              className="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

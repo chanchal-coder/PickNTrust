@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const bannerSlides = [
   {
@@ -36,6 +36,8 @@ const bannerSlides = [
 
 export default function HeroBannerSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showFashionPopup, setShowFashionPopup] = useState(false);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -85,11 +87,22 @@ export default function HeroBannerSlider() {
               <p className="text-lg md:text-xl mb-8 text-blue-100 max-w-2xl mx-auto">
                 {slide.description}
               </p>
-              <Link href={slide.ctaLink}>
-                <button className="bg-white text-gray-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-yellow-100 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105">
-                  {slide.ctaText}
-                </button>
-              </Link>
+              {slide.ctaText === "Shop Fashion" ? (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowFashionPopup(true)}
+                    className="bg-white text-gray-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-yellow-100 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    {slide.ctaText}
+                  </button>
+                </div>
+              ) : (
+                <Link href={slide.ctaLink}>
+                  <button className="bg-white text-gray-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-yellow-100 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105">
+                    {slide.ctaText}
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -124,6 +137,55 @@ export default function HeroBannerSlider() {
           />
         ))}
       </div>
+
+      {/* Fashion Popup Modal */}
+      {showFashionPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+              Choose Fashion Category
+            </h3>
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setLocation("/category/Men's Fashion");
+                  setShowFashionPopup(false);
+                }}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-3"
+              >
+                <i className="fas fa-male text-xl"></i>
+                <span>Men's Fashion</span>
+              </button>
+              <button
+                onClick={() => {
+                  setLocation("/category/Women's Fashion");
+                  setShowFashionPopup(false);
+                }}
+                className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-6 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-3"
+              >
+                <i className="fas fa-female text-xl"></i>
+                <span>Women's Fashion</span>
+              </button>
+              <button
+                onClick={() => {
+                  setLocation("/category/Kid's Fashion");
+                  setShowFashionPopup(false);
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-3"
+              >
+                <i className="fas fa-child text-xl"></i>
+                <span>Kid's Fashion</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFashionPopup(false)}
+              className="mt-6 w-full bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

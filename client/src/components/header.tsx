@@ -203,8 +203,8 @@ export default function Header() {
             <ThemeToggle />
           </div>
 
-          {/* Header CTA Button - Sober Design */}
-          <HeaderCtaButton />
+          {/* Sticky CTA Button with Countdown */}
+          <StickyCtaButton />
           
           {/* Hamburger Menu Button - Stylish */}
           <button
@@ -400,8 +400,8 @@ function HeaderSocialProofBar() {
   );
 }
 
-// Sober Header CTA Button Component
-function HeaderCtaButton() {
+// Sticky CTA Button Component  
+function StickyCtaButton() {
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
     minutes: 45,
@@ -437,25 +437,27 @@ function HeaderCtaButton() {
   }, []);
 
   return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="hidden lg:flex items-center bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-    >
-      <div className="flex items-center space-x-3">
-        <div className="text-center">
-          <div className="text-xs font-medium opacity-90">Deal Ends In</div>
-          <div className="text-sm font-bold">
-            {String(timeLeft.hours).padStart(2, '0')}:
-            {String(timeLeft.minutes).padStart(2, '0')}:
-            {String(timeLeft.seconds).padStart(2, '0')}
+    <div className="fixed top-4 right-4 z-40 hidden lg:block">
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 animate-pulse"
+      >
+        <div className="flex items-center space-x-3">
+          <div className="text-center">
+            <div className="text-xs font-medium opacity-90">Deal Ends In</div>
+            <div className="text-sm font-bold">
+              {String(timeLeft.hours).padStart(2, '0')}:
+              {String(timeLeft.minutes).padStart(2, '0')}:
+              {String(timeLeft.seconds).padStart(2, '0')}
+            </div>
+          </div>
+          <div className="h-6 w-px bg-white/30"></div>
+          <div className="flex items-center space-x-1">
+            <i className="fas fa-shopping-bag text-sm"></i>
+            <span className="text-sm font-semibold">Shop Now</span>
           </div>
         </div>
-        <div className="h-6 w-px bg-white/30"></div>
-        <div className="flex items-center space-x-1">
-          <i className="fas fa-shopping-bag text-sm"></i>
-          <span className="text-sm font-semibold">Shop Now</span>
-        </div>
-      </div>
-    </button>
+      </button>
+    </div>
   );
 }
