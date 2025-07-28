@@ -128,16 +128,17 @@ export default function Header() {
           {/* Centered Brand Name & Slogan - Beautiful Design */}
           <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-90 transition-all duration-300 group">
             <div className="relative">
-              <h1 className="text-2xl sm:text-4xl font-black cursor-pointer bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300">
-                <span className="relative">
+              <h1 className="text-2xl sm:text-4xl font-black cursor-pointer group-hover:scale-105 transition-transform duration-300">
+                <span className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Pick
                   <span className="absolute -top-1 -right-1 text-xs">✨</span>
                 </span>
-                <span className="mx-1 text-amber-500 dark:text-yellow-400 text-shadow">N</span>
-                <span className="relative">
+                <span className="mx-1 bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent font-extrabold">N</span>
+                <span className="relative bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent">
                   Trust
                   <span className="absolute -top-1 -right-1 text-xs">🛡️</span>
                 </span>
+                <span className="ml-2">⚡</span>
               </h1>
               {/* Subtle underline effect */}
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

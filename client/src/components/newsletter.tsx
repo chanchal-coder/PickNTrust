@@ -45,13 +45,13 @@ export default function Newsletter() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mb-8">
           <div className="relative inline-block">
-            <h3 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent mb-4 relative">
-              Never Miss a Deal!
+            <h3 className="text-4xl md:text-5xl font-extrabold text-white mb-4 relative drop-shadow-lg">
+              🎯 Exclusive Deals Alert! 🔔
               <div className="absolute -top-2 -right-8 text-2xl animate-bounce">📧</div>
             </h3>
           </div>
-          <p className="text-xl text-blue-100 font-medium">
-            <span className="bg-gradient-to-r from-yellow-200 to-orange-200 bg-clip-text text-transparent">✨ Get exclusive deals and insider tips delivered to your inbox ✨</span>
+          <p className="text-xl text-white font-medium drop-shadow">
+            ✨ Get exclusive deals and insider tips delivered straight to your inbox ✨
           </p>
         </div>
         

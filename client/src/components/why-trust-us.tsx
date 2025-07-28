@@ -44,9 +44,9 @@ export default function WhyTrustUs() {
         {/* Main Heading */}
         <div className="text-center mb-16">
           <div className="relative inline-block">
-            <h2 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 bg-clip-text text-transparent mb-4 relative">
+            <h2 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 bg-clip-text text-transparent mb-4 relative">
               Why Trust Us?
-              <div className="absolute -top-2 -right-8 text-2xl animate-pulse">🛡️</div>
+              <div className="absolute -top-2 -right-8 text-xl animate-pulse">🛡️</div>
             </h2>
           </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 font-medium">
@@ -173,7 +173,7 @@ export default function WhyTrustUs() {
         <div className="text-center mb-12">
           <div className="relative inline-block mb-6">
             <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent relative">
-              Trusted Partner Brands
+              🌟 Our Amazing Partners 🌟
               <div className="absolute -top-1 -right-6 text-xl animate-pulse">🤝</div>
             </h3>
           </div>
