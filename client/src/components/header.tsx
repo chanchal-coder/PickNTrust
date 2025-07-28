@@ -145,54 +145,52 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Centered Navigation Row - Stylish Design */}
-        <div className="flex justify-center items-center space-x-3 sm:space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2 px-2 sm:px-4 lg:px-8">
-          {/* Home link - Functional */}
+        {/* Centered Navigation Row - Mobile Optimized */}
+        <div className="flex justify-center items-center space-x-2 sm:space-x-4 lg:space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2 px-1 sm:px-4 lg:px-8 overflow-x-auto">
+          {/* Home link - Mobile Optimized */}
           <Link 
             href="/" 
-            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2"
+            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
             title="Home"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <i className="fas fa-home text-xs sm:text-sm group-hover:rotate-12 transition-transform"></i>
-            <span className="text-xs sm:text-sm font-semibold">Home</span>
+            <i className="fas fa-home group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden xs:inline">Home</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
 
-
-          
-          {/* Wishlist link - Stylish */}
+          {/* Wishlist link - Mobile Optimized */}
           <Link 
             href="/wishlist" 
-            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2"
+            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
             title="Wishlist"
           >
-            <i className="fas fa-heart text-xs sm:text-sm group-hover:scale-125 transition-transform text-pink-100"></i>
-            <span className="text-xs sm:text-sm font-semibold">Wishlist</span>
+            <i className="fas fa-heart group-hover:scale-125 transition-transform text-pink-100"></i>
+            <span className="font-semibold hidden xs:inline">Wishlist</span>
             {wishlistCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-800 text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[8px] sm:text-[10px] font-bold shadow-md animate-bounce">
+              <span className="absolute -top-0.5 -right-0.5 bg-yellow-400 text-red-800 text-[8px] sm:text-[10px] rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center font-bold shadow-md animate-bounce">
                 {wishlistCount > 9 ? '9+' : wishlistCount}
               </span>
             )}
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
           
-          {/* Sticky CTA Button with Countdown */}
+          {/* Sticky CTA Button with Countdown - Mobile Optimized */}
           <StickyCtaButton />
           
-          {/* Hamburger Menu Button - Stylish */}
+          {/* Hamburger Menu Button - Mobile Optimized */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2"
+            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
             aria-label="Menu"
           >
-            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xs sm:text-sm group-hover:rotate-180 transition-transform duration-300`}></i>
-            <span className="text-xs sm:text-sm font-semibold">Menu</span>
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} group-hover:rotate-180 transition-transform duration-300`}></i>
+            <span className="font-semibold hidden xs:inline">Menu</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
-          {/* Theme Toggle - Enhanced - Moved after menu */}
-          <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-1 sm:p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          {/* Theme Toggle - Mobile Optimized */}
+          <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-1 sm:p-1.5 lg:p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex-shrink-0">
             <ThemeToggle />
           </div>
         </div>
@@ -330,47 +328,48 @@ function HeaderSocialProofBar() {
   return (
     <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 py-4 border-y border-green-200 dark:border-gray-600">
       <div className="w-full px-0">
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-4 px-3 sm:px-6 lg:px-8">
           
-          {/* Live User Count */}
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
+          {/* Live User Count - Mobile Optimized */}
+          <div className="flex items-center justify-center sm:justify-start">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <div className="relative">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-400 rounded-full animate-ping"></div>
               </div>
-              <span className="text-green-700 dark:text-green-400 font-semibold text-sm">
+              <span className="text-green-700 dark:text-green-400 font-semibold text-xs sm:text-sm">
                 <i className="fas fa-users mr-1"></i>
-                {currentUsers.toLocaleString()}+ happy shoppers browsing now
+                <span className="hidden xs:inline">{currentUsers.toLocaleString()}+ happy shoppers browsing now</span>
+                <span className="xs:hidden">{currentUsers.toLocaleString()}+ shopping now</span>
               </span>
             </div>
           </div>
 
-          {/* Recent Purchase Alert */}
-          <div className="flex items-center space-x-3 bg-white/60 dark:bg-gray-700/80 px-4 py-2 rounded-full shadow-sm mx-4">
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-            <span className="text-gray-700 dark:text-gray-300 text-sm">
-              <strong>{recentPurchases[currentPurchase].name}</strong> just bought{" "}
-              <strong>{recentPurchases[currentPurchase].product}</strong>{" "}
-              <span className="text-gray-500 dark:text-gray-400">
-                {recentPurchases[currentPurchase].time}
-              </span>
+          {/* Recent Purchase Alert - Mobile Optimized */}
+          <div className="flex items-center space-x-2 sm:space-x-3 bg-white/60 dark:bg-gray-700/80 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm max-w-full">
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></div>
+            <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm truncate">
+              <strong className="hidden sm:inline">{recentPurchases[currentPurchase].name}</strong>
+              <span className="sm:hidden">Someone</span> just bought{" "}
+              <strong>{recentPurchases[currentPurchase].product}</strong>
+              <span className="text-gray-500 dark:text-gray-400 hidden sm:inline"> {recentPurchases[currentPurchase].time}</span>
             </span>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="flex items-center space-x-6 text-sm">
+          {/* Trust Indicators - Mobile Optimized */}
+          <div className="flex items-center space-x-3 sm:space-x-6 text-xs sm:text-sm">
             <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
               <i className="fas fa-shield-alt"></i>
-              <span className="font-medium">Secure</span>
+              <span className="font-medium hidden xs:inline">Secure</span>
             </div>
             <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
               <i className="fas fa-certificate"></i>
-              <span className="font-medium">Trusted Reviews</span>
+              <span className="font-medium hidden sm:inline">Trusted Reviews</span>
+              <span className="font-medium sm:hidden xs:inline">Trusted</span>
             </div>
             <div className="flex items-center space-x-1 text-purple-600 dark:text-purple-400">
               <i className="fas fa-star"></i>
-              <span className="font-medium">4.8/5 Rating</span>
+              <span className="font-medium">4.8/5</span>
             </div>
           </div>
         </div>

@@ -198,28 +198,28 @@ export default function FeaturedProducts() {
   }
 
   return (
-    <section id="featured-products" className="py-16 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+    <section id="featured-products" className="py-8 sm:py-12 lg:py-16 bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="text-center mb-8 sm:mb-12">
           <div className="relative inline-block">
-            <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-4 relative">
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-4 relative">
               Today's Top Picks
-              <div className="absolute -top-2 -right-6 text-xl animate-bounce">🔥</div>
+              <div className="absolute -top-1 -right-4 sm:-top-2 sm:-right-6 text-lg sm:text-xl animate-bounce">🔥</div>
             </h3>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 font-medium mt-4 sm:mt-6 px-4">
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">✨ Hand-selected deals you can trust ✨</span>
           </p>
 
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {products?.map((product, index) => (
             <div 
               key={product.id}
-              className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-102 sm:hover:scale-105 overflow-hidden"
             >
-              <div className={`relative p-2 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 ${
+              <div className={`relative p-1.5 sm:p-2 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 ${
                 index % 3 === 0 ? 'bg-blue-400' : 
                 index % 3 === 1 ? 'bg-green-400' : 
                 'bg-yellow-400'
@@ -227,30 +227,30 @@ export default function FeaturedProducts() {
                 <img 
                   src={product.imageUrl} 
                   alt={product.name} 
-                  className="w-full h-48 object-cover rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
+                  className="w-full h-40 sm:h-48 object-cover rounded-xl sm:rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
                 />
                 
-                {/* Wishlist Heart Icon */}
+                {/* Wishlist Heart Icon - Mobile Optimized */}
                 <button
                   onClick={() => handleWishlistToggle(product)}
-                  className={`absolute top-2 left-2 p-2 rounded-full shadow-md transition-colors ${
+                  className={`absolute top-1.5 left-1.5 sm:top-2 sm:left-2 p-1.5 sm:p-2 rounded-full shadow-md transition-colors touch-manipulation ${
                     isInWishlist(product.id) 
                       ? 'bg-red-500 text-white hover:bg-red-600' 
                       : 'bg-white text-gray-400 hover:text-red-500'
                   }`}
                   title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
-                  <i className={`fas fa-heart text-sm`}></i>
+                  <i className={`fas fa-heart text-xs sm:text-sm`}></i>
                 </button>
 
                 {isAdmin && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
                     <div className="relative">
                       <button
                         onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
-                        className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-2 shadow-md"
+                        className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-md touch-manipulation"
                       >
-                        <i className="fas fa-share text-blue-600"></i>
+                        <i className="fas fa-share text-blue-600 text-xs sm:text-sm"></i>
                       </button>
                       
                       {showShareMenu[product.id] && (
@@ -291,45 +291,58 @@ export default function FeaturedProducts() {
                   </div>
                 )}
               </div>
-              <div className={`p-6 ${
+              <div className={`p-4 sm:p-6 ${
                 index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
                 index % 3 === 1 ? 'bg-green-50 dark:bg-gray-800' : 
                 'bg-yellow-50 dark:bg-gray-800'
               }`}>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
                   {product.discount ? (
-                    <span className="bg-accent-orange text-white px-3 py-1 rounded-full text-sm font-bold">
+                    <span className="bg-accent-orange text-white px-2 py-1 sm:px-3 rounded-full text-xs sm:text-sm font-bold">
                       {product.discount}% OFF
                     </span>
                   ) : product.isNew ? (
-                    <span className="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    <span className="bg-pink-500 text-white px-2 py-1 sm:px-3 rounded-full text-xs sm:text-sm font-bold">
                       NEW
                     </span>
                   ) : (
                     <div></div>
                   )}
                   <div className="flex items-center">
-                    {renderStars(product.rating)}
-                    <span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({product.reviewCount})</span>
+                    <div className="flex items-center text-yellow-400 text-sm sm:text-base">
+                      {[...Array(5)].map((_, i) => (
+                        <i 
+                          key={i}
+                          className={`${
+                            i < Math.floor(parseFloat(product.rating)) 
+                              ? 'fas fa-star' 
+                              : i === Math.floor(parseFloat(product.rating)) && parseFloat(product.rating) % 1 !== 0
+                                ? 'fas fa-star-half-alt' 
+                                : 'far fa-star'
+                          } text-xs sm:text-sm`}
+                        ></i>
+                      ))}
+                    </div>
+                    <span className="text-gray-600 dark:text-gray-300 ml-1 sm:ml-2 text-xs sm:text-sm">({product.reviewCount})</span>
                   </div>
                 </div>
-                <h4 className="font-bold text-lg text-navy dark:text-blue-400 mb-2">{product.name}</h4>
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{product.description}</p>
-                <div className="flex items-center justify-between mb-4">
+                <h4 className="font-bold text-base sm:text-lg text-navy dark:text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
+                <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{product.description}</p>
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div>
-                    <span className="text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
+                    <span className="text-xl sm:text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
                     {product.originalPrice && (
-                      <span className="text-gray-400 dark:text-gray-500 line-through ml-2">₹{product.originalPrice}</span>
+                      <span className="text-gray-400 dark:text-gray-500 line-through ml-1 sm:ml-2 text-sm sm:text-base">₹{product.originalPrice}</span>
                     )}
                   </div>
                 </div>
                 {/* Individual Product Timer */}
-                <div className="mb-4">
+                <div className="mb-3 sm:mb-4">
                   <ProductTimer createdAt={typeof product.createdAt === 'string' ? product.createdAt : new Date().toISOString()} />
                 </div>
                 <button 
                   onClick={() => handleAffiliateClick(product)}
-                  className={`w-full text-white font-bold py-3 px-6 rounded-2xl hover:shadow-lg transition-all transform hover:scale-105 ${
+                  className={`w-full text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl sm:rounded-2xl hover:shadow-lg transition-all transform hover:scale-102 sm:hover:scale-105 text-sm sm:text-base touch-manipulation ${
                     product.category === 'Tech' 
                       ? 'bg-gradient-to-r from-bright-blue to-navy'
                       : product.category === 'Home'
@@ -341,9 +354,9 @@ export default function FeaturedProducts() {
                             : 'bg-gradient-to-r from-accent-orange to-red-600'
                   }`}
                 >
-                  <i className="fas fa-shopping-bag mr-2"></i>Pick Now
+                  <i className="fas fa-shopping-bag mr-1 sm:mr-2"></i>Pick Now
                 </button>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1.5 sm:mt-2 text-center">
                   🔗 Affiliate Link - We earn from purchases
                 </p>
               </div>
