@@ -15,18 +15,18 @@ export default function CenteredBrandText() {
       </div>
       
       {/* Shop Smart, Shop Trusted */}
-      <div className="text-lg md:text-xl font-bold text-white dark:text-white mb-1">
+      <div className="text-sm md:text-base font-bold text-white dark:text-white mb-1">
         Shop Smart, Shop Trusted
       </div>
       
       {/* Action Phrase with Gradient */}
-      <div className="text-sm md:text-base font-medium bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent mb-1">
+      <div className="text-xs md:text-sm font-medium bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent mb-1">
         Pick. Click. Trust. Shop Smart.
       </div>
       
       {/* Tagline */}
-      <div className="text-xs md:text-sm text-gray-300 dark:text-gray-400 font-medium italic">
-        Your trusted shopping companion
+      <div className="text-xs text-gray-300 dark:text-gray-400 font-medium italic">
+        "Your trusted shopping companion"
       </div>
     </div>
   );
