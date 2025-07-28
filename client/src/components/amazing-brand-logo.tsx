@@ -3,8 +3,8 @@ import { ShoppingCart, Shield, Star, Sparkles, Check } from "lucide-react";
 export default function AmazingBrandLogo({ className = "flex flex-col items-center text-center" }: { className?: string }) {
   return (
     <div className={className}>
-      {/* Amazing Icon with Floating Checkmark - Design 2 */}
-      <div className="relative mb-3">
+      {/* Clean Icon - Design 2 */}
+      <div className="relative mb-4">
         {/* Main Shopping Cart Icon with Gradient */}
         <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-300">
           <ShoppingCart className="w-8 h-8 text-white" />
@@ -35,34 +35,20 @@ export default function AmazingBrandLogo({ className = "flex flex-col items-cent
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full blur-xl opacity-50 -z-10 animate-pulse"></div>
       </div>
       
-      {/* Amazing Brand Text - Centered */}
-      <div className="flex flex-col items-center">
+      {/* Centered Brand Text */}
+      <div className="flex flex-col items-center text-center">
         {/* Main Brand Name */}
-        <div className="flex items-center gap-1 mb-2">
-          <span className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Pick
-          </span>
-          <span className="text-2xl font-black bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
-            N
-          </span>
-          <span className="text-2xl font-black bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent">
-            Trust
-          </span>
-          <div className="text-green-400 animate-bounce ml-1">🛡️</div>
-        </div>
-        
-        {/* Main Slogan */}
-        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-          Shop Smart, Shop Trusted
+        <div className="text-xl font-black text-gray-800 dark:text-white mb-2">
+          Pick N Trust - Shop Smart, Shop Trusted
         </div>
         
         {/* Action Phrase */}
-        <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+        <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
           Pick. Click. Trust. Shop Smart.
         </div>
         
         {/* Tagline */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+        <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
           Your trusted shopping companion
         </div>
       </div>
