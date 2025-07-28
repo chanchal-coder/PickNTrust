@@ -9,7 +9,7 @@ import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import TrustBadges from "@/components/trust-badges";
 import SearchBar from "@/components/search-bar";
-import StickyCtaButton from "@/components/sticky-cta-button";
+
 
 import HeroBannerSlider from "@/components/hero-banner-slider";
 
@@ -29,7 +29,6 @@ export default function Home() {
       </div>
       <Footer />
       <ScrollNavigation />
-      <StickyCtaButton />
     </div>
   );
 }

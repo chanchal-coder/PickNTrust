@@ -183,6 +183,9 @@ export default function Header() {
           <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <ThemeToggle />
           </div>
+
+          {/* Header CTA Button - Sober Design */}
+          <HeaderCtaButton />
           
           {/* Hamburger Menu Button - Stylish */}
           <button
@@ -375,5 +378,62 @@ function HeaderSocialProofBar() {
         </div>
       </div>
     </section>
+  );
+}
+
+// Sober Header CTA Button Component
+function HeaderCtaButton() {
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 23,
+    minutes: 45,
+    seconds: 30
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        let { hours, minutes, seconds } = prev;
+        
+        if (seconds > 0) {
+          seconds--;
+        } else if (minutes > 0) {
+          minutes--;
+          seconds = 59;
+        } else if (hours > 0) {
+          hours--;
+          minutes = 59;
+          seconds = 59;
+        } else {
+          // Reset timer
+          hours = 23;
+          minutes = 59;
+          seconds = 59;
+        }
+        
+        return { hours, minutes, seconds };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="hidden lg:flex items-center bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer">
+      <div className="flex items-center space-x-3">
+        <div className="text-center">
+          <div className="text-xs font-medium opacity-90">Deal Ends In</div>
+          <div className="text-sm font-bold">
+            {String(timeLeft.hours).padStart(2, '0')}:
+            {String(timeLeft.minutes).padStart(2, '0')}:
+            {String(timeLeft.seconds).padStart(2, '0')}
+          </div>
+        </div>
+        <div className="h-6 w-px bg-white/30"></div>
+        <div className="flex items-center space-x-1">
+          <i className="fas fa-shopping-bag text-sm"></i>
+          <span className="text-sm font-semibold">Shop Now</span>
+        </div>
+      </div>
+    </div>
   );
 }
