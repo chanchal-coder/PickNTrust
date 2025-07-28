@@ -32,10 +32,12 @@ export default function Footer() {
             <div className="flex items-center space-x-3 mb-6 group">
               <BrandLogo className="w-12 h-12 group-hover:scale-110 transition-transform duration-300" />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  PickNTrust
+                <h1 className="text-2xl font-bold">
+                  <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">Pick</span>
+                  <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">N</span>
+                  <span className="bg-gradient-to-r from-pink-400 via-red-400 to-orange-400 bg-clip-text text-transparent">Trust</span>
                 </h1>
-                <p className="text-sm font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">✨ Pick. Click. Trust. Shop Smart. ✨</p>
+                <p className="text-sm font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">Pick. Click. Trust. Shop Smart.</p>
               </div>
             </div>
             <p className="text-blue-100 text-lg mb-6">Making online shopping simple, safe, and fun. We're here to help you discover amazing products from trusted brands.</p>

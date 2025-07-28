@@ -143,10 +143,9 @@ export default function Header() {
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
             <div className="mt-1 relative flex flex-col items-center">
-              <p className="text-sm sm:text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent relative">
-                Pick. Click. Trust. Shop Smart. <span className="ml-1">⚡</span>
+              <p className="text-sm sm:text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
+                Pick. Click. Trust. Shop Smart.
               </p>
-              <div className="w-24 h-0.5 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full mt-1"></div>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">
                 "Your trusted shopping companion"
               </p>
