@@ -53,12 +53,25 @@ export default function BrandLogo({ className = "w-8 h-8" }: { className?: strin
         />
       </circle>
       
-      {/* Main Shopping Cart Body - Premium Design */}
-      <rect x="30" y="42" width="35" height="25" rx="4" fill="url(#premiumCartGradient)" filter="url(#premiumGlow)" />
-      <rect x="32" y="44" width="31" height="21" rx="3" fill="white" opacity="0.2" />
+      {/* Web App Dashboard Design */}
+      <rect x="25" y="35" width="45" height="30" rx="6" fill="url(#premiumCartGradient)" filter="url(#premiumGlow)" />
+      <rect x="27" y="37" width="41" height="26" rx="4" fill="white" opacity="0.15" />
       
-      {/* Elegant Cart Handle */}
-      <path d="M22 35 Q25 32 28 35 L30 42" stroke="url(#premiumCartGradient)" strokeWidth="4" strokeLinecap="round" fill="none" filter="url(#premiumGlow)" />
+      {/* Browser/App Interface Elements */}
+      <circle cx="32" cy="42" r="1.5" fill="white" opacity="0.8" />
+      <circle cx="37" cy="42" r="1.5" fill="white" opacity="0.8" />
+      <circle cx="42" cy="42" r="1.5" fill="white" opacity="0.8" />
+      
+      {/* App Content Grid */}
+      <rect x="30" y="48" width="8" height="6" rx="1" fill="white" opacity="0.6" />
+      <rect x="40" y="48" width="8" height="6" rx="1" fill="white" opacity="0.6" />
+      <rect x="50" y="48" width="8" height="6" rx="1" fill="white" opacity="0.6" />
+      <rect x="60" y="48" width="8" height="6" rx="1" fill="white" opacity="0.6" />
+      
+      {/* Shopping Cart Icon in App */}
+      <path d="M35 52 L39 52 L38 56 L36 56 Z" fill="url(#goldShieldGradient)" opacity="0.8" />
+      <circle cx="36" cy="57" r="0.5" fill="url(#goldShieldGradient)" />
+      <circle cx="38" cy="57" r="0.5" fill="url(#goldShieldGradient)" />
       
       {/* Premium Cart Wheels with Rotation */}
       <g>
