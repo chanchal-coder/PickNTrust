@@ -34,22 +34,28 @@ export default function Footer() {
               <FooterLogo className="flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
               <FooterBrandText />
             </div>
-            <p className="text-blue-100 text-lg mb-6">Making online shopping simple, safe, and fun. We're here to help you discover amazing products from trusted brands.</p>
+            <p className="text-blue-100 text-sm mb-4">Making online shopping simple, safe, and fun. We help you discover amazing products from trusted brands.</p>
             
             {/* Social Links */}
-            <div className="flex space-x-4">
-              <a href="https://www.facebook.com/profile.php?id=61578764277648" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
-                <i className="fab fa-facebook-f text-white"></i>
-              </a>
-              <a href="https://x.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
-                <div className="text-white text-lg font-bold">𝕏</div>
-              </a>
-              <a href="https://www.instagram.com/pickntrust/?hl=en" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-full flex items-center justify-center hover:scale-110 transition-all">
-                <i className="fab fa-instagram text-white"></i>
-              </a>
-              <a href="https://www.youtube.com/@PickNTrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors">
-                <i className="fab fa-youtube text-white"></i>
-              </a>
+            <div className="mb-2">
+              <p className="text-blue-200 text-sm font-semibold mb-3">Follow us at:</p>
+              <div className="flex space-x-4">
+                <a href="https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors group">
+                  <i className="fab fa-whatsapp text-white text-lg group-hover:scale-110 transition-transform"></i>
+                </a>
+                <a href="https://www.facebook.com/profile.php?id=61578764277648" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
+                  <i className="fab fa-facebook-f text-white"></i>
+                </a>
+                <a href="https://x.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
+                  <div className="text-white text-lg font-bold">𝕏</div>
+                </a>
+                <a href="https://www.instagram.com/pickntrust/?hl=en" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-full flex items-center justify-center hover:scale-110 transition-all">
+                  <i className="fab fa-instagram text-white"></i>
+                </a>
+                <a href="https://www.youtube.com/@PickNTrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors">
+                  <i className="fab fa-youtube text-white"></i>
+                </a>
+              </div>
             </div>
           </div>
           
