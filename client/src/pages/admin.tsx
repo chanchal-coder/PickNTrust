@@ -137,7 +137,7 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
         shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
         break;
       case 'whatsapp':
-        shareUrl = `https://wa.me/?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
+        shareUrl = `https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
         break;
       case 'instagram':
         // Updated Instagram sharing - opens Instagram with better integration
