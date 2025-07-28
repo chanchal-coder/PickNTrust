@@ -54,12 +54,43 @@ export default function BrandLogo({ className = "w-8 h-8" }: { className?: strin
         {/* Cart Handle - Enhanced */}
         <path d="M15 15 L15 8 Q15 3 20 3 L30 3 Q35 3 35 8 L35 15" stroke="url(#gradientMain)" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="1" />
         
-        {/* Trust Checkmark inside Cart */}
-        <g transform="translate(20, 25)">
-          <circle cx="7" cy="7" r="6" fill="url(#trustShield)" opacity="0.9">
-            <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
-          </circle>
-          <path d="M4 7 L6.5 9.5 L10 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        {/* Creative Floating Trust Checkmarks */}
+        <g opacity="0.95">
+          {/* Main checkmark in cart with pulse effect */}
+          <g transform="translate(20, 25)">
+            <circle cx="7" cy="7" r="6" fill="url(#trustShield)" opacity="0.9">
+              <animate attributeName="r" values="6;8;6" dur="3s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite" />
+            </circle>
+            <path d="M4 7 L6.5 9.5 L10 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
+              <animate attributeName="stroke-width" values="2.5;3.5;2.5" dur="3s" repeatCount="indefinite" />
+            </path>
+          </g>
+          
+          {/* Floating mini checkmarks around cart */}
+          <g transform="translate(12, 18)">
+            <circle cx="3" cy="3" r="2" fill="url(#sparkleGrad)" opacity="0.8">
+              <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2s" repeatCount="indefinite" begin="0.5s" />
+            </circle>
+            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <animateTransform attributeName="transform" type="translate" values="12,18; 10,16; 12,18" dur="4s" repeatCount="indefinite" />
+          </g>
+          
+          <g transform="translate(35, 22)">
+            <circle cx="3" cy="3" r="2" fill="url(#trustShield)" opacity="0.7">
+              <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite" begin="1s" />
+            </circle>
+            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <animateTransform attributeName="transform" type="translate" values="35,22; 37,20; 35,22" dur="4s" repeatCount="indefinite" begin="1s" />
+          </g>
+          
+          <g transform="translate(24, 35)">
+            <circle cx="3" cy="3" r="1.5" fill="url(#gradientMain)" opacity="0.6">
+              <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2s" repeatCount="indefinite" begin="1.5s" />
+            </circle>
+            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <animateTransform attributeName="transform" type="translate" values="24,35; 22,37; 24,35" dur="4s" repeatCount="indefinite" begin="2s" />
+          </g>
         </g>
         
         {/* Amazing Shopping Items - Animated */}
@@ -87,13 +118,30 @@ export default function BrandLogo({ className = "w-8 h-8" }: { className?: strin
         </circle>
       </g>
       
-      {/* Trust Shield with Checkmark - Pulsing */}
+      {/* Enhanced Trust Shield with Creative Checkmark */}
       <g transform="translate(85, 15)">
         <circle cx="12" cy="12" r="15" fill="url(#trustShield)" filter="url(#amazingGlow)">
           <animate attributeName="r" values="15;17;15" dur="2s" repeatCount="indefinite" />
         </circle>
         <circle cx="12" cy="12" r="12" fill="white" opacity="0.2" />
-        <path d="M6 12 L10 16 L18 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.95" />
+        
+        {/* Animated checkmark with drawing effect */}
+        <path d="M6 12 L10 16 L18 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.95" strokeDasharray="20" strokeDashoffset="20">
+          <animate attributeName="stroke-dashoffset" values="20;0;20" dur="3s" repeatCount="indefinite" />
+        </path>
+        
+        {/* Sparkle effect around checkmark */}
+        <g fill="white" opacity="0.8">
+          <circle cx="8" cy="10" r="0.8">
+            <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0.5s" />
+          </circle>
+          <circle cx="16" cy="10" r="0.8">
+            <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="1s" />
+          </circle>
+          <circle cx="12" cy="18" r="0.8">
+            <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="1.5s" />
+          </circle>
+        </g>
       </g>
       
       {/* Amazing Sparkle Effects - Enhanced */}
