@@ -108,7 +108,7 @@ export default function Header() {
 
   return (
     <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+      <div className="w-full px-2 sm:px-4 lg:px-8">
         {/* Main Header Row */}
         <div className="flex justify-between items-center py-2 sm:py-3">
           {/* Logo in Corner with hidden admin access */}
@@ -329,7 +329,7 @@ function HeaderSocialProofBar() {
 
   return (
     <section className="bg-gradient-to-r from-gray-800 to-gray-900 py-4 border-y border-gray-600">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-8">
           
           {/* Live User Count */}
