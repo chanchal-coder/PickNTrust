@@ -6,6 +6,7 @@ export default function StickyCTA() {
   const [isVisible, setIsVisible] = useState(false);
   const [showHappyBox, setShowHappyBox] = useState(false);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,9 +19,10 @@ export default function StickyCTA() {
   }, []);
 
   useEffect(() => {
-    // Show happy shopping box every 30 seconds when CTA is visible
+    // Show happy shopping box every 25 seconds when CTA is visible with alternating messages
     if (isVisible) {
       const interval = setInterval(() => {
+        setMessageIndex(prev => (prev + 1) % 4); // Cycle through 4 messages
         setShowHappyBox(true);
         setTimeout(() => setShowHappyBox(false), 6000);
       }, 25000);
@@ -54,6 +56,16 @@ export default function StickyCTA() {
   }, []);
 
   if (!isVisible) return null;
+
+  // Alternating messages for happy shopping box
+  const messages = [
+    { title: "Flash Sale! 🔥", subtitle: "Hurry, limited time deals!" },
+    { title: "Happy Shopping! 🎉", subtitle: "Great deals await you!" },
+    { title: "Best Prices! 💰", subtitle: "Save big on top brands!" },
+    { title: "Trusted Deals! ✨", subtitle: "Quality products guaranteed!" }
+  ];
+
+  const currentMessage = messages[messageIndex];
 
   return (
     <>
@@ -116,8 +128,8 @@ export default function StickyCTA() {
               <Gift className="w-5 h-5 text-white animate-bounce" />
             </div>
             <div>
-              <p className="font-bold text-sm">Flash Sale! 🔥</p>
-              <p className="text-xs opacity-90">Hurry, limited time deals!</p>
+              <p className="font-bold text-sm">{currentMessage.title}</p>
+              <p className="text-xs opacity-90">{currentMessage.subtitle}</p>
             </div>
           </div>
           

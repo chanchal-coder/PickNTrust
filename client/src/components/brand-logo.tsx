@@ -48,11 +48,19 @@ export default function BrandLogo({ className = "w-8 h-8" }: { className?: strin
       <g transform="translate(35, 35)">
         <animateTransform attributeName="transform" type="translate" values="35,35; 36,34; 35,35" dur="2s" repeatCount="indefinite" />
         
-        {/* Cart Body */}
-        <path d="M8 15 L45 15 L42 45 L12 45 Z" fill="white" opacity="0.98" stroke="rgba(255,255,255,0.9)" strokeWidth="2.5" filter="url(#innerGlow)" />
+        {/* Cart Body - More Visible */}
+        <path d="M8 15 L45 15 L42 45 L12 45 Z" fill="white" opacity="1" stroke="url(#gradientMain)" strokeWidth="3" filter="url(#innerGlow)" />
         
-        {/* Cart Handle */}
-        <path d="M15 15 L15 8 Q15 3 20 3 L30 3 Q35 3 35 8 L35 15" stroke="white" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
+        {/* Cart Handle - Enhanced */}
+        <path d="M15 15 L15 8 Q15 3 20 3 L30 3 Q35 3 35 8 L35 15" stroke="url(#gradientMain)" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="1" />
+        
+        {/* Trust Checkmark inside Cart */}
+        <g transform="translate(20, 25)">
+          <circle cx="7" cy="7" r="6" fill="url(#trustShield)" opacity="0.9">
+            <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <path d="M4 7 L6.5 9.5 L10 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </g>
         
         {/* Amazing Shopping Items - Animated */}
         <g opacity="0.9">
