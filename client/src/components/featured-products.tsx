@@ -178,12 +178,16 @@ export default function FeaturedProducts() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse">
-                <div className="w-full h-48 bg-gray-200 dark:bg-gray-700"></div>
+                <div className={`w-full h-48 ${
+                  i === 0 ? 'bg-gradient-to-br from-purple-200 to-pink-300 dark:from-purple-700 dark:to-pink-800' :
+                  i === 1 ? 'bg-gradient-to-br from-orange-200 to-red-300 dark:from-orange-700 dark:to-red-800' :
+                  'bg-gradient-to-br from-blue-200 to-cyan-300 dark:from-blue-700 dark:to-cyan-800'
+                }`}></div>
                 <div className="p-6">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-                  <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gradient-to-r from-purple-200 to-pink-200 dark:from-purple-700 dark:to-pink-700 rounded mb-2"></div>
+                  <div className="h-6 bg-gradient-to-r from-orange-200 to-red-200 dark:from-orange-700 dark:to-red-700 rounded mb-2"></div>
+                  <div className="h-4 bg-gradient-to-r from-blue-200 to-cyan-200 dark:from-blue-700 dark:to-cyan-700 rounded mb-4"></div>
+                  <div className="h-12 bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-700 dark:to-purple-700 rounded"></div>
                 </div>
               </div>
             ))}

@@ -28,12 +28,16 @@ export default function BlogSection() {
           <div className="grid md:grid-cols-3 gap-8">
             {[...Array(3)].map((_, i) => (
               <article key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse border border-gray-100 dark:border-gray-700">
-                <div className="w-full h-48 bg-gray-200 dark:bg-gray-700"></div>
+                <div className={`w-full h-48 ${
+                  i === 0 ? 'bg-gradient-to-br from-blue-200 to-purple-300 dark:from-blue-700 dark:to-purple-800' :
+                  i === 1 ? 'bg-gradient-to-br from-green-200 to-teal-300 dark:from-green-700 dark:to-teal-800' :
+                  'bg-gradient-to-br from-pink-200 to-orange-300 dark:from-pink-700 dark:to-orange-800'
+                }`}></div>
                 <div className="p-6">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                  <div className="h-4 bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-700 dark:to-purple-700 rounded mb-3"></div>
+                  <div className="h-6 bg-gradient-to-r from-green-200 to-teal-200 dark:from-green-700 dark:to-teal-700 rounded mb-3"></div>
+                  <div className="h-4 bg-gradient-to-r from-pink-200 to-orange-200 dark:from-pink-700 dark:to-orange-700 rounded mb-4"></div>
+                  <div className="h-4 bg-gradient-to-r from-purple-200 to-indigo-200 dark:from-purple-700 dark:to-indigo-700 rounded w-24"></div>
                 </div>
               </article>
             ))}
