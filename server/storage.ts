@@ -484,6 +484,14 @@ export class MemStorage implements IStorage {
         icon: "fas fa-gift",
         color: "#F87171",
         description: "Gifts & Special Occasions"
+      },
+      
+      // AI & Technology
+      {
+        name: "AI Apps & Services",
+        icon: "fas fa-robot",
+        color: "#8B5CF6",
+        description: "🤖 Cutting-edge AI tools and applications"
       }
     ];
 
