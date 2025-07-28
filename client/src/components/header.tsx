@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
-import BrandTextLogo from "@/components/brand-text-logo";
+import AmazingBrandLogo from "@/components/amazing-brand-logo";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -113,7 +113,7 @@ export default function Header() {
           {/* Logo in Corner with hidden admin access */}
           <div className="flex-shrink-0 relative">
             <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-110">
-              <BrandTextLogo className="flex items-center gap-2" />
+              <AmazingBrandLogo className="flex items-center gap-2" />
             </Link>
             {/* Hidden admin access dot */}
             {!isAdmin && (

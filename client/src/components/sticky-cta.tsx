@@ -70,7 +70,7 @@ export default function StickyCTA() {
   return (
     <>
       {/* Main Sticky CTA Button */}
-      <div className="fixed bottom-20 right-6 z-50 transition-all duration-500 ease-in-out transform hover:scale-105">
+      <div className="fixed bottom-20 right-2 sm:right-6 z-50 transition-all duration-500 ease-in-out transform hover:scale-105">
         <Link
           href="#featured-products"
           onClick={(e) => {
@@ -80,7 +80,7 @@ export default function StickyCTA() {
               element.scrollIntoView({ behavior: 'smooth' });
             }
           }}
-          className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 text-white px-5 py-3 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
+          className="group relative inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 text-white px-3 sm:px-5 py-2 sm:py-3 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
         >
           {/* Glow Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-300 -z-10"></div>
@@ -93,13 +93,15 @@ export default function StickyCTA() {
             </div>
           </div>
           
-          {/* Text */}
+          {/* Text - Mobile Responsive */}
           <div className="flex flex-col items-start">
-            <span className="font-bold text-sm whitespace-nowrap leading-tight">
-              Today's Top Picks
+            <span className="font-bold text-xs sm:text-sm whitespace-nowrap leading-tight">
+              <span className="hidden sm:inline">Today's Top Picks</span>
+              <span className="sm:hidden">Top Picks</span>
             </span>
             <span className="text-xs opacity-90 whitespace-nowrap leading-tight">
-              Ends in {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+              <span className="hidden sm:inline">Ends in </span>
+              {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
             </span>
           </div>
           
@@ -112,10 +114,10 @@ export default function StickyCTA() {
       </div>
 
       {/* Small Happy Shopping Box */}
-      <div className={`fixed bottom-6 left-6 z-40 transition-all duration-500 ease-out transform ${
+      <div className={`fixed bottom-6 left-2 sm:left-6 z-40 transition-all duration-500 ease-out transform ${
         showHappyBox ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95'
       }`}>
-        <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 rounded-2xl shadow-2xl border-2 border-white/20 backdrop-blur-sm relative overflow-hidden max-w-xs">
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-3 sm:p-4 rounded-2xl shadow-2xl border-2 border-white/20 backdrop-blur-sm relative overflow-hidden max-w-xs sm:max-w-sm">
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-white/10 rounded-2xl">
             <div className="absolute top-2 right-2 w-8 h-8 bg-white/20 rounded-full"></div>
@@ -123,13 +125,13 @@ export default function StickyCTA() {
           </div>
           
           {/* Content */}
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-full">
-              <Gift className="w-5 h-5 text-white animate-bounce" />
+          <div className="relative z-10 flex items-center gap-2 sm:gap-3">
+            <div className="bg-white/20 p-1.5 sm:p-2 rounded-full">
+              <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-bounce" />
             </div>
             <div>
-              <p className="font-bold text-sm">{currentMessage.title}</p>
-              <p className="text-xs opacity-90">{currentMessage.subtitle}</p>
+              <p className="font-bold text-xs sm:text-sm">{currentMessage.title}</p>
+              <p className="text-xs opacity-90 hidden sm:block">{currentMessage.subtitle}</p>
             </div>
           </div>
           
