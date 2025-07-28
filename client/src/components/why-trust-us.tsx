@@ -43,8 +43,15 @@ export default function WhyTrustUs() {
         
         {/* Main Heading */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Why Trust Us?</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300">Here's why thousands of shoppers choose PickNTrust for their shopping needs</p>
+          <div className="relative inline-block">
+            <h2 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 bg-clip-text text-transparent mb-4 relative">
+              Why Trust Us?
+              <div className="absolute -top-2 -right-8 text-2xl animate-pulse">🛡️</div>
+            </h2>
+          </div>
+          <p className="text-xl text-gray-600 dark:text-gray-300 font-medium">
+            <span className="bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">✨ Here's why thousands of shoppers choose PickNTrust ✨</span>
+          </p>
         </div>
         
         {/* Core Trust Pillars */}
@@ -117,7 +124,14 @@ export default function WhyTrustUs() {
 
         {/* Customer Testimonials - Colorful Design */}
         <div className="mb-16">
-          <h3 className="text-2xl font-bold text-center text-navy dark:text-blue-400 mb-8">What Our Customers Say</h3>
+          <div className="text-center mb-8">
+            <div className="relative inline-block">
+              <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 bg-clip-text text-transparent mb-4 relative">
+                What Our Customers Say
+                <div className="absolute -top-1 -right-6 text-xl animate-pulse">💬</div>
+              </h3>
+            </div>
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => {
               const gradients = [
@@ -157,7 +171,12 @@ export default function WhyTrustUs() {
 
         {/* Partner Brands */}
         <div className="text-center mb-12">
-          <h3 className="text-xl font-semibold text-navy dark:text-blue-400 mb-6">Trusted Partner Brands</h3>
+          <div className="relative inline-block mb-6">
+            <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent relative">
+              Trusted Partner Brands
+              <div className="absolute -top-1 -right-6 text-xl animate-pulse">🤝</div>
+            </h3>
+          </div>
           <div className="flex flex-wrap justify-center items-center gap-6 opacity-80 hover:opacity-100 transition-opacity">
             {partnerBrands.map((brand) => (
               <div key={brand.name} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all transform hover:scale-105 min-w-[120px] text-center">

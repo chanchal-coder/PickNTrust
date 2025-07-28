@@ -44,8 +44,15 @@ export default function Newsletter() {
     <section className="py-16 bg-gradient-to-r from-navy to-bright-blue text-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mb-8">
-          <h3 className="text-4xl font-bold mb-4">Never Miss a Deal! 📧</h3>
-          <p className="text-xl text-blue-100">Get exclusive deals and insider tips delivered to your inbox</p>
+          <div className="relative inline-block">
+            <h3 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent mb-4 relative">
+              Never Miss a Deal!
+              <div className="absolute -top-2 -right-8 text-2xl animate-bounce">📧</div>
+            </h3>
+          </div>
+          <p className="text-xl text-blue-100 font-medium">
+            <span className="bg-gradient-to-r from-yellow-200 to-orange-200 bg-clip-text text-transparent">✨ Get exclusive deals and insider tips delivered to your inbox ✨</span>
+          </p>
         </div>
         
         <div className="bg-white rounded-3xl p-8 max-w-md mx-auto">

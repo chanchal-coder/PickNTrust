@@ -360,7 +360,7 @@ function HeaderSocialProofBar() {
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
               </div>
-              <span className="text-green-700 dark:text-green-400 font-semibold">
+              <span className="text-green-700 dark:text-green-400 font-semibold text-sm">
                 <i className="fas fa-users mr-1"></i>
                 {currentUsers.toLocaleString()}+ happy shoppers browsing now
               </span>

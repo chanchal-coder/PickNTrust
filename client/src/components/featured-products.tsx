@@ -151,10 +151,9 @@ export default function FeaturedProducts() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <div className="relative inline-block">
-            <h3 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-4 relative">
+            <h3 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-4 relative">
               Today's Top Picks
-              <div className="absolute -top-2 -right-8 text-3xl animate-bounce">🔥</div>
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"></div>
+              <div className="absolute -top-2 -right-8 text-2xl animate-bounce">🔥</div>
             </h3>
           </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">

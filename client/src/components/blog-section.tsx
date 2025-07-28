@@ -48,10 +48,9 @@ export default function BlogSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <div className="relative inline-block">
-            <h3 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
+            <h3 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
               Quick Tips & Trending
-              <div className="absolute -top-2 -right-8 text-3xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-36 h-1 bg-gradient-to-r from-green-500 to-blue-500 rounded-full"></div>
+              <div className="absolute -top-2 -right-8 text-2xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
             </h3>
           </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
@@ -120,10 +119,11 @@ export default function BlogSection() {
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <i className="far fa-calendar mr-2"></i>
+                  <div className="flex items-center text-sm text-white dark:text-white">
+                    <i className="far fa-calendar mr-2 text-white"></i>
                     <span>{formatDate(post.publishedAt)}</span>
                     <span className="mx-2">•</span>
+                    <i className="far fa-clock mr-1 text-white"></i>
                     <span>{post.readTime}</span>
                   </div>
                   {post.category && (
