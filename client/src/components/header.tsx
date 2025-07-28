@@ -193,7 +193,8 @@ export default function Header() {
           </button>
         </div>
 
-
+        {/* Social Proof Bar - Compact Header Version */}
+        <HeaderSocialProofBar />
 
         {/* Admin Login Modal - appears when dot is clicked */}
         {showAdminLogin && !isAdmin && (
@@ -285,5 +286,77 @@ export default function Header() {
         )}
       </div>
     </header>
+  );
+}
+
+// Compact Social Proof Bar for Header
+function HeaderSocialProofBar() {
+  const [currentUsers, setCurrentUsers] = useState(3500);
+  const [recentPurchases] = useState([
+    { name: "Priya from Mumbai", product: "iPhone 15 Pro" },
+    { name: "Raj from Delhi", product: "Samsung TV" },
+    { name: "Sneha from Bangalore", product: "Laptop" }
+  ]);
+  const [currentPurchase, setCurrentPurchase] = useState(0);
+
+  // Simulate live user count updates
+  useEffect(() => {
+    const userInterval = setInterval(() => {
+      setCurrentUsers(prev => {
+        const change = Math.floor(Math.random() * 21) - 10;
+        const newCount = Math.max(3200, Math.min(4200, prev + change));
+        return newCount;
+      });
+    }, 8000);
+
+    return () => clearInterval(userInterval);
+  }, []);
+
+  // Cycle through recent purchases
+  useEffect(() => {
+    const purchaseInterval = setInterval(() => {
+      setCurrentPurchase(prev => (prev + 1) % recentPurchases.length);
+    }, 4000);
+
+    return () => clearInterval(purchaseInterval);
+  }, [recentPurchases.length]);
+
+  return (
+    <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 py-1 border-t border-green-200 dark:border-green-700">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between text-xs">
+          {/* Live User Count */}
+          <div className="flex items-center space-x-2">
+            <div className="relative">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            </div>
+            <span className="text-green-700 dark:text-green-400 font-medium">
+              {currentUsers.toLocaleString()}+ browsing now
+            </span>
+          </div>
+
+          {/* Recent Purchase Alert */}
+          <div className="flex items-center space-x-2 text-center flex-1">
+            <div className="w-1 h-1 bg-orange-500 rounded-full animate-pulse"></div>
+            <span className="text-gray-700 dark:text-gray-300">
+              <strong>{recentPurchases[currentPurchase].name}</strong> just bought{" "}
+              <strong>{recentPurchases[currentPurchase].product}</strong>
+            </span>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+              <i className="fas fa-shield-alt text-xs"></i>
+              <span className="font-medium">Secure</span>
+            </div>
+            <div className="flex items-center space-x-1 text-purple-600 dark:text-purple-400">
+              <i className="fas fa-star text-xs"></i>
+              <span className="font-medium">4.8★</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
