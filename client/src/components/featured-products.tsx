@@ -219,11 +219,11 @@ export default function FeaturedProducts() {
               key={product.id}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
             >
-              <div className="relative">
+              <div className="relative bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 p-2">
                 <img 
                   src={product.imageUrl} 
                   alt={product.name} 
-                  className="w-full h-48 object-cover" 
+                  className="w-full h-48 object-cover rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
                 />
                 
                 {/* Wishlist Heart Icon */}

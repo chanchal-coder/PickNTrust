@@ -65,9 +65,9 @@ export default function BlogSection() {
         <div className="grid md:grid-cols-3 gap-8">
           {blogPosts?.map((post) => (
             <article key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:-translate-y-2 hover:scale-105 group">
-              <div className="w-full h-48 relative">
+              <div className="w-full h-48 relative bg-gradient-to-br from-green-100 via-teal-50 to-blue-100 dark:from-green-900 dark:via-teal-900 dark:to-blue-900 p-2">
                 {post.videoUrl ? (
-                  <div className="w-full h-full">
+                  <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-white/50 dark:border-gray-700/50 shadow-lg">
                     {/* YouTube Videos */}
                     {(post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be')) ? (
                       <iframe
@@ -107,7 +107,7 @@ export default function BlogSection() {
                         poster={post.imageUrl}
                       />
                     )}
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
                       {post.videoUrl.includes('instagram.com') ? '📱 Reel' : 
                        post.videoUrl.includes('facebook.com') ? '📘 Reel' : 
                        post.videoUrl.includes('youtube.com') ? '🎥 Video' : '📹 Video'}
@@ -117,7 +117,7 @@ export default function BlogSection() {
                   <img 
                     src={post.imageUrl} 
                     alt={post.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
                   />
                 )}
               </div>
