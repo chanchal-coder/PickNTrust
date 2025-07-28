@@ -125,7 +125,11 @@ export default function BlogSection() {
                   />
                 )}
               </div>
-              <div className="p-6">
+              <div className={`p-6 ${
+                index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
+                index % 3 === 1 ? 'bg-green-50 dark:bg-gray-800' : 
+                'bg-orange-50 dark:bg-gray-800'
+              }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                     <i className="far fa-calendar mr-2 text-blue-500 dark:text-blue-400"></i>

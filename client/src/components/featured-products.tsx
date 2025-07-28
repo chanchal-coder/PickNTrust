@@ -291,7 +291,11 @@ export default function FeaturedProducts() {
                   </div>
                 )}
               </div>
-              <div className="p-6">
+              <div className={`p-6 ${
+                index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
+                index % 3 === 1 ? 'bg-green-50 dark:bg-gray-800' : 
+                'bg-yellow-50 dark:bg-gray-800'
+              }`}>
                 <div className="flex items-center justify-between mb-2">
                   {product.discount ? (
                     <span className="bg-accent-orange text-white px-3 py-1 rounded-full text-sm font-bold">
