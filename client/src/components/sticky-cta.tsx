@@ -22,8 +22,8 @@ export default function StickyCTA() {
     if (isVisible) {
       const interval = setInterval(() => {
         setShowHappyBox(true);
-        setTimeout(() => setShowHappyBox(false), 3000);
-      }, 30000);
+        setTimeout(() => setShowHappyBox(false), 6000);
+      }, 25000);
 
       return () => clearInterval(interval);
     }
