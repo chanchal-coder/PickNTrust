@@ -246,6 +246,18 @@
     overflow: hidden;
   }
 
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Text shadow utility */
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
   /* Responsive font sizes for better mobile display */
   @media (max-width: 640px) {
     .text-responsive-sm {
