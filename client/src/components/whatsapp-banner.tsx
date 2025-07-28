@@ -13,12 +13,12 @@ export default function WhatsAppBanner() {
     <div className="bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 dark:from-green-600 dark:via-green-700 dark:to-emerald-700 text-white py-3 px-4 shadow-lg border-b-2 border-green-300 dark:border-green-400">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="bg-white/20 backdrop-blur rounded-full p-2 animate-pulse" style={{animationDuration: '1.5s'}}>
-            <i className="fab fa-whatsapp text-xl text-white"></i>
+          <div className="bg-white rounded-full p-2 shadow-lg animate-pulse" style={{animationDuration: '1.5s'}}>
+            <i className="fab fa-whatsapp text-xl text-green-500"></i>
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold">Join 10,000+ Smart Shoppers!</span>
-            <span className="text-xs text-green-100">Get exclusive deals & flash sales instantly on WhatsApp</span>
+            <span className="text-base font-bold text-white drop-shadow-md">Join 10,000+ Smart Shoppers!</span>
+            <span className="text-sm text-yellow-100 font-medium">Get exclusive deals & flash sales instantly on WhatsApp</span>
           </div>
         </div>
         
