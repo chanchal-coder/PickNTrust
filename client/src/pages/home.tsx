@@ -1,5 +1,5 @@
 import Header from "@/components/header";
-import Hero from "@/components/hero";
+
 import Categories from "@/components/categories";
 import FeaturedProducts from "@/components/featured-products";
 import WhyTrustUs from "@/components/why-trust-us";
@@ -18,15 +18,14 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="header-spacing">
-        <Hero />
         <HeroBannerSlider />
         <SearchBar />
         <SocialProofBar />
         <FeaturedProducts />
         <Categories />
-        <TrustBadges />
         <WhyTrustUs />
         <BlogSection />
+        <TrustBadges />
         <Newsletter />
       </div>
       <Footer />

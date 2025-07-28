@@ -27,12 +27,14 @@ export default function TrustBadges() {
   ];
 
   const partnerBrands = [
-    { name: "Amazon", logo: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?ixlib=rb-4.0.3&w=120&h=60&fit=crop" },
-    { name: "Flipkart", logo: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&w=120&h=60&fit=crop" },
-    { name: "Samsung", logo: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?ixlib=rb-4.0.3&w=120&h=60&fit=crop" },
-    { name: "Apple", logo: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?ixlib=rb-4.0.3&w=120&h=60&fit=crop" },
-    { name: "Xiaomi", logo: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?ixlib=rb-4.0.3&w=120&h=60&fit=crop" },
-    { name: "OnePlus", logo: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&w=120&h=60&fit=crop" }
+    { name: "Amazon", icon: "fab fa-amazon", color: "#FF9900" },
+    { name: "Flipkart", icon: "fas fa-shopping-bag", color: "#047BD6" },
+    { name: "Samsung", icon: "fas fa-mobile-alt", color: "#1428A0" },
+    { name: "Apple", icon: "fab fa-apple", color: "#000000" },
+    { name: "Xiaomi", icon: "fas fa-mobile", color: "#FF6900" },
+    { name: "OnePlus", icon: "fas fa-plus", color: "#EB0028" },
+    { name: "Google", icon: "fab fa-google", color: "#4285F4" },
+    { name: "Microsoft", icon: "fab fa-microsoft", color: "#00A1F1" }
   ];
 
   return (
@@ -114,14 +116,14 @@ export default function TrustBadges() {
         {/* Partner Brands */}
         <div className="text-center">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">As Featured On & Partner Brands</h3>
-          <div className="flex flex-wrap justify-center items-center gap-8 opacity-70 hover:opacity-100 transition-opacity">
+          <div className="flex flex-wrap justify-center items-center gap-6 opacity-80 hover:opacity-100 transition-opacity">
             {partnerBrands.map((brand) => (
-              <div key={brand.name} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                <img
-                  src={brand.logo}
-                  alt={brand.name}
-                  className="h-8 w-auto object-contain filter grayscale hover:grayscale-0 transition-all"
-                />
+              <div key={brand.name} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all transform hover:scale-105 min-w-[120px] text-center">
+                <i 
+                  className={`${brand.icon} text-3xl mb-2`}
+                  style={{ color: brand.color }}
+                ></i>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{brand.name}</p>
               </div>
             ))}
           </div>
