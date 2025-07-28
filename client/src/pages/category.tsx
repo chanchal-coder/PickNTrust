@@ -326,6 +326,7 @@ export default function CategoryPage() {
         shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
         break;
       case 'whatsapp':
+        // Force WhatsApp Web for admin sharing to get messaging interface (Image 2)
         shareUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
         break;
       case 'instagram':

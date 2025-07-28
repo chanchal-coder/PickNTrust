@@ -90,7 +90,9 @@ export default function FeaturedProducts() {
         shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
         break;
       case 'whatsapp':
+        // Force WhatsApp Web for admin sharing to get messaging interface (Image 2)
         shareUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(productText + ' ' + productUrl)}`;
+        console.log('Admin WhatsApp sharing URL:', shareUrl);
         break;
       case 'instagram':
         const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
