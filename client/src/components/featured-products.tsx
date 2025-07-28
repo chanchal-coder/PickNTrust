@@ -219,7 +219,7 @@ export default function FeaturedProducts() {
               key={product.id}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
             >
-              <div className="relative bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 p-2">
+              <div className="relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 p-2">
                 <img 
                   src={product.imageUrl} 
                   alt={product.name} 
