@@ -351,7 +351,7 @@ function HeaderSocialProofBar() {
   return (
     <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 py-4 border-y border-green-200 dark:border-green-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0">
+        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-8">
           
           {/* Live User Count */}
           <div className="flex items-center space-x-3">
@@ -368,7 +368,7 @@ function HeaderSocialProofBar() {
           </div>
 
           {/* Recent Purchase Alert */}
-          <div className="flex items-center space-x-3 bg-white/60 dark:bg-gray-800/60 px-4 py-2 rounded-full shadow-sm">
+          <div className="flex items-center space-x-3 bg-white/60 dark:bg-gray-800/60 px-4 py-2 rounded-full shadow-sm mx-4">
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
             <span className="text-gray-700 dark:text-gray-300 text-sm">
               <strong>{recentPurchases[currentPurchase].name}</strong> just bought{" "}
@@ -440,7 +440,10 @@ function StickyCtaButton() {
     <div className="fixed top-4 right-4 z-40 hidden lg:block">
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 animate-pulse"
+        className="relative bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+        style={{
+          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, glow 2s ease-in-out infinite alternate'
+        }}
       >
         <div className="flex items-center space-x-3">
           <div className="text-center">
