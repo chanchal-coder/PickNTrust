@@ -7,7 +7,7 @@ import BlogSection from "@/components/blog-section";
 import Newsletter from "@/components/newsletter";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
-import TrustBadges from "@/components/trust-badges";
+
 import SearchBar from "@/components/search-bar";
 
 
@@ -24,7 +24,6 @@ export default function Home() {
         <Categories />
         <WhyTrustUs />
         <BlogSection />
-        <TrustBadges />
         <Newsletter />
       </div>
       <Footer />
