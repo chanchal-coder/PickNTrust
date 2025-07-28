@@ -34,7 +34,7 @@ export default function SocialProofBar() {
   }, [recentPurchases.length]);
 
   return (
-    <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 py-4 border-y border-green-200 dark:border-green-700">
+    <section className="bg-gradient-to-r from-gray-800 to-gray-900 py-4 border-y border-gray-600">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0">
           
@@ -45,7 +45,7 @@ export default function SocialProofBar() {
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
               </div>
-              <span className="text-green-700 dark:text-green-400 font-semibold">
+              <span className="text-green-400 font-semibold">
                 <i className="fas fa-users mr-1"></i>
                 {currentUsers.toLocaleString()}+ happy shoppers browsing now
               </span>
@@ -53,12 +53,12 @@ export default function SocialProofBar() {
           </div>
 
           {/* Recent Purchase Alert */}
-          <div className="flex items-center space-x-3 bg-white/60 dark:bg-gray-800/60 px-4 py-2 rounded-full shadow-sm">
+          <div className="flex items-center space-x-3 bg-gray-700/80 px-4 py-2 rounded-full shadow-sm">
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-            <span className="text-gray-700 dark:text-gray-300 text-sm">
+            <span className="text-gray-300 text-sm">
               <strong>{recentPurchases[currentPurchase].name}</strong> just bought{" "}
               <strong>{recentPurchases[currentPurchase].product}</strong>{" "}
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className="text-gray-400">
                 {recentPurchases[currentPurchase].time}
               </span>
             </span>
@@ -66,15 +66,15 @@ export default function SocialProofBar() {
 
           {/* Trust Indicators */}
           <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+            <div className="flex items-center space-x-1 text-blue-400">
               <i className="fas fa-shield-alt"></i>
               <span className="font-medium">Secure</span>
             </div>
-            <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
+            <div className="flex items-center space-x-1 text-green-400">
               <i className="fas fa-certificate"></i>
               <span className="font-medium">Trusted Reviews</span>
             </div>
-            <div className="flex items-center space-x-1 text-purple-600 dark:text-purple-400">
+            <div className="flex items-center space-x-1 text-purple-400">
               <i className="fas fa-star"></i>
               <span className="font-medium">4.8/5 Rating</span>
             </div>
