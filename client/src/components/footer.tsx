@@ -30,7 +30,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="md:col-span-2">
-            <div className="flex items-center mb-6 group">
+            <div className="flex items-center space-x-1 mb-6 group">
               <AmazingBrandLogo className="flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
               <FooterBrandText />
             </div>
