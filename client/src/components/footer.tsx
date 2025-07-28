@@ -1,5 +1,5 @@
 import AmazingBrandLogo from "@/components/amazing-brand-logo";
-import CenteredBrandText from "@/components/centered-brand-text";
+import FooterBrandText from "@/components/footer-brand-text";
 import { Link, useLocation } from "wouter";
 
 export default function Footer() {
@@ -30,11 +30,9 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="md:col-span-2">
-            <div className="flex items-start space-x-2 mb-6 group">
+            <div className="flex items-center mb-6 group">
               <AmazingBrandLogo className="flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
-              <div className="flex-1">
-                <CenteredBrandText />
-              </div>
+              <FooterBrandText />
             </div>
             <p className="text-blue-100 text-lg mb-6">Making online shopping simple, safe, and fun. We're here to help you discover amazing products from trusted brands.</p>
             
