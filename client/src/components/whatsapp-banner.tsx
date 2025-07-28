@@ -10,7 +10,7 @@ export default function WhatsAppBanner() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 dark:from-green-600 dark:via-green-700 dark:to-emerald-700 text-white py-3 px-4 shadow-lg border-b-2 border-green-300 dark:border-green-400">
+    <div className="bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 dark:from-green-600 dark:via-green-700 dark:to-emerald-700 text-white py-3 px-4 shadow-lg border-b-4 border-black">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="bg-white rounded-full p-2 shadow-lg animate-pulse" style={{animationDuration: '1.5s'}}>

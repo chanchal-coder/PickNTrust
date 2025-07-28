@@ -108,9 +108,9 @@ export default function Header() {
 
   return (
     <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-700">
-      <div className="w-full px-2 sm:px-4 lg:px-8">
+      <div className="w-full px-0">
         {/* Main Header Row */}
-        <div className="flex justify-between items-center py-2 sm:py-3">
+        <div className="flex justify-between items-center py-2 sm:py-3 px-2 sm:px-4 lg:px-8">
           {/* Logo in Corner with hidden admin access */}
           <div className="flex-shrink-0 relative">
             <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-110">
@@ -146,7 +146,7 @@ export default function Header() {
         </div>
 
         {/* Centered Navigation Row - Stylish Design */}
-        <div className="flex justify-center items-center space-x-3 sm:space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2">
+        <div className="flex justify-center items-center space-x-3 sm:space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2 px-2 sm:px-4 lg:px-8">
           {/* Home link - Functional */}
           <Link 
             href="/" 
@@ -328,9 +328,9 @@ function HeaderSocialProofBar() {
   }, [recentPurchases.length]);
 
   return (
-    <section className="bg-gradient-to-r from-gray-800 to-gray-900 py-4 border-y border-gray-600">
-      <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-8">
+    <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 py-4 border-y border-green-200 dark:border-gray-600">
+      <div className="w-full px-0">
+        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-8 px-4 sm:px-6 lg:px-8">
           
           {/* Live User Count */}
           <div className="flex items-center space-x-3">
@@ -339,7 +339,7 @@ function HeaderSocialProofBar() {
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
               </div>
-              <span className="text-green-400 font-semibold text-sm">
+              <span className="text-green-700 dark:text-green-400 font-semibold text-sm">
                 <i className="fas fa-users mr-1"></i>
                 {currentUsers.toLocaleString()}+ happy shoppers browsing now
               </span>
@@ -347,12 +347,12 @@ function HeaderSocialProofBar() {
           </div>
 
           {/* Recent Purchase Alert */}
-          <div className="flex items-center space-x-3 bg-gray-700/80 px-4 py-2 rounded-full shadow-sm mx-4">
+          <div className="flex items-center space-x-3 bg-white/60 dark:bg-gray-700/80 px-4 py-2 rounded-full shadow-sm mx-4">
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-            <span className="text-gray-300 text-sm">
+            <span className="text-gray-700 dark:text-gray-300 text-sm">
               <strong>{recentPurchases[currentPurchase].name}</strong> just bought{" "}
               <strong>{recentPurchases[currentPurchase].product}</strong>{" "}
-              <span className="text-gray-400">
+              <span className="text-gray-500 dark:text-gray-400">
                 {recentPurchases[currentPurchase].time}
               </span>
             </span>
@@ -360,15 +360,15 @@ function HeaderSocialProofBar() {
 
           {/* Trust Indicators */}
           <div className="flex items-center space-x-6 text-sm">
-            <div className="flex items-center space-x-1 text-blue-400">
+            <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
               <i className="fas fa-shield-alt"></i>
               <span className="font-medium">Secure</span>
             </div>
-            <div className="flex items-center space-x-1 text-green-400">
+            <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
               <i className="fas fa-certificate"></i>
               <span className="font-medium">Trusted Reviews</span>
             </div>
-            <div className="flex items-center space-x-1 text-purple-400">
+            <div className="flex items-center space-x-1 text-purple-600 dark:text-purple-400">
               <i className="fas fa-star"></i>
               <span className="font-medium">4.8/5 Rating</span>
             </div>
