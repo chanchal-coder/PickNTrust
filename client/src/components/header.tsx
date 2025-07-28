@@ -150,46 +150,49 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Centered Navigation Row */}
-        <div className="flex justify-center items-center space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2">
-          {/* Home link */}
+        {/* Centered Navigation Row - Stylish Design */}
+        <div className="flex justify-center items-center space-x-3 sm:space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2">
+          {/* Home link - Stylish */}
           <Link 
             href="/" 
-            className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors flex items-center space-x-1"
+            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
             title="Home"
           >
-            <i className="fas fa-home text-sm sm:text-base"></i>
-            <span className="text-sm font-medium">Home</span>
+            <i className="fas fa-home text-sm group-hover:rotate-12 transition-transform"></i>
+            <span className="text-sm font-semibold">Home</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
           
-          {/* Wishlist link */}
+          {/* Wishlist link - Stylish */}
           <Link 
             href="/wishlist" 
-            className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors flex items-center space-x-1 relative"
+            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
             title="Wishlist"
           >
-            <i className="fas fa-heart text-sm sm:text-base"></i>
-            <span className="text-sm font-medium">Wishlist</span>
+            <i className="fas fa-heart text-sm group-hover:scale-125 transition-transform text-pink-100"></i>
+            <span className="text-sm font-semibold">Wishlist</span>
             {wishlistCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+              <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-800 text-xs rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md animate-bounce">
                 {wishlistCount > 9 ? '9+' : wishlistCount}
               </span>
             )}
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
           
-          {/* Theme Toggle */}
-          <div className="flex items-center">
+          {/* Theme Toggle - Enhanced */}
+          <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <ThemeToggle />
           </div>
           
-          {/* Hamburger Menu Button */}
+          {/* Hamburger Menu Button - Stylish */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors flex items-center space-x-1"
+            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
             aria-label="Menu"
           >
-            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-sm sm:text-base`}></i>
-            <span className="text-sm font-medium">Menu</span>
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-sm group-hover:rotate-180 transition-transform duration-300`}></i>
+            <span className="text-sm font-semibold">Menu</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
         </div>
 
