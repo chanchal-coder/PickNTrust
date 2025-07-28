@@ -349,8 +349,7 @@ function HeaderSocialProofBar() {
           <div className="flex items-center space-x-2 sm:space-x-3 bg-white/60 dark:bg-gray-700/80 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm max-w-full">
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></div>
             <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm truncate">
-              <strong className="hidden sm:inline">{recentPurchases[currentPurchase].name}</strong>
-              <span className="sm:hidden">Someone</span> just bought{" "}
+              <strong>{recentPurchases[currentPurchase].name}</strong> just bought{" "}
               <strong>{recentPurchases[currentPurchase].product}</strong>
               <span className="text-gray-500 dark:text-gray-400 hidden sm:inline"> {recentPurchases[currentPurchase].time}</span>
             </span>
