@@ -71,8 +71,8 @@ export default function SocialProofBar() {
               <span className="font-medium">Secure</span>
             </div>
             <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
-              <i className="fas fa-truck"></i>
-              <span className="font-medium">Fast Delivery</span>
+              <i className="fas fa-certificate"></i>
+              <span className="font-medium">Trusted Reviews</span>
             </div>
             <div className="flex items-center space-x-1 text-purple-600 dark:text-purple-400">
               <i className="fas fa-star"></i>
