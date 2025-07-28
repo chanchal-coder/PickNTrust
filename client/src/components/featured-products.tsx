@@ -5,6 +5,53 @@ import type { Product } from "@shared/schema";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 
+// Product Timer Component
+function ProductTimer({ createdAt }: { createdAt: string }) {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const productCreated = new Date(createdAt);
+      const expiryTime = new Date(productCreated.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
+      const difference = expiryTime.getTime() - now.getTime();
+
+      if (difference <= 0) {
+        setIsExpired(true);
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        setTimeLeft({ hours, minutes, seconds });
+        setIsExpired(false);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [createdAt]);
+
+  if (isExpired) {
+    return (
+      <div className="text-xs text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full border border-red-200 dark:border-red-700">
+        🔴 Deal Expired
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-xs text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded-full border border-orange-200 dark:border-orange-700 flex items-center gap-1">
+      <svg className="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+      </svg>
+      <span>
+        Deal ends in {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
+      </span>
+    </div>
+  );
+}
+
 export default function FeaturedProducts() {
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products/featured'],
@@ -159,14 +206,7 @@ export default function FeaturedProducts() {
           <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">✨ Hand-selected deals you can trust ✨</span>
           </p>
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 text-red-700 dark:text-red-300 px-4 py-2 rounded-full border border-red-200 dark:border-red-700 mt-4">
-            <svg className="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-            </svg>
-            <span className="text-sm font-semibold">
-              ⚡ All products expire in 24 hours after posting
-            </span>
-          </div>
+
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -268,6 +308,10 @@ export default function FeaturedProducts() {
                       <span className="text-gray-400 dark:text-gray-500 line-through ml-2">₹{product.originalPrice}</span>
                     )}
                   </div>
+                </div>
+                {/* Individual Product Timer */}
+                <div className="mb-4">
+                  <ProductTimer createdAt={product.createdAt || new Date().toISOString()} />
                 </div>
                 <button 
                   onClick={() => handleAffiliateClick(product)}
