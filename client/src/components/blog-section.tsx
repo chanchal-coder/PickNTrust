@@ -21,7 +21,7 @@ export default function BlogSection() {
       <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
+            <h3 className="text-3xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
             <p className="text-xl text-gray-600 dark:text-gray-300">Stay updated with the latest deals and shopping hacks</p>
           </div>
           
@@ -48,9 +48,9 @@ export default function BlogSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <div className="relative inline-block">
-            <h3 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
+            <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
               Quick Tips & Trending
-              <div className="absolute -top-2 -right-8 text-2xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
+              <div className="absolute -top-2 -right-6 text-xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
             </h3>
           </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
