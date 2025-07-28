@@ -1712,17 +1712,6 @@ export default function AdminPage() {
             </Card>
           </div>
 
-          {/* Affiliate Networks Management */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-navy dark:text-blue-400">Affiliate Networks</CardTitle>
-              <CardDescription>Manage your affiliate partnerships and commission rates</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AffiliateNetworkManager />
-            </CardContent>
-          </Card>
-
           {/* Product Management Section */}
           <Card className="mb-8">
             <CardHeader>
@@ -1752,6 +1741,17 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Affiliate Networks Management */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Affiliate Networks</CardTitle>
+              <CardDescription>Manage your affiliate partnerships and commission rates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AffiliateNetworkManager />
             </CardContent>
           </Card>
 
