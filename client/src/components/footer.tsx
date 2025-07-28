@@ -30,7 +30,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="md:col-span-2">
             <div className="flex items-center space-x-3 mb-6 group">
-              <BrandLogo className="w-12 h-12 group-hover:scale-110 transition-transform duration-300" />
+              <BrandLogo className="w-14 h-14 sm:w-16 sm:h-16 group-hover:scale-110 transition-transform duration-300" />
               <div>
                 <h1 className="text-2xl font-bold">
                   <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">Pick</span>

@@ -113,7 +113,7 @@ export default function Header() {
           {/* Logo in Corner with hidden admin access */}
           <div className="flex-shrink-0 relative">
             <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-110">
-              <BrandLogo className="w-10 h-10 sm:w-12 sm:h-12" />
+              <BrandLogo className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20" />
             </Link>
             {/* Hidden admin access dot */}
             {!isAdmin && (
@@ -125,10 +125,10 @@ export default function Header() {
             )}
           </div>
 
-          {/* Centered Brand Name & Slogan - Beautiful Design */}
-          <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-90 transition-all duration-300 group">
+          {/* Centered Brand Name & Slogan - Responsive Design */}
+          <Link href="/" className="flex-1 flex flex-col items-center hover:opacity-90 transition-all duration-300 group px-2">
             <div className="relative">
-              <h1 className="text-2xl sm:text-4xl font-black cursor-pointer group-hover:scale-105 transition-transform duration-300">
+              <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black cursor-pointer group-hover:scale-105 transition-transform duration-300">
                 <span className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Pick
                   <span className="absolute -top-1 -right-1 text-xs">✨</span>
@@ -143,10 +143,10 @@ export default function Header() {
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
             <div className="mt-1 relative flex flex-col items-center">
-              <p className="text-sm sm:text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
+              <p className="text-xs sm:text-sm md:text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
                 Pick. Click. Trust. Shop Smart.
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic hidden sm:block">
                 "Your trusted shopping companion"
               </p>
             </div>
