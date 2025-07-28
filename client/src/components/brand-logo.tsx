@@ -44,52 +44,52 @@ export default function BrandLogo({ className = "w-8 h-8" }: { className?: strin
       </circle>
       <circle cx="60" cy="60" r="50" fill="white" opacity="0.1" />
       
-      {/* Animated Shopping Cart - Central Feature */}
-      <g transform="translate(35, 35)">
-        <animateTransform attributeName="transform" type="translate" values="35,35; 36,34; 35,35" dur="2s" repeatCount="indefinite" />
+      {/* Enhanced Shopping Cart - Larger & More Prominent */}
+      <g transform="translate(25, 25)">
+        <animateTransform attributeName="transform" type="translate" values="25,25; 26,24; 25,25" dur="2s" repeatCount="indefinite" />
         
-        {/* Cart Body - More Visible */}
-        <path d="M8 15 L45 15 L42 45 L12 45 Z" fill="white" opacity="1" stroke="url(#gradientMain)" strokeWidth="3" filter="url(#innerGlow)" />
+        {/* Cart Body - Larger & More Visible */}
+        <path d="M5 20 L60 20 L56 60 L9 60 Z" fill="white" opacity="1" stroke="url(#gradientMain)" strokeWidth="4" filter="url(#innerGlow)" />
         
-        {/* Cart Handle - Enhanced */}
-        <path d="M15 15 L15 8 Q15 3 20 3 L30 3 Q35 3 35 8 L35 15" stroke="url(#gradientMain)" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="1" />
+        {/* Cart Handle - Enhanced & Larger */}
+        <path d="M18 20 L18 12 Q18 6 25 6 L40 6 Q47 6 47 12 L47 20" stroke="url(#gradientMain)" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="1" />
         
-        {/* Creative Floating Trust Checkmarks */}
+        {/* Creative Floating Trust Checkmarks - Adjusted for Larger Cart */}
         <g opacity="0.95">
           {/* Main checkmark in cart with pulse effect */}
-          <g transform="translate(20, 25)">
-            <circle cx="7" cy="7" r="6" fill="url(#trustShield)" opacity="0.9">
-              <animate attributeName="r" values="6;8;6" dur="3s" repeatCount="indefinite" />
+          <g transform="translate(25, 35)">
+            <circle cx="7" cy="7" r="8" fill="url(#trustShield)" opacity="0.9">
+              <animate attributeName="r" values="8;10;8" dur="3s" repeatCount="indefinite" />
               <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite" />
             </circle>
-            <path d="M4 7 L6.5 9.5 L10 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-              <animate attributeName="stroke-width" values="2.5;3.5;2.5" dur="3s" repeatCount="indefinite" />
+            <path d="M3 7 L6.5 10.5 L11 5.5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
+              <animate attributeName="stroke-width" values="3;4;3" dur="3s" repeatCount="indefinite" />
             </path>
           </g>
           
-          {/* Floating mini checkmarks around cart */}
-          <g transform="translate(12, 18)">
-            <circle cx="3" cy="3" r="2" fill="url(#sparkleGrad)" opacity="0.8">
+          {/* Floating mini checkmarks around larger cart */}
+          <g transform="translate(8, 25)">
+            <circle cx="3" cy="3" r="2.5" fill="url(#sparkleGrad)" opacity="0.8">
               <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2s" repeatCount="indefinite" begin="0.5s" />
             </circle>
-            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <animateTransform attributeName="transform" type="translate" values="12,18; 10,16; 12,18" dur="4s" repeatCount="indefinite" />
+            <path d="M1 3 L2.5 4.5 L5 2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <animateTransform attributeName="transform" type="translate" values="8,25; 6,23; 8,25" dur="4s" repeatCount="indefinite" />
           </g>
           
-          <g transform="translate(35, 22)">
-            <circle cx="3" cy="3" r="2" fill="url(#trustShield)" opacity="0.7">
+          <g transform="translate(45, 28)">
+            <circle cx="3" cy="3" r="2.5" fill="url(#trustShield)" opacity="0.7">
               <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite" begin="1s" />
             </circle>
-            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <animateTransform attributeName="transform" type="translate" values="35,22; 37,20; 35,22" dur="4s" repeatCount="indefinite" begin="1s" />
+            <path d="M1 3 L2.5 4.5 L5 2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <animateTransform attributeName="transform" type="translate" values="45,28; 47,26; 45,28" dur="4s" repeatCount="indefinite" begin="1s" />
           </g>
           
-          <g transform="translate(24, 35)">
-            <circle cx="3" cy="3" r="1.5" fill="url(#gradientMain)" opacity="0.6">
+          <g transform="translate(28, 45)">
+            <circle cx="3" cy="3" r="2" fill="url(#gradientMain)" opacity="0.6">
               <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2s" repeatCount="indefinite" begin="1.5s" />
             </circle>
-            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <animateTransform attributeName="transform" type="translate" values="24,35; 22,37; 24,35" dur="4s" repeatCount="indefinite" begin="2s" />
+            <path d="M1.5 3 L2.5 4 L4.5 2" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <animateTransform attributeName="transform" type="translate" values="28,45; 26,47; 28,45" dur="4s" repeatCount="indefinite" begin="2s" />
           </g>
         </g>
         
@@ -109,12 +109,12 @@ export default function BrandLogo({ className = "w-8 h-8" }: { className?: strin
           </rect>
         </g>
         
-        {/* Cart Wheels - Rotating */}
-        <circle cx="18" cy="50" r="4" fill="white" stroke="url(#gradientMain)" strokeWidth="2">
-          <animateTransform attributeName="transform" type="rotate" values="0 18 50; 360 18 50" dur="4s" repeatCount="indefinite" />
+        {/* Cart Wheels - Larger & Rotating */}
+        <circle cx="18" cy="65" r="6" fill="white" stroke="url(#gradientMain)" strokeWidth="3">
+          <animateTransform attributeName="transform" type="rotate" values="0 18 65; 360 18 65" dur="4s" repeatCount="indefinite" />
         </circle>
-        <circle cx="38" cy="50" r="4" fill="white" stroke="url(#gradientMain)" strokeWidth="2">
-          <animateTransform attributeName="transform" type="rotate" values="0 38 50; 360 38 50" dur="4s" repeatCount="indefinite" />
+        <circle cx="48" cy="65" r="6" fill="white" stroke="url(#gradientMain)" strokeWidth="3">
+          <animateTransform attributeName="transform" type="rotate" values="0 48 65; 360 48 65" dur="4s" repeatCount="indefinite" />
         </circle>
       </g>
       
