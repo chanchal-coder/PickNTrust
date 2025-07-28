@@ -74,72 +74,84 @@ export default function WhyTrustUs() {
           </div>
         </div>
 
-        {/* Trust Badges */}
+        {/* Trust Badges - Colorful Design */}
         <div className="mb-16">
           <div className="flex flex-wrap justify-center items-center gap-8">
             {/* 100% Affiliate Transparency */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-blue-200 dark:border-blue-700 min-w-[200px]">
-              <div className="text-blue-600 dark:text-blue-400 text-3xl mb-2 text-center">
-                <i className="fas fa-shield-check"></i>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-xl border-2 border-blue-300 min-w-[200px] transform hover:scale-105 transition-all duration-300">
+              <div className="text-white text-4xl mb-3 text-center">
+                <i className="fas fa-shield-check drop-shadow-lg"></i>
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg text-center">100% Transparent</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm text-center">Affiliate Links Disclosed</p>
+              <h3 className="font-bold text-white text-lg text-center mb-2">100% Transparent</h3>
+              <p className="text-blue-100 text-sm text-center font-medium">Affiliate Links Disclosed</p>
             </div>
 
             {/* Verified Reviews */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-green-200 dark:border-green-700 min-w-[200px]">
-              <div className="text-green-600 dark:text-green-400 text-3xl mb-2 text-center">
-                <i className="fas fa-star"></i>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-6 shadow-xl border-2 border-green-300 min-w-[200px] transform hover:scale-105 transition-all duration-300">
+              <div className="text-white text-4xl mb-3 text-center">
+                <i className="fas fa-star drop-shadow-lg"></i>
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg text-center">4.8/5 Rating</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm text-center">From 10,000+ Reviews</p>
+              <h3 className="font-bold text-white text-lg text-center mb-2">4.8/5 Rating</h3>
+              <p className="text-green-100 text-sm text-center font-medium">From 10,000+ Reviews</p>
             </div>
 
-            {/* Money Back Guarantee */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-purple-200 dark:border-purple-700 min-w-[200px]">
-              <div className="text-purple-600 dark:text-purple-400 text-3xl mb-2 text-center">
-                <i className="fas fa-money-bill-wave"></i>
+            {/* Best Price Guarantee */}
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-xl border-2 border-purple-300 min-w-[200px] transform hover:scale-105 transition-all duration-300">
+              <div className="text-white text-4xl mb-3 text-center">
+                <i className="fas fa-money-bill-wave drop-shadow-lg"></i>
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg text-center">Best Price</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm text-center">Guarantee Promise</p>
+              <h3 className="font-bold text-white text-lg text-center mb-2">Best Price</h3>
+              <p className="text-purple-100 text-sm text-center font-medium">Guarantee Promise</p>
             </div>
 
             {/* Secure Shopping */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-orange-200 dark:border-orange-700 min-w-[200px]">
-              <div className="text-orange-600 dark:text-orange-400 text-3xl mb-2 text-center">
-                <i className="fas fa-lock"></i>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-6 shadow-xl border-2 border-orange-300 min-w-[200px] transform hover:scale-105 transition-all duration-300">
+              <div className="text-white text-4xl mb-3 text-center">
+                <i className="fas fa-lock drop-shadow-lg"></i>
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg text-center">Secure Links</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm text-center">SSL Protected Shopping</p>
+              <h3 className="font-bold text-white text-lg text-center mb-2">Secure Links</h3>
+              <p className="text-orange-100 text-sm text-center font-medium">SSL Protected Shopping</p>
             </div>
           </div>
         </div>
 
-        {/* Customer Testimonials */}
+        {/* Customer Testimonials - Colorful Design */}
         <div className="mb-16">
           <h3 className="text-2xl font-bold text-center text-navy dark:text-blue-400 mb-8">What Our Customers Say</h3>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="bg-gradient-to-br from-gray-50 to-gray-100 dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center mb-4">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover mr-3"
-                  />
-                  <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{testimonial.location}</p>
+            {testimonials.map((testimonial, index) => {
+              const gradients = [
+                "bg-gradient-to-br from-pink-400 to-pink-500",
+                "bg-gradient-to-br from-indigo-400 to-indigo-500", 
+                "bg-gradient-to-br from-teal-400 to-teal-500"
+              ];
+              const borderColors = [
+                "border-pink-300",
+                "border-indigo-300",
+                "border-teal-300"
+              ];
+              return (
+                <div key={testimonial.id} className={`${gradients[index]} text-white rounded-xl p-6 shadow-xl border-2 ${borderColors[index]} transform hover:scale-105 transition-all duration-300`}>
+                  <div className="flex items-center mb-4">
+                    <img
+                      src={testimonial.avatar}
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full object-cover mr-3 border-2 border-white shadow-md"
+                    />
+                    <div>
+                      <h4 className="font-semibold text-white">{testimonial.name}</h4>
+                      <p className="text-sm text-white/80">{testimonial.location}</p>
+                    </div>
                   </div>
+                  <div className="flex mb-3">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <i key={i} className="fas fa-star text-yellow-300 text-lg drop-shadow-sm"></i>
+                    ))}
+                  </div>
+                  <p className="text-white/95 text-sm font-medium">"{testimonial.comment}"</p>
                 </div>
-                <div className="flex mb-3">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <i key={i} className="fas fa-star text-yellow-400 text-sm"></i>
-                  ))}
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm italic">"{testimonial.comment}"</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
