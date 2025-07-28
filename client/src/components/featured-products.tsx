@@ -214,12 +214,16 @@ export default function FeaturedProducts() {
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products?.map((product) => (
+          {products?.map((product, index) => (
             <div 
               key={product.id}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
             >
-              <div className="relative bg-purple-100 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 p-2">
+              <div className={`relative p-2 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 ${
+                index % 3 === 0 ? 'bg-blue-400' : 
+                index % 3 === 1 ? 'bg-green-400' : 
+                'bg-yellow-400'
+              }`}>
                 <img 
                   src={product.imageUrl} 
                   alt={product.name} 

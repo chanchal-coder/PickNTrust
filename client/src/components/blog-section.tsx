@@ -63,9 +63,13 @@ export default function BlogSection() {
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
-          {blogPosts?.map((post) => (
+          {blogPosts?.map((post, index) => (
             <article key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:-translate-y-2 hover:scale-105 group">
-              <div className="w-full h-48 relative bg-blue-100 dark:bg-gradient-to-br dark:from-green-900 dark:via-teal-900 dark:to-blue-900 p-2">
+              <div className={`w-full h-48 relative p-2 dark:bg-gradient-to-br dark:from-green-900 dark:via-teal-900 dark:to-blue-900 ${
+                index % 3 === 0 ? 'bg-blue-400' : 
+                index % 3 === 1 ? 'bg-green-400' : 
+                'bg-orange-400'
+              }`}>
                 {post.videoUrl ? (
                   <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-white/50 dark:border-gray-700/50 shadow-lg">
                     {/* YouTube Videos */}
