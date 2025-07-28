@@ -90,8 +90,8 @@ export default function FeaturedProducts() {
         shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
         break;
       case 'whatsapp':
-        // Open channel directly for admin to post product deals
-        shareUrl = `https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        // Try to open channel admin interface for posting
+        shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
         break;
       case 'instagram':
         const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
