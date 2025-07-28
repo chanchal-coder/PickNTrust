@@ -173,7 +173,7 @@ export default function WhyTrustUs() {
         <div className="text-center mb-12">
           <div className="relative inline-block mb-6">
             <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent relative">
-              🌟 Our Amazing Partners 🌟
+              Our Amazing Partners
               <div className="absolute -top-1 -right-6 text-xl animate-pulse">🤝</div>
             </h3>
           </div>

@@ -80,7 +80,7 @@ export default function Categories() {
         <div className="flex justify-between items-center mb-8">
           <div className="relative">
             <h3 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent relative">
-              🎯 Browse Categories 🎯
+              Browse Categories
               <div className="absolute -top-1 -right-4 text-lg animate-pulse">🛍️</div>
             </h3>
           </div>
