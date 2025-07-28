@@ -9,11 +9,13 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import SearchBar from "@/components/search-bar";
 import HeroBannerSlider from "@/components/hero-banner-slider";
 import StickyCTA from "@/components/sticky-cta";
+import WhatsAppBanner from "@/components/whatsapp-banner";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
+      <WhatsAppBanner />
       <div className="header-spacing">
         <HeroBannerSlider />
         <SearchBar />
