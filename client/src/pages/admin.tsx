@@ -1629,6 +1629,38 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
+          {/* Product Management Section */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-navy dark:text-blue-400">Product Management</CardTitle>
+              <CardDescription>Manage all your products with full control</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Product List */}
+                <div>
+                  <h4 className="font-semibold text-navy dark:text-blue-400 mb-4">Current Products ({Array.isArray(products) ? products.length : 0})</h4>
+                  <div className="grid gap-4">
+                    {(products as any[]).map((product: any) => (
+                      <ProductManagementCard 
+                        key={product.id} 
+                        product={product} 
+                        onUpdate={() => {
+                          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+                        }}
+                        onDelete={() => {
+                          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Revenue Optimization */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <Card>
@@ -1711,38 +1743,6 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Product Management Section */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-navy dark:text-blue-400">Product Management</CardTitle>
-              <CardDescription>Manage all your products with full control</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Product List */}
-                <div>
-                  <h4 className="font-semibold text-navy dark:text-blue-400 mb-4">Current Products ({Array.isArray(products) ? products.length : 0})</h4>
-                  <div className="grid gap-4">
-                    {(products as any[]).map((product: any) => (
-                      <ProductManagementCard 
-                        key={product.id} 
-                        product={product} 
-                        onUpdate={() => {
-                          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
-                          queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
-                        }}
-                        onDelete={() => {
-                          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
-                          queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Affiliate Networks Management */}
           <Card className="mb-8">
