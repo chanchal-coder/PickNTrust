@@ -311,7 +311,7 @@ export default function FeaturedProducts() {
                 </div>
                 {/* Individual Product Timer */}
                 <div className="mb-4">
-                  <ProductTimer createdAt={product.createdAt || new Date().toISOString()} />
+                  <ProductTimer createdAt={typeof product.createdAt === 'string' ? product.createdAt : new Date().toISOString()} />
                 </div>
                 <button 
                   onClick={() => handleAffiliateClick(product)}

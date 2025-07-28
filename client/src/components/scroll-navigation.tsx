@@ -38,7 +38,7 @@ export default function ScrollNavigation() {
   };
 
   return (
-    <div className="scroll-nav-container fixed right-6 bottom-6 md:right-6 md:bottom-6 z-50 flex flex-col gap-3">
+    <div className="scroll-nav-container fixed right-6 bottom-6 md:right-6 md:bottom-6 z-[60] flex flex-col gap-3">
       {/* Scroll to Top Button */}
       {showScrollTop && (
         <button
