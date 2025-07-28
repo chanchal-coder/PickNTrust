@@ -3,36 +3,36 @@ import { ShoppingCart, Shield, Star, Sparkles, Check } from "lucide-react";
 export default function AmazingBrandLogo({ className = "flex flex-col items-center text-center" }: { className?: string }) {
   return (
     <div className={className}>
-      {/* Amazing Icon with Multiple Elements - Centered */}
+      {/* Amazing Icon with Floating Checkmark - Design 2 */}
       <div className="relative mb-3">
         {/* Main Shopping Cart Icon with Gradient */}
-        <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-xl shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-300">
+        <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-300">
           <ShoppingCart className="w-8 h-8 text-white" />
           
-          {/* Large Glowing Checkmark Inside Cart */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-            <Check className="w-4 h-4 text-white font-bold" />
+          {/* Floating Checkmark to the Right */}
+          <div className="absolute -right-3 top-0 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-xl animate-bounce">
+            <Check className="w-5 h-5 text-white font-bold" />
           </div>
           
-          {/* Trust Shield Overlay */}
-          <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+          {/* Trust Shield at Bottom */}
+          <div className="absolute -bottom-2 -left-1 w-6 h-6 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
             <Shield className="w-4 h-4 text-white" />
           </div>
           
           {/* Sparkle Effects */}
-          <div className="absolute -top-3 -left-3 text-yellow-400 animate-pulse">
+          <div className="absolute -top-2 -left-2 text-yellow-400 animate-pulse">
             <Sparkles className="w-4 h-4" />
           </div>
-          <div className="absolute -bottom-2 -right-3 text-pink-400 animate-bounce">
-            <Star className="w-4 h-4" />
+          <div className="absolute -bottom-1 -right-1 text-pink-400 animate-pulse">
+            <Star className="w-3 h-3" />
           </div>
           
           {/* Animated Ring */}
-          <div className="absolute inset-0 rounded-xl border-2 border-white/30 animate-pulse"></div>
+          <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-spin" style={{animationDuration: '3s'}}></div>
         </div>
         
         {/* Glow Effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-xl blur-lg opacity-40 -z-10 animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full blur-xl opacity-50 -z-10 animate-pulse"></div>
       </div>
       
       {/* Amazing Brand Text - Centered */}
@@ -48,9 +48,7 @@ export default function AmazingBrandLogo({ className = "flex flex-col items-cent
           <span className="text-2xl font-black bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent">
             Trust
           </span>
-          <div className="text-yellow-400 animate-bounce ml-1">
-            ✨
-          </div>
+          <div className="text-green-400 animate-bounce ml-1">🛡️</div>
         </div>
         
         {/* Main Slogan */}
