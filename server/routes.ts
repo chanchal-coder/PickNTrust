@@ -178,11 +178,22 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Get featured products
+  // Get featured products (only within 24 hours)
   app.get("/api/products/featured", async (req, res) => {
     try {
       const products = await storage.getFeaturedProducts();
-      res.json(products);
+      
+      // Filter out products older than 24 hours
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      const recentProducts = products.filter(product => {
+        if (!product.createdAt) return true; // Keep products without createdAt for backward compatibility
+        const productDate = new Date(product.createdAt);
+        return productDate > twentyFourHoursAgo;
+      });
+      
+      res.json(recentProducts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch featured products" });
     }
@@ -233,11 +244,27 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Get blog posts
+  // Get blog posts (only within 24 hours)
   app.get("/api/blog", async (req, res) => {
     try {
       const blogPosts = await storage.getBlogPosts();
-      res.json(blogPosts);
+      
+      // Filter out blog posts older than 24 hours
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      const recentBlogPosts = blogPosts.filter(post => {
+        if (!post.createdAt) return true; // Keep posts without createdAt for backward compatibility
+        const postDate = new Date(post.createdAt);
+        return postDate > twentyFourHoursAgo;
+      });
+      
+      // Sort by most recent first
+      const sortedPosts = recentBlogPosts.sort((a, b) => 
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+      
+      res.json(sortedPosts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch blog posts" });
     }

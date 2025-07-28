@@ -380,7 +380,7 @@ function HeaderSocialProofBar() {
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex items-center space-x-4 text-sm">
+          <div className="flex items-center space-x-6 text-sm">
             <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
               <i className="fas fa-shield-alt"></i>
               <span className="font-medium">Secure</span>

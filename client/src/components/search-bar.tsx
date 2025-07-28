@@ -20,12 +20,12 @@ export default function SearchBar() {
 
   // Filter results based on search query
   const searchResults = searchQuery.length > 0 ? {
-    products: products.filter((product: any) => 
+    products: (products as any[]).filter((product: any) => 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 5),
-    categories: categories.filter((category: any) =>
+    categories: (categories as any[]).filter((category: any) =>
       category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       category.description.toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 3)

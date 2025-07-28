@@ -29,6 +29,7 @@ export const products = pgTable("products", {
   discount: integer("discount"), // percentage
   isNew: boolean("is_new").default(false),
   isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const blogPosts = pgTable("blog_posts", {
@@ -41,6 +42,7 @@ export const blogPosts = pgTable("blog_posts", {
   imageUrl: text("image_url").notNull(),
   videoUrl: text("video_url"),
   publishedAt: timestamp("published_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
   readTime: text("read_time").notNull(),
   slug: text("slug").notNull(),
 });
