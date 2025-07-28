@@ -169,8 +169,8 @@ export default function BlogPost({
     let url = '';
     switch (platform) {
       case 'whatsapp':
-        // Force WhatsApp Web for admin sharing to get messaging interface (Image 2)
-        url = `https://web.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+        // Open channel directly for admin to post blog content
+        url = `https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
         break;
       case 'facebook':
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
