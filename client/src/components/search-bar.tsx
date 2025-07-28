@@ -171,6 +171,13 @@ function PopularSearchButtons({ setSearchQuery, handleSearch }: {
 
   const popularSearches = [
     {
+      name: 'AI Apps',
+      icon: 'fas fa-robot',
+      gradient: 'from-violet-500 to-purple-600',
+      category: 'AI Apps & Services',
+      isNew: true
+    },
+    {
       name: 'Smartphones',
       icon: 'fas fa-mobile-alt',
       gradient: 'from-blue-500 to-cyan-500',
@@ -220,9 +227,16 @@ function PopularSearchButtons({ setSearchQuery, handleSearch }: {
           <button
             key={search.name}
             onClick={() => handleClick(search)}
-            className={`group bg-gradient-to-r ${search.gradient} hover:scale-105 text-white px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2`}
+            className={`group bg-gradient-to-r ${search.gradient} hover:scale-105 text-white px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 relative ${
+              search.isNew ? 'ring-2 ring-yellow-300 ring-opacity-70 animate-pulse' : ''
+            }`}
           >
-            <i className={`${search.icon} text-sm group-hover:rotate-12 transition-transform`}></i>
+            {search.isNew && (
+              <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[8px] font-bold px-1 rounded-full animate-bounce">
+                NEW!
+              </div>
+            )}
+            <i className={`${search.icon} text-sm group-hover:rotate-12 transition-transform ${search.isNew ? 'animate-pulse' : ''}`}></i>
             <span>{search.name}</span>
           </button>
         ))}

@@ -150,8 +150,16 @@ export default function FeaturedProducts() {
     <section id="featured-products" className="py-16 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Today's Top Picks</h3>
-          <p className="text-xl text-gray-600 dark:text-gray-300">Hand-selected deals you can trust</p>
+          <div className="relative inline-block">
+            <h3 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-4 relative">
+              Today's Top Picks
+              <div className="absolute -top-2 -right-8 text-3xl animate-bounce">🔥</div>
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"></div>
+            </h3>
+          </div>
+          <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">✨ Hand-selected deals you can trust ✨</span>
+          </p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

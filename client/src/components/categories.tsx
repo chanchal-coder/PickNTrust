@@ -78,7 +78,13 @@ export default function Categories() {
     <section className="py-12 bg-white dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <h3 className="text-3xl font-bold text-navy dark:text-blue-400">Shop by Category</h3>
+          <div className="relative">
+            <h3 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent relative">
+              Shop by Category
+              <div className="absolute -top-1 -right-6 text-2xl animate-pulse">🛍️</div>
+              <div className="absolute -bottom-1 left-0 w-24 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"></div>
+            </h3>
+          </div>
           {isAdmin && (
             <button
               onClick={() => setShowAddForm(!showAddForm)}
@@ -158,12 +164,28 @@ export default function Categories() {
             <Link 
               key={category.id}
               href={`/category/${category.name}`}
-              className="rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block"
+              className={`rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block relative group ${
+                category.name === 'AI Apps & Services' 
+                  ? 'ring-4 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
+                  : ''
+              }`}
               style={{ backgroundColor: category.color }}
             >
-              <i className={`${category.icon} text-2xl mb-3`}></i>
-              <h4 className="font-bold text-sm">{category.name}</h4>
-              <p className="text-xs opacity-90">{category.description}</p>
+              {category.name === 'AI Apps & Services' && (
+                <>
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+                    NEW! 🔥
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl"></div>
+                </>
+              )}
+              <i className={`${category.icon} text-2xl mb-3 ${category.name === 'AI Apps & Services' ? 'animate-pulse text-yellow-200' : ''}`}></i>
+              <h4 className={`font-bold text-sm ${category.name === 'AI Apps & Services' ? 'text-yellow-100' : ''}`}>
+                {category.name}
+              </h4>
+              <p className={`text-xs opacity-90 ${category.name === 'AI Apps & Services' ? 'text-yellow-200' : ''}`}>
+                {category.description}
+              </p>
             </Link>
           ))}
         </div>

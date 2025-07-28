@@ -47,8 +47,16 @@ export default function BlogSection() {
     <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h3 className="text-4xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
-          <p className="text-xl text-gray-600 dark:text-gray-300">Stay updated with the latest deals and shopping hacks</p>
+          <div className="relative inline-block">
+            <h3 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
+              Quick Tips & Trending
+              <div className="absolute -top-2 -right-8 text-3xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-36 h-1 bg-gradient-to-r from-green-500 to-blue-500 rounded-full"></div>
+            </h3>
+          </div>
+          <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
+            <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">🚀 Stay updated with the latest deals and shopping hacks 🚀</span>
+          </p>
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
