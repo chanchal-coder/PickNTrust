@@ -62,7 +62,7 @@ export interface IStorage {
   deleteBlogPost(id: number): Promise<boolean>;
   updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null>;
   
-  // Admin User Management
+  // Admin User Management  
   getAdminByEmail(email: string): Promise<AdminUser | undefined>;
   getAdminByUsername(username: string): Promise<AdminUser | undefined>;
   getAdminById(id: number): Promise<AdminUser | undefined>;
@@ -72,6 +72,25 @@ export interface IStorage {
   validateResetToken(token: string): Promise<AdminUser | undefined>;
   clearResetToken(id: number): Promise<boolean>;
   updateLastLogin(id: number): Promise<boolean>;
+  
+  // CMS Management
+  getCmsPages(): Promise<CmsPage[]>;
+  getCmsPage(id: number): Promise<CmsPage | undefined>;
+  getCmsPageBySlug(slug: string): Promise<CmsPage | undefined>;
+  createCmsPage(page: InsertCmsPage): Promise<CmsPage>;
+  updateCmsPage(id: number, updates: Partial<CmsPage>): Promise<CmsPage | null>;
+  deleteCmsPage(id: number): Promise<boolean>;
+  
+  getCmsSections(pageId?: number): Promise<CmsSection[]>;
+  getCmsSection(id: number): Promise<CmsSection | undefined>;
+  createCmsSection(section: InsertCmsSection): Promise<CmsSection>;
+  updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null>;
+  deleteCmsSection(id: number): Promise<boolean>;
+  
+  getCmsMedia(): Promise<CmsMedia[]>;
+  getCmsMediaItem(id: number): Promise<CmsMedia | undefined>;
+  createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia>;
+  deleteCmsMedia(id: number): Promise<boolean>;
   
   // CMS Pages
   getCmsPages(): Promise<CmsPage[]>;
