@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 // Email service for password resets
 export class EmailService {
@@ -165,12 +166,10 @@ export class PasswordService {
   }
 
   static async hashPassword(password: string): Promise<string> {
-    const bcrypt = require('bcrypt');
     return await bcrypt.hash(password, 12);
   }
 
   static async verifyPassword(password: string, hash: string): Promise<boolean> {
-    const bcrypt = require('bcrypt');
     return await bcrypt.compare(password, hash);
   }
 }
