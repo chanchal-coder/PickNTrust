@@ -1,6 +1,7 @@
 // Script to create the admin user with enhanced security
 import { db } from './db';
 import { adminUsers } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
 async function createAdminUser() {
@@ -40,7 +41,7 @@ async function createAdminUser() {
             passwordHash,
             phone: '9898892198' // Add phone if missing
           })
-          .where({ email: 'sharmachanchalcvp@gmail.com' });
+          .where(eq(adminUsers.email, 'sharmachanchalcvp@gmail.com'));
         
         console.log('✅ Admin user updated successfully');
       } else {
