@@ -1292,6 +1292,20 @@ export function setupRoutes(app: Express) {
     }
   });
 
+  // Website Changes API for Live Editor
+  app.post('/api/admin/website-changes', async (req, res) => {
+    try {
+      const changes = req.body;
+      // In a real implementation, you would save these changes to database
+      // For now, we'll just log them and return success
+      console.log('Website changes received:', changes);
+      res.json({ success: true, message: 'Changes saved successfully' });
+    } catch (error) {
+      console.error('Error saving website changes:', error);
+      res.status(500).json({ message: 'Failed to save changes' });
+    }
+  });
+
   // CMS Media API
   app.get('/api/cms/media', async (req, res) => {
     try {

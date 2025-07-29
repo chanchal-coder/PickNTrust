@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
+import LiveWebsiteEditor from '@/components/live-website-editor';
 import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Settings } from 'lucide-react';
 
 const productSchema = z.object({
@@ -1166,6 +1167,16 @@ export default function AdminPage() {
                 }`}
               >
                 📝 Blog Posts
+              </button>
+              <button
+                onClick={() => setActiveTab('edit')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'edit'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                ✨ Edit
               </button>
             </div>
           </div>
@@ -2477,6 +2488,13 @@ Add as many affiliate links as needed!"
                 )}
               </div>
             </>
+          )}
+
+          {/* Visual Website Editor Tab */}
+          {activeTab === 'edit' && (
+            <div className="h-screen -mx-6 -my-6">
+              <LiveWebsiteEditor onClose={() => setActiveTab('products')} />
+            </div>
           )}
         </div>
       </div>
