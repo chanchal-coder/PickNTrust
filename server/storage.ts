@@ -5,6 +5,9 @@ import {
   categories,
   affiliateNetworks,
   adminUsers,
+  cmsPages,
+  cmsSections,
+  cmsMedia,
   type Product, 
   type InsertProduct,
   type BlogPost,
@@ -16,7 +19,13 @@ import {
   type AffiliateNetwork,
   type InsertAffiliateNetwork,
   type AdminUser,
-  type InsertAdminUser
+  type InsertAdminUser,
+  type CmsPage,
+  type CmsSection,
+  type CmsMedia,
+  type InsertCmsPage,
+  type InsertCmsSection,
+  type InsertCmsMedia
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -63,6 +72,26 @@ export interface IStorage {
   validateResetToken(token: string): Promise<AdminUser | undefined>;
   clearResetToken(id: number): Promise<boolean>;
   updateLastLogin(id: number): Promise<boolean>;
+  
+  // CMS Pages
+  getCmsPages(): Promise<CmsPage[]>;
+  getCmsPage(id: number): Promise<CmsPage | undefined>;
+  getCmsPageBySlug(slug: string): Promise<CmsPage | undefined>;
+  createCmsPage(page: InsertCmsPage): Promise<CmsPage>;
+  updateCmsPage(id: number, updates: Partial<CmsPage>): Promise<CmsPage | null>;
+  deleteCmsPage(id: number): Promise<boolean>;
+  
+  // CMS Sections
+  getCmsSections(pageId: number): Promise<CmsSection[]>;
+  createCmsSection(section: InsertCmsSection): Promise<CmsSection>;
+  updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null>;
+  deleteCmsSection(id: number): Promise<boolean>;
+  reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean>;
+  
+  // CMS Media
+  getCmsMedia(): Promise<CmsMedia[]>;
+  createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia>;
+  deleteCmsMedia(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1296,6 +1325,104 @@ export class DatabaseStorage implements IStorage {
       .update(adminUsers)
       .set({ lastLogin: new Date() })
       .where(eq(adminUsers.id, id));
+    return result.rowCount > 0;
+  }
+
+  // CMS Pages
+  async getCmsPages(): Promise<CmsPage[]> {
+    return await db.select().from(cmsPages).orderBy(cmsPages.title);
+  }
+
+  async getCmsPage(id: number): Promise<CmsPage | undefined> {
+    const [page] = await db.select().from(cmsPages).where(eq(cmsPages.id, id));
+    return page || undefined;
+  }
+
+  async getCmsPageBySlug(slug: string): Promise<CmsPage | undefined> {
+    const [page] = await db.select().from(cmsPages).where(eq(cmsPages.slug, slug));
+    return page || undefined;
+  }
+
+  async createCmsPage(page: InsertCmsPage): Promise<CmsPage> {
+    const [newPage] = await db
+      .insert(cmsPages)
+      .values(page)
+      .returning();
+    return newPage;
+  }
+
+  async updateCmsPage(id: number, updates: Partial<CmsPage>): Promise<CmsPage | null> {
+    const [updatedPage] = await db
+      .update(cmsPages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(cmsPages.id, id))
+      .returning();
+    return updatedPage || null;
+  }
+
+  async deleteCmsPage(id: number): Promise<boolean> {
+    const result = await db.delete(cmsPages).where(eq(cmsPages.id, id));
+    return result.rowCount > 0;
+  }
+
+  // CMS Sections
+  async getCmsSections(pageId: number): Promise<CmsSection[]> {
+    return await db.select().from(cmsSections)
+      .where(eq(cmsSections.pageId, pageId))
+      .orderBy(cmsSections.sortOrder);
+  }
+
+  async createCmsSection(section: InsertCmsSection): Promise<CmsSection> {
+    const [newSection] = await db
+      .insert(cmsSections)
+      .values(section)
+      .returning();
+    return newSection;
+  }
+
+  async updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null> {
+    const [updatedSection] = await db
+      .update(cmsSections)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(cmsSections.id, id))
+      .returning();
+    return updatedSection || null;
+  }
+
+  async deleteCmsSection(id: number): Promise<boolean> {
+    const result = await db.delete(cmsSections).where(eq(cmsSections.id, id));
+    return result.rowCount > 0;
+  }
+
+  async reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean> {
+    try {
+      for (let i = 0; i < sectionIds.length; i++) {
+        await db
+          .update(cmsSections)
+          .set({ sortOrder: i })
+          .where(eq(cmsSections.id, sectionIds[i]));
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // CMS Media
+  async getCmsMedia(): Promise<CmsMedia[]> {
+    return await db.select().from(cmsMedia).orderBy(desc(cmsMedia.createdAt));
+  }
+
+  async createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia> {
+    const [newMedia] = await db
+      .insert(cmsMedia)
+      .values(media)
+      .returning();
+    return newMedia;
+  }
+
+  async deleteCmsMedia(id: number): Promise<boolean> {
+    const result = await db.delete(cmsMedia).where(eq(cmsMedia.id, id));
     return result.rowCount > 0;
   }
 }

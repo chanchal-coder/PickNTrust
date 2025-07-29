@@ -7,8 +7,14 @@ import bcrypt from 'bcrypt';
 import { 
   insertProductSchema, 
   insertNewsletterSubscriberSchema,
+  insertCmsPageSchema,
+  insertCmsSectionSchema,
+  insertCmsMediaSchema,
   type Product,
-  type NewsletterSubscriber 
+  type NewsletterSubscriber,
+  type CmsPage,
+  type CmsSection,
+  type CmsMedia
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import * as crypto from 'crypto';
@@ -884,5 +890,246 @@ export function setupRoutes(app: Express, storage: IStorage) {
   }
 
   // All password management removed per user request - simple admin authentication only
+
+  // CMS Pages API
+  app.get('/api/cms/pages', async (req, res) => {
+    try {
+      const pages = await storage.getCmsPages();
+      res.json(pages);
+    } catch (error) {
+      console.error('Error fetching CMS pages:', error);
+      res.status(500).json({ message: 'Failed to fetch pages' });
+    }
+  });
+
+  app.get('/api/cms/pages/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const page = await storage.getCmsPage(id);
+      if (!page) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+      res.json(page);
+    } catch (error) {
+      console.error('Error fetching CMS page:', error);
+      res.status(500).json({ message: 'Failed to fetch page' });
+    }
+  });
+
+  app.get('/api/cms/pages/slug/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const page = await storage.getCmsPageBySlug(slug);
+      if (!page) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+      res.json(page);
+    } catch (error) {
+      console.error('Error fetching CMS page by slug:', error);
+      res.status(500).json({ message: 'Failed to fetch page' });
+    }
+  });
+
+  app.post('/api/cms/pages', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const pageData = insertCmsPageSchema.parse(req.body);
+      const page = await storage.createCmsPage(pageData);
+      res.json(page);
+    } catch (error) {
+      console.error('Error creating CMS page:', error);
+      res.status(500).json({ message: 'Failed to create page' });
+    }
+  });
+
+  app.put('/api/cms/pages/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      delete updates.password; // Remove password from updates
+      
+      const page = await storage.updateCmsPage(id, updates);
+      if (!page) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+      res.json(page);
+    } catch (error) {
+      console.error('Error updating CMS page:', error);
+      res.status(500).json({ message: 'Failed to update page' });
+    }
+  });
+
+  app.delete('/api/cms/pages/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCmsPage(id);
+      if (!success) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+      res.json({ message: 'Page deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting CMS page:', error);
+      res.status(500).json({ message: 'Failed to delete page' });
+    }
+  });
+
+  // CMS Sections API
+  app.get('/api/cms/pages/:pageId/sections', async (req, res) => {
+    try {
+      const pageId = parseInt(req.params.pageId);
+      const sections = await storage.getCmsSections(pageId);
+      res.json(sections);
+    } catch (error) {
+      console.error('Error fetching CMS sections:', error);
+      res.status(500).json({ message: 'Failed to fetch sections' });
+    }
+  });
+
+  app.post('/api/cms/sections', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const sectionData = insertCmsSectionSchema.parse(req.body);
+      const section = await storage.createCmsSection(sectionData);
+      res.json(section);
+    } catch (error) {
+      console.error('Error creating CMS section:', error);
+      res.status(500).json({ message: 'Failed to create section' });
+    }
+  });
+
+  app.put('/api/cms/sections/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      delete updates.password;
+      
+      const section = await storage.updateCmsSection(id, updates);
+      if (!section) {
+        return res.status(404).json({ message: 'Section not found' });
+      }
+      res.json(section);
+    } catch (error) {
+      console.error('Error updating CMS section:', error);
+      res.status(500).json({ message: 'Failed to update section' });
+    }
+  });
+
+  app.delete('/api/cms/sections/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCmsSection(id);
+      if (!success) {
+        return res.status(404).json({ message: 'Section not found' });
+      }
+      res.json({ message: 'Section deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting CMS section:', error);
+      res.status(500).json({ message: 'Failed to delete section' });
+    }
+  });
+
+  app.post('/api/cms/sections/reorder', async (req, res) => {
+    try {
+      const { password, pageId, sectionIds } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const success = await storage.reorderCmsSections(pageId, sectionIds);
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to reorder sections' });
+      }
+      res.json({ message: 'Sections reordered successfully' });
+    } catch (error) {
+      console.error('Error reordering CMS sections:', error);
+      res.status(500).json({ message: 'Failed to reorder sections' });
+    }
+  });
+
+  // CMS Media API
+  app.get('/api/cms/media', async (req, res) => {
+    try {
+      const media = await storage.getCmsMedia();
+      res.json(media);
+    } catch (error) {
+      console.error('Error fetching CMS media:', error);
+      res.status(500).json({ message: 'Failed to fetch media' });
+    }
+  });
+
+  app.post('/api/cms/media', upload.single('file'), async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      const mediaData = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        url: `/uploads/${req.file.filename}`,
+        alt: req.body.alt || ''
+      };
+      
+      const media = await storage.createCmsMedia(mediaData);
+      res.json(media);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      res.status(500).json({ message: 'Failed to upload media' });
+    }
+  });
+
+  app.delete('/api/cms/media/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password || !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCmsMedia(id);
+      if (!success) {
+        return res.status(404).json({ message: 'Media not found' });
+      }
+      res.json({ message: 'Media deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting media:', error);
+      res.status(500).json({ message: 'Failed to delete media' });
+    }
+  });
 }
 

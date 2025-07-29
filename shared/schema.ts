@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, varchar, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -140,4 +140,69 @@ export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 
 export const insertAffiliateNetworkSchema = createInsertSchema(affiliateNetworks).omit({
   id: true,
+});
+
+// CMS Pages
+export const cmsPages = pgTable('cms_pages', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  slug: text('slug').notNull().unique(),
+  metaDescription: text('meta_description'),
+  isPublished: boolean('is_published').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// CMS Sections
+export const cmsSections = pgTable('cms_sections', {
+  id: serial('id').primaryKey(),
+  pageId: integer('page_id').references(() => cmsPages.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'hero', 'text', 'image', 'video', 'banner', 'sticky_note'
+  title: text('title'),
+  content: text('content'),
+  imageUrl: text('image_url'),
+  videoUrl: text('video_url'),
+  videoType: text('video_type'), // 'youtube', 'instagram', 'facebook', 'direct'
+  backgroundColor: text('background_color'),
+  textColor: text('text_color'),
+  isVisible: boolean('is_visible').default(true),
+  sortOrder: integer('sort_order').default(0),
+  settings: text('settings'), // JSON string for additional section-specific settings
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// CMS Media Library
+export const cmsMedia = pgTable('cms_media', {
+  id: serial('id').primaryKey(),
+  filename: text('filename').notNull(),
+  originalName: text('original_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  url: text('url').notNull(),
+  alt: text('alt'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export type CmsPage = typeof cmsPages.$inferSelect;
+export type InsertCmsPage = typeof cmsPages.$inferInsert;
+export type CmsSection = typeof cmsSections.$inferSelect;
+export type InsertCmsSection = typeof cmsSections.$inferInsert;
+export type CmsMedia = typeof cmsMedia.$inferSelect;
+export type InsertCmsMedia = typeof cmsMedia.$inferInsert;
+
+// Zod schemas for validation
+export const insertCmsPageSchema = createInsertSchema(cmsPages).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export const insertCmsSectionSchema = createInsertSchema(cmsSections).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export const insertCmsMediaSchema = createInsertSchema(cmsMedia).omit({ 
+  id: true, 
+  createdAt: true 
 });
