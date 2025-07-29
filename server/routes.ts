@@ -16,14 +16,20 @@ import {
   type CmsSection,
   type CmsMedia
 } from "@shared/schema";
-import { IStorage } from "./storage";
+import { storage } from "./storage";
 import * as crypto from 'crypto';
 import { EmailService, SMSService, TokenService, PasswordService } from './auth-service.js';
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
-  // Secure authentication with direct comparison
-  return password === 'pickntrust2025';
+  try {
+    const admin = await storage.getAdminByEmail('sharmachanchalcvp@gmail.com');
+    if (!admin) return false;
+    return await bcrypt.compare(password, admin.passwordHash);
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
 }
 
 // Configure multer for file uploads
@@ -57,7 +63,7 @@ const upload = multer({
   }
 });
 
-export function setupRoutes(app: Express, storage: IStorage) {
+export function setupRoutes(app: Express) {
   // Serve uploaded files
   app.use('/uploads', express.static(uploadDir));
 
