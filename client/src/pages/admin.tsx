@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
-import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus } from 'lucide-react';
+import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Settings } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -986,8 +986,35 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* CMS Quick Access */}
+          <div className="mb-6">
+            <Card 
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-0"
+              onClick={() => window.open('/cms', '_blank')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">🎨 Content Management System</h3>
+                    <p className="text-cyan-100 text-sm mb-3">
+                      Manage all website content, pages, and media without coding
+                    </p>
+                    <div className="flex items-center gap-2 text-cyan-100">
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">Click to Open CMS</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Settings className="w-12 h-12 text-cyan-200 mb-2" />
+                    <div className="text-xs text-cyan-100">Dynamic Content</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Gamified Dashboard Stats */}
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <div className="grid md:grid-cols-5 gap-6 mb-8">
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white transition-transform hover:scale-105">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
