@@ -15,6 +15,7 @@ export default function Header() {
   const { toast } = useToast();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [showHeaderForgotPassword, setShowHeaderForgotPassword] = useState(false);
 
 
   // Fetch all categories dynamically
@@ -76,6 +77,7 @@ export default function Header() {
           newValue: 'active'
         }));
       } else {
+        setShowHeaderForgotPassword(true);
         toast({
           title: 'Invalid Password',
           description: 'Please enter the correct admin password.',
@@ -84,6 +86,7 @@ export default function Header() {
       }
     } catch (error) {
       console.error('Login error:', error);
+      setShowHeaderForgotPassword(true);
       toast({
         title: 'Login Failed',
         description: 'Unable to connect to server. Please try again.',
@@ -224,6 +227,7 @@ export default function Header() {
                     onClick={() => {
                       setShowAdminLogin(false);
                       setAdminPassword('');
+                      setShowHeaderForgotPassword(false);
                     }}
                     className="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
                   >
@@ -231,6 +235,26 @@ export default function Header() {
                   </button>
                 </div>
               </form>
+              
+              {/* Forgot Password Link - Only show after failed login */}
+              {showHeaderForgotPassword && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-700 dark:text-red-300 mb-2 text-center">
+                    Can't access your account?
+                  </p>
+                  <Link 
+                    href="/admin/forgot-password" 
+                    className="block text-center text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 underline font-medium"
+                    onClick={() => {
+                      setShowAdminLogin(false);
+                      setAdminPassword('');
+                      setShowHeaderForgotPassword(false);
+                    }}
+                  >
+                    Reset your password →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

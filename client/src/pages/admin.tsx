@@ -447,6 +447,7 @@ export default function AdminPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [productUrl, setProductUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [showNetworks, setShowNetworks] = useState(false);
@@ -892,6 +893,7 @@ export default function AdminPage() {
           newValue: 'active'
         }));
       } else {
+        setShowForgotPassword(true);
         toast({
           title: 'Access Denied',
           description: 'Incorrect password. Please try again.',
@@ -901,6 +903,7 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Login error:', error);
+      setShowForgotPassword(true);
       toast({
         title: 'Login Failed',
         description: 'Unable to connect to server. Please try again.',
@@ -951,12 +954,20 @@ export default function AdminPage() {
                 </Button>
               </form>
               
-              {/* Forgot Password Link */}
-              <div className="text-center mt-4">
-                <Link href="/admin/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">
-                  Forgot your password?
-                </Link>
-              </div>
+              {/* Forgot Password Link - Only show after failed login */}
+              {showForgotPassword && (
+                <div className="text-center mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-700 dark:text-red-300 mb-2">
+                    Can't access your account?
+                  </p>
+                  <Link 
+                    href="/admin/forgot-password" 
+                    className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 underline font-medium"
+                  >
+                    Reset your password →
+                  </Link>
+                </div>
+              )}
               
               <p className="text-xs text-gray-500 mt-4 text-center">
                 Only authorized users can access this panel

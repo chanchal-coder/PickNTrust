@@ -23,6 +23,7 @@ export default function CMSAdmin() {
   const [editingSection, setEditingSection] = useState<CmsSection | null>(null);
   const [adminPassword, setAdminPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showCmsForgotPassword, setShowCmsForgotPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -192,8 +193,12 @@ export default function CMSAdmin() {
                     if (data.success) {
                       setIsAuthenticated(true);
                       toast({ title: 'Authentication successful!' });
+                    } else {
+                      setShowCmsForgotPassword(true);
+                      toast({ title: 'Invalid password', variant: 'destructive' });
                     }
                   } catch (error) {
+                    setShowCmsForgotPassword(true);
                     toast({ title: 'Invalid password', variant: 'destructive' });
                   }
                 }}
@@ -201,6 +206,21 @@ export default function CMSAdmin() {
               >
                 Access CMS
               </Button>
+              
+              {/* Forgot Password Link - Only show after failed login */}
+              {showCmsForgotPassword && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-700 dark:text-red-300 mb-2 text-center">
+                    Can't access your account?
+                  </p>
+                  <a 
+                    href="/admin/forgot-password" 
+                    className="block text-center text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 underline font-medium"
+                  >
+                    Reset your password →
+                  </a>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
