@@ -1,267 +1,460 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { Link } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import Header from '@/components/header';
-import { forgotPasswordSchema, type ForgotPassword } from '@shared/schema';
-import { Mail, Phone, KeyRound, ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Key, Clock } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [step, setStep] = useState<'request' | 'verify' | 'reset'>('request');
+  const [method, setMethod] = useState<'email' | 'sms'>('email');
+  const [timeLeft, setTimeLeft] = useState(0);
   const { toast } = useToast();
-  const [resetSent, setResetSent] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<'email' | 'phone'>('email');
+  const [, setLocation] = useLocation();
 
-  const form = useForm<ForgotPassword>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      resetMethod: 'email',
-      email: '',
-      phone: '',
-    },
-  });
-
-  const forgotPasswordMutation = useMutation({
-    mutationFn: async (data: ForgotPassword) => {
+  // Request password reset
+  const requestResetMutation = useMutation({
+    mutationFn: async (data: { method: 'email' | 'sms'; contact: string }) => {
       const response = await fetch('/api/admin/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
-
+      
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to send reset request');
+        throw new Error(error.message || 'Failed to send reset code');
       }
-
+      
       return response.json();
     },
     onSuccess: (data) => {
-      setResetSent(true);
+      setResetToken(data.token);
+      setStep('verify');
+      setTimeLeft(300); // 5 minutes
+      
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
       toast({
-        title: 'Reset Request Sent Successfully! ✅',
-        description: data.message,
+        title: 'Reset Code Sent!',
+        description: method === 'email' 
+          ? `Check your email at ${email} for the reset code.`
+          : `Check your SMS at ${phone} for the reset code.`
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Reset Request Failed',
+        title: 'Failed to Send Reset Code',
         description: error.message,
-        variant: 'destructive',
+        variant: 'destructive'
       });
-    },
+    }
   });
 
-  const onSubmit = (data: ForgotPassword) => {
-    forgotPasswordMutation.mutate(data);
+  // Verify OTP
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (data: { token: string; otp: string }) => {
+      const response = await fetch('/api/admin/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Invalid OTP');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      setStep('reset');
+      toast({
+        title: 'OTP Verified!',
+        description: 'Now you can set your new password.'
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Invalid OTP',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Reset password
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { token: string; otp: string; newPassword: string }) => {
+      const response = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset password');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Password Reset Successful!',
+        description: 'You can now login with your new password.'
+      });
+      setTimeout(() => {
+        setLocation('/admin');
+      }, 2000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Password Reset Failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const handleRequestReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (method === 'email' && !email) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your email address.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    if (method === 'sms' && !phone) {
+      toast({
+        title: 'Phone Required',
+        description: 'Please enter your phone number.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    requestResetMutation.mutate({
+      method,
+      contact: method === 'email' ? email : phone
+    });
   };
 
-  // Watch for changes in reset method
-  const watchedMethod = form.watch('resetMethod');
-  
-  if (resetSent) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800">
-        <Header />
-        <div className="pt-20">
-          <div className="max-w-md mx-auto px-4 py-8">
-            <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-              <CardHeader className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Reset Link Sent!
-                </CardTitle>
-                <CardDescription>
-                  Check your {selectedMethod === 'email' ? 'email inbox' : 'phone messages'} for further instructions
-                </CardDescription>
-              </CardHeader>
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!otp) {
+      toast({
+        title: 'OTP Required',
+        description: 'Please enter the verification code.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    verifyOtpMutation.mutate({
+      token: resetToken,
+      otp
+    });
+  };
 
-              <CardContent className="space-y-6">
-                <div className="text-center space-y-4">
-                  {selectedMethod === 'email' ? (
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <Mail className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        We've sent a password reset link to your email address. 
-                        The link will expire in 24 hours.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <Phone className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        We've sent a 6-digit reset code to your phone number. 
-                        The code will expire in 15 minutes.
-                      </p>
-                    </div>
-                  )}
-                </div>
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: 'Password Required',
+        description: 'Please enter and confirm your new password.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Passwords Don\'t Match',
+        description: 'Please make sure both passwords are identical.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast({
+        title: 'Password Too Short',
+        description: 'Password must be at least 8 characters long.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    resetPasswordMutation.mutate({
+      token: resetToken,
+      otp,
+      newPassword
+    });
+  };
 
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-800 dark:text-gray-200">What's next?</h4>
-                  <ol className="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
-                    <li>Check your {selectedMethod === 'email' ? 'email inbox (and spam folder)' : 'phone messages'}</li>
-                    <li>{selectedMethod === 'email' ? 'Click the reset link' : 'Enter the 6-digit code'}</li>
-                    <li>Create your new password</li>
-                    <li>Login with your new credentials</li>
-                  </ol>
-                </div>
-
-                <Button asChild className="w-full" variant="outline">
-                  <Link href="/admin">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Login
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800">
-      <Header />
-      <div className="pt-20">
-        <div className="max-w-md mx-auto px-4 py-8">
-          <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-            <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center">
-                <KeyRound className="w-8 h-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                Reset Password
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Link 
+                href="/admin" 
+                className="absolute left-4 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <CardTitle className="text-2xl text-navy dark:text-blue-400">
+                Reset Admin Password
               </CardTitle>
-              <CardDescription>
-                Choose how you'd like to reset your admin password
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Reset Method Selection */}
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Choose Reset Method</Label>
-                  <RadioGroup
-                    value={watchedMethod}
-                    onValueChange={(value) => {
-                      form.setValue('resetMethod', value as 'email' | 'phone');
-                      setSelectedMethod(value as 'email' | 'phone');
-                      // Clear the other field when switching methods
-                      if (value === 'email') {
-                        form.setValue('phone', '');
-                      } else {
-                        form.setValue('email', '');
-                      }
-                    }}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <RadioGroupItem value="email" id="email-method" />
-                      <Label htmlFor="email-method" className="flex items-center gap-2 cursor-pointer flex-1">
-                        <Mail className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <p className="font-medium">Email Reset</p>
-                          <p className="text-sm text-gray-500">Get a reset link via email</p>
-                        </div>
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <RadioGroupItem value="phone" id="phone-method" />
-                      <Label htmlFor="phone-method" className="flex items-center gap-2 cursor-pointer flex-1">
-                        <Phone className="w-5 h-5 text-green-600" />
-                        <div>
-                          <p className="font-medium">SMS Reset</p>
-                          <p className="text-sm text-gray-500">Get a code via SMS</p>
-                        </div>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {/* Email Input (shown when email method selected) */}
-                {watchedMethod === 'email' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center gap-2">
+            </div>
+            <CardDescription>
+              {step === 'request' && 'Choose how you want to receive your reset code'}
+              {step === 'verify' && 'Enter the verification code sent to you'}
+              {step === 'reset' && 'Create your new password'}
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            {step === 'request' && (
+              <form onSubmit={handleRequestReset} className="space-y-6">
+                <Tabs value={method} onValueChange={(value) => setMethod(value as 'email' | 'sms')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="email" className="flex items-center gap-2">
                       <Mail className="w-4 h-4" />
-                      Admin Email Address
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      {...form.register('email')}
-                      placeholder="sharmachanchalcvp@gmail.com"
-                      className="bg-white dark:bg-gray-700"
-                    />
-                    {form.formState.errors.email && (
-                      <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Phone Input (shown when phone method selected) */}
-                {watchedMethod === 'phone' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      Email
+                    </TabsTrigger>
+                    <TabsTrigger value="sms" className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
-                      Admin Phone Number
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      {...form.register('phone')}
-                      placeholder="9898892198"
-                      className="bg-white dark:bg-gray-700"
-                    />
-                    {form.formState.errors.phone && (
-                      <p className="text-sm text-red-600">{form.formState.errors.phone.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={forgotPasswordMutation.isPending}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold py-3 rounded-lg transition-all duration-200"
+                      SMS
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="email" className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="email">Admin Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="sharmachanchalcvp@gmail.com"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter the admin email address associated with your account
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="sms" className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="phone">Admin Phone Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+91 9898892198"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter the admin phone number with country code
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-bright-blue hover:bg-navy"
+                  disabled={requestResetMutation.isPending}
                 >
-                  {forgotPasswordMutation.isPending 
-                    ? 'Sending Reset Request...' 
-                    : `Send Reset ${watchedMethod === 'email' ? 'Link' : 'Code'}`
-                  }
-                </Button>
-
-                {/* Back to Login */}
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/admin">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Login
-                  </Link>
+                  {requestResetMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      {method === 'email' ? <Mail className="w-4 h-4 mr-2" /> : <Phone className="w-4 h-4 mr-2" />}
+                      Send Reset Code
+                    </>
+                  )}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            )}
 
-          {/* Help Text */}
-          <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-            <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2">Need Help?</h4>
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              If you don't receive the reset {watchedMethod === 'email' ? 'email' : 'SMS'} within a few minutes, 
-              please check your {watchedMethod === 'email' ? 'spam folder or' : ''} contact the system administrator.
-            </p>
-          </div>
-        </div>
+            {step === 'verify' && (
+              <form onSubmit={handleVerifyOtp} className="space-y-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-300">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Code expires in {formatTime(timeLeft)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="otp">Verification Code</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit code"
+                    className="text-center text-2xl tracking-widest"
+                    maxLength={6}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Check your {method === 'email' ? 'email inbox' : 'SMS messages'} for the verification code
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-bright-blue hover:bg-navy"
+                    disabled={verifyOtpMutation.isPending || otp.length !== 6}
+                  >
+                    {verifyOtpMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="w-4 h-4 mr-2" />
+                        Verify Code
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      if (timeLeft === 0) {
+                        requestResetMutation.mutate({
+                          method,
+                          contact: method === 'email' ? email : phone
+                        });
+                      }
+                    }}
+                    disabled={timeLeft > 0 || requestResetMutation.isPending}
+                  >
+                    {timeLeft > 0 ? 'Resend Available After Timeout' : 'Resend Code'}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {step === 'reset' && (
+              <form onSubmit={handleResetPassword} className="space-y-6">
+                <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    ✓ Identity verified. You can now set a new password.
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    required
+                    minLength={8}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Must be at least 8 characters long
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    required
+                    minLength={8}
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  disabled={resetPasswordMutation.isPending}
+                >
+                  {resetPasswordMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Resetting Password...
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-4 h-4 mr-2" />
+                      Reset Password
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
+            
+            <div className="mt-6 text-center">
+              <Link 
+                href="/admin" 
+                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+              >
+                ← Back to Admin Login
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
