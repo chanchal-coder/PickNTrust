@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
-import FastVisualEditor from '@/components/fast-visual-editor';
+import TrueVisualEditor from '@/components/true-visual-editor';
 import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Settings } from 'lucide-react';
 
 const productSchema = z.object({
@@ -2493,7 +2493,7 @@ Add as many affiliate links as needed!"
           {/* Visual Website Editor Tab */}
           {activeTab === 'edit' && (
             <div className="h-screen -mx-6 -my-6">
-              <FastVisualEditor onClose={() => setActiveTab('products')} />
+              <TrueVisualEditor onClose={() => setActiveTab('products')} />
             </div>
           )}
         </div>
