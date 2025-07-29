@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import * as crypto from 'crypto';
+import { EmailService, SMSService, TokenService, PasswordService } from './auth-service.js';
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
@@ -889,7 +890,196 @@ export function setupRoutes(app: Express, storage: IStorage) {
     return 1; // Default to Amazon Associates
   }
 
-  // All password management removed per user request - simple admin authentication only
+  // Enhanced Admin Authentication with Password Management
+  
+  // Initialize auth services
+  const emailService = new EmailService();
+  const smsService = new SMSService();
+  
+  // Change Password API
+  app.post('/api/admin/change-password', async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current password and new password are required' });
+      }
+      
+      // Get admin user
+      const admin = await storage.getAdminByEmail('sharmachanchalcvp@gmail.com');
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin user not found' });
+      }
+      
+      // Verify current password
+      const isCurrentPasswordValid = await PasswordService.verifyPassword(currentPassword, admin.passwordHash);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+      
+      // Validate new password strength
+      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message });
+      }
+      
+      // Hash new password
+      const newPasswordHash = await PasswordService.hashPassword(newPassword);
+      
+      // Update password in storage
+      const updated = await storage.updateAdminPassword(admin.id, newPasswordHash);
+      if (!updated) {
+        return res.status(500).json({ message: 'Failed to update password' });
+      }
+      
+      // Update last login
+      await storage.updateLastLogin(admin.id);
+      
+      res.json({ 
+        message: 'Password changed successfully',
+        success: true 
+      });
+      
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Forgot Password API
+  app.post('/api/admin/forgot-password', async (req, res) => {
+    try {
+      const { resetMethod, email, phone } = req.body;
+      
+      if (!resetMethod || (resetMethod === 'email' && !email) || (resetMethod === 'phone' && !phone)) {
+        return res.status(400).json({ message: 'Please provide valid reset method and contact information' });
+      }
+      
+      // Get admin user
+      const admin = await storage.getAdminByEmail('sharmachanchalcvp@gmail.com');
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin user not found' });
+      }
+      
+      if (resetMethod === 'email') {
+        // Email reset
+        const resetToken = TokenService.generateResetToken();
+        const tokenExpiry = TokenService.getTokenExpiry();
+        
+        // Save reset token
+        await storage.setResetToken(admin.email, resetToken, tokenExpiry);
+        
+        // Send email
+        const siteDomain = req.get('host') || 'localhost:5000';
+        const emailSent = await emailService.sendPasswordResetEmail(admin.email, resetToken, siteDomain);
+        
+        if (!emailSent) {
+          return res.status(500).json({ message: 'Failed to send reset email' });
+        }
+        
+        res.json({ 
+          message: 'Password reset link has been sent to your email address. Please check your inbox.',
+          success: true 
+        });
+        
+      } else if (resetMethod === 'phone') {
+        // SMS reset
+        const resetCode = TokenService.generateResetCode();
+        const codeExpiry = TokenService.getCodeExpiry();
+        
+        // Save reset code as token
+        await storage.setResetToken(admin.email, resetCode, codeExpiry);
+        
+        // Send SMS
+        const smsSent = await smsService.sendPasswordResetSMS(admin.phone || '9898892198', resetCode);
+        
+        if (!smsSent) {
+          return res.status(500).json({ message: 'Failed to send reset SMS' });
+        }
+        
+        res.json({ 
+          message: 'A 6-digit reset code has been sent to your phone number. Please check your messages.',
+          success: true 
+        });
+      }
+      
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Verify Reset Token API
+  app.post('/api/admin/verify-reset-token', async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Reset token is required' });
+      }
+      
+      const admin = await storage.validateResetToken(token);
+      if (!admin) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
+      }
+      
+      res.json({ 
+        message: 'Reset token is valid',
+        success: true 
+      });
+      
+    } catch (error) {
+      console.error('Verify token error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Reset Password API
+  app.post('/api/admin/reset-password', async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Reset token and new password are required' });
+      }
+      
+      // Validate token
+      const admin = await storage.validateResetToken(token);
+      if (!admin) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
+      }
+      
+      // Validate new password strength
+      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message });
+      }
+      
+      // Hash new password
+      const newPasswordHash = await PasswordService.hashPassword(newPassword);
+      
+      // Update password
+      const updated = await storage.updateAdminPassword(admin.id, newPasswordHash);
+      if (!updated) {
+        return res.status(500).json({ message: 'Failed to update password' });
+      }
+      
+      // Clear reset token
+      await storage.clearResetToken(admin.id);
+      
+      // Update last login
+      await storage.updateLastLogin(admin.id);
+      
+      res.json({ 
+        message: 'Password reset successful. You can now login with your new password.',
+        success: true 
+      });
+      
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
   // CMS Pages API
   app.get('/api/cms/pages', async (req, res) => {

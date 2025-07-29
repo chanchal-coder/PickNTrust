@@ -65,6 +65,7 @@ export const adminUsers = pgTable("admin_users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
+  phone: text("phone"),
   passwordHash: text("password_hash").notNull(),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
@@ -108,7 +109,20 @@ export const changePasswordSchema = z.object({
 
 // Forgot password schema
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  resetMethod: z.enum(['email', 'phone'], { required_error: 'Please select a reset method' }),
+  email: z.string().email('Please enter a valid email address').optional(),
+  phone: z.string().min(10, 'Please enter a valid phone number').optional(),
+}).refine((data) => {
+  if (data.resetMethod === 'email' && !data.email) {
+    return false;
+  }
+  if (data.resetMethod === 'phone' && !data.phone) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Please provide the required contact information',
+  path: ['email'],
 });
 
 // Reset password schema

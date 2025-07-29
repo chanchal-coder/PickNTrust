@@ -950,6 +950,14 @@ export default function AdminPage() {
                   Access Admin Panel
                 </Button>
               </form>
+              
+              {/* Forgot Password Link */}
+              <div className="text-center mt-4">
+                <Link href="/admin/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                  Forgot your password?
+                </Link>
+              </div>
+              
               <p className="text-xs text-gray-500 mt-4 text-center">
                 Only authorized users can access this panel
               </p>
@@ -975,6 +983,12 @@ export default function AdminPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Link 
+                href="/admin/change-password"
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 text-sm font-medium flex items-center gap-2"
+              >
+                🔒 Change Password
+              </Link>
               <Button 
                 onClick={handleLogout}
                 variant="outline"

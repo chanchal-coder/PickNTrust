@@ -914,7 +914,8 @@ Remember: The best gadget is the one you'll actually use consistently!`,
     // Seed default admin user
     const defaultAdmin: InsertAdminUser = {
       username: "admin",
-      email: "admin@pickntrust.com",
+      email: "sharmachanchalcvp@gmail.com",
+      phone: "9898892198",
       passwordHash: "7cc8b0731d6b4463bd7d280639fd1ae374c7a1f1374952ac8eefa8362908f68cc7e103900c4de289b875502f273ad9441b901d822d05ac4c1cf8f8e0d584a878", // hashed "pickntrust2025"
       isActive: true
     };
@@ -1443,6 +1444,76 @@ export class DatabaseStorage implements IStorage {
   async deleteCmsMedia(id: number): Promise<boolean> {
     const result = await db.delete(cmsMedia).where(eq(cmsMedia.id, id));
     return result.rowCount > 0;
+  }
+
+  // Admin authentication methods for password management
+  async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
+    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
+    return admin;
+  }
+
+  async updateAdminPassword(id: number, passwordHash: string): Promise<boolean> {
+    try {
+      await db
+        .update(adminUsers)
+        .set({ passwordHash })
+        .where(eq(adminUsers.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error updating admin password:', error);
+      return false;
+    }
+  }
+
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    try {
+      await db
+        .update(adminUsers)
+        .set({ resetToken: token, resetTokenExpiry: expiry })
+        .where(eq(adminUsers.email, email));
+      return true;
+    } catch (error) {
+      console.error('Error setting reset token:', error);
+      return false;
+    }
+  }
+
+  async validateResetToken(token: string): Promise<AdminUser | undefined> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.resetToken, token));
+    
+    if (admin && admin.resetTokenExpiry && admin.resetTokenExpiry > new Date()) {
+      return admin;
+    }
+    return undefined;
+  }
+
+  async clearResetToken(id: number): Promise<boolean> {
+    try {
+      await db
+        .update(adminUsers)
+        .set({ resetToken: null, resetTokenExpiry: null })
+        .where(eq(adminUsers.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error clearing reset token:', error);
+      return false;
+    }
+  }
+
+  async updateLastLogin(id: number): Promise<boolean> {
+    try {
+      await db
+        .update(adminUsers)
+        .set({ lastLogin: new Date() })
+        .where(eq(adminUsers.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error updating last login:', error);
+      return false;
+    }
   }
 }
 

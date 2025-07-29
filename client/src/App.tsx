@@ -9,6 +9,9 @@ import Home from "@/pages/home";
 import CategoryPage from "@/pages/category";
 import AdminPage from "@/pages/admin";
 import CMSAdmin from "@/pages/cms-admin";
+import ChangePasswordPage from "@/pages/change-password";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import WishlistPage from "@/pages/wishlist";
 import AffiliateTrackerPage from "@/pages/affiliate-tracker";
 import AffiliateDisclosurePage from "@/pages/affiliate-disclosure";
@@ -48,6 +51,9 @@ function AppRouter() {
         <Route path="/" component={Home} />
         <Route path="/category/:category" component={CategoryPage} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/admin/change-password" component={ChangePasswordPage} />
+        <Route path="/admin/forgot-password" component={ForgotPasswordPage} />
+        <Route path="/admin/reset-password/:token" component={ResetPasswordPage} />
         <Route path="/cms" component={CMSAdmin} />
         <Route path="/wishlist" component={WishlistPage} />
         <Route path="/affiliate-tracker" component={AffiliateTrackerPage} />
