@@ -1292,17 +1292,76 @@ export function setupRoutes(app: Express) {
     }
   });
 
-  // Website Changes API for Live Editor
+  // Website Changes API for Visual Editor
   app.post('/api/admin/website-changes', async (req, res) => {
     try {
       const changes = req.body;
-      // In a real implementation, you would save these changes to database
-      // For now, we'll just log them and return success
-      console.log('Website changes received:', changes);
-      res.json({ success: true, message: 'Changes saved successfully' });
+      const { type, element, elementId, page, timestamp } = changes;
+      
+      // Handle different types of changes
+      switch (type) {
+        case 'add_element':
+          console.log(`Adding ${element.type} element to ${page}:`, element);
+          // In production, save element to database
+          break;
+          
+        case 'update_element':
+          console.log(`Updating element ${elementId} on ${page}:`, element);
+          // In production, update element in database
+          break;
+          
+        case 'delete_element':
+          console.log(`Deleting element ${elementId} from ${page}`);
+          // In production, remove element from database
+          break;
+          
+        case 'create_page':
+          console.log(`Creating new page:`, changes);
+          // In production, create new page in database
+          break;
+          
+        default:
+          console.log('Website changes received:', changes);
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Changes saved successfully',
+        timestamp: new Date().toISOString() 
+      });
     } catch (error) {
       console.error('Error saving website changes:', error);
       res.status(500).json({ message: 'Failed to save changes' });
+    }
+  });
+
+  // Get visual editor data
+  app.get('/api/admin/visual-editor/data', async (req, res) => {
+    try {
+      const data = {
+        pages: [
+          { id: 'home', name: 'Homepage', url: '/', isActive: true },
+          { id: 'privacy', name: 'Privacy Policy', url: '/privacy', isActive: false },
+          { id: 'terms', name: 'Terms of Service', url: '/terms', isActive: false },
+          { id: 'about', name: 'About Us', url: '/about', isActive: false }
+        ],
+        elements: {
+          '/': [], // Homepage elements
+          '/privacy': [], // Privacy page elements
+          '/terms': [], // Terms page elements
+          '/about': [] // About page elements
+        },
+        stats: {
+          totalPages: 4,
+          totalElements: 0,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+      
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching visual editor data:', error);
+      res.status(500).json({ message: 'Failed to fetch editor data' });
     }
   });
 
