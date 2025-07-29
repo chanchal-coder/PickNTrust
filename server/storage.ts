@@ -30,6 +30,33 @@ import {
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
+// Storage for reset tokens
+class ResetTokenStorage {
+  private tokens = new Map<string, { otp: string; email: string; expiry: Date }>();
+
+  setToken(email: string, token: string, otp: string, expiry: Date): void {
+    this.tokens.set(token, { otp, email, expiry });
+  }
+
+  verifyToken(token: string, otp: string): boolean {
+    const tokenData = this.tokens.get(token);
+    if (!tokenData) return false;
+    
+    if (tokenData.expiry < new Date()) {
+      this.tokens.delete(token);
+      return false;
+    }
+    
+    return tokenData.otp === otp;
+  }
+
+  clearToken(token: string): void {
+    this.tokens.delete(token);
+  }
+}
+
+const resetTokenStorage = new ResetTokenStorage();
+
 export interface IStorage {
   // Products
   getProducts(): Promise<Product[]>;
@@ -68,9 +95,9 @@ export interface IStorage {
   getAdminById(id: number): Promise<AdminUser | undefined>;
   createAdmin(admin: InsertAdminUser): Promise<AdminUser>;
   updateAdminPassword(id: number, passwordHash: string): Promise<boolean>;
-  setResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
-  validateResetToken(token: string): Promise<AdminUser | undefined>;
-  clearResetToken(id: number): Promise<boolean>;
+  setResetToken(email: string, token: string, otp: string, expiry: Date): Promise<boolean>;
+  verifyResetToken(token: string, otp: string): Promise<boolean>;
+  clearResetToken(token: string): Promise<boolean>;
   updateLastLogin(id: number): Promise<boolean>;
   
   // CMS Management
@@ -1113,30 +1140,17 @@ Remember: The best gadget is the one you'll actually use consistently!`,
     return true;
   }
 
-  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
-    const admin = await this.getAdminByEmail(email);
-    if (!admin) return false;
-    
-    const updatedAdmin = { ...admin, resetToken: token, resetTokenExpiry: expiry };
-    this.adminUsers.set(admin.id, updatedAdmin);
+  async setResetToken(email: string, token: string, otp: string, expiry: Date): Promise<boolean> {
+    resetTokenStorage.setToken(email, token, otp, expiry);
     return true;
   }
 
-  async validateResetToken(token: string): Promise<AdminUser | undefined> {
-    for (const admin of this.adminUsers.values()) {
-      if (admin.resetToken === token && admin.resetTokenExpiry && admin.resetTokenExpiry > new Date()) {
-        return admin;
-      }
-    }
-    return undefined;
+  async verifyResetToken(token: string, otp: string): Promise<boolean> {
+    return resetTokenStorage.verifyToken(token, otp);
   }
 
-  async clearResetToken(id: number): Promise<boolean> {
-    const admin = this.adminUsers.get(id);
-    if (!admin) return false;
-    
-    const updatedAdmin = { ...admin, resetToken: null, resetTokenExpiry: null };
-    this.adminUsers.set(id, updatedAdmin);
+  async clearResetToken(token: string): Promise<boolean> {
+    resetTokenStorage.clearToken(token);
     return true;
   }
 
@@ -1292,33 +1306,18 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
-    const result = await db
-      .update(adminUsers)
-      .set({ resetToken: token, resetTokenExpiry: expiry })
-      .where(eq(adminUsers.email, email));
-    return result.rowCount > 0;
+  async setResetToken(email: string, token: string, otp: string, expiry: Date): Promise<boolean> {
+    resetTokenStorage.setToken(email, token, otp, expiry);
+    return true;
   }
 
-  async validateResetToken(token: string): Promise<AdminUser | undefined> {
-    const [admin] = await db
-      .select()
-      .from(adminUsers)
-      .where(eq(adminUsers.resetToken, token));
-    
-    if (!admin || !admin.resetTokenExpiry || admin.resetTokenExpiry < new Date()) {
-      return undefined;
-    }
-    
-    return admin;
+  async verifyResetToken(token: string, otp: string): Promise<boolean> {
+    return resetTokenStorage.verifyToken(token, otp);
   }
 
-  async clearResetToken(id: number): Promise<boolean> {
-    const result = await db
-      .update(adminUsers)
-      .set({ resetToken: null, resetTokenExpiry: null })
-      .where(eq(adminUsers.id, id));
-    return result.rowCount > 0;
+  async clearResetToken(token: string): Promise<boolean> {
+    resetTokenStorage.clearToken(token);
+    return true;
   }
 
   async updateLastLogin(id: number): Promise<boolean> {

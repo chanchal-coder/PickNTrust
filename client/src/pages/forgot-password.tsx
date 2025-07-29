@@ -17,14 +17,14 @@ export default function ForgotPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [step, setStep] = useState<'request' | 'verify' | 'reset'>('request');
-  const [method, setMethod] = useState<'email' | 'sms'>('email');
+  const [method] = useState<'email'>('email');
   const [timeLeft, setTimeLeft] = useState(0);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
   // Request password reset
   const requestResetMutation = useMutation({
-    mutationFn: async (data: { method: 'email' | 'sms'; contact: string }) => {
+    mutationFn: async (data: { method: 'email'; contact: string }) => {
       const response = await fetch('/api/admin/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,9 +56,7 @@ export default function ForgotPasswordPage() {
       
       toast({
         title: 'Reset Code Sent!',
-        description: method === 'email' 
-          ? `Check your email at ${email} for the reset code.`
-          : `Check your SMS at ${phone} for the reset code.`
+        description: `Check your email at ${email} for the reset code.`
       });
     },
     onError: (error: Error) => {
@@ -139,7 +137,7 @@ export default function ForgotPasswordPage() {
   const handleRequestReset = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (method === 'email' && !email) {
+    if (!email) {
       toast({
         title: 'Email Required',
         description: 'Please enter your email address.',
@@ -148,18 +146,9 @@ export default function ForgotPasswordPage() {
       return;
     }
     
-    if (method === 'sms' && !phone) {
-      toast({
-        title: 'Phone Required',
-        description: 'Please enter your phone number.',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
     requestResetMutation.mutate({
-      method,
-      contact: method === 'email' ? email : phone
+      method: 'email',
+      contact: email
     });
   };
 
@@ -241,8 +230,8 @@ export default function ForgotPasswordPage() {
               </CardTitle>
             </div>
             <CardDescription>
-              {step === 'request' && 'Choose how you want to receive your reset code'}
-              {step === 'verify' && 'Enter the verification code sent to you'}
+              {step === 'request' && 'Enter your admin email to receive a reset code'}
+              {step === 'verify' && 'Enter the verification code sent to your email'}
               {step === 'reset' && 'Create your new password'}
             </CardDescription>
           </CardHeader>
@@ -250,56 +239,20 @@ export default function ForgotPasswordPage() {
           <CardContent>
             {step === 'request' && (
               <form onSubmit={handleRequestReset} className="space-y-6">
-                <Tabs value={method} onValueChange={(value) => setMethod(value as 'email' | 'sms')}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="email" className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </TabsTrigger>
-                    <TabsTrigger value="sms" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      SMS
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="email" className="mt-4">
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="email">Admin Email Address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="sharmachanchalcvp@gmail.com"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Enter the admin email address associated with your account
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="sms" className="mt-4">
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="phone">Admin Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="+91 9898892198"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Enter the admin phone number with country code
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <div>
+                  <Label htmlFor="email">Admin Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="sharmachanchalcvp@gmail.com"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the admin email address associated with your account
+                  </p>
+                </div>
                 
                 <Button 
                   type="submit" 
@@ -313,7 +266,7 @@ export default function ForgotPasswordPage() {
                     </>
                   ) : (
                     <>
-                      {method === 'email' ? <Mail className="w-4 h-4 mr-2" /> : <Phone className="w-4 h-4 mr-2" />}
+                      <Mail className="w-4 h-4 mr-2" />
                       Send Reset Code
                     </>
                   )}
@@ -345,7 +298,7 @@ export default function ForgotPasswordPage() {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Check your {method === 'email' ? 'email inbox' : 'SMS messages'} for the verification code
+                    Check your email inbox for the verification code
                   </p>
                 </div>
                 
@@ -375,8 +328,8 @@ export default function ForgotPasswordPage() {
                     onClick={() => {
                       if (timeLeft === 0) {
                         requestResetMutation.mutate({
-                          method,
-                          contact: method === 'email' ? email : phone
+                          method: 'email',
+                          contact: email
                         });
                       }
                     }}

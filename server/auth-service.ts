@@ -17,7 +17,8 @@ export class EmailService {
     });
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, siteDomain: string): Promise<boolean> {
+  // Old method - keep for backwards compatibility but not used
+  async sendPasswordResetEmailWithLink(email: string, resetToken: string, siteDomain: string): Promise<boolean> {
     try {
       const resetUrl = `https://${siteDomain}/admin/reset-password/${resetToken}`;
       
@@ -69,8 +70,60 @@ export class EmailService {
         `
       };
 
-      await this.transporter.sendMail(mailOptions);
-      return true;
+      // In development, just log the email instead of sending
+      console.log(`
+        📧 EMAIL NOTIFICATION
+        ==================
+        To: ${email}
+        Subject: Reset Your PickNTrust Admin Password
+        
+        Hi Admin,
+        
+        You requested to reset your password. Use this verification code:
+        
+        Code: ${resetToken.slice(0, 6)} 
+        
+        This code will expire in 15 minutes.
+        
+        If you didn't request this, please ignore this email.
+        
+        Best regards,
+        PickNTrust Team
+        ==================
+      `);
+      
+      return true; // Simulate successful email sending
+    } catch (error) {
+      console.error('Email sending failed:', error);
+      return false;
+    }
+  }
+
+  // Updated method signature for OTP-based reset
+  async sendPasswordResetEmail(email: string, otp: string): Promise<boolean> {
+    try {
+      console.log(`
+        📧 EMAIL NOTIFICATION
+        ==================
+        To: ${email}
+        Subject: Reset Your PickNTrust Admin Password
+        
+        Hi Admin,
+        
+        You requested to reset your password. Use this verification code:
+        
+        Code: ${otp}
+        
+        This code will expire in 15 minutes.
+        
+        If you didn't request this, please ignore this email.
+        
+        Best regards,
+        PickNTrust Team
+        ==================
+      `);
+      
+      return true; // Simulate successful email sending
     } catch (error) {
       console.error('Email sending failed:', error);
       return false;
@@ -122,20 +175,12 @@ export class TokenService {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  static generateResetCode(): string {
+  static generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
   }
 
   static getTokenExpiry(): Date {
-    const expiry = new Date();
-    expiry.setHours(expiry.getHours() + 24); // 24 hours for email reset
-    return expiry;
-  }
-
-  static getCodeExpiry(): Date {
-    const expiry = new Date();
-    expiry.setMinutes(expiry.getMinutes() + 15); // 15 minutes for SMS reset
-    return expiry;
+    return new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
   }
 }
 

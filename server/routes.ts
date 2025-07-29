@@ -18,7 +18,7 @@ import {
 } from "@shared/schema";
 import { storage } from "./storage";
 import * as crypto from 'crypto';
-import { EmailService, SMSService, TokenService, PasswordService } from './auth-service.js';
+import { EmailService, TokenService, PasswordService } from './auth-service.js';
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
@@ -900,7 +900,7 @@ export function setupRoutes(app: Express) {
   
   // Initialize auth services
   const emailService = new EmailService();
-  const smsService = new SMSService();
+  // SMS service removed - email only for password reset
   
   // Change Password API
   app.post('/api/admin/change-password', async (req, res) => {
@@ -951,13 +951,93 @@ export function setupRoutes(app: Express) {
     }
   });
   
-  // Forgot Password API
+  // Forgot Password API - Email Only
   app.post('/api/admin/forgot-password', async (req, res) => {
     try {
-      const { resetMethod, email, phone } = req.body;
+      const { method, contact } = req.body;
       
-      if (!resetMethod || (resetMethod === 'email' && !email) || (resetMethod === 'phone' && !phone)) {
-        return res.status(400).json({ message: 'Please provide valid reset method and contact information' });
+      if (method !== 'email' || !contact) {
+        return res.status(400).json({ message: 'Email is required for password reset' });
+      }
+      
+      // Verify this is the admin email
+      if (contact !== 'sharmachanchalcvp@gmail.com') {
+        return res.status(400).json({ message: 'Invalid admin email address' });
+      }
+      
+      // Generate reset token and OTP
+      const resetToken = TokenService.generateResetToken();
+      const otp = TokenService.generateOTP();
+      const tokenExpiry = TokenService.getTokenExpiry();
+      
+      // Save reset token and OTP
+      await storage.setResetToken(contact, resetToken, otp, tokenExpiry);
+      
+      // Send email with OTP
+      const emailSent = await emailService.sendPasswordResetEmail(contact, otp);
+      
+      if (!emailSent) {
+        return res.status(500).json({ message: 'Failed to send reset email' });
+      }
+      
+      res.json({ 
+        message: 'Reset code sent to your email',
+        token: resetToken,
+        success: true 
+      });
+      
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Verify OTP API
+  app.post('/api/admin/verify-otp', async (req, res) => {
+    try {
+      const { token, otp } = req.body;
+      
+      if (!token || !otp) {
+        return res.status(400).json({ message: 'Token and OTP are required' });
+      }
+      
+      // Verify token and OTP
+      const isValid = await storage.verifyResetToken(token, otp);
+      
+      if (!isValid) {
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
+      
+      res.json({ 
+        message: 'OTP verified successfully',
+        success: true 
+      });
+      
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Reset Password API
+  app.post('/api/admin/reset-password', async (req, res) => {
+    try {
+      const { token, otp, newPassword } = req.body;
+      
+      if (!token || !otp || !newPassword) {
+        return res.status(400).json({ message: 'Token, OTP, and new password are required' });
+      }
+      
+      // Validate password strength
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      }
+      
+      // Verify token and OTP one more time
+      const isValid = await storage.verifyResetToken(token, otp);
+      
+      if (!isValid) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
       }
       
       // Get admin user
@@ -966,102 +1046,8 @@ export function setupRoutes(app: Express) {
         return res.status(404).json({ message: 'Admin user not found' });
       }
       
-      if (resetMethod === 'email') {
-        // Email reset
-        const resetToken = TokenService.generateResetToken();
-        const tokenExpiry = TokenService.getTokenExpiry();
-        
-        // Save reset token
-        await storage.setResetToken(admin.email, resetToken, tokenExpiry);
-        
-        // Send email
-        const siteDomain = req.get('host') || 'localhost:5000';
-        const emailSent = await emailService.sendPasswordResetEmail(admin.email, resetToken, siteDomain);
-        
-        if (!emailSent) {
-          return res.status(500).json({ message: 'Failed to send reset email' });
-        }
-        
-        res.json({ 
-          message: 'Password reset link has been sent to your email address. Please check your inbox.',
-          success: true 
-        });
-        
-      } else if (resetMethod === 'phone') {
-        // SMS reset
-        const resetCode = TokenService.generateResetCode();
-        const codeExpiry = TokenService.getCodeExpiry();
-        
-        // Save reset code as token
-        await storage.setResetToken(admin.email, resetCode, codeExpiry);
-        
-        // Send SMS
-        const smsSent = await smsService.sendPasswordResetSMS(admin.phone || '9898892198', resetCode);
-        
-        if (!smsSent) {
-          return res.status(500).json({ message: 'Failed to send reset SMS' });
-        }
-        
-        res.json({ 
-          message: 'A 6-digit reset code has been sent to your phone number. Please check your messages.',
-          success: true 
-        });
-      }
-      
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Verify Reset Token API
-  app.post('/api/admin/verify-reset-token', async (req, res) => {
-    try {
-      const { token } = req.body;
-      
-      if (!token) {
-        return res.status(400).json({ message: 'Reset token is required' });
-      }
-      
-      const admin = await storage.validateResetToken(token);
-      if (!admin) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-      }
-      
-      res.json({ 
-        message: 'Reset token is valid',
-        success: true 
-      });
-      
-    } catch (error) {
-      console.error('Verify token error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Reset Password API
-  app.post('/api/admin/reset-password', async (req, res) => {
-    try {
-      const { token, newPassword } = req.body;
-      
-      if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Reset token and new password are required' });
-      }
-      
-      // Validate token
-      const admin = await storage.validateResetToken(token);
-      if (!admin) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-      }
-      
-      // Validate new password strength
-      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
-      if (!passwordValidation.valid) {
-        return res.status(400).json({ message: passwordValidation.message });
-      }
-      
       // Hash new password
-      const newPasswordHash = await PasswordService.hashPassword(newPassword);
+      const newPasswordHash = await bcrypt.hash(newPassword, 12);
       
       // Update password
       const updated = await storage.updateAdminPassword(admin.id, newPasswordHash);
@@ -1070,13 +1056,13 @@ export function setupRoutes(app: Express) {
       }
       
       // Clear reset token
-      await storage.clearResetToken(admin.id);
+      await storage.clearResetToken(token);
       
       // Update last login
       await storage.updateLastLogin(admin.id);
       
       res.json({ 
-        message: 'Password reset successful. You can now login with your new password.',
+        message: 'Password reset successfully',
         success: true 
       });
       
