@@ -30,11 +30,13 @@ export default function CMSAdmin() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await apiRequest('/api/admin/auth', {
+        const response = await fetch('/api/admin/auth', {
           method: 'POST',
-          body: { password: 'pickntrust2025' }
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: 'pickntrust2025' })
         });
-        if (response.success) {
+        const data = await response.json();
+        if (data.success) {
           setIsAuthenticated(true);
           setAdminPassword('pickntrust2025');
         }
@@ -53,7 +55,6 @@ export default function CMSAdmin() {
 
   const { data: sections = [], isLoading: sectionsLoading } = useQuery({
     queryKey: ['/api/cms/pages', selectedPage?.id, 'sections'],
-    queryFn: () => apiRequest(`/api/cms/pages/${selectedPage?.id}/sections`),
     enabled: !!selectedPage && isAuthenticated
   });
 
@@ -64,10 +65,14 @@ export default function CMSAdmin() {
 
   // Mutations
   const createPageMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/cms/pages', {
-      method: 'POST',
-      body: { ...data, password: adminPassword }
-    }),
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/cms/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, password: adminPassword })
+      });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cms/pages'] });
       setShowPageForm(false);
@@ -79,10 +84,14 @@ export default function CMSAdmin() {
   });
 
   const updatePageMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number, data: any }) => apiRequest(`/api/cms/pages/${id}`, {
-      method: 'PUT',
-      body: { ...data, password: adminPassword }
-    }),
+    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      const response = await fetch(`/api/cms/pages/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, password: adminPassword })
+      });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cms/pages'] });
       setEditingPage(null);
@@ -94,10 +103,14 @@ export default function CMSAdmin() {
   });
 
   const deletePageMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/cms/pages/${id}`, {
-      method: 'DELETE',
-      body: { password: adminPassword }
-    }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/cms/pages/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cms/pages'] });
       setSelectedPage(null);
@@ -170,11 +183,13 @@ export default function CMSAdmin() {
               <Button 
                 onClick={async () => {
                   try {
-                    const response = await apiRequest('/api/admin/auth', {
+                    const response = await fetch('/api/admin/auth', {
                       method: 'POST',
-                      body: { password: adminPassword }
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ password: adminPassword })
                     });
-                    if (response.success) {
+                    const data = await response.json();
+                    if (data.success) {
                       setIsAuthenticated(true);
                       toast({ title: 'Authentication successful!' });
                     }
@@ -233,14 +248,14 @@ export default function CMSAdmin() {
             <div className="grid gap-4">
               {pagesLoading ? (
                 <div>Loading pages...</div>
-              ) : pages.length === 0 ? (
+              ) : (pages as CmsPage[]).length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-8">
                     <p className="text-gray-500 dark:text-gray-400">No pages created yet</p>
                   </CardContent>
                 </Card>
               ) : (
-                pages.map((page: CmsPage) => (
+                (pages as CmsPage[]).map((page: CmsPage) => (
                   <Card key={page.id} className="cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => setSelectedPage(page)}>
                     <CardContent className="p-4">
@@ -306,14 +321,14 @@ export default function CMSAdmin() {
                 <div className="grid gap-4">
                   {sectionsLoading ? (
                     <div>Loading sections...</div>
-                  ) : sections.length === 0 ? (
+                  ) : (sections as CmsSection[]).length === 0 ? (
                     <Card>
                       <CardContent className="text-center py-8">
                         <p className="text-gray-500 dark:text-gray-400">No sections created yet</p>
                       </CardContent>
                     </Card>
                   ) : (
-                    sections.map((section: CmsSection) => (
+                    (sections as CmsSection[]).map((section: CmsSection) => (
                       <Card key={section.id}>
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start">
@@ -323,7 +338,7 @@ export default function CMSAdmin() {
                                 {section.type}
                               </Badge>
                               <p className="text-gray-600 dark:text-gray-400 text-sm mt-2 line-clamp-2">
-                                {section.content.slice(0, 100)}...
+                                {section.content?.slice(0, 100)}...
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -382,7 +397,7 @@ export default function CMSAdmin() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {mediaLoading ? (
                 <div>Loading media...</div>
-              ) : media.length === 0 ? (
+              ) : (media as CmsMedia[]).length === 0 ? (
                 <div className="col-span-full">
                   <Card>
                     <CardContent className="text-center py-8">
@@ -391,11 +406,11 @@ export default function CMSAdmin() {
                   </Card>
                 </div>
               ) : (
-                media.map((item: CmsMedia) => (
+                (media as CmsMedia[]).map((item: CmsMedia) => (
                   <Card key={item.id} className="overflow-hidden">
                     <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                       {item.mimeType.startsWith('image/') ? (
-                        <img src={item.url} alt={item.alt} className="w-full h-full object-cover" />
+                        <img src={item.url} alt={item.alt || ''} className="w-full h-full object-cover" />
                       ) : (
                         <div className="text-center">
                           <FileText className="w-8 h-8 mx-auto text-gray-400" />
