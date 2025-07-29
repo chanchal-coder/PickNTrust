@@ -235,10 +235,14 @@ export default function CMSPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800">
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Pages
+            </TabsTrigger>
+            <TabsTrigger value="edit" className="flex items-center gap-2">
+              <Edit className="w-4 h-4" />
+              Edit
             </TabsTrigger>
             <TabsTrigger value="sections" className="flex items-center gap-2">
               <Layout className="w-4 h-4" />
@@ -455,6 +459,223 @@ export default function CMSPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </TabsContent>
+
+          {/* Visual Editor Tab */}
+          <TabsContent value="edit" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Visual Page Editor</h2>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Page Selector */}
+              <div className="lg:col-span-1">
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Select Page to Edit</CardTitle>
+                    <CardDescription>Choose a page to edit with the visual editor</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {pages.length === 0 ? (
+                      <p className="text-gray-400 text-sm">No pages available. Create a page first.</p>
+                    ) : (
+                      pages.map((page: any) => (
+                        <div
+                          key={page.id}
+                          className="p-3 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                          onClick={() => setEditingPage(page)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-white">{page.title}</h4>
+                              <p className="text-xs text-gray-400">/{page.slug}</p>
+                            </div>
+                            <Badge variant={page.isPublished ? "success" : "secondary"} className="text-xs">
+                              {page.isPublished ? 'Live' : 'Draft'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card className="bg-gray-800 border-gray-700 mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button 
+                      onClick={() => setShowNewPageForm(true)}
+                      className="w-full flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create New Page
+                    </Button>
+                    <Button 
+                      onClick={() => setActiveTab('pages')}
+                      className="w-full flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Manage Pages
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Visual Editor */}
+              <div className="lg:col-span-2">
+                {editingPage ? (
+                  <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">Editing: {editingPage.title}</CardTitle>
+                          <CardDescription>Visual editor for page content</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={editingPage.isPublished ? "success" : "secondary"}>
+                            {editingPage.isPublished ? 'Published' : 'Draft'}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingPage(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Page Settings */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-700 rounded-lg">
+                        <div>
+                          <Label className="text-sm font-medium">Page Title</Label>
+                          <Input
+                            value={editingPage.title}
+                            onChange={(e) => setEditingPage({...editingPage, title: e.target.value})}
+                            className="bg-gray-600 border-gray-500 mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">URL Slug</Label>
+                          <Input
+                            value={editingPage.slug}
+                            onChange={(e) => setEditingPage({...editingPage, slug: e.target.value})}
+                            className="bg-gray-600 border-gray-500 mt-1"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="text-sm font-medium">Meta Description</Label>
+                          <Input
+                            value={editingPage.metaDescription || ''}
+                            onChange={(e) => setEditingPage({...editingPage, metaDescription: e.target.value})}
+                            placeholder="SEO description for search engines"
+                            className="bg-gray-600 border-gray-500 mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Content Editor */}
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Page Content</Label>
+                        <Textarea
+                          value={editingPage.content}
+                          onChange={(e) => setEditingPage({...editingPage, content: e.target.value})}
+                          rows={15}
+                          className="bg-gray-700 border-gray-600 font-mono text-sm"
+                          placeholder="Enter your page content here. You can use HTML and markdown."
+                        />
+                      </div>
+
+                      {/* Publishing Controls */}
+                      <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="editPublished"
+                            checked={editingPage.isPublished}
+                            onChange={(e) => setEditingPage({...editingPage, isPublished: e.target.checked})}
+                            className="rounded border-gray-600 bg-gray-600"
+                          />
+                          <Label htmlFor="editPublished" className="text-sm">
+                            Publish this page (make it live on the website)
+                          </Label>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Preview functionality
+                              toast({
+                                title: "Preview",
+                                description: "Preview functionality coming soon",
+                              });
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Preview
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              updatePageMutation.mutate({
+                                id: editingPage.id,
+                                data: {
+                                  title: editingPage.title,
+                                  slug: editingPage.slug,
+                                  content: editingPage.content,
+                                  metaTitle: editingPage.metaTitle,
+                                  metaDescription: editingPage.metaDescription,
+                                  isPublished: editingPage.isPublished,
+                                }
+                              });
+                            }}
+                            disabled={updatePageMutation.isPending}
+                          >
+                            <Save className="w-4 h-4 mr-1" />
+                            {updatePageMutation.isPending ? 'Saving...' : 'Save Changes'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Help Section */}
+                      <div className="p-4 bg-blue-900/30 border border-blue-700/50 rounded-lg">
+                        <h4 className="font-medium text-blue-300 mb-2">Editor Tips</h4>
+                        <ul className="text-sm text-blue-200 space-y-1">
+                          <li>• Use HTML tags for styling: &lt;h1&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;</li>
+                          <li>• Add images: &lt;img src="url" alt="description"&gt;</li>
+                          <li>• Create links: &lt;a href="url"&gt;Link text&lt;/a&gt;</li>
+                          <li>• Line breaks: Use &lt;br&gt; or separate paragraphs with &lt;p&gt;&lt;/p&gt;</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="bg-gray-800 border-gray-700">
+                    <CardContent className="text-center py-16">
+                      <Edit className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-300 mb-2">Visual Page Editor</h3>
+                      <p className="text-gray-400 mb-4">
+                        Select a page from the left sidebar to start editing with our visual editor.
+                      </p>
+                      <Button 
+                        onClick={() => setShowNewPageForm(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Create Your First Page
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           </TabsContent>
 

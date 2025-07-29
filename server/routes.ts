@@ -912,19 +912,18 @@ export function setupRoutes(app: Express, storage: IStorage) {
       }
       
       // Verify current password
-      const isCurrentPasswordValid = await PasswordService.verifyPassword(currentPassword, admin.passwordHash);
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, admin.passwordHash);
       if (!isCurrentPasswordValid) {
         return res.status(400).json({ message: 'Current password is incorrect' });
       }
       
-      // Validate new password strength
-      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
-      if (!passwordValidation.valid) {
-        return res.status(400).json({ message: passwordValidation.message });
+      // Validate new password strength (basic validation)
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
       }
       
       // Hash new password
-      const newPasswordHash = await PasswordService.hashPassword(newPassword);
+      const newPasswordHash = await bcrypt.hash(newPassword, 12);
       
       // Update password in storage
       const updated = await storage.updateAdminPassword(admin.id, newPasswordHash);

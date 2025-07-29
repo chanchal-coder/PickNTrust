@@ -86,29 +86,10 @@ export interface IStorage {
   createCmsSection(section: InsertCmsSection): Promise<CmsSection>;
   updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null>;
   deleteCmsSection(id: number): Promise<boolean>;
+  reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean>;
   
   getCmsMedia(): Promise<CmsMedia[]>;
   getCmsMediaItem(id: number): Promise<CmsMedia | undefined>;
-  createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia>;
-  deleteCmsMedia(id: number): Promise<boolean>;
-  
-  // CMS Pages
-  getCmsPages(): Promise<CmsPage[]>;
-  getCmsPage(id: number): Promise<CmsPage | undefined>;
-  getCmsPageBySlug(slug: string): Promise<CmsPage | undefined>;
-  createCmsPage(page: InsertCmsPage): Promise<CmsPage>;
-  updateCmsPage(id: number, updates: Partial<CmsPage>): Promise<CmsPage | null>;
-  deleteCmsPage(id: number): Promise<boolean>;
-  
-  // CMS Sections
-  getCmsSections(pageId: number): Promise<CmsSection[]>;
-  createCmsSection(section: InsertCmsSection): Promise<CmsSection>;
-  updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null>;
-  deleteCmsSection(id: number): Promise<boolean>;
-  reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean>;
-  
-  // CMS Media
-  getCmsMedia(): Promise<CmsMedia[]>;
   createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia>;
   deleteCmsMedia(id: number): Promise<boolean>;
 }
@@ -1386,10 +1367,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   // CMS Sections
-  async getCmsSections(pageId: number): Promise<CmsSection[]> {
-    return await db.select().from(cmsSections)
-      .where(eq(cmsSections.pageId, pageId))
-      .orderBy(cmsSections.sortOrder);
+  async getCmsSections(pageId?: number): Promise<CmsSection[]> {
+    if (pageId) {
+      return await db.select().from(cmsSections)
+        .where(eq(cmsSections.pageId, pageId))
+        .orderBy(cmsSections.sortOrder);
+    }
+    return await db.select().from(cmsSections).orderBy(cmsSections.sortOrder);
+  }
+
+  async getCmsSection(id: number): Promise<CmsSection | undefined> {
+    const [section] = await db.select().from(cmsSections).where(eq(cmsSections.id, id));
+    return section || undefined;
   }
 
   async createCmsSection(section: InsertCmsSection): Promise<CmsSection> {
@@ -1431,6 +1420,11 @@ export class DatabaseStorage implements IStorage {
   // CMS Media
   async getCmsMedia(): Promise<CmsMedia[]> {
     return await db.select().from(cmsMedia).orderBy(desc(cmsMedia.createdAt));
+  }
+
+  async getCmsMediaItem(id: number): Promise<CmsMedia | undefined> {
+    const [media] = await db.select().from(cmsMedia).where(eq(cmsMedia.id, id));
+    return media || undefined;
   }
 
   async createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia> {
