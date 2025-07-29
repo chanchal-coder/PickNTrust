@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
+import VisualCMSEditor, { CMSSection } from '@/components/visual-cms-editor';
 import { 
   Plus, 
   Edit, 
@@ -28,7 +29,9 @@ import {
   Globe,
   Calendar,
   User,
-  ArrowLeft
+  ArrowLeft,
+  Paintbrush,
+  Code
 } from 'lucide-react';
 
 // Schema for CMS Page
@@ -70,6 +73,8 @@ export default function CMSPage() {
   const [showNewPageForm, setShowNewPageForm] = useState(false);
   const [showNewSectionForm, setShowNewSectionForm] = useState(false);
   const [showNewMediaForm, setShowNewMediaForm] = useState(false);
+  const [showVisualEditor, setShowVisualEditor] = useState(false);
+  const [editingPageId, setEditingPageId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -211,6 +216,57 @@ export default function CMSPage() {
       updatePageMutation.mutate({ id: editingPage.id, data });
     } else {
       createPageMutation.mutate(data);
+    }
+  };
+
+  // Visual editor functions
+  const openVisualEditor = (pageId: number) => {
+    setEditingPageId(pageId);
+    setShowVisualEditor(true);
+  };
+
+  const closeVisualEditor = () => {
+    setShowVisualEditor(false);
+    setEditingPageId(null);
+  };
+
+  const handleSaveVisualSections = async (sections: CMSSection[]) => {
+    if (!editingPageId) return;
+
+    try {
+      // Convert CMSSection[] to the format expected by the backend
+      const sectionsData = sections.map(section => ({
+        pageId: editingPageId,
+        type: section.type,
+        title: section.title,
+        content: JSON.stringify(section.content),
+        imageUrl: section.type === 'image' ? section.content.url : null,
+        videoUrl: section.type === 'video' ? section.content.url : null,
+        backgroundColor: section.styles.backgroundColor,
+        textColor: section.styles.textColor,
+        sortOrder: section.order,
+        isVisible: section.visible,
+        settings: JSON.stringify(section.styles)
+      }));
+
+      // Save sections to backend
+      await apiRequest(`/api/cms/pages/${editingPageId}/sections`, {
+        method: 'POST',
+        body: JSON.stringify({ sections: sectionsData })
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/cms/sections'] });
+      
+      toast({
+        title: 'Success',
+        description: 'Visual sections saved successfully'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save visual sections',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -423,6 +479,14 @@ export default function CMSPage() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openVisualEditor(page.id)}
+                              className="text-purple-400 hover:text-purple-300"
+                            >
+                              <Paintbrush className="w-4 h-4" />
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -728,6 +792,18 @@ export default function CMSPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Visual Editor Modal */}
+      {showVisualEditor && editingPageId && (
+        <div className="fixed inset-0 z-50">
+          <VisualCMSEditor
+            pageId={editingPageId}
+            initialSections={[]} 
+            onSave={handleSaveVisualSections}
+            onClose={closeVisualEditor}
+          />
+        </div>
+      )}
     </div>
   );
 }

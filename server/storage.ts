@@ -1402,6 +1402,19 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  async getCmsSectionsByPage(pageId: number): Promise<CmsSection[]> {
+    return await db
+      .select()
+      .from(cmsSections)
+      .where(eq(cmsSections.pageId, pageId))
+      .orderBy(cmsSections.sortOrder);
+  }
+
+  async deleteCmsSectionsByPage(pageId: number): Promise<boolean> {
+    const result = await db.delete(cmsSections).where(eq(cmsSections.pageId, pageId));
+    return true; // Always return true since it's OK if no sections exist
+  }
+
   async reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean> {
     try {
       for (let i = 0; i < sectionIds.length; i++) {

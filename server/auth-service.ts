@@ -1,20 +1,18 @@
-import nodemailer from 'nodemailer';
+import { MailService } from '@sendgrid/mail';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
-// Email service for password resets
+// Email service for password resets using SendGrid
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private mailService: MailService;
 
   constructor() {
-    // Using Gmail SMTP for password reset emails
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: 'noreply.pickntrust@gmail.com', // You can create this email
-        pass: process.env.EMAIL_PASSWORD || 'app-specific-password' // App password
-      }
-    });
+    if (!process.env.SENDGRID_API_KEY) {
+      throw new Error("SENDGRID_API_KEY environment variable must be set");
+    }
+    
+    this.mailService = new MailService();
+    this.mailService.setApiKey(process.env.SENDGRID_API_KEY);
   }
 
   // Old method - keep for backwards compatibility but not used
@@ -99,33 +97,54 @@ export class EmailService {
     }
   }
 
-  // Updated method signature for OTP-based reset
+  // Send OTP via SendGrid
   async sendPasswordResetEmail(email: string, otp: string): Promise<boolean> {
     try {
-      console.log(`
-        📧 EMAIL NOTIFICATION
-        ==================
-        To: ${email}
-        Subject: Reset Your PickNTrust Admin Password
-        
-        Hi Admin,
-        
-        You requested to reset your password. Use this verification code:
-        
-        Code: ${otp}
-        
-        This code will expire in 15 minutes.
-        
-        If you didn't request this, please ignore this email.
-        
-        Best regards,
-        PickNTrust Team
-        ==================
-      `);
-      
-      return true; // Simulate successful email sending
+      const msg = {
+        to: email,
+        from: 'admin@pickntrust.com', // Use verified SendGrid sender
+        subject: 'Reset Your PickNTrust Admin Password',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #007bff; margin: 0;">🛡️ PickNTrust</h1>
+              <p style="color: #666; margin: 5px 0;">Your trusted shopping companion</p>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; border-left: 4px solid #007bff;">
+              <h2 style="color: #333; margin-top: 0;">Password Reset Code</h2>
+              <p style="color: #666; line-height: 1.6;">
+                You requested to reset your admin password. Use this verification code:
+              </p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <div style="background: linear-gradient(45deg, #007bff, #6610f2); 
+                           color: white; padding: 20px; border-radius: 8px; 
+                           font-size: 24px; font-weight: bold; letter-spacing: 3px;">
+                  ${otp}
+                </div>
+              </div>
+              
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+                <p style="color: #999; font-size: 12px; margin: 0;">
+                  🔒 This code will expire in 15 minutes.<br>
+                  📧 If you didn't request this reset, please ignore this email.
+                </p>
+              </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+              <p>© 2025 PickNTrust. All rights reserved.</p>
+            </div>
+          </div>
+        `
+      };
+
+      await this.mailService.send(msg);
+      console.log('✅ Password reset email sent successfully to:', email);
+      return true;
     } catch (error) {
-      console.error('Email sending failed:', error);
+      console.error('❌ Email sending failed:', error);
       return false;
     }
   }

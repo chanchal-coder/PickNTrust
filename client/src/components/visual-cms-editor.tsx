@@ -1,189 +1,226 @@
-import { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
   Trash2, 
-  Edit, 
+  Edit3, 
+  Share2, 
   Move, 
   Image, 
   Type, 
   Video, 
-  Share2,
-  Facebook,
-  Twitter,
-  MessageCircle,
-  Instagram,
+  Quote,
+  List,
+  Grid,
   Eye,
   Save,
   Undo,
   Redo,
+  Copy,
+  Link,
   Bold,
   Italic,
   Underline,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Palette,
+  Settings
 } from 'lucide-react';
 
-interface Section {
+// Section types for drag-and-drop
+export interface CMSSection {
   id: string;
-  type: 'hero' | 'text' | 'image' | 'video' | 'gallery' | 'testimonial' | 'cta';
+  type: 'text' | 'image' | 'video' | 'gallery' | 'quote' | 'list' | 'grid' | 'custom';
+  title: string;
   content: any;
+  styles: {
+    backgroundColor?: string;
+    textColor?: string;
+    fontSize?: string;
+    padding?: string;
+    alignment?: 'left' | 'center' | 'right';
+    borderRadius?: string;
+    boxShadow?: string;
+  };
   order: number;
+  visible: boolean;
 }
 
-interface VisualCMSEditorProps {
-  pageId: number;
-  sections: Section[];
-  onSave: (sections: Section[]) => void;
-}
-
-const sectionTemplates = {
-  hero: {
-    title: 'Hero Section',
-    icon: Type,
-    defaultContent: {
-      title: 'Welcome to Our Site',
-      subtitle: 'Your trusted companion for everything',
-      backgroundImage: '',
-      ctaText: 'Get Started',
-      ctaLink: '#'
-    }
-  },
+// Pre-built section templates
+const SECTION_TEMPLATES = {
   text: {
-    title: 'Text Block',
-    icon: Type,
-    defaultContent: {
-      content: '<p>Enter your text content here...</p>'
+    title: 'Text Section',
+    content: {
+      text: '<p>Click to edit this text section. You can add <strong>bold</strong>, <em>italic</em>, and <u>underlined</u> text.</p>',
+      heading: 'Your Heading Here'
+    },
+    styles: {
+      backgroundColor: '#ffffff',
+      textColor: '#333333',
+      fontSize: '16px',
+      padding: '20px',
+      alignment: 'left' as const
     }
   },
   image: {
-    title: 'Image Block',
-    icon: Image,
-    defaultContent: {
-      src: '',
-      alt: '',
-      caption: ''
+    title: 'Image Section',
+    content: {
+      url: 'https://via.placeholder.com/800x400/007bff/ffffff?text=Your+Image+Here',
+      alt: 'Placeholder image',
+      caption: 'Add your image caption here'
+    },
+    styles: {
+      backgroundColor: '#f8f9fa',
+      padding: '20px',
+      alignment: 'center' as const,
+      borderRadius: '8px'
     }
   },
   video: {
-    title: 'Video Block',
-    icon: Video,
-    defaultContent: {
-      src: '',
-      title: '',
-      description: ''
+    title: 'Video Section',
+    content: {
+      url: '',
+      title: 'Video Title',
+      description: 'Add your video description here'
+    },
+    styles: {
+      backgroundColor: '#000000',
+      textColor: '#ffffff',
+      padding: '20px',
+      alignment: 'center' as const,
+      borderRadius: '12px'
     }
   },
   gallery: {
     title: 'Image Gallery',
-    icon: Image,
-    defaultContent: {
-      images: []
+    content: {
+      images: [
+        { url: 'https://via.placeholder.com/300x200/007bff/ffffff?text=Image+1', alt: 'Image 1' },
+        { url: 'https://via.placeholder.com/300x200/28a745/ffffff?text=Image+2', alt: 'Image 2' },
+        { url: 'https://via.placeholder.com/300x200/dc3545/ffffff?text=Image+3', alt: 'Image 3' }
+      ]
+    },
+    styles: {
+      backgroundColor: '#f8f9fa',
+      padding: '30px',
+      borderRadius: '8px'
     }
   },
-  testimonial: {
-    title: 'Testimonial',
-    icon: Type,
-    defaultContent: {
-      quote: 'This is an amazing service!',
-      author: 'Happy Customer',
-      rating: 5
-    }
-  },
-  cta: {
-    title: 'Call to Action',
-    icon: Type,
-    defaultContent: {
-      title: 'Ready to Get Started?',
-      description: 'Join thousands of satisfied customers',
-      buttonText: 'Sign Up Now',
-      buttonLink: '#'
+  quote: {
+    title: 'Quote Section',
+    content: {
+      text: 'This is an inspiring quote that captures attention and adds personality to your content.',
+      author: 'Famous Person',
+      source: 'Source Publication'
+    },
+    styles: {
+      backgroundColor: '#e3f2fd',
+      textColor: '#1565c0',
+      fontSize: '18px',
+      padding: '30px',
+      alignment: 'center' as const,
+      borderRadius: '12px'
     }
   }
 };
 
-export default function VisualCMSEditor({ pageId, sections: initialSections, onSave }: VisualCMSEditorProps) {
-  const [sections, setSections] = useState<Section[]>(initialSections);
+interface VisualCMSEditorProps {
+  pageId: number;
+  initialSections?: CMSSection[];
+  onSave?: (sections: CMSSection[]) => void;
+  onClose?: () => void;
+}
+
+export default function VisualCMSEditor({ 
+  pageId, 
+  initialSections = [], 
+  onSave, 
+  onClose 
+}: VisualCMSEditorProps) {
+  const [sections, setSections] = useState<CMSSection[]>(initialSections);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState<any>(null);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [history, setHistory] = useState<Section[][]>([initialSections]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [undoStack, setUndoStack] = useState<CMSSection[][]>([]);
+  const [redoStack, setRedoStack] = useState<CMSSection[][]>([]);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Rich text editor toolbar
-  const formatText = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+  // Save current state for undo functionality
+  const saveState = () => {
+    setUndoStack(prev => [...prev, [...sections]]);
+    setRedoStack([]);
   };
 
   // Add new section
-  const addSection = (type: keyof typeof sectionTemplates) => {
-    const newSection: Section = {
-      id: `section-${Date.now()}`,
+  const addSection = (type: keyof typeof SECTION_TEMPLATES) => {
+    saveState();
+    const template = SECTION_TEMPLATES[type];
+    const newSection: CMSSection = {
+      id: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,
-      content: sectionTemplates[type].defaultContent,
-      order: sections.length
+      title: template.title,
+      content: template.content,
+      styles: template.styles,
+      order: sections.length,
+      visible: true
     };
     
-    const newSections = [...sections, newSection];
-    setSections(newSections);
-    saveToHistory(newSections);
-    setShowTemplates(false);
+    setSections(prev => [...prev, newSection]);
+    setSelectedSection(newSection.id);
     
     toast({
       title: 'Section Added',
-      description: `${sectionTemplates[type].title} has been added to your page.`
+      description: `${template.title} has been added to your page.`
     });
   };
 
-  // Remove section
-  const removeSection = (sectionId: string) => {
-    const newSections = sections.filter(s => s.id !== sectionId);
-    setSections(newSections);
-    saveToHistory(newSections);
+  // Delete section
+  const deleteSection = (sectionId: string) => {
+    saveState();
+    setSections(prev => prev.filter(s => s.id !== sectionId));
+    setSelectedSection(null);
     
-    if (selectedSection === sectionId) {
-      setSelectedSection(null);
-    }
+    toast({
+      title: 'Section Deleted',
+      description: 'The section has been removed from your page.'
+    });
   };
 
   // Update section content
-  const updateSection = (sectionId: string, newContent: any) => {
-    const newSections = sections.map(s => 
-      s.id === sectionId ? { ...s, content: newContent } : s
-    );
-    setSections(newSections);
-    saveToHistory(newSections);
+  const updateSection = (sectionId: string, updates: Partial<CMSSection>) => {
+    setSections(prev => prev.map(s => 
+      s.id === sectionId ? { ...s, ...updates } : s
+    ));
   };
 
-  // Drag and drop functionality
-  const handleDragStart = (sectionId: string) => {
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, sectionId: string) => {
     setDraggedSection(sectionId);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, targetSectionId: string) => {
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     
-    if (!draggedSection) return;
+    if (!draggedSection || draggedSection === targetId) return;
+    
+    saveState();
     
     const draggedIndex = sections.findIndex(s => s.id === draggedSection);
-    const targetIndex = sections.findIndex(s => s.id === targetSectionId);
-    
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    const targetIndex = sections.findIndex(s => s.id === targetId);
     
     const newSections = [...sections];
     const [removed] = newSections.splice(draggedIndex, 1);
@@ -195,428 +232,551 @@ export default function VisualCMSEditor({ pageId, sections: initialSections, onS
     });
     
     setSections(newSections);
-    saveToHistory(newSections);
     setDraggedSection(null);
+    
+    toast({
+      title: 'Section Moved',
+      description: 'Section order has been updated.'
+    });
   };
 
-  // History management
-  const saveToHistory = (newSections: Section[]) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newSections);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  };
-
+  // Undo/Redo functionality
   const undo = () => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setSections(history[newIndex]);
-      setHistoryIndex(newIndex);
-    }
+    if (undoStack.length === 0) return;
+    
+    const previousState = undoStack[undoStack.length - 1];
+    setRedoStack(prev => [...prev, [...sections]]);
+    setSections(previousState);
+    setUndoStack(prev => prev.slice(0, -1));
   };
 
   const redo = () => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      setSections(history[newIndex]);
-      setHistoryIndex(newIndex);
-    }
+    if (redoStack.length === 0) return;
+    
+    const nextState = redoStack[redoStack.length - 1];
+    setUndoStack(prev => [...prev, [...sections]]);
+    setSections(nextState);
+    setRedoStack(prev => prev.slice(0, -1));
+  };
+
+  // Copy section
+  const copySection = (sectionId: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+    
+    saveState();
+    const copiedSection: CMSSection = {
+      ...section,
+      id: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: `${section.title} (Copy)`,
+      order: sections.length
+    };
+    
+    setSections(prev => [...prev, copiedSection]);
+    
+    toast({
+      title: 'Section Copied',
+      description: 'A copy of the section has been added.'
+    });
   };
 
   // Share section
-  const shareSection = (section: Section, platform: string) => {
-    const sectionContent = JSON.stringify(section.content);
-    const shareText = `Check out this amazing content from PickNTrust!`;
-    const shareUrl = window.location.href;
+  const shareSection = (sectionId: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
     
-    let shareLink = '';
+    const shareData = {
+      title: section.title,
+      text: `Check out this section: ${section.title}`,
+      url: window.location.href
+    };
     
-    switch (platform) {
-      case 'facebook':
-        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
-        break;
-      case 'twitter':
-        shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-        break;
-      case 'whatsapp':
-        shareLink = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
-        break;
-      case 'instagram':
-        navigator.clipboard.writeText(shareText + '\n\n' + shareUrl);
-        window.open('https://www.instagram.com/', '_blank');
-        toast({
-          title: 'Instagram Ready!',
-          description: 'Content copied to clipboard. Paste to create your post!'
-        });
-        return;
-    }
-    
-    if (shareLink) {
-      window.open(shareLink, '_blank', 'width=600,height=400');
+    if (navigator.share) {
+      navigator.share(shareData);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: 'Link Copied',
+        description: 'Page link has been copied to clipboard.'
+      });
     }
   };
 
-  // Render section editor
-  const renderSectionEditor = (section: Section) => {
-    switch (section.type) {
-      case 'hero':
+  // Save changes
+  const handleSave = () => {
+    onSave?.(sections);
+    
+    toast({
+      title: 'Changes Saved',
+      description: 'Your page has been updated successfully.'
+    });
+  };
+
+  // Render section content based on type
+  const renderSectionContent = (section: CMSSection) => {
+    const { type, content, styles } = section;
+    
+    const commonStyles = {
+      backgroundColor: styles.backgroundColor || '#ffffff',
+      color: styles.textColor || '#333333',
+      fontSize: styles.fontSize || '16px',
+      padding: styles.padding || '20px',
+      textAlign: styles.alignment || 'left',
+      borderRadius: styles.borderRadius || '0px',
+      boxShadow: styles.boxShadow || 'none'
+    } as React.CSSProperties;
+
+    switch (type) {
+      case 'text':
         return (
-          <div className="space-y-4">
-            <Input
-              value={section.content.title || ''}
-              onChange={(e) => updateSection(section.id, { ...section.content, title: e.target.value })}
-              placeholder="Hero title"
-              className="text-2xl font-bold"
+          <div style={commonStyles}>
+            <h3 className="text-xl font-bold mb-4">{content.heading}</h3>
+            <div dangerouslySetInnerHTML={{ __html: content.text }} />
+          </div>
+        );
+        
+      case 'image':
+        return (
+          <div style={commonStyles}>
+            <img 
+              src={content.url} 
+              alt={content.alt}
+              className="w-full h-auto rounded-lg"
             />
-            <Input
-              value={section.content.subtitle || ''}
-              onChange={(e) => updateSection(section.id, { ...section.content, subtitle: e.target.value })}
-              placeholder="Hero subtitle"
-            />
-            <Input
-              value={section.content.backgroundImage || ''}
-              onChange={(e) => updateSection(section.id, { ...section.content, backgroundImage: e.target.value })}
-              placeholder="Background image URL"
-            />
-            <div className="flex gap-2">
-              <Input
-                value={section.content.ctaText || ''}
-                onChange={(e) => updateSection(section.id, { ...section.content, ctaText: e.target.value })}
-                placeholder="Button text"
-                className="flex-1"
-              />
-              <Input
-                value={section.content.ctaLink || ''}
-                onChange={(e) => updateSection(section.id, { ...section.content, ctaLink: e.target.value })}
-                placeholder="Button link"
-                className="flex-1"
-              />
+            {content.caption && (
+              <p className="text-sm text-gray-600 mt-2 italic">{content.caption}</p>
+            )}
+          </div>
+        );
+        
+      case 'video':
+        return (
+          <div style={commonStyles}>
+            <h4 className="text-lg font-semibold mb-2">{content.title}</h4>
+            <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
+              <Video className="w-16 h-16 text-gray-400" />
+            </div>
+            <p className="mt-2">{content.description}</p>
+          </div>
+        );
+        
+      case 'gallery':
+        return (
+          <div style={commonStyles}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {content.images.map((img: any, idx: number) => (
+                <img 
+                  key={idx}
+                  src={img.url} 
+                  alt={img.alt}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              ))}
             </div>
           </div>
         );
-      
-      case 'text':
+        
+      case 'quote':
         return (
-          <div className="space-y-4">
-            {/* Rich Text Editor Toolbar */}
-            <div className="flex gap-1 p-2 border rounded-lg bg-gray-50 dark:bg-gray-800">
-              <Button size="sm" variant="outline" onClick={() => formatText('bold')}>
-                <Bold className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => formatText('italic')}>
-                <Italic className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => formatText('underline')}>
-                <Underline className="w-4 h-4" />
-              </Button>
-              <div className="w-px bg-gray-300 mx-1" />
-              <Button size="sm" variant="outline" onClick={() => formatText('justifyLeft')}>
-                <AlignLeft className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => formatText('justifyCenter')}>
-                <AlignCenter className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => formatText('justifyRight')}>
-                <AlignRight className="w-4 h-4" />
-              </Button>
+          <div style={commonStyles}>
+            <Quote className="w-8 h-8 text-blue-500 mb-4" />
+            <blockquote className="text-xl italic mb-4">
+              "{content.text}"
+            </blockquote>
+            <cite className="text-sm font-medium">
+              — {content.author}
+              {content.source && `, ${content.source}`}
+            </cite>
+          </div>
+        );
+        
+      default:
+        return (
+          <div style={commonStyles}>
+            <p>Unknown section type: {type}</p>
+          </div>
+        );
+    }
+  };
+
+  // Render section editor panel
+  const renderSectionEditor = () => {
+    if (!selectedSection) return null;
+    
+    const section = sections.find(s => s.id === selectedSection);
+    if (!section) return null;
+    
+    return (
+      <Card className="w-80 h-full overflow-y-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Edit Section</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedSection(null)}
+            >
+              ×
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Section Title */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Section Title</label>
+            <Input
+              value={section.title}
+              onChange={(e) => updateSection(section.id, { title: e.target.value })}
+            />
+          </div>
+          
+          {/* Content Editor */}
+          {section.type === 'text' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Heading</label>
+                <Input
+                  value={section.content.heading}
+                  onChange={(e) => updateSection(section.id, {
+                    content: { ...section.content, heading: e.target.value }
+                  })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Content</label>
+                <Textarea
+                  rows={6}
+                  value={section.content.text.replace(/<[^>]*>/g, '')}
+                  onChange={(e) => updateSection(section.id, {
+                    content: { ...section.content, text: `<p>${e.target.value}</p>` }
+                  })}
+                />
+              </div>
+            </>
+          )}
+          
+          {section.type === 'image' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Image URL</label>
+                <Input
+                  value={section.content.url}
+                  onChange={(e) => updateSection(section.id, {
+                    content: { ...section.content, url: e.target.value }
+                  })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Caption</label>
+                <Input
+                  value={section.content.caption}
+                  onChange={(e) => updateSection(section.id, {
+                    content: { ...section.content, caption: e.target.value }
+                  })}
+                />
+              </div>
+            </>
+          )}
+          
+          {/* Style Editor */}
+          <div className="border-t pt-4">
+            <h4 className="font-medium mb-3">Styling</h4>
+            
+            {/* Background Color */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Background Color</label>
+              <input
+                type="color"
+                value={section.styles.backgroundColor || '#ffffff'}
+                onChange={(e) => updateSection(section.id, {
+                  styles: { ...section.styles, backgroundColor: e.target.value }
+                })}
+                className="w-full h-10 rounded border"
+              />
             </div>
             
-            <div
-              ref={editorRef}
-              contentEditable
-              className="min-h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              dangerouslySetInnerHTML={{ __html: section.content.content || '' }}
-              onInput={(e) => {
-                const content = e.currentTarget.innerHTML;
-                updateSection(section.id, { ...section.content, content });
-              }}
-            />
-          </div>
-        );
-      
-      case 'image':
-        return (
-          <div className="space-y-4">
-            <Input
-              value={section.content.src || ''}
-              onChange={(e) => updateSection(section.id, { ...section.content, src: e.target.value })}
-              placeholder="Image URL"
-            />
-            <Input
-              value={section.content.alt || ''}
-              onChange={(e) => updateSection(section.id, { ...section.content, alt: e.target.value })}
-              placeholder="Alt text"
-            />
-            <Input
-              value={section.content.caption || ''}
-              onChange={(e) => updateSection(section.id, { ...section.content, caption: e.target.value })}
-              placeholder="Caption (optional)"
-            />
-            {section.content.src && (
-              <img 
-                src={section.content.src} 
-                alt={section.content.alt}
-                className="max-w-full h-auto rounded-lg"
+            {/* Text Color */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Text Color</label>
+              <input
+                type="color"
+                value={section.styles.textColor || '#333333'}
+                onChange={(e) => updateSection(section.id, {
+                  styles: { ...section.styles, textColor: e.target.value }
+                })}
+                className="w-full h-10 rounded border"
               />
-            )}
-          </div>
-        );
-      
-      default:
-        return (
-          <Textarea
-            value={JSON.stringify(section.content, null, 2)}
-            onChange={(e) => {
-              try {
-                const parsed = JSON.parse(e.target.value);
-                updateSection(section.id, parsed);
-              } catch (error) {
-                // Invalid JSON, ignore
-              }
-            }}
-            className="font-mono text-sm"
-          />
-        );
-    }
-  };
-
-  // Render section preview
-  const renderSectionPreview = (section: Section) => {
-    switch (section.type) {
-      case 'hero':
-        return (
-          <div 
-            className="relative min-h-64 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-lg flex items-center justify-center text-center"
-            style={{
-              backgroundImage: section.content.backgroundImage ? `url(${section.content.backgroundImage})` : undefined,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-          >
-            <div>
-              <h1 className="text-4xl font-bold mb-4">{section.content.title}</h1>
-              <p className="text-xl mb-8">{section.content.subtitle}</p>
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
-                {section.content.ctaText}
-              </Button>
+            </div>
+            
+            {/* Font Size */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Font Size</label>
+              <Input
+                value={section.styles.fontSize || '16px'}
+                onChange={(e) => updateSection(section.id, {
+                  styles: { ...section.styles, fontSize: e.target.value }
+                })}
+                placeholder="16px"
+              />
+            </div>
+            
+            {/* Padding */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Padding</label>
+              <Input
+                value={section.styles.padding || '20px'}
+                onChange={(e) => updateSection(section.id, {
+                  styles: { ...section.styles, padding: e.target.value }
+                })}
+                placeholder="20px"
+              />
             </div>
           </div>
-        );
-      
-      case 'text':
-        return (
-          <div 
-            className="prose max-w-none dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: section.content.content }}
-          />
-        );
-      
-      case 'image':
-        return (
-          <div className="text-center">
-            {section.content.src && (
-              <img 
-                src={section.content.src} 
-                alt={section.content.alt}
-                className="max-w-full h-auto rounded-lg mx-auto"
-              />
-            )}
-            {section.content.caption && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                {section.content.caption}
-              </p>
-            )}
+          
+          {/* Section Actions */}
+          <div className="border-t pt-4 space-y-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copySection(section.id)}
+              className="w-full"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Section
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => shareSection(section.id)}
+              className="w-full"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share Section
+            </Button>
+            
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => deleteSection(section.id)}
+              className="w-full"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Section
+            </Button>
           </div>
-        );
-      
-      default:
-        return (
-          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <pre className="text-sm">{JSON.stringify(section.content, null, 2)}</pre>
-          </div>
-        );
-    }
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-screen">
-      {/* Editor Panel */}
-      <div className="flex flex-col">
+    <div className="flex h-screen bg-gray-50">
+      {/* Left Sidebar - Section Library */}
+      <div className="w-64 bg-white border-r overflow-y-auto">
+        <div className="p-4">
+          <h3 className="font-semibold mb-4">Add Sections</h3>
+          
+          <div className="space-y-2">
+            {Object.entries(SECTION_TEMPLATES).map(([type, template]) => (
+              <Button
+                key={type}
+                variant="outline"
+                size="sm"
+                onClick={() => addSection(type as keyof typeof SECTION_TEMPLATES)}
+                className="w-full justify-start"
+              >
+                {type === 'text' && <Type className="w-4 h-4 mr-2" />}
+                {type === 'image' && <Image className="w-4 h-4 mr-2" />}
+                {type === 'video' && <Video className="w-4 h-4 mr-2" />}
+                {type === 'gallery' && <Grid className="w-4 h-4 mr-2" />}
+                {type === 'quote' && <Quote className="w-4 h-4 mr-2" />}
+                {template.title}
+              </Button>
+            ))}
+          </div>
+          
+          {/* Section List */}
+          <div className="mt-8">
+            <h4 className="font-medium mb-3">Page Sections</h4>
+            <div className="space-y-1">
+              {sections.map((section) => (
+                <div
+                  key={section.id}
+                  className={`p-2 rounded cursor-pointer text-sm ${
+                    selectedSection === section.id 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'hover:bg-gray-100'
+                  }`}
+                  onClick={() => setSelectedSection(section.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="truncate">{section.title}</span>
+                    <Badge variant={section.visible ? 'default' : 'secondary'}>
+                      {section.visible ? 'Visible' : 'Hidden'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col">
         {/* Toolbar */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <div className="flex gap-2">
-            <Button 
-              onClick={undo} 
-              disabled={historyIndex <= 0}
-              size="sm"
+        <div className="bg-white border-b p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
               variant="outline"
+              size="sm"
+              onClick={undo}
+              disabled={undoStack.length === 0}
             >
               <Undo className="w-4 h-4" />
             </Button>
-            <Button 
-              onClick={redo} 
-              disabled={historyIndex >= history.length - 1}
-              size="sm"
+            
+            <Button
               variant="outline"
+              size="sm"
+              onClick={redo}
+              disabled={redoStack.length === 0}
             >
               <Redo className="w-4 h-4" />
             </Button>
+            
+            <div className="w-px h-6 bg-gray-300" />
+            
+            <Button
+              variant={isPreviewMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setIsPreviewMode(!isPreviewMode)}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {isPreviewMode ? 'Edit Mode' : 'Preview'}
+            </Button>
           </div>
           
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setShowTemplates(true)}
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Section
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
             </Button>
-            <Button 
-              onClick={() => onSave(sections)}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700"
-            >
+            <Button onClick={handleSave}>
               <Save className="w-4 h-4 mr-2" />
-              Save Page
+              Save Changes
             </Button>
           </div>
         </div>
 
-        {/* Sections List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {sections.map((section) => (
-            <Card 
-              key={section.id}
-              className={`cursor-pointer transition-all ${
-                selectedSection === section.id ? 'ring-2 ring-blue-500' : ''
-              }`}
-              draggable
-              onDragStart={() => handleDragStart(section.id)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, section.id)}
-              onClick={() => setSelectedSection(section.id)}
-            >
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2">
-                    <Move className="w-4 h-4 text-gray-400" />
-                    <Badge variant="outline">
-                      {sectionTemplates[section.type]?.title || section.type}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex gap-1">
-                    {/* Share Buttons */}
-                    <div className="flex gap-1">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          shareSection(section, 'facebook');
-                        }}
-                      >
-                        <Facebook className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          shareSection(section, 'twitter');
-                        }}
-                      >
-                        <Twitter className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          shareSection(section, 'whatsapp');
-                        }}
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeSection(section.id);
-                      }}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+        {/* Editor Content */}
+        <div className="flex-1 overflow-auto">
+          <div 
+            ref={editorRef}
+            className="max-w-4xl mx-auto p-6"
+          >
+            {sections.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <Plus className="w-12 h-12 mx-auto" />
                 </div>
-                
-                {selectedSection === section.id && renderSectionEditor(section)}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Section Templates Modal */}
-        {showTemplates && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-              <h3 className="text-lg font-semibold mb-4">Choose Section Type</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(sectionTemplates).map(([key, template]) => {
-                  const IconComponent = template.icon;
-                  return (
-                    <Button
-                      key={key}
-                      variant="outline"
-                      className="h-20 flex-col gap-2"
-                      onClick={() => addSection(key as keyof typeof sectionTemplates)}
-                    >
-                      <IconComponent className="w-6 h-6" />
-                      <span className="text-sm">{template.title}</span>
-                    </Button>
-                  );
-                })}
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Start Building Your Page
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Add sections from the sidebar to start creating your content.
+                </p>
               </div>
-              <div className="mt-4 flex justify-end">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowTemplates(false)}
-                >
-                  Cancel
-                </Button>
+            ) : (
+              <div className="space-y-4">
+                {sections.map((section) => (
+                  <div
+                    key={section.id}
+                    className={`relative group ${
+                      selectedSection === section.id && !isPreviewMode
+                        ? 'ring-2 ring-blue-500' 
+                        : ''
+                    }`}
+                    draggable={!isPreviewMode}
+                    onDragStart={(e) => handleDragStart(e, section.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, section.id)}
+                    onClick={() => !isPreviewMode && setSelectedSection(section.id)}
+                  >
+                    {/* Section Controls */}
+                    {!isPreviewMode && (
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center space-x-1 bg-white rounded shadow-lg p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSection(section.id);
+                            }}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copySection(section.id);
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              shareSection(section.id);
+                            }}
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSection(section.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!isPreviewMode && (
+                      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Badge variant="secondary" className="text-xs">
+                          <Move className="w-3 h-3 mr-1" />
+                          {section.type}
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {/* Section Content */}
+                    <div className="relative">
+                      {renderSectionContent(section)}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Live Preview Panel */}
-      <div className="border-l bg-white dark:bg-gray-900">
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4" />
-            <h3 className="font-semibold">Live Preview</h3>
-          </div>
-        </div>
-        
-        <div className="p-4 space-y-6 overflow-y-auto h-full">
-          {sections.map((section) => (
-            <div key={section.id} className="border-2 border-dashed border-gray-200 dark:border-gray-700 p-4 rounded-lg">
-              {renderSectionPreview(section)}
-            </div>
-          ))}
-          
-          {sections.length === 0 && (
-            <div className="text-center text-gray-500 dark:text-gray-400 mt-20">
-              <Type className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No sections yet. Add your first section to get started!</p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Right Sidebar - Section Editor */}
+      {!isPreviewMode && selectedSection && renderSectionEditor()}
     </div>
   );
 }

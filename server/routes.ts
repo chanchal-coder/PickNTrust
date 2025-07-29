@@ -1255,6 +1255,43 @@ export function setupRoutes(app: Express) {
     }
   });
 
+  // Visual CMS Sections API (without auth for read operations)
+  app.get('/api/cms/pages/:pageId/sections', async (req, res) => {
+    try {
+      const pageId = parseInt(req.params.pageId);
+      const sections = await storage.getCmsSectionsByPage(pageId);
+      res.json(sections);
+    } catch (error) {
+      console.error('Error fetching page sections:', error);
+      res.status(500).json({ message: 'Failed to fetch page sections' });
+    }
+  });
+
+  app.post('/api/cms/pages/:pageId/sections', async (req, res) => {
+    try {
+      const pageId = parseInt(req.params.pageId);
+      const { sections } = req.body;
+      
+      // Delete existing sections for this page
+      await storage.deleteCmsSectionsByPage(pageId);
+      
+      // Create new sections
+      const createdSections = [];
+      for (const sectionData of sections) {
+        const section = await storage.createCmsSection({
+          ...sectionData,
+          pageId
+        });
+        createdSections.push(section);
+      }
+      
+      res.json(createdSections);
+    } catch (error) {
+      console.error('Error saving CMS sections:', error);
+      res.status(500).json({ message: 'Failed to save sections' });
+    }
+  });
+
   // CMS Media API
   app.get('/api/cms/media', async (req, res) => {
     try {
