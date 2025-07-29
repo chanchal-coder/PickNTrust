@@ -98,13 +98,32 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
     queryKey: ['/api/categories'],
   });
 
-  // Page structure for navigation
-  const [pageStructure] = useState<PageStructure[]>([
+  // Page structure for navigation - Dynamic from API
+  const [pageStructure, setPageStructure] = useState<PageStructure[]>([
     { id: 'home', name: 'Homepage', url: '/', sections: ['hero', 'categories', 'products', 'blog', 'newsletter'], isEditable: true },
-    { id: 'categories', name: 'Categories', url: '/categories', sections: ['header', 'category-grid', 'footer'], isEditable: true },
-    { id: 'about', name: 'About Us', url: '/about', sections: ['content'], isEditable: true },
-    { id: 'contact', name: 'Contact', url: '/contact', sections: ['form', 'info'], isEditable: true },
+    { id: 'privacy', name: 'Privacy Policy', url: '/privacy', sections: ['content'], isEditable: true },
+    { id: 'terms', name: 'Terms of Service', url: '/terms', sections: ['content'], isEditable: true },
+    { id: 'affiliate', name: 'Affiliate Disclosure', url: '/affiliate-disclosure', sections: ['content'], isEditable: true },
+    { id: 'how-it-works', name: 'How It Works', url: '/how-it-works', sections: ['content'], isEditable: true },
   ]);
+
+  // Dynamic category pages
+  useEffect(() => {
+    if (categories.length > 0) {
+      const categoryPages = categories.slice(0, 5).map((cat: any) => ({
+        id: `category-${cat.id}`,
+        name: `${cat.name} Category`,
+        url: `/categories/${encodeURIComponent(cat.name)}`,
+        sections: ['products', 'filters'],
+        isEditable: true
+      }));
+      
+      setPageStructure(prev => [
+        ...prev.filter(p => !p.id.startsWith('category-')),
+        ...categoryPages
+      ]);
+    }
+  }, [categories]);
 
   // Save changes mutation
   const saveChangesMutation = useMutation({
@@ -266,6 +285,29 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
     setSelectedElement(null);
   };
 
+  // Delete element
+  const deleteElement = () => {
+    if (!selectedElement) return;
+
+    const changes = {
+      elementId: selectedElement.id,
+      type: 'delete',
+      action: 'remove',
+      selector: selectedElement.selector,
+      page: selectedElement.page,
+      timestamp: new Date().toISOString()
+    };
+
+    saveChangesMutation.mutate(changes);
+    setShowElementPanel(false);
+    setSelectedElement(null);
+    
+    toast({
+      title: 'Element Deleted',
+      description: 'The element has been removed from the page.',
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
       {/* Top Toolbar */}
@@ -382,19 +424,49 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
               <div className="mt-6">
                 <h4 className="text-sm font-semibold text-gray-300 mb-3">Quick Actions</h4>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      const newPageUrl = prompt('Enter new page URL (e.g., /new-page):');
+                      if (newPageUrl) {
+                        navigateToPage(newPageUrl);
+                      }
+                    }}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add New Page
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => navigateToPage('/')}
+                  >
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     Manage Products
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => navigateToPage('/')}
+                  >
                     <FileText className="w-4 h-4 mr-2" />
                     Manage Blog
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      toast({
+                        title: 'Analytics',
+                        description: `Current Stats: ${products.length} products, ${blogPosts.length} blogs, ${categories.length} categories`
+                      });
+                    }}
+                  >
                     <Users className="w-4 h-4 mr-2" />
                     User Analytics
                   </Button>
@@ -481,6 +553,9 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
                     <div className="ml-8 text-gray-400">// Current Page: {currentUrl}</div>
                     <div className="ml-8 text-gray-400">// Edit Mode: {isEditMode ? 'ON' : 'OFF'}</div>
                     <div className="ml-8 text-gray-400">// Device: {DEVICE_SIZES[currentDevice].label}</div>
+                    <div className="ml-8 text-gray-400">// Pages Available: {pageStructure.length}</div>
+                    <div className="ml-8 text-gray-400">// Products: {products.length}</div>
+                    <div className="ml-8 text-gray-400">// Categories: {categories.length}</div>
                     <div className="ml-4"><span className="text-purple-400">&lt;/body&gt;</span></div>
                     <div><span className="text-purple-400">&lt;/html&gt;</span></div>
                   </div>
@@ -492,6 +567,7 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
                   className="w-full h-full border-0"
                   onLoad={handleIframeLoad}
                   title="Website Preview"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
                 />
               )}
             </div>
@@ -552,26 +628,57 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
                   </div>
                 )}
 
-                {/* Style Controls */}
+                {/* Enhanced Style Controls */}
                 <div>
                   <h4 className="text-sm font-semibold text-gray-300 mb-3">Styling</h4>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Color Picker with Presets */}
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Text Color</label>
-                      <input
-                        type="color"
-                        className="w-full h-8 rounded border border-gray-500"
-                        defaultValue="#ffffff"
-                      />
+                      <label className="block text-xs text-gray-400 mb-2">Text Color</label>
+                      <div className="space-y-2">
+                        <input
+                          type="color"
+                          className="w-full h-10 rounded border border-gray-500 cursor-pointer"
+                          defaultValue="#ffffff"
+                        />
+                        {/* Color Presets */}
+                        <div className="grid grid-cols-6 gap-1">
+                          {['#000000', '#ffffff', '#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'].map(color => (
+                            <button
+                              key={color}
+                              className="w-6 h-6 rounded border border-gray-500 hover:scale-110 transition-transform"
+                              style={{ backgroundColor: color }}
+                              onClick={() => {
+                                const colorInput = document.querySelector('input[type="color"]') as HTMLInputElement;
+                                if (colorInput) colorInput.value = color;
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
+
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Background Color</label>
-                      <input
-                        type="color"
-                        className="w-full h-8 rounded border border-gray-500"
-                        defaultValue="#000000"
-                      />
+                      <label className="block text-xs text-gray-400 mb-2">Background Color</label>
+                      <div className="space-y-2">
+                        <input
+                          type="color"
+                          className="w-full h-10 rounded border border-gray-500 cursor-pointer"
+                          defaultValue="#000000"
+                        />
+                        {/* Background Presets */}
+                        <div className="grid grid-cols-6 gap-1">
+                          {['#ffffff', '#f8f9fa', '#e9ecef', '#343a40', '#000000', '#1a1a1a', '#2563eb', '#059669'].map(color => (
+                            <button
+                              key={color}
+                              className="w-6 h-6 rounded border border-gray-500 hover:scale-110 transition-transform"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
+
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">Font Size</label>
                       <Select defaultValue="16px">
@@ -579,12 +686,33 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="12px">12px</SelectItem>
-                          <SelectItem value="14px">14px</SelectItem>
-                          <SelectItem value="16px">16px</SelectItem>
-                          <SelectItem value="18px">18px</SelectItem>
-                          <SelectItem value="24px">24px</SelectItem>
-                          <SelectItem value="32px">32px</SelectItem>
+                          <SelectItem value="10px">10px - Tiny</SelectItem>
+                          <SelectItem value="12px">12px - Small</SelectItem>
+                          <SelectItem value="14px">14px - Default</SelectItem>
+                          <SelectItem value="16px">16px - Medium</SelectItem>
+                          <SelectItem value="18px">18px - Large</SelectItem>
+                          <SelectItem value="20px">20px - XL</SelectItem>
+                          <SelectItem value="24px">24px - XXL</SelectItem>
+                          <SelectItem value="32px">32px - Huge</SelectItem>
+                          <SelectItem value="48px">48px - Giant</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Font Weight</label>
+                      <Select defaultValue="normal">
+                        <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="100">Thin</SelectItem>
+                          <SelectItem value="300">Light</SelectItem>
+                          <SelectItem value="normal">Normal</SelectItem>
+                          <SelectItem value="500">Medium</SelectItem>
+                          <SelectItem value="600">Semi Bold</SelectItem>
+                          <SelectItem value="bold">Bold</SelectItem>
+                          <SelectItem value="900">Black</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -609,6 +737,15 @@ export default function LiveWebsiteEditor({ onClose }: LiveWebsiteEditorProps) {
                         Save Changes
                       </>
                     )}
+                  </Button>
+                  
+                  <Button
+                    variant="destructive"
+                    onClick={deleteElement}
+                    className="w-full"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Element
                   </Button>
                   
                   <Button
