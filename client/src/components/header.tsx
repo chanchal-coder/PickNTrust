@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
-import CurvedTextLogo from "@/components/curved-text-logo";
+import AmazingBrandLogo from "@/components/amazing-brand-logo";
+import CenteredBrandText from "@/components/centered-brand-text";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -113,7 +114,7 @@ export default function Header() {
           {/* Logo in Corner with hidden admin access */}
           <div className="flex-shrink-0 relative">
             <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-110">
-              <CurvedTextLogo className="flex items-center gap-2" />
+              <AmazingBrandLogo className="flex items-center gap-2" />
             </Link>
             {/* Hidden admin access dot */}
             {!isAdmin && (
@@ -125,9 +126,9 @@ export default function Header() {
             )}
           </div>
 
-          {/* Centered Brand Text - Hidden since logo now has text */}
+          {/* Centered Brand Text */}
           <div className="flex-1 flex justify-center items-center px-2">
-            {/* Text is now part of the logo */}
+            <CenteredBrandText />
           </div>
 
           {/* Admin indicator for corner balance */}
