@@ -26,6 +26,7 @@ const productSchema = z.object({
   affiliateUrl: z.string().url('Must be a valid URL'),
   affiliateNetworkId: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
+  gender: z.string().optional(),
   rating: z.string().min(1, 'Rating is required'),
   reviewCount: z.string().min(1, 'Review count is required'),
   discount: z.string().optional(),
@@ -901,6 +902,7 @@ export default function AdminPage() {
         reviewCount: parseInt(data.reviewCount),
         discount: data.discount ? parseInt(data.discount) : undefined,
         affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
+        gender: data.gender || undefined,
         isNew: data.isNew || false,
         isFeatured: data.isFeatured || false,
         password: 'pickntrust2025', // Add admin password for authentication
@@ -1136,6 +1138,7 @@ export default function AdminPage() {
         reviewCount: parseInt(extractedProduct.reviewCount) || 100,
         discount: extractedProduct.discount ? parseInt(extractedProduct.discount) : undefined,
         category: extractedProduct.category,
+        gender: extractedProduct.gender || undefined,
         imageUrl: extractedProduct.imageUrl.trim(),
         affiliateUrl: extractedProduct.affiliateUrl.trim(),
         affiliateNetworkId: extractedProduct.affiliateNetworkId ? parseInt(extractedProduct.affiliateNetworkId) : undefined,
@@ -1561,6 +1564,43 @@ export default function AdminPage() {
                       </div>
                     </div>
 
+                    {/* Gender field for extracted products */}
+                    <div>
+                      <Label htmlFor="edit-gender">Gender Category (Optional)</Label>
+                      <Select 
+                        value={extractedProduct.gender || ''}
+                        onValueChange={(value) => setExtractedProduct({...extractedProduct, gender: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender category (leave empty if not applicable)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Not Applicable</SelectItem>
+                          <SelectItem value="Men">
+                            <div className="flex items-center">
+                              <i className="fas fa-male mr-2 text-blue-500"></i>
+                              Men
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="Women">
+                            <div className="flex items-center">
+                              <i className="fas fa-female mr-2 text-pink-500"></i>
+                              Women
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="Kids">
+                            <div className="flex items-center">
+                              <i className="fas fa-child mr-2 text-green-500"></i>
+                              Kids
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Use for categories like Footwear & Accessories, Jewelry & Watches, Beauty & Grooming
+                      </p>
+                    </div>
+
                     <div>
                       <Label htmlFor="edit-description">Description *</Label>
                       <Textarea
@@ -1816,6 +1856,42 @@ export default function AdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  {/* Gender field - Optional for gender-specific categories */}
+                  <div>
+                    <Label htmlFor="gender">Gender Category (Optional)</Label>
+                    <Select 
+                      onValueChange={(value) => form.setValue('gender', value as any)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender category (leave empty if not applicable)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Not Applicable</SelectItem>
+                        <SelectItem value="Men">
+                          <div className="flex items-center">
+                            <i className="fas fa-male mr-2 text-blue-500"></i>
+                            Men
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Women">
+                          <div className="flex items-center">
+                            <i className="fas fa-female mr-2 text-pink-500"></i>
+                            Women
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Kids">
+                          <div className="flex items-center">
+                            <i className="fas fa-child mr-2 text-green-500"></i>
+                            Kids
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Use for categories like Footwear & Accessories, Jewelry & Watches, Beauty & Grooming
+                    </p>
                   </div>
 
                   <div>
