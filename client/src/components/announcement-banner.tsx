@@ -18,6 +18,13 @@ export function AnnouncementBanner() {
 
   useEffect(() => {
     fetchActiveAnnouncement();
+    
+    // Set up polling to refresh announcement data every 5 seconds
+    const interval = setInterval(() => {
+      fetchActiveAnnouncement();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchActiveAnnouncement = async () => {

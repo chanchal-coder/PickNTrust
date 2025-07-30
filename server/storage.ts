@@ -1224,6 +1224,35 @@ export class DatabaseStorage implements IStorage {
     return newProduct;
   }
 
+  // Announcements (Database implementation)
+  async getAnnouncements(): Promise<Announcement[]> {
+    return await db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    const [newAnnouncement] = await db
+      .insert(announcements)
+      .values(announcement)
+      .returning();
+    return newAnnouncement;
+  }
+
+  async updateAnnouncement(id: number, updates: Partial<Announcement>): Promise<Announcement | null> {
+    const [updatedAnnouncement] = await db
+      .update(announcements)
+      .set(updates)
+      .where(eq(announcements.id, id))
+      .returning();
+    return updatedAnnouncement || null;
+  }
+
+  async deleteAnnouncement(id: number): Promise<boolean> {
+    const deleted = await db
+      .delete(announcements)
+      .where(eq(announcements.id, id));
+    return deleted.rowCount > 0;
+  }
+
   async deleteProduct(id: number): Promise<boolean> {
     const result = await db.delete(products).where(eq(products.id, id));
     return (result.rowCount || 0) > 0;
