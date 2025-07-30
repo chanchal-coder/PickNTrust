@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Palette } from "lucide-react";
+import { Palette, ChevronDown } from "lucide-react";
 
 interface ColorPickerProps {
   selectedColor: string;
@@ -9,31 +9,37 @@ interface ColorPickerProps {
 export function ColorPicker({ selectedColor, onColorChange }: ColorPickerProps) {
   const [showPalette, setShowPalette] = useState(false);
   
-  const colorPalette = [
-    // First row - basic colors
-    '#000000', '#374151', '#6B7280', '#DC2626', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#8B5CF6', '#EC4899',
-    // Second row - variations  
-    '#FFFFFF', '#9CA3AF', '#D1D5DB', '#FCA5A5', '#FDE047', '#FEF3C7', '#BBF7D0', '#A7F3D0', '#7DD3FC', '#93C5FD', '#C4B5FD', '#F9A8D4',
-    // Third row - empty placeholders for custom colors
-    ...Array(12).fill('#F3F4F6')
+  // Theme Colors - as shown in your image
+  const themeColors = [
+    ['#000000', '#4A5568', '#3182CE', '#F6AD55', '#9CA3AF', '#F6E05E', '#63B3ED', '#68D391'],
+    ['#9CA3AF', '#E2E8F0', '#EBF8FF', '#FFF5F5', '#FFFAF0', '#F7FAFC', '#EDF2F7', '#F0FFF4'],
+    ['#718096', '#A0AEC0', '#BEE3F8', '#FED7D7', '#FFEAA7', '#E2E8F0', '#FBD38D', '#C6F6D5'],
+    ['#4A5568', '#2D3748', '#2B6CB0', '#E53E3E', '#D69E2E', '#38A169', '#3182CE', '#805AD5'],
+    ['#718096', '#000000', '#1A202C', '#2C5282', '#C53030', '#B7791F', '#2F855A', '#553C9A'],
+    ['#9CA3AF', '#000000', '#2A4365', '#2B6CB0', '#9B2C2C', '#975A16', '#276749', '#44337A']
+  ];
+  
+  // Standard Colors - bright and vibrant
+  const standardColors = [
+    '#C53030', '#E53E3E', '#F6E05E', '#F6E05E', '#68D391', '#38A169', 
+    '#63B3ED', '#3182CE', '#2B6CB0', '#805AD5'
   ];
 
   return (
     <div className="relative">
       <div className="flex items-center gap-2">
         <div 
-          className="w-10 h-10 border-2 border-gray-300 rounded cursor-pointer flex items-center justify-center"
+          className="w-10 h-10 border-2 border-gray-300 dark:border-gray-600 rounded cursor-pointer flex items-center justify-center shadow-sm"
           style={{ backgroundColor: selectedColor }}
           onClick={() => setShowPalette(!showPalette)}
         >
-          {selectedColor === '#F3F4F6' && <div className="w-6 h-6 bg-gray-200 rounded"></div>}
+          {!selectedColor && <div className="w-6 h-6 bg-gray-200 rounded"></div>}
         </div>
         <div 
-          className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 cursor-pointer flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-transform"
+          className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           onClick={() => setShowPalette(!showPalette)}
-          title="Open color palette"
         >
-          <Palette className="w-4 h-4 text-white drop-shadow" />
+          <ChevronDown className="w-3 h-3 text-gray-600 dark:text-gray-300" />
         </div>
       </div>
       
@@ -43,24 +49,69 @@ export function ColorPicker({ selectedColor, onColorChange }: ColorPickerProps) 
             className="fixed inset-0 z-40" 
             onClick={() => setShowPalette(false)}
           />
-          <div className="absolute top-12 left-0 z-50 bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-600">
-            <div className="grid grid-cols-12 gap-1 mb-3">
-              {colorPalette.map((color, index) => (
-                <div
-                  key={index}
-                  className={`w-6 h-6 rounded cursor-pointer border-2 ${
-                    selectedColor === color ? 'border-white shadow-lg scale-110' : 'border-gray-600 hover:border-gray-400'
-                  } hover:scale-110 transition-all duration-200`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => {
-                    onColorChange(color);
-                    setShowPalette(false);
-                  }}
-                  title={`Select color ${color}`}
-                />
-              ))}
+          <div className="absolute top-12 left-0 z-50 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 min-w-[320px]">
+            
+            {/* Automatic Section */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 bg-black rounded"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Automatic</span>
+              </div>
             </div>
-            <div className="text-center text-white text-sm font-medium">Colours</div>
+
+            {/* Theme Colors Section */}
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Theme Colors</h4>
+              <div className="space-y-1">
+                {themeColors.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex gap-1">
+                    {row.map((color, colorIndex) => (
+                      <div
+                        key={colorIndex}
+                        className={`w-6 h-6 cursor-pointer border border-gray-300 dark:border-gray-600 ${
+                          selectedColor === color ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-gray-400'
+                        } transition-all duration-150`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => {
+                          onColorChange(color);
+                          setShowPalette(false);
+                        }}
+                        title={`Select color ${color}`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Standard Colors Section */}
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Standard Colors</h4>
+              <div className="flex gap-1 flex-wrap">
+                {standardColors.map((color, index) => (
+                  <div
+                    key={index}
+                    className={`w-6 h-6 cursor-pointer border border-gray-300 dark:border-gray-600 ${
+                      selectedColor === color ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-gray-400'
+                    } transition-all duration-150`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => {
+                      onColorChange(color);
+                      setShowPalette(false);
+                    }}
+                    title={`Select color ${color}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* More Colors Section */}
+            <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
+                <Palette className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">More Colors...</span>
+              </div>
+            </div>
           </div>
         </>
       )}
