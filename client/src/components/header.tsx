@@ -174,9 +174,7 @@ export default function Header() {
             )}
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
-          
-          {/* Sticky CTA Button with Countdown - Mobile Optimized */}
-          <StickyCtaButton />
+
           
           {/* Hamburger Menu Button - Mobile Optimized */}
           <button
@@ -377,67 +375,4 @@ function HeaderSocialProofBar() {
   );
 }
 
-// Sticky CTA Button Component  
-function StickyCtaButton() {
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 45,
-    seconds: 30
-  });
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { hours, minutes, seconds } = prev;
-        
-        if (seconds > 0) {
-          seconds--;
-        } else if (minutes > 0) {
-          minutes--;
-          seconds = 59;
-        } else if (hours > 0) {
-          hours--;
-          minutes = 59;
-          seconds = 59;
-        } else {
-          // Reset timer
-          hours = 23;
-          minutes = 59;
-          seconds = 59;
-        }
-        
-        return { hours, minutes, seconds };
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="fixed top-4 right-4 z-40 hidden lg:block">
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="relative bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-        style={{
-          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, glow 2s ease-in-out infinite alternate'
-        }}
-      >
-        <div className="flex items-center space-x-3">
-          <div className="text-center">
-            <div className="text-xs font-medium opacity-90">Deal Ends In</div>
-            <div className="text-sm font-bold">
-              {String(timeLeft.hours).padStart(2, '0')}:
-              {String(timeLeft.minutes).padStart(2, '0')}:
-              {String(timeLeft.seconds).padStart(2, '0')}
-            </div>
-          </div>
-          <div className="h-6 w-px bg-white/30"></div>
-          <div className="flex items-center space-x-1">
-            <i className="fas fa-shopping-bag text-sm"></i>
-            <span className="text-sm font-semibold">Shop Now</span>
-          </div>
-        </div>
-      </button>
-    </div>
-  );
-}
