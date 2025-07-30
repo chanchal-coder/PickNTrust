@@ -1,24 +1,24 @@
 import { useState, useEffect } from "react";
 import { Clock } from "lucide-react";
-import { type Product } from "@shared/schema";
+import { type BlogPost } from "@shared/schema";
 
-interface ProductTimerProps {
-  product: Product;
+interface BlogTimerProps {
+  blogPost: BlogPost;
   className?: string;
 }
 
-export function ProductTimer({ product, className = "" }: ProductTimerProps) {
+export function BlogTimer({ blogPost, className = "" }: BlogTimerProps) {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
-    if (!product.hasTimer || !product.timerStartTime || !product.timerDuration) {
+    if (!blogPost.hasTimer || !blogPost.timerStartTime || !blogPost.timerDuration) {
       return;
     }
 
     const calculateTimeLeft = () => {
-      const startTime = new Date(product.timerStartTime!);
-      const endTime = new Date(startTime.getTime() + (product.timerDuration! * 60 * 60 * 1000));
+      const startTime = new Date(blogPost.timerStartTime!);
+      const endTime = new Date(startTime.getTime() + (blogPost.timerDuration! * 60 * 60 * 1000));
       const now = new Date();
       const difference = endTime.getTime() - now.getTime();
 
@@ -48,24 +48,24 @@ export function ProductTimer({ product, className = "" }: ProductTimerProps) {
     const interval = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(interval);
-  }, [product.hasTimer, product.timerStartTime, product.timerDuration]);
+  }, [blogPost.hasTimer, blogPost.timerStartTime, blogPost.timerDuration]);
 
   // Don't render if timer is not enabled
-  if (!product.hasTimer || !product.timerStartTime || !product.timerDuration) {
+  if (!blogPost.hasTimer || !blogPost.timerStartTime || !blogPost.timerDuration) {
     return null;
   }
 
   return (
-    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 ${
+    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2 ${
       isExpired 
         ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-600 dark:text-red-400' 
         : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300'
     } ${className}`}>
-      <Clock className={`w-4 h-4 ${
+      <Clock className={`w-3 h-3 ${
         isExpired ? 'text-red-500' : 'text-orange-600 dark:text-orange-400 animate-pulse'
       }`} />
-      <span className="text-sm font-semibold tracking-wide">
-        {isExpired ? "Deal Expired" : `Deal ends in ${timeLeft}`}
+      <span className="text-xs font-semibold tracking-wide">
+        {isExpired ? "Article Expired" : `Article expires in ${timeLeft}`}
       </span>
     </div>
   );
