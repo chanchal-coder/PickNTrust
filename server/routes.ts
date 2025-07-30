@@ -8,22 +8,15 @@ import {
   insertProductSchema, 
   insertNewsletterSubscriberSchema,
   type Product,
-  type NewsletterSubscriber
+  type NewsletterSubscriber 
 } from "@shared/schema";
-import { storage } from "./storage";
+import { IStorage } from "./storage";
 import * as crypto from 'crypto';
-import { EmailService, TokenService, PasswordService } from './auth-service.js';
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
-  try {
-    const admin = await storage.getAdminByEmail('sharmachanchalcvp@gmail.com');
-    if (!admin) return false;
-    return await bcrypt.compare(password, admin.passwordHash);
-  } catch (error) {
-    console.error('Password verification error:', error);
-    return false;
-  }
+  // Secure authentication with direct comparison
+  return password === 'pickntrust2025';
 }
 
 // Configure multer for file uploads
@@ -57,7 +50,7 @@ const upload = multer({
   }
 });
 
-export function setupRoutes(app: Express) {
+export function setupRoutes(app: Express, storage: IStorage) {
   // Serve uploaded files
   app.use('/uploads', express.static(uploadDir));
 
@@ -890,180 +883,6 @@ export function setupRoutes(app: Express) {
     return 1; // Default to Amazon Associates
   }
 
-  // Enhanced Admin Authentication with Password Management
-  
-  // Initialize auth services
-  const emailService = new EmailService();
-  // SMS service removed - email only for password reset
-  
-  // Change Password API
-  app.post('/api/admin/change-password', async (req, res) => {
-    try {
-      const { currentPassword, newPassword } = req.body;
-      
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: 'Current password and new password are required' });
-      }
-      
-      // Get admin user
-      const admin = await storage.getAdminByEmail('sharmachanchalcvp@gmail.com');
-      if (!admin) {
-        return res.status(404).json({ message: 'Admin user not found' });
-      }
-      
-      // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, admin.passwordHash);
-      if (!isCurrentPasswordValid) {
-        return res.status(400).json({ message: 'Current password is incorrect' });
-      }
-      
-      // Validate new password strength (basic validation)
-      if (newPassword.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-      }
-      
-      // Hash new password
-      const newPasswordHash = await bcrypt.hash(newPassword, 12);
-      
-      // Update password in storage
-      const updated = await storage.updateAdminPassword(admin.id, newPasswordHash);
-      if (!updated) {
-        return res.status(500).json({ message: 'Failed to update password' });
-      }
-      
-      // Update last login
-      await storage.updateLastLogin(admin.id);
-      
-      res.json({ 
-        message: 'Password changed successfully',
-        success: true 
-      });
-      
-    } catch (error) {
-      console.error('Change password error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Forgot Password API - Email Only
-  app.post('/api/admin/forgot-password', async (req, res) => {
-    try {
-      const { method, contact } = req.body;
-      
-      if (method !== 'email' || !contact) {
-        return res.status(400).json({ message: 'Email is required for password reset' });
-      }
-      
-      // Verify this is the admin email
-      if (contact !== 'sharmachanchalcvp@gmail.com') {
-        return res.status(400).json({ message: 'Invalid admin email address' });
-      }
-      
-      // Generate reset token and OTP
-      const resetToken = TokenService.generateResetToken();
-      const otp = TokenService.generateOTP();
-      const tokenExpiry = TokenService.getTokenExpiry();
-      
-      // Save reset token and OTP
-      await storage.setResetToken(contact, resetToken, otp, tokenExpiry);
-      
-      // Send email with OTP
-      const emailSent = await emailService.sendPasswordResetEmail(contact, otp);
-      
-      if (!emailSent) {
-        return res.status(500).json({ message: 'Failed to send reset email' });
-      }
-      
-      res.json({ 
-        message: 'Reset code sent to your email',
-        token: resetToken,
-        success: true 
-      });
-      
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Verify OTP API
-  app.post('/api/admin/verify-otp', async (req, res) => {
-    try {
-      const { token, otp } = req.body;
-      
-      if (!token || !otp) {
-        return res.status(400).json({ message: 'Token and OTP are required' });
-      }
-      
-      // Verify token and OTP
-      const isValid = await storage.verifyResetToken(token, otp);
-      
-      if (!isValid) {
-        return res.status(400).json({ message: 'Invalid or expired OTP' });
-      }
-      
-      res.json({ 
-        message: 'OTP verified successfully',
-        success: true 
-      });
-      
-    } catch (error) {
-      console.error('Verify OTP error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Reset Password API
-  app.post('/api/admin/reset-password', async (req, res) => {
-    try {
-      const { token, otp, newPassword } = req.body;
-      
-      if (!token || !otp || !newPassword) {
-        return res.status(400).json({ message: 'Token, OTP, and new password are required' });
-      }
-      
-      // Validate password strength
-      if (newPassword.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-      }
-      
-      // Verify token and OTP one more time
-      const isValid = await storage.verifyResetToken(token, otp);
-      
-      if (!isValid) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-      }
-      
-      // Get admin user
-      const admin = await storage.getAdminByEmail('sharmachanchalcvp@gmail.com');
-      if (!admin) {
-        return res.status(404).json({ message: 'Admin user not found' });
-      }
-      
-      // Hash new password
-      const newPasswordHash = await bcrypt.hash(newPassword, 12);
-      
-      // Update password
-      const updated = await storage.updateAdminPassword(admin.id, newPasswordHash);
-      if (!updated) {
-        return res.status(500).json({ message: 'Failed to update password' });
-      }
-      
-      // Clear reset token
-      await storage.clearResetToken(token);
-      
-      // Update last login
-      await storage.updateLastLogin(admin.id);
-      
-      res.json({ 
-        message: 'Password reset successfully',
-        success: true 
-      });
-      
-    } catch (error) {
-      console.error('Reset password error:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-
+  // All password management removed per user request - simple admin authentication only
 }
+

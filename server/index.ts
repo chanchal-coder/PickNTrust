@@ -37,9 +37,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Database storage is already initialized in storage.ts
+  const { MemStorage } = await import("./storage");
+  const storage = new MemStorage();
   
-  setupRoutes(app);
+  setupRoutes(app, storage);
   
   const server = app;
 

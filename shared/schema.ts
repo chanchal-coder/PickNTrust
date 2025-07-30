@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, varchar, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -65,7 +65,6 @@ export const adminUsers = pgTable("admin_users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
-  phone: text("phone"),
   passwordHash: text("password_hash").notNull(),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
@@ -109,20 +108,7 @@ export const changePasswordSchema = z.object({
 
 // Forgot password schema
 export const forgotPasswordSchema = z.object({
-  resetMethod: z.enum(['email', 'phone'], { required_error: 'Please select a reset method' }),
-  email: z.string().email('Please enter a valid email address').optional(),
-  phone: z.string().min(10, 'Please enter a valid phone number').optional(),
-}).refine((data) => {
-  if (data.resetMethod === 'email' && !data.email) {
-    return false;
-  }
-  if (data.resetMethod === 'phone' && !data.phone) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Please provide the required contact information',
-  path: ['email'],
+  email: z.string().email('Please enter a valid email address'),
 });
 
 // Reset password schema
@@ -155,4 +141,3 @@ export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export const insertAffiliateNetworkSchema = createInsertSchema(affiliateNetworks).omit({
   id: true,
 });
-

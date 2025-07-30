@@ -21,33 +21,6 @@ import {
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
-// Storage for reset tokens
-class ResetTokenStorage {
-  private tokens = new Map<string, { otp: string; email: string; expiry: Date }>();
-
-  setToken(email: string, token: string, otp: string, expiry: Date): void {
-    this.tokens.set(token, { otp, email, expiry });
-  }
-
-  verifyToken(token: string, otp: string): boolean {
-    const tokenData = this.tokens.get(token);
-    if (!tokenData) return false;
-    
-    if (tokenData.expiry < new Date()) {
-      this.tokens.delete(token);
-      return false;
-    }
-    
-    return tokenData.otp === otp;
-  }
-
-  clearToken(token: string): void {
-    this.tokens.delete(token);
-  }
-}
-
-const resetTokenStorage = new ResetTokenStorage();
-
 export interface IStorage {
   // Products
   getProducts(): Promise<Product[]>;
@@ -80,18 +53,16 @@ export interface IStorage {
   deleteBlogPost(id: number): Promise<boolean>;
   updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null>;
   
-  // Admin User Management  
+  // Admin User Management
   getAdminByEmail(email: string): Promise<AdminUser | undefined>;
   getAdminByUsername(username: string): Promise<AdminUser | undefined>;
   getAdminById(id: number): Promise<AdminUser | undefined>;
   createAdmin(admin: InsertAdminUser): Promise<AdminUser>;
   updateAdminPassword(id: number, passwordHash: string): Promise<boolean>;
-  setResetToken(email: string, token: string, otp: string, expiry: Date): Promise<boolean>;
-  verifyResetToken(token: string, otp: string): Promise<boolean>;
-  clearResetToken(token: string): Promise<boolean>;
+  setResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
+  validateResetToken(token: string): Promise<AdminUser | undefined>;
+  clearResetToken(id: number): Promise<boolean>;
   updateLastLogin(id: number): Promise<boolean>;
-  
-
 }
 
 export class MemStorage implements IStorage {
@@ -895,8 +866,7 @@ Remember: The best gadget is the one you'll actually use consistently!`,
     // Seed default admin user
     const defaultAdmin: InsertAdminUser = {
       username: "admin",
-      email: "sharmachanchalcvp@gmail.com",
-      phone: "9898892198",
+      email: "admin@pickntrust.com",
       passwordHash: "7cc8b0731d6b4463bd7d280639fd1ae374c7a1f1374952ac8eefa8362908f68cc7e103900c4de289b875502f273ad9441b901d822d05ac4c1cf8f8e0d584a878", // hashed "pickntrust2025"
       isActive: true
     };
@@ -1041,8 +1011,7 @@ Remember: The best gadget is the one you'll actually use consistently!`,
       videoUrl: blogPostData.videoUrl || null,
       publishedAt: new Date(blogPostData.publishedAt || new Date()),
       readTime: blogPostData.readTime,
-      slug: blogPostData.slug || blogPostData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      createdAt: new Date()
+      slug: blogPostData.slug || blogPostData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     };
     
     this.blogPosts.set(id, blogPost);
@@ -1066,7 +1035,7 @@ Remember: The best gadget is the one you'll actually use consistently!`,
 
   // Admin User Management Methods
   async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
-    for (const admin of Array.from(this.adminUsers.values())) {
+    for (const admin of this.adminUsers.values()) {
       if (admin.email === email) {
         return admin;
       }
@@ -1075,7 +1044,7 @@ Remember: The best gadget is the one you'll actually use consistently!`,
   }
 
   async getAdminByUsername(username: string): Promise<AdminUser | undefined> {
-    for (const admin of Array.from(this.adminUsers.values())) {
+    for (const admin of this.adminUsers.values()) {
       if (admin.username === username) {
         return admin;
       }
@@ -1093,11 +1062,10 @@ Remember: The best gadget is the one you'll actually use consistently!`,
       id,
       username: adminData.username,
       email: adminData.email,
-      phone: adminData.phone || null,
       passwordHash: adminData.passwordHash,
       resetToken: adminData.resetToken || null,
       resetTokenExpiry: adminData.resetTokenExpiry || null,
-      lastLogin: null,
+      lastLogin: adminData.lastLogin || null,
       createdAt: new Date(),
       isActive: adminData.isActive ?? true,
     };
@@ -1115,17 +1083,30 @@ Remember: The best gadget is the one you'll actually use consistently!`,
     return true;
   }
 
-  async setResetToken(email: string, token: string, otp: string, expiry: Date): Promise<boolean> {
-    resetTokenStorage.setToken(email, token, otp, expiry);
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const admin = await this.getAdminByEmail(email);
+    if (!admin) return false;
+    
+    const updatedAdmin = { ...admin, resetToken: token, resetTokenExpiry: expiry };
+    this.adminUsers.set(admin.id, updatedAdmin);
     return true;
   }
 
-  async verifyResetToken(token: string, otp: string): Promise<boolean> {
-    return resetTokenStorage.verifyToken(token, otp);
+  async validateResetToken(token: string): Promise<AdminUser | undefined> {
+    for (const admin of this.adminUsers.values()) {
+      if (admin.resetToken === token && admin.resetTokenExpiry && admin.resetTokenExpiry > new Date()) {
+        return admin;
+      }
+    }
+    return undefined;
   }
 
-  async clearResetToken(token: string): Promise<boolean> {
-    resetTokenStorage.clearToken(token);
+  async clearResetToken(id: number): Promise<boolean> {
+    const admin = this.adminUsers.get(id);
+    if (!admin) return false;
+    
+    const updatedAdmin = { ...admin, resetToken: null, resetTokenExpiry: null };
+    this.adminUsers.set(id, updatedAdmin);
     return true;
   }
 
@@ -1281,18 +1262,33 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async setResetToken(email: string, token: string, otp: string, expiry: Date): Promise<boolean> {
-    resetTokenStorage.setToken(email, token, otp, expiry);
-    return true;
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ resetToken: token, resetTokenExpiry: expiry })
+      .where(eq(adminUsers.email, email));
+    return result.rowCount > 0;
   }
 
-  async verifyResetToken(token: string, otp: string): Promise<boolean> {
-    return resetTokenStorage.verifyToken(token, otp);
+  async validateResetToken(token: string): Promise<AdminUser | undefined> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.resetToken, token));
+    
+    if (!admin || !admin.resetTokenExpiry || admin.resetTokenExpiry < new Date()) {
+      return undefined;
+    }
+    
+    return admin;
   }
 
-  async clearResetToken(token: string): Promise<boolean> {
-    resetTokenStorage.clearToken(token);
-    return true;
+  async clearResetToken(id: number): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ resetToken: null, resetTokenExpiry: null })
+      .where(eq(adminUsers.id, id));
+    return result.rowCount > 0;
   }
 
   async updateLastLogin(id: number): Promise<boolean> {
@@ -1300,7 +1296,7 @@ export class DatabaseStorage implements IStorage {
       .update(adminUsers)
       .set({ lastLogin: new Date() })
       .where(eq(adminUsers.id, id));
-    return (result.rowCount || 0) > 0;
+    return result.rowCount > 0;
   }
 }
 
