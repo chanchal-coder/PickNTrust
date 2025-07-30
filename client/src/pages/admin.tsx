@@ -59,24 +59,49 @@ function AnnouncementManager() {
   // Create announcement mutation
   const createAnnouncementMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('/api/admin/announcements', {
+      console.log('Creating announcement with data:', data);
+      const response = await fetch('/api/admin/announcements', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ ...data, password: 'pickntrust2025' })
       });
-      return response;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create announcement');
+      }
+      
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('Announcement created successfully:', result);
       toast({
         title: 'Announcement Created!',
-        description: 'The announcement banner has been activated.',
+        description: 'The announcement banner has been activated and is now live.',
       });
+      
+      // Reset form data
+      setAnnouncementData({
+        message: '',
+        textColor: '#ffffff',
+        backgroundColor: '#3b82f6',
+        fontSize: '16px',
+        fontWeight: 'normal',
+        animationSpeed: '30',
+        isActive: true
+      });
+      
+      // Refresh data and close editor
       queryClient.invalidateQueries({ queryKey: ['/api/announcement/active'] });
       setIsEditing(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Error creating announcement:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create announcement. Please try again.',
+        description: error.message || 'Failed to create announcement. Please try again.',
         variant: 'destructive',
       });
     },
