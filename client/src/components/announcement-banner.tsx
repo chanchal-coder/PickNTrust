@@ -19,19 +19,21 @@ export function AnnouncementBanner() {
   useEffect(() => {
     fetchActiveAnnouncement();
     
-    // Set up polling to refresh announcement data every 2 seconds for faster updates
+    // Set up polling to refresh announcement data every 1 second for immediate updates
     const interval = setInterval(() => {
       fetchActiveAnnouncement();
-    }, 2000);
+    }, 1000);
     
     return () => clearInterval(interval);
   }, []);
 
   const fetchActiveAnnouncement = async () => {
     try {
-      const response = await fetch('/api/announcement/active');
+      // Add cache-busting parameter to force fresh data
+      const response = await fetch(`/api/announcement/active?t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Updated announcement:', data.id, data.message);
         setAnnouncement(data);
       }
     } catch (error) {
@@ -39,7 +41,15 @@ export function AnnouncementBanner() {
     }
   };
 
-  if (!announcement || !announcement.isActive || !isVisible) {
+  if (!announcement) {
+    return (
+      <div className="bg-blue-600 text-white text-center py-2">
+        <div className="animate-pulse">Loading announcement...</div>
+      </div>
+    );
+  }
+  
+  if (!announcement.isActive || !isVisible) {
     return null;
   }
 
@@ -92,6 +102,8 @@ export function AnnouncementBanner() {
           
           .marquee-content {
             padding-left: 100%;
+            animation-delay: 0s !important;
+            animation-fill-mode: both !important;
           }
         `
       }} />
