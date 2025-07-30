@@ -10,12 +10,14 @@ import SearchBar from "@/components/search-bar";
 import HeroBannerSlider from "@/components/hero-banner-slider";
 import StickyCTA from "@/components/sticky-cta";
 import WhatsAppBanner from "@/components/whatsapp-banner";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <WhatsAppBanner />
+      <AnnouncementBanner />
       <div className="header-spacing">
         <HeroBannerSlider />
         <SearchBar />

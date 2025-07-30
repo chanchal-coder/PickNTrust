@@ -5,6 +5,7 @@ import {
   categories,
   affiliateNetworks,
   adminUsers,
+  announcements,
   type Product, 
   type InsertProduct,
   type BlogPost,
@@ -16,10 +17,12 @@ import {
   type AffiliateNetwork,
   type InsertAffiliateNetwork,
   type AdminUser,
-  type InsertAdminUser
+  type InsertAdminUser,
+  type Announcement,
+  type InsertAnnouncement
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ne } from "drizzle-orm";
 
 export interface IStorage {
   // Products
@@ -52,6 +55,12 @@ export interface IStorage {
   addBlogPost(blogPost: any): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<boolean>;
   updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null>;
+
+  // Announcements
+  getAnnouncements(): Promise<Announcement[]>;
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: number, updates: Partial<Announcement>): Promise<Announcement | null>;
+  deleteAnnouncement(id: number): Promise<boolean>;
   
   // Admin User Management
   getAdminByEmail(email: string): Promise<AdminUser | undefined>;
@@ -1118,6 +1127,28 @@ Remember: The best gadget is the one you'll actually use consistently!`,
     this.adminUsers.set(id, updatedAdmin);
     return true;
   }
+
+  // Announcements (MemStorage implementation - fallback)
+  async getAnnouncements(): Promise<Announcement[]> {
+    return [];
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    const newAnnouncement = {
+      id: 1,
+      ...announcement,
+      createdAt: new Date()
+    } as Announcement;
+    return newAnnouncement;
+  }
+
+  async updateAnnouncement(id: number, updates: Partial<Announcement>): Promise<Announcement | null> {
+    return null;
+  }
+
+  async deleteAnnouncement(id: number): Promise<boolean> {
+    return false;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1195,7 +1226,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: number): Promise<boolean> {
     const result = await db.delete(products).where(eq(products.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async updateProduct(id: number, updates: Partial<Product>): Promise<Product | null> {
@@ -1218,7 +1249,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlogPost(id: number): Promise<boolean> {
     const result = await db.delete(blogPosts).where(eq(blogPosts.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null> {
@@ -1228,6 +1259,44 @@ export class DatabaseStorage implements IStorage {
       .where(eq(blogPosts.id, id))
       .returning();
     return updatedBlogPost || null;
+  }
+
+  // Announcements
+  async getAnnouncements(): Promise<Announcement[]> {
+    return await db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    // First deactivate all other announcements if this one is active
+    if (announcement.isActive) {
+      await db.update(announcements).set({ isActive: false });
+    }
+    
+    const [newAnnouncement] = await db.insert(announcements).values({
+      ...announcement,
+      createdAt: new Date()
+    }).returning();
+    return newAnnouncement;
+  }
+
+  async updateAnnouncement(id: number, updates: Partial<Announcement>): Promise<Announcement | null> {
+    // If setting this one active, deactivate others first
+    if (updates.isActive) {
+      await db.update(announcements)
+        .set({ isActive: false })
+        .where(ne(announcements.id, id));
+    }
+    
+    const [updatedAnnouncement] = await db.update(announcements)
+      .set(updates)
+      .where(eq(announcements.id, id))
+      .returning();
+    return updatedAnnouncement || null;
+  }
+
+  async deleteAnnouncement(id: number): Promise<boolean> {
+    const result = await db.delete(announcements).where(eq(announcements.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   // Admin User Management

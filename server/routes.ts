@@ -884,5 +884,111 @@ export function setupRoutes(app: Express, storage: IStorage) {
   }
 
   // All password management removed per user request - simple admin authentication only
+
+  // Announcements API routes
+  app.get('/api/announcement/active', async (req, res) => {
+    try {
+      // Check if we're using DatabaseStorage (has the method) or MemStorage (fallback)
+      if (typeof storage.getAnnouncements === 'function') {
+        const announcements = await storage.getAnnouncements();
+        const activeAnnouncement = announcements.find(a => a.isActive);
+        
+        if (activeAnnouncement) {
+          res.json(activeAnnouncement);
+        } else {
+          res.status(404).json({ message: 'No active announcement found' });
+        }
+      } else {
+        res.status(404).json({ message: 'No active announcement found' });
+      }
+    } catch (error) {
+      console.error('Error fetching active announcement:', error);
+      res.status(500).json({ error: 'Failed to fetch announcement' });
+    }
+  });
+
+  app.get('/api/admin/announcements', async (req, res) => {
+    try {
+      const { password } = req.query;
+      
+      if (!await verifyAdminPassword(password as string)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      if (typeof storage.getAnnouncements === 'function') {
+        const allAnnouncements = await storage.getAnnouncements();
+        res.json(allAnnouncements);
+      } else {
+        res.json([]);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      res.status(500).json({ error: 'Failed to fetch announcements' });
+    }
+  });
+
+  app.post('/api/admin/announcements', async (req, res) => {
+    try {
+      const { password, ...announcementData } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      if (typeof storage.createAnnouncement === 'function') {
+        const newAnnouncement = await storage.createAnnouncement(announcementData);
+        res.json(newAnnouncement);
+      } else {
+        res.status(501).json({ error: 'Announcement feature not available' });
+      }
+    } catch (error) {
+      console.error('Error creating announcement:', error);
+      res.status(500).json({ error: 'Failed to create announcement' });
+    }
+  });
+
+  app.put('/api/admin/announcements/:id', async (req, res) => {
+    try {
+      const { password, ...announcementData } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const updatedAnnouncement = await storage.updateAnnouncement(id, announcementData);
+      
+      if (updatedAnnouncement) {
+        res.json(updatedAnnouncement);
+      } else {
+        res.status(404).json({ message: 'Announcement not found' });
+      }
+    } catch (error) {
+      console.error('Error updating announcement:', error);
+      res.status(500).json({ error: 'Failed to update announcement' });
+    }
+  });
+
+  app.delete('/api/admin/announcements/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteAnnouncement(id);
+      
+      if (deleted) {
+        res.json({ message: 'Announcement deleted successfully' });
+      } else {
+        res.status(404).json({ message: 'Announcement not found' });
+      }
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      res.status(500).json({ error: 'Failed to delete announcement' });
+    }
+  });
 }
 

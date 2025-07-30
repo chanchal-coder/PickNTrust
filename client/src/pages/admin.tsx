@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
-import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus } from 'lucide-react';
+import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Megaphone } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -33,6 +33,257 @@ const productSchema = z.object({
 });
 
 type ProductForm = z.infer<typeof productSchema>;
+
+// Announcement Manager Component
+function AnnouncementManager() {
+  const [isEditing, setIsEditing] = useState(false);
+  const [announcementData, setAnnouncementData] = useState({
+    message: '',
+    textColor: '#ffffff',
+    backgroundColor: '#3b82f6',
+    fontSize: '16px',
+    fontWeight: 'normal',
+    animationSpeed: '30',
+    isActive: true
+  });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch current active announcement
+  const { data: activeAnnouncement } = useQuery({
+    queryKey: ['/api/announcement/active'],
+    retry: false
+  });
+
+  // Create announcement mutation
+  const createAnnouncementMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('/api/admin/announcements', {
+        method: 'POST',
+        body: JSON.stringify({ ...data, password: 'pickntrust2025' })
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Announcement Created!',
+        description: 'The announcement banner has been activated.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/announcement/active'] });
+      setIsEditing(false);
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create announcement. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleSave = () => {
+    if (!announcementData.message.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter an announcement message.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    createAnnouncementMutation.mutate(announcementData);
+  };
+
+  return (
+    <div className="space-y-4">
+      {activeAnnouncement ? (
+        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+          <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2">
+            Current Active Announcement:
+          </h4>
+          <div 
+            className="p-3 rounded-md text-center font-medium"
+            style={{
+              backgroundColor: activeAnnouncement.backgroundColor,
+              color: activeAnnouncement.textColor,
+              fontSize: activeAnnouncement.fontSize,
+              fontWeight: activeAnnouncement.fontWeight
+            }}
+          >
+            {activeAnnouncement.message}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAnnouncementData({
+                  message: activeAnnouncement.message,
+                  textColor: activeAnnouncement.textColor,
+                  backgroundColor: activeAnnouncement.backgroundColor,
+                  fontSize: activeAnnouncement.fontSize,
+                  fontWeight: activeAnnouncement.fontWeight,
+                  animationSpeed: activeAnnouncement.animationSpeed,
+                  isActive: true
+                });
+                setIsEditing(true);
+              }}
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-center text-gray-500 dark:text-gray-400">
+          No active announcement. Create one below.
+        </div>
+      )}
+
+      {!isEditing ? (
+        <Button
+          onClick={() => setIsEditing(true)}
+          className="bg-bright-blue hover:bg-navy"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Create New Announcement
+        </Button>
+      ) : (
+        <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <h4 className="font-semibold text-navy dark:text-blue-400">
+            {activeAnnouncement ? 'Edit Announcement' : 'Create New Announcement'}
+          </h4>
+          
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="message">Announcement Message</Label>
+              <Input
+                id="message"
+                placeholder="Enter your announcement message (use emojis for more appeal! 🎉✨)"
+                value={announcementData.message}
+                onChange={(e) => setAnnouncementData(prev => ({...prev, message: e.target.value}))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="textColor">Text Color</Label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    id="textColor"
+                    value={announcementData.textColor}
+                    onChange={(e) => setAnnouncementData(prev => ({...prev, textColor: e.target.value}))}
+                    className="w-12 h-10 rounded border"
+                  />
+                  <Input
+                    value={announcementData.textColor}
+                    onChange={(e) => setAnnouncementData(prev => ({...prev, textColor: e.target.value}))}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="backgroundColor">Background Color</Label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    id="backgroundColor"
+                    value={announcementData.backgroundColor}
+                    onChange={(e) => setAnnouncementData(prev => ({...prev, backgroundColor: e.target.value}))}
+                    className="w-12 h-10 rounded border"
+                  />
+                  <Input
+                    value={announcementData.backgroundColor}
+                    onChange={(e) => setAnnouncementData(prev => ({...prev, backgroundColor: e.target.value}))}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="fontSize">Font Size</Label>
+                <Select value={announcementData.fontSize} onValueChange={(value) => setAnnouncementData(prev => ({...prev, fontSize: value}))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="14px">Small (14px)</SelectItem>
+                    <SelectItem value="16px">Medium (16px)</SelectItem>
+                    <SelectItem value="18px">Large (18px)</SelectItem>
+                    <SelectItem value="20px">Extra Large (20px)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="fontWeight">Font Weight</Label>
+                <Select value={announcementData.fontWeight} onValueChange={(value) => setAnnouncementData(prev => ({...prev, fontWeight: value}))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="bold">Bold</SelectItem>
+                    <SelectItem value="600">Semi Bold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="animationSpeed">Animation Speed</Label>
+                <Select value={announcementData.animationSpeed} onValueChange={(value) => setAnnouncementData(prev => ({...prev, animationSpeed: value}))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="20">Fast (20s)</SelectItem>
+                    <SelectItem value="30">Medium (30s)</SelectItem>
+                    <SelectItem value="40">Slow (40s)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Preview */}
+            <div>
+              <Label>Preview</Label>
+              <div 
+                className="p-3 rounded-md text-center font-medium border"
+                style={{
+                  backgroundColor: announcementData.backgroundColor,
+                  color: announcementData.textColor,
+                  fontSize: announcementData.fontSize,
+                  fontWeight: announcementData.fontWeight
+                }}
+              >
+                {announcementData.message || 'Your announcement will appear here...'}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSave}
+                disabled={createAnnouncementMutation.isPending}
+                className="bg-bright-blue hover:bg-navy"
+              >
+                {createAnnouncementMutation.isPending ? 'Saving...' : 'Save Announcement'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Product Management Card Component
 function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, onUpdate: () => void, onDelete: () => void }) {
@@ -1117,6 +1368,22 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+
+          {/* Announcement Management Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-navy dark:text-blue-400">
+                <Megaphone className="w-5 h-5" />
+                Announcement Banner
+              </CardTitle>
+              <CardDescription>
+                Manage the scrolling announcement banner shown on the homepage
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AnnouncementManager />
+            </CardContent>
+          </Card>
 
           {/* Conditional Content Based on Active Tab */}
           {activeTab === 'products' && (

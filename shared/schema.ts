@@ -73,6 +73,18 @@ export const adminUsers = pgTable("admin_users", {
   isActive: boolean("is_active").default(true),
 });
 
+export const announcements = pgTable("announcements", {
+  id: serial("id").primaryKey(),
+  message: text("message").notNull(),
+  isActive: boolean("is_active").default(true),
+  textColor: text("text_color").default('#ffffff'),
+  backgroundColor: text("background_color").default('#3b82f6'),
+  fontSize: text("font_size").default('16px'),
+  fontWeight: text("font_weight").default('normal'),
+  animationSpeed: text("animation_speed").default('30'),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
 });
@@ -127,12 +139,14 @@ export type Category = typeof categories.$inferSelect;
 export type AffiliateNetwork = typeof affiliateNetworks.$inferSelect;
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type AdminUser = typeof adminUsers.$inferSelect;
+export type Announcement = typeof announcements.$inferSelect;
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertAffiliateNetwork = typeof affiliateNetworks.$inferInsert;
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+export type InsertAnnouncement = typeof announcements.$inferInsert;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type ChangePassword = z.infer<typeof changePasswordSchema>;
 export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
@@ -140,4 +154,9 @@ export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 
 export const insertAffiliateNetworkSchema = createInsertSchema(affiliateNetworks).omit({
   id: true,
+});
+
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true,
+  createdAt: true,
 });
