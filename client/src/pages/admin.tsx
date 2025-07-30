@@ -2667,7 +2667,7 @@ Add as many affiliate links as needed!"
                     {/* Timer Controls */}
                     <div className="border rounded-lg p-4 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-600">
                       <div className="flex items-center gap-2 mb-3">
-                        <Clock className="w-4 h-4 text-orange-600" />
+                        <i className="fas fa-clock text-orange-600 w-4 h-4" />
                         <Label className="text-orange-800 dark:text-orange-300 font-semibold">Auto-Delete Timer</Label>
                       </div>
                       <div className="space-y-3">
@@ -2957,7 +2957,9 @@ Add as many affiliate links as needed!"
                                     videoUrl: post.videoUrl || '',
                                     publishedAt: new Date(post.publishedAt).toISOString().split('T')[0],
                                     readTime: post.readTime,
-                                    slug: post.slug
+                                    slug: post.slug,
+                                    hasTimer: post.hasTimer || false,
+                                    timerDuration: post.timerDuration?.toString() || '24'
                                   });
                                   setShowBlogForm(true);
                                 }}

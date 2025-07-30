@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { BlogPost } from "@shared/schema";
-import { BlogTimer } from "./blog-timer";
 
 export default function BlogSection() {
   const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
@@ -147,11 +146,6 @@ export default function BlogSection() {
                 </div>
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1">{post.title}</h4>
-                  <BlogTimer 
-                    hasTimer={post.hasTimer || false}
-                    timerStartTime={post.timerStartTime}
-                    timerDuration={post.timerDuration}
-                  />
                 </div>
                 <div className="text-gray-600 dark:text-gray-300 mb-4">
                   {/* Show only first 4-5 lines of excerpt */}
