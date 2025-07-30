@@ -888,16 +888,29 @@ export function setupRoutes(app: Express, storage: IStorage) {
   // Announcements API routes
   app.get('/api/announcement/active', async (req, res) => {
     try {
-      // Check if we're using DatabaseStorage (has the method) or MemStorage (fallback)
-      if (typeof storage.getAnnouncements === 'function') {
-        const announcements = await storage.getAnnouncements();
-        const activeAnnouncement = announcements.find(a => a.isActive);
-        
-        if (activeAnnouncement) {
-          res.json(activeAnnouncement);
-        } else {
-          res.status(404).json({ message: 'No active announcement found' });
-        }
+      console.log('API: Fetching active announcement...');
+      
+      // Test direct SQL query first
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const directResult = await db.execute(sql`SELECT * FROM announcements WHERE is_active = true ORDER BY created_at DESC LIMIT 1`);
+      console.log('Direct SQL result:', directResult);
+      
+      if (directResult.rows && directResult.rows.length > 0) {
+        const row = directResult.rows[0];
+        const announcement = {
+          id: row.id,
+          message: row.message,
+          isActive: row.is_active,
+          textColor: row.text_color,
+          backgroundColor: row.background_color,
+          fontSize: row.font_size,
+          fontWeight: row.font_weight,
+          animationSpeed: row.animation_speed,
+          createdAt: row.created_at
+        };
+        console.log('Formatted announcement:', announcement);
+        res.json(announcement);
       } else {
         res.status(404).json({ message: 'No active announcement found' });
       }
@@ -915,12 +928,8 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      if (typeof storage.getAnnouncements === 'function') {
-        const allAnnouncements = await storage.getAnnouncements();
-        res.json(allAnnouncements);
-      } else {
-        res.json([]);
-      }
+      const allAnnouncements = await storage.getAnnouncements();
+      res.json(allAnnouncements);
     } catch (error) {
       console.error('Error fetching announcements:', error);
       res.status(500).json({ error: 'Failed to fetch announcements' });
@@ -935,12 +944,16 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      if (typeof storage.createAnnouncement === 'function') {
-        const newAnnouncement = await storage.createAnnouncement(announcementData);
-        res.json(newAnnouncement);
-      } else {
-        res.status(501).json({ error: 'Announcement feature not available' });
+      // First, deactivate all existing announcements to ensure only one is active
+      const existingAnnouncements = await storage.getAnnouncements();
+      for (const announcement of existingAnnouncements) {
+        if (announcement.isActive) {
+          await storage.updateAnnouncement(announcement.id, { isActive: false });
+        }
       }
+
+      const newAnnouncement = await storage.createAnnouncement(announcementData);
+      res.json(newAnnouncement);
     } catch (error) {
       console.error('Error creating announcement:', error);
       res.status(500).json({ error: 'Failed to create announcement' });

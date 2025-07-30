@@ -22,7 +22,7 @@ import {
   type InsertAnnouncement
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, ne } from "drizzle-orm";
+import { eq, desc, ne, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Products
@@ -1263,7 +1263,21 @@ export class DatabaseStorage implements IStorage {
 
   // Announcements
   async getAnnouncements(): Promise<Announcement[]> {
-    return await db.select().from(announcements).orderBy(desc(announcements.createdAt));
+    try {
+      console.log('Fetching announcements from database...');
+      
+      // First test with raw SQL to see if database connection works
+      const testQuery = await db.execute(sql`SELECT COUNT(*) as count FROM announcements`);
+      console.log('Test query result:', testQuery);
+      
+      const result = await db.select().from(announcements).orderBy(desc(announcements.createdAt));
+      console.log('Database result length:', result.length);
+      console.log('Database result:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      throw error; // Let the error bubble up to see what's wrong
+    }
   }
 
   async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
