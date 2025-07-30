@@ -946,16 +946,31 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      // Use a transaction-like approach: deactivate all, then create new
-      console.log('Deactivating all existing announcements...');
+      // Transaction-style: deactivate all existing, then create new
+      console.log('=== STARTING ANNOUNCEMENT UPDATE ===');
       
-      // Direct SQL to deactivate all announcements
-      await db.update(announcements).set({ isActive: false });
-      console.log('All existing announcements deactivated');
-
-      console.log('Creating new announcement with data:', announcementData);
-      const newAnnouncement = await storage.createAnnouncement(announcementData);
-      console.log('New announcement created:', newAnnouncement);
+      // Step 1: Deactivate ALL existing announcements
+      const deactivateResult = await db.update(announcements).set({ isActive: false });
+      console.log('Deactivated announcements count:', deactivateResult.rowCount);
+      
+      // Step 2: Create new announcement
+      console.log('Creating new announcement:', announcementData);
+      const [newAnnouncement] = await db
+        .insert(announcements)
+        .values({
+          message: announcementData.message,
+          textColor: announcementData.textColor,
+          backgroundColor: announcementData.backgroundColor,
+          fontSize: announcementData.fontSize,
+          fontWeight: announcementData.fontWeight,
+          animationSpeed: announcementData.animationSpeed,
+          isActive: true,
+          createdAt: new Date()
+        })
+        .returning();
+      
+      console.log('New announcement created with ID:', newAnnouncement.id);
+      console.log('=== ANNOUNCEMENT UPDATE COMPLETE ===');
       res.json(newAnnouncement);
     } catch (error) {
       console.error('Error creating announcement:', error);
