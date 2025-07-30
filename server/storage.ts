@@ -5,9 +5,6 @@ import {
   categories,
   affiliateNetworks,
   adminUsers,
-  cmsPages,
-  cmsSections,
-  cmsMedia,
   type Product, 
   type InsertProduct,
   type BlogPost,
@@ -19,13 +16,7 @@ import {
   type AffiliateNetwork,
   type InsertAffiliateNetwork,
   type AdminUser,
-  type InsertAdminUser,
-  type CmsPage,
-  type CmsSection,
-  type CmsMedia,
-  type InsertCmsPage,
-  type InsertCmsSection,
-  type InsertCmsMedia
+  type InsertAdminUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -100,25 +91,7 @@ export interface IStorage {
   clearResetToken(token: string): Promise<boolean>;
   updateLastLogin(id: number): Promise<boolean>;
   
-  // CMS Management
-  getCmsPages(): Promise<CmsPage[]>;
-  getCmsPage(id: number): Promise<CmsPage | undefined>;
-  getCmsPageBySlug(slug: string): Promise<CmsPage | undefined>;
-  createCmsPage(page: InsertCmsPage): Promise<CmsPage>;
-  updateCmsPage(id: number, updates: Partial<CmsPage>): Promise<CmsPage | null>;
-  deleteCmsPage(id: number): Promise<boolean>;
-  
-  getCmsSections(pageId?: number): Promise<CmsSection[]>;
-  getCmsSection(id: number): Promise<CmsSection | undefined>;
-  createCmsSection(section: InsertCmsSection): Promise<CmsSection>;
-  updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null>;
-  deleteCmsSection(id: number): Promise<boolean>;
-  reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean>;
-  
-  getCmsMedia(): Promise<CmsMedia[]>;
-  getCmsMediaItem(id: number): Promise<CmsMedia | undefined>;
-  createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia>;
-  deleteCmsMedia(id: number): Promise<boolean>;
+
 }
 
 export class MemStorage implements IStorage {
@@ -1068,7 +1041,8 @@ Remember: The best gadget is the one you'll actually use consistently!`,
       videoUrl: blogPostData.videoUrl || null,
       publishedAt: new Date(blogPostData.publishedAt || new Date()),
       readTime: blogPostData.readTime,
-      slug: blogPostData.slug || blogPostData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      slug: blogPostData.slug || blogPostData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      createdAt: new Date()
     };
     
     this.blogPosts.set(id, blogPost);
@@ -1092,7 +1066,7 @@ Remember: The best gadget is the one you'll actually use consistently!`,
 
   // Admin User Management Methods
   async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
-    for (const admin of this.adminUsers.values()) {
+    for (const admin of Array.from(this.adminUsers.values())) {
       if (admin.email === email) {
         return admin;
       }
@@ -1101,7 +1075,7 @@ Remember: The best gadget is the one you'll actually use consistently!`,
   }
 
   async getAdminByUsername(username: string): Promise<AdminUser | undefined> {
-    for (const admin of this.adminUsers.values()) {
+    for (const admin of Array.from(this.adminUsers.values())) {
       if (admin.username === username) {
         return admin;
       }
@@ -1119,10 +1093,11 @@ Remember: The best gadget is the one you'll actually use consistently!`,
       id,
       username: adminData.username,
       email: adminData.email,
+      phone: adminData.phone || null,
       passwordHash: adminData.passwordHash,
       resetToken: adminData.resetToken || null,
       resetTokenExpiry: adminData.resetTokenExpiry || null,
-      lastLogin: adminData.lastLogin || null,
+      lastLogin: null,
       createdAt: new Date(),
       isActive: adminData.isActive ?? true,
     };
@@ -1325,201 +1300,7 @@ export class DatabaseStorage implements IStorage {
       .update(adminUsers)
       .set({ lastLogin: new Date() })
       .where(eq(adminUsers.id, id));
-    return result.rowCount > 0;
-  }
-
-  // CMS Pages
-  async getCmsPages(): Promise<CmsPage[]> {
-    return await db.select().from(cmsPages).orderBy(cmsPages.title);
-  }
-
-  async getCmsPage(id: number): Promise<CmsPage | undefined> {
-    const [page] = await db.select().from(cmsPages).where(eq(cmsPages.id, id));
-    return page || undefined;
-  }
-
-  async getCmsPageBySlug(slug: string): Promise<CmsPage | undefined> {
-    const [page] = await db.select().from(cmsPages).where(eq(cmsPages.slug, slug));
-    return page || undefined;
-  }
-
-  async createCmsPage(page: InsertCmsPage): Promise<CmsPage> {
-    const [newPage] = await db
-      .insert(cmsPages)
-      .values(page)
-      .returning();
-    return newPage;
-  }
-
-  async updateCmsPage(id: number, updates: Partial<CmsPage>): Promise<CmsPage | null> {
-    const [updatedPage] = await db
-      .update(cmsPages)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(cmsPages.id, id))
-      .returning();
-    return updatedPage || null;
-  }
-
-  async deleteCmsPage(id: number): Promise<boolean> {
-    const result = await db.delete(cmsPages).where(eq(cmsPages.id, id));
-    return result.rowCount > 0;
-  }
-
-  // CMS Sections
-  async getCmsSections(pageId?: number): Promise<CmsSection[]> {
-    if (pageId) {
-      return await db.select().from(cmsSections)
-        .where(eq(cmsSections.pageId, pageId))
-        .orderBy(cmsSections.sortOrder);
-    }
-    return await db.select().from(cmsSections).orderBy(cmsSections.sortOrder);
-  }
-
-  async getCmsSection(id: number): Promise<CmsSection | undefined> {
-    const [section] = await db.select().from(cmsSections).where(eq(cmsSections.id, id));
-    return section || undefined;
-  }
-
-  async createCmsSection(section: InsertCmsSection): Promise<CmsSection> {
-    const [newSection] = await db
-      .insert(cmsSections)
-      .values(section)
-      .returning();
-    return newSection;
-  }
-
-  async updateCmsSection(id: number, updates: Partial<CmsSection>): Promise<CmsSection | null> {
-    const [updatedSection] = await db
-      .update(cmsSections)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(cmsSections.id, id))
-      .returning();
-    return updatedSection || null;
-  }
-
-  async deleteCmsSection(id: number): Promise<boolean> {
-    const result = await db.delete(cmsSections).where(eq(cmsSections.id, id));
-    return result.rowCount > 0;
-  }
-
-  async getCmsSectionsByPage(pageId: number): Promise<CmsSection[]> {
-    return await db
-      .select()
-      .from(cmsSections)
-      .where(eq(cmsSections.pageId, pageId))
-      .orderBy(cmsSections.sortOrder);
-  }
-
-  async deleteCmsSectionsByPage(pageId: number): Promise<boolean> {
-    const result = await db.delete(cmsSections).where(eq(cmsSections.pageId, pageId));
-    return true; // Always return true since it's OK if no sections exist
-  }
-
-  async reorderCmsSections(pageId: number, sectionIds: number[]): Promise<boolean> {
-    try {
-      for (let i = 0; i < sectionIds.length; i++) {
-        await db
-          .update(cmsSections)
-          .set({ sortOrder: i })
-          .where(eq(cmsSections.id, sectionIds[i]));
-      }
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  // CMS Media
-  async getCmsMedia(): Promise<CmsMedia[]> {
-    return await db.select().from(cmsMedia).orderBy(desc(cmsMedia.createdAt));
-  }
-
-  async getCmsMediaItem(id: number): Promise<CmsMedia | undefined> {
-    const [media] = await db.select().from(cmsMedia).where(eq(cmsMedia.id, id));
-    return media || undefined;
-  }
-
-  async createCmsMedia(media: InsertCmsMedia): Promise<CmsMedia> {
-    const [newMedia] = await db
-      .insert(cmsMedia)
-      .values(media)
-      .returning();
-    return newMedia;
-  }
-
-  async deleteCmsMedia(id: number): Promise<boolean> {
-    const result = await db.delete(cmsMedia).where(eq(cmsMedia.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Admin authentication methods for password management
-  async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
-    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
-    return admin;
-  }
-
-  async updateAdminPassword(id: number, passwordHash: string): Promise<boolean> {
-    try {
-      await db
-        .update(adminUsers)
-        .set({ passwordHash })
-        .where(eq(adminUsers.id, id));
-      return true;
-    } catch (error) {
-      console.error('Error updating admin password:', error);
-      return false;
-    }
-  }
-
-  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
-    try {
-      await db
-        .update(adminUsers)
-        .set({ resetToken: token, resetTokenExpiry: expiry })
-        .where(eq(adminUsers.email, email));
-      return true;
-    } catch (error) {
-      console.error('Error setting reset token:', error);
-      return false;
-    }
-  }
-
-  async validateResetToken(token: string): Promise<AdminUser | undefined> {
-    const [admin] = await db
-      .select()
-      .from(adminUsers)
-      .where(eq(adminUsers.resetToken, token));
-    
-    if (admin && admin.resetTokenExpiry && admin.resetTokenExpiry > new Date()) {
-      return admin;
-    }
-    return undefined;
-  }
-
-  async clearResetToken(id: number): Promise<boolean> {
-    try {
-      await db
-        .update(adminUsers)
-        .set({ resetToken: null, resetTokenExpiry: null })
-        .where(eq(adminUsers.id, id));
-      return true;
-    } catch (error) {
-      console.error('Error clearing reset token:', error);
-      return false;
-    }
-  }
-
-  async updateLastLogin(id: number): Promise<boolean> {
-    try {
-      await db
-        .update(adminUsers)
-        .set({ lastLogin: new Date() })
-        .where(eq(adminUsers.id, id));
-      return true;
-    } catch (error) {
-      console.error('Error updating last login:', error);
-      return false;
-    }
+    return (result.rowCount || 0) > 0;
   }
 }
 
