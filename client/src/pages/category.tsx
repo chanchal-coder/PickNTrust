@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { GenderSwitchTabs } from '@/components/gender-switch-tabs';
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
@@ -31,6 +32,7 @@ export default function CategoryPage() {
     price: '',
     originalPrice: '',
     category: category ? decodeURIComponent(category) : '',
+    gender: '',
     rating: '4.0',
     reviewCount: '100',
     imageUrl: '',
@@ -41,16 +43,42 @@ export default function CategoryPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Gender filtering state
+  const [currentGender, setCurrentGender] = useState('Men');
+  
+  // Categories that require gender filtering
+  const genderSpecificCategories = [
+    'Footwear & Accessories',
+    'Jewelry & Watches', 
+    'Beauty & Grooming'
+  ];
+
+  const decodedCategory = category ? decodeURIComponent(category) : '';
+  const isGenderSpecific = genderSpecificCategories.includes(decodedCategory);
+
+  // Get gender from URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const genderParam = urlParams.get('gender');
+    if (genderParam && ['Men', 'Women', 'Kids'].includes(genderParam)) {
+      setCurrentGender(genderParam);
+    }
+  }, [category]);
+
   // Clear any previous state when category changes
   useEffect(() => {
     setShowShareMenu({});
   }, [category]);
   
   const { data: products, isLoading, error } = useQuery<Product[]>({
-    queryKey: ['/api/products/category', category],
+    queryKey: ['/api/products/category', category, currentGender],
     queryFn: async () => {
       if (!category) throw new Error('No category specified');
-      const response = await fetch(`/api/products/category/${encodeURIComponent(category)}`);
+      let url = `/api/products/category/${encodeURIComponent(category)}`;
+      if (isGenderSpecific) {
+        url += `?gender=${currentGender}`;
+      }
+      const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed to fetch products: ${response.status}`);
       return response.json();
     },
@@ -181,6 +209,7 @@ export default function CategoryPage() {
         setExtractedProduct({
           ...data,
           affiliateUrl: productUrl,
+          gender: isGenderSpecific ? currentGender : '',
         });
         setShowPreview(true);
         setIsEditingPreview(false);
@@ -292,6 +321,7 @@ export default function CategoryPage() {
         price: '',
         originalPrice: '',
         category: category ? decodeURIComponent(category) : '',
+        gender: '',
         rating: '4.0',
         reviewCount: '100',
         imageUrl: '',
@@ -788,6 +818,41 @@ export default function CategoryPage() {
                                   </div>
                                 </div>
 
+                                {/* Gender field - Only show for gender-specific categories */}
+                                {isGenderSpecific && (
+                                  <div>
+                                    <Label htmlFor="manual-gender">Gender Category</Label>
+                                    <Select 
+                                      value={manualProduct.gender} 
+                                      onValueChange={(value) => setManualProduct({...manualProduct, gender: value})}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select gender category" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Men">
+                                          <div className="flex items-center">
+                                            <i className="fas fa-male mr-2 text-blue-500"></i>
+                                            Men
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="Women">
+                                          <div className="flex items-center">
+                                            <i className="fas fa-female mr-2 text-pink-500"></i>
+                                            Women
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="Kids">
+                                          <div className="flex items-center">
+                                            <i className="fas fa-child mr-2 text-green-500"></i>
+                                            Kids
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                )}
+
                                 <div className="grid md:grid-cols-2 gap-4">
                                   <div>
                                     <Label htmlFor="manual-rating">Rating</Label>
@@ -877,6 +942,7 @@ export default function CategoryPage() {
                                         price: '',
                                         originalPrice: '',
                                         category: category ? decodeURIComponent(category) : '',
+                                        gender: '',
                                         rating: '4.0',
                                         reviewCount: '100',
                                         imageUrl: '',
@@ -901,6 +967,19 @@ export default function CategoryPage() {
             </div>
           </div>
         </section>
+
+        {/* Gender Switch Tabs - Only for gender-specific categories */}
+        {isGenderSpecific && (
+          <section className="py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <GenderSwitchTabs 
+                currentGender={currentGender}
+                onGenderChange={setCurrentGender}
+                categoryName={decodedCategory}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Category Navigation for Mobile */}
         <section className="py-8 md:hidden">

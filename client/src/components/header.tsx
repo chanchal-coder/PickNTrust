@@ -6,6 +6,7 @@ import { useWishlist } from "@/hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
 import AmazingBrandLogo from "@/components/amazing-brand-logo";
 import CenteredBrandText from "@/components/centered-brand-text";
+import { GenderSelectionPopup } from "@/components/gender-selection-popup";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,6 +16,8 @@ export default function Header() {
   const { toast } = useToast();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [showGenderPopup, setShowGenderPopup] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
 
   // Fetch all categories dynamically
@@ -46,6 +49,29 @@ export default function Header() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
     setMobileMenuOpen(false);
+  };
+
+  // Categories that require gender selection
+  const genderSpecificCategories = [
+    'Footwear & Accessories',
+    'Jewelry & Watches',
+    'Beauty & Grooming'
+  ];
+
+  const handleCategoryClick = (categoryName: string) => {
+    if (genderSpecificCategories.includes(categoryName)) {
+      setSelectedCategory(categoryName);
+      setShowGenderPopup(true);
+    } else {
+      setLocation(`/category/${encodeURIComponent(categoryName)}`);
+    }
+  };
+
+  const handleGenderSelection = (gender: string) => {
+    if (selectedCategory) {
+      setLocation(`/category/${encodeURIComponent(selectedCategory)}?gender=${gender}`);
+      setSelectedCategory('');
+    }
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -248,20 +274,42 @@ export default function Header() {
 
               
               {/* Show ALL categories in hamburger menu - PERSISTENT (no auto-close) */}
-              {categories.map((category: any) => (
-                <Link 
-                  key={category.name}
-                  href={`/category/${encodeURIComponent(category.name)}`}
-                  className={`transition-colors font-medium text-left py-2 flex items-center ${
-                    category.name.toLowerCase().includes('deal') 
-                      ? 'text-orange-600 dark:text-orange-400 font-bold'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
-                  }`}
-                >
-                  <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
-                  {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
-                </Link>
-              ))}
+              {categories.map((category: any) => {
+                const isGenderSpecific = genderSpecificCategories.includes(category.name);
+                
+                if (isGenderSpecific) {
+                  return (
+                    <button
+                      key={category.name}
+                      onClick={() => handleCategoryClick(category.name)}
+                      className={`transition-colors font-medium text-left py-2 flex items-center w-full ${
+                        category.name.toLowerCase().includes('deal') 
+                          ? 'text-orange-600 dark:text-orange-400 font-bold'
+                          : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
+                      }`}
+                    >
+                      <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
+                      {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
+                      <i className="fas fa-chevron-right text-xs ml-auto text-gray-400"></i>
+                    </button>
+                  );
+                } else {
+                  return (
+                    <Link 
+                      key={category.name}
+                      href={`/category/${encodeURIComponent(category.name)}`}
+                      className={`transition-colors font-medium text-left py-2 flex items-center ${
+                        category.name.toLowerCase().includes('deal') 
+                          ? 'text-orange-600 dark:text-orange-400 font-bold'
+                          : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
+                      }`}
+                    >
+                      <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
+                      {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
+                    </Link>
+                  );
+                }
+              })}
               
               {/* Admin Controls - Only visible to authenticated admins */}
               {isAdmin && (
@@ -284,6 +332,17 @@ export default function Header() {
             </nav>
           </div>
         )}
+
+        {/* Gender Selection Popup */}
+        <GenderSelectionPopup
+          isOpen={showGenderPopup}
+          onClose={() => {
+            setShowGenderPopup(false);
+            setSelectedCategory('');
+          }}
+          onSelect={handleGenderSelection}
+          categoryName={selectedCategory}
+        />
       </div>
     </header>
   );

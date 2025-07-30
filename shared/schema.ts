@@ -24,6 +24,7 @@ export const products = pgTable("products", {
   affiliateUrl: text("affiliate_url").notNull(),
   affiliateNetworkId: integer("affiliate_network_id").references(() => affiliateNetworks.id),
   category: text("category").notNull(),
+  gender: text("gender"), // "Men", "Women", "Kids", or null for general products
   rating: decimal("rating", { precision: 2, scale: 1 }).notNull(),
   reviewCount: integer("review_count").notNull(),
   discount: integer("discount"), // percentage

@@ -205,10 +205,21 @@ export function setupRoutes(app: Express, storage: IStorage) {
   app.get("/api/products/category/:category", async (req, res) => {
     try {
       const { category } = req.params;
+      const { gender } = req.query;
+      
       // URL decode the category parameter to handle spaces and special characters
       const decodedCategory = decodeURIComponent(category);
-      console.log(`Getting products for category: "${decodedCategory}"`);
-      const products = await storage.getProductsByCategory(decodedCategory);
+      console.log(`Getting products for category: "${decodedCategory}" with gender filter: "${gender}"`);
+      
+      let products = await storage.getProductsByCategory(decodedCategory);
+      
+      // Apply gender filtering if provided
+      if (gender && typeof gender === 'string') {
+        products = products.filter(product => 
+          product.gender === gender
+        );
+      }
+      
       res.json(products);
     } catch (error) {
       console.error(`Error fetching products for category "${req.params.category}":`, error);
