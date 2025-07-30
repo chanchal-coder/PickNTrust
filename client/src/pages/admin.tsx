@@ -431,10 +431,12 @@ export default function AdminPanel() {
   }, []);
 
   // Queries
-  const { data: products, isLoading: productsLoading } = useQuery({
+  const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['/api/products'],
     enabled: isAuthenticated,
   });
+  
+  const products = Array.isArray(productsData) ? productsData : productsData?.products || [];
 
   const { data: blogPosts, isLoading: blogLoading } = useQuery({
     queryKey: ['/api/blog'],
@@ -1170,18 +1172,18 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-semibold">Current Products ({(products as any)?.length || 0})</h3>
+                  <h3 className="font-semibold">Current Products ({products?.length || 0})</h3>
                 </div>
                 
                 {productsLoading ? (
                   <div className="text-center py-8">Loading products...</div>
-                ) : (products as any)?.length === 0 ? (
+                ) : products?.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No products added yet. Add your first product above!
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {(products as any)?.map((product: any) => (
+                    {products?.map((product: any) => (
                       <ProductManagementCard
                         key={product.id}
                         product={product}
