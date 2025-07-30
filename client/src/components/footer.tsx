@@ -1,5 +1,4 @@
-import FooterLogo from "@/components/footer-logo";
-import FooterBrandText from "@/components/footer-brand-text";
+import CurvedTextLogo from "@/components/curved-text-logo";
 import { Link, useLocation } from "wouter";
 
 export default function Footer() {
@@ -30,9 +29,8 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="md:col-span-2">
-            <div className="flex items-center space-x-1 mb-6 group">
-              <FooterLogo className="flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
-              <FooterBrandText />
+            <div className="flex items-center justify-center mb-6 group">
+              <CurvedTextLogo className="group-hover:scale-110 transition-transform duration-300" />
             </div>
             <p className="text-blue-100 text-sm mb-4">Making online shopping simple, safe, and fun. We help you discover amazing products from trusted brands.</p>
             
