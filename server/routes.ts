@@ -908,6 +908,8 @@ export function setupRoutes(app: Express, storage: IStorage) {
           backgroundColor: row.background_color,
           fontSize: row.font_size,
           fontWeight: row.font_weight,
+          textDecoration: row.text_decoration || 'none',
+          fontStyle: row.font_style || 'normal',
           animationSpeed: row.animation_speed,
           createdAt: row.created_at
         };
@@ -963,6 +965,8 @@ export function setupRoutes(app: Express, storage: IStorage) {
           backgroundColor: announcementData.backgroundColor,
           fontSize: announcementData.fontSize,
           fontWeight: announcementData.fontWeight,
+          textDecoration: announcementData.textDecoration || 'none',
+          fontStyle: announcementData.fontStyle || 'normal',
           animationSpeed: announcementData.animationSpeed,
           isActive: true,
           createdAt: new Date()
