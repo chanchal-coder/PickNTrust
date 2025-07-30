@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
 import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Megaphone } from 'lucide-react';
+import { ColorPicker } from '@/components/color-picker';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -167,36 +168,32 @@ function AnnouncementManager() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="textColor">Text Color</Label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    id="textColor"
-                    value={announcementData.textColor}
-                    onChange={(e) => setAnnouncementData(prev => ({...prev, textColor: e.target.value}))}
-                    className="w-12 h-10 rounded border"
+                <div className="flex gap-2 items-center">
+                  <ColorPicker
+                    selectedColor={announcementData.textColor}
+                    onColorChange={(color) => setAnnouncementData(prev => ({...prev, textColor: color}))}
                   />
                   <Input
                     value={announcementData.textColor}
                     onChange={(e) => setAnnouncementData(prev => ({...prev, textColor: e.target.value}))}
                     className="flex-1"
+                    placeholder="#ffffff"
                   />
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="backgroundColor">Background Color</Label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    id="backgroundColor"
-                    value={announcementData.backgroundColor}
-                    onChange={(e) => setAnnouncementData(prev => ({...prev, backgroundColor: e.target.value}))}
-                    className="w-12 h-10 rounded border"
+                <div className="flex gap-2 items-center">
+                  <ColorPicker
+                    selectedColor={announcementData.backgroundColor}
+                    onColorChange={(color) => setAnnouncementData(prev => ({...prev, backgroundColor: color}))}
                   />
                   <Input
                     value={announcementData.backgroundColor}
                     onChange={(e) => setAnnouncementData(prev => ({...prev, backgroundColor: e.target.value}))}
                     className="flex-1"
+                    placeholder="#3b82f6"
                   />
                 </div>
               </div>
