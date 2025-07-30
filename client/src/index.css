@@ -249,12 +249,12 @@
 
   /* Prevent header overlap issues */
   .header-spacing {
-    padding-top: 20px;
+    padding-top: 5px;
   }
 
   @media (min-width: 640px) {
     .header-spacing {
-      padding-top: 25px;
+      padding-top: 8px;
     }
   }
 
