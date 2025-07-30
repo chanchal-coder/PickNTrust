@@ -1154,10 +1154,16 @@ Remember: The best gadget is the one you'll actually use consistently!`,
 export class DatabaseStorage implements IStorage {
   // Products
   async getProducts(): Promise<Product[]> {
+    // Clean up expired products first
+    await this.cleanupExpiredProducts();
+    
     return await db.select().from(products).orderBy(desc(products.id));
   }
 
   async getFeaturedProducts(): Promise<Product[]> {
+    // Clean up expired products first
+    await this.cleanupExpiredProducts();
+    
     return await db.select().from(products).where(eq(products.isFeatured, true)).orderBy(desc(products.id));
   }
 
@@ -1215,11 +1221,34 @@ export class DatabaseStorage implements IStorage {
     return updatedNetwork;
   }
 
+  // Timer cleanup method - removes expired products
+  async cleanupExpiredProducts(): Promise<number> {
+    const now = new Date();
+    const result = await db
+      .delete(products)
+      .where(sql`
+        has_timer = true 
+        AND timer_start_time IS NOT NULL 
+        AND timer_duration IS NOT NULL 
+        AND (timer_start_time + INTERVAL '1 hour' * timer_duration) < ${now}
+      `);
+    return result.rowCount || 0;
+  }
+
   // Admin Product Management
   async addProduct(product: any): Promise<Product> {
+    // Handle timer logic
+    const productData = {
+      ...product,
+      // Set timerStartTime to now if timer is enabled
+      timerStartTime: product.hasTimer ? new Date() : null,
+      // Ensure timerDuration is null if timer is disabled
+      timerDuration: product.hasTimer ? product.timerDuration : null
+    };
+
     const [newProduct] = await db
       .insert(products)
-      .values(product)
+      .values(productData)
       .returning();
     return newProduct;
   }

@@ -30,6 +30,9 @@ export const products = pgTable("products", {
   discount: integer("discount"), // percentage
   isNew: boolean("is_new").default(false),
   isFeatured: boolean("is_featured").default(false),
+  hasTimer: boolean("has_timer").default(false), // Whether to show timer
+  timerDuration: integer("timer_duration"), // Duration in hours (null = no timer)
+  timerStartTime: timestamp("timer_start_time"), // When the timer started (null = no timer)
   createdAt: timestamp("created_at").defaultNow(),
 });
 

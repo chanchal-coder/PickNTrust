@@ -30,6 +30,8 @@ const productSchema = z.object({
   rating: z.string().min(1, 'Rating is required'),
   reviewCount: z.string().min(1, 'Review count is required'),
   discount: z.string().optional(),
+  hasTimer: z.boolean().optional(),
+  timerDuration: z.string().optional(),
   isNew: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
 });
@@ -903,6 +905,8 @@ export default function AdminPage() {
         discount: data.discount ? parseInt(data.discount) : undefined,
         affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
         gender: (data.gender && data.gender !== 'none') ? data.gender : undefined,
+        hasTimer: data.hasTimer || false,
+        timerDuration: data.hasTimer && data.timerDuration ? parseInt(data.timerDuration) : null,
         isNew: data.isNew || false,
         isFeatured: data.isFeatured || false,
         password: 'pickntrust2025', // Add admin password for authentication
@@ -1139,6 +1143,8 @@ export default function AdminPage() {
         discount: extractedProduct.discount ? parseInt(extractedProduct.discount) : undefined,
         category: extractedProduct.category,
         gender: (extractedProduct.gender && extractedProduct.gender !== 'none') ? extractedProduct.gender : undefined,
+        hasTimer: extractedProduct.hasTimer || false,
+        timerDuration: extractedProduct.hasTimer && extractedProduct.timerDuration ? parseInt(extractedProduct.timerDuration) : null,
         imageUrl: extractedProduct.imageUrl.trim(),
         affiliateUrl: extractedProduct.affiliateUrl.trim(),
         affiliateNetworkId: extractedProduct.affiliateNetworkId ? parseInt(extractedProduct.affiliateNetworkId) : undefined,
@@ -1669,6 +1675,50 @@ export default function AdminPage() {
                       </div>
                     </div>
 
+                    {/* Timer Controls for Extracted Products */}
+                    <Card className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-yellow-800 dark:text-yellow-300">⏰ Deal Timer Settings</h4>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={extractedProduct.hasTimer || false}
+                              onChange={(e) => setExtractedProduct({...extractedProduct, hasTimer: e.target.checked})}
+                              className="rounded"
+                            />
+                            <span className="text-sm font-medium">Enable Timer</span>
+                          </label>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="edit-timer-duration">Timer Duration (Hours)</Label>
+                          <Select 
+                            value={extractedProduct.timerDuration || ''}
+                            onValueChange={(value) => setExtractedProduct({...extractedProduct, timerDuration: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select timer duration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 Hour - Flash Deal</SelectItem>
+                              <SelectItem value="2">2 Hours - Quick Sale</SelectItem>
+                              <SelectItem value="4">4 Hours - Morning Deal</SelectItem>
+                              <SelectItem value="6">6 Hours - Half Day</SelectItem>
+                              <SelectItem value="12">12 Hours - Full Day</SelectItem>
+                              <SelectItem value="24">24 Hours - Daily Special</SelectItem>
+                              <SelectItem value="48">48 Hours - Weekend Deal</SelectItem>
+                              <SelectItem value="72">72 Hours - 3-Day Sale</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                            🔥 When timer is ON: Product shows "Deal ends in X hours" and auto-deletes when time expires<br/>
+                            ⏸️ When timer is OFF: Product stays until you manually delete it
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+
                     <div>
                       <Label htmlFor="edit-imageUrl">Product Image URL *</Label>
                       <Input
@@ -2002,6 +2052,48 @@ export default function AdminPage() {
                   <p className="text-sm text-gray-500 mt-1">
                     Select the affiliate network and enter your tracking link
                   </p>
+
+                  {/* Timer Controls Section */}
+                  <Card className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-yellow-800 dark:text-yellow-300">⏰ Deal Timer Settings</h4>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            {...form.register('hasTimer')}
+                            className="rounded"
+                          />
+                          <span className="text-sm font-medium">Enable Timer</span>
+                        </label>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="timerDuration">Timer Duration (Hours)</Label>
+                        <Select 
+                          onValueChange={(value) => form.setValue('timerDuration', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select timer duration" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 Hour - Flash Deal</SelectItem>
+                            <SelectItem value="2">2 Hours - Quick Sale</SelectItem>
+                            <SelectItem value="4">4 Hours - Morning Deal</SelectItem>
+                            <SelectItem value="6">6 Hours - Half Day</SelectItem>
+                            <SelectItem value="12">12 Hours - Full Day</SelectItem>
+                            <SelectItem value="24">24 Hours - Daily Special</SelectItem>
+                            <SelectItem value="48">48 Hours - Weekend Deal</SelectItem>
+                            <SelectItem value="72">72 Hours - 3-Day Sale</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                          🔥 When timer is ON: Product shows "Deal ends in X hours" and auto-deletes when time expires<br/>
+                          ⏸️ When timer is OFF: Product stays until you manually delete it
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
 
                   <div className="flex gap-4">
                     <label className="flex items-center space-x-2">
