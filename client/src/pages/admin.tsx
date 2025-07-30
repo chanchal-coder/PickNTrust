@@ -902,7 +902,7 @@ export default function AdminPage() {
         reviewCount: parseInt(data.reviewCount),
         discount: data.discount ? parseInt(data.discount) : undefined,
         affiliateNetworkId: data.affiliateNetworkId ? parseInt(data.affiliateNetworkId) : undefined,
-        gender: data.gender || undefined,
+        gender: (data.gender && data.gender !== 'none') ? data.gender : undefined,
         isNew: data.isNew || false,
         isFeatured: data.isFeatured || false,
         password: 'pickntrust2025', // Add admin password for authentication
@@ -1138,7 +1138,7 @@ export default function AdminPage() {
         reviewCount: parseInt(extractedProduct.reviewCount) || 100,
         discount: extractedProduct.discount ? parseInt(extractedProduct.discount) : undefined,
         category: extractedProduct.category,
-        gender: extractedProduct.gender || undefined,
+        gender: (extractedProduct.gender && extractedProduct.gender !== 'none') ? extractedProduct.gender : undefined,
         imageUrl: extractedProduct.imageUrl.trim(),
         affiliateUrl: extractedProduct.affiliateUrl.trim(),
         affiliateNetworkId: extractedProduct.affiliateNetworkId ? parseInt(extractedProduct.affiliateNetworkId) : undefined,
@@ -1575,7 +1575,7 @@ export default function AdminPage() {
                           <SelectValue placeholder="Select gender category (leave empty if not applicable)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Not Applicable</SelectItem>
+                          <SelectItem value="none">Not Applicable</SelectItem>
                           <SelectItem value="Men">
                             <div className="flex items-center">
                               <i className="fas fa-male mr-2 text-blue-500"></i>
@@ -1868,7 +1868,7 @@ export default function AdminPage() {
                         <SelectValue placeholder="Select gender category (leave empty if not applicable)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Not Applicable</SelectItem>
+                        <SelectItem value="none">Not Applicable</SelectItem>
                         <SelectItem value="Men">
                           <div className="flex items-center">
                             <i className="fas fa-male mr-2 text-blue-500"></i>
