@@ -91,6 +91,14 @@ export const announcements = pgTable("announcements", {
   textDecoration: text("text_decoration").default('none'),
   fontStyle: text("font_style").default('normal'),
   animationSpeed: text("animation_speed").default('30'),
+  // Text border options
+  textBorderWidth: text("text_border_width").default('0px'),
+  textBorderStyle: text("text_border_style").default('solid'),
+  textBorderColor: text("text_border_color").default('#000000'),
+  // Banner border options
+  bannerBorderWidth: text("banner_border_width").default('0px'),
+  bannerBorderStyle: text("banner_border_style").default('solid'),
+  bannerBorderColor: text("banner_border_color").default('#000000'),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

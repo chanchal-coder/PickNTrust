@@ -11,6 +11,12 @@ interface Announcement {
   textDecoration?: string;
   fontStyle?: string;
   animationSpeed: string;
+  textBorderWidth?: string;
+  textBorderStyle?: string;
+  textBorderColor?: string;
+  bannerBorderWidth?: string;
+  bannerBorderStyle?: string;
+  bannerBorderColor?: string;
   createdAt: string;
 }
 
@@ -71,7 +77,8 @@ export function AnnouncementBanner() {
         className="relative overflow-hidden border-b border-gray-200 dark:border-gray-600"
         style={{ 
           backgroundColor: announcement.backgroundColor,
-          minHeight: '35px'
+          minHeight: '35px',
+          border: `${announcement.bannerBorderWidth || '0px'} ${announcement.bannerBorderStyle || 'solid'} ${announcement.bannerBorderColor || '#000000'}`
         }}
       >
         {/* Close Button */}
@@ -92,7 +99,8 @@ export function AnnouncementBanner() {
               fontSize: announcement.fontSize,
               fontWeight: announcement.fontWeight,
               textDecoration: announcement.textDecoration || 'none',
-              fontStyle: announcement.fontStyle || 'normal'
+              fontStyle: announcement.fontStyle || 'normal',
+              textShadow: `${announcement.textBorderWidth || '0px'} 0 0 ${announcement.textBorderColor || '#000000'}, 0 ${announcement.textBorderWidth || '0px'} 0 ${announcement.textBorderColor || '#000000'}, -${announcement.textBorderWidth || '0px'} 0 0 ${announcement.textBorderColor || '#000000'}, 0 -${announcement.textBorderWidth || '0px'} 0 ${announcement.textBorderColor || '#000000'}`
             }}
           >
             {announcement.message}

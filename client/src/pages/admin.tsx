@@ -50,6 +50,12 @@ function AnnouncementManager() {
     textDecoration: 'none',
     fontStyle: 'normal',
     animationSpeed: '30',
+    textBorderWidth: '0px',
+    textBorderStyle: 'solid',
+    textBorderColor: '#000000',
+    bannerBorderWidth: '0px',
+    bannerBorderStyle: 'solid',
+    bannerBorderColor: '#000000',
     isActive: true
   });
   const { toast } = useToast();
@@ -160,6 +166,12 @@ function AnnouncementManager() {
                   textDecoration: activeAnnouncement.textDecoration || 'none',
                   fontStyle: activeAnnouncement.fontStyle || 'normal',
                   animationSpeed: activeAnnouncement.animationSpeed,
+                  textBorderWidth: activeAnnouncement.textBorderWidth || '0px',
+                  textBorderStyle: activeAnnouncement.textBorderStyle || 'solid',
+                  textBorderColor: activeAnnouncement.textBorderColor || '#000000',
+                  bannerBorderWidth: activeAnnouncement.bannerBorderWidth || '0px',
+                  bannerBorderStyle: activeAnnouncement.bannerBorderStyle || 'solid',
+                  bannerBorderColor: activeAnnouncement.bannerBorderColor || '#000000',
                   isActive: true
                 });
                 setIsEditing(true);
@@ -312,18 +324,123 @@ function AnnouncementManager() {
               </div>
             </div>
 
+            {/* Text Border Options */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Text Border Options</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="textBorderWidth">Border Width</Label>
+                  <Select value={announcementData.textBorderWidth} onValueChange={(value) => setAnnouncementData(prev => ({...prev, textBorderWidth: value}))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0px">None (0px)</SelectItem>
+                      <SelectItem value="1px">Thin (1px)</SelectItem>
+                      <SelectItem value="2px">Medium (2px)</SelectItem>
+                      <SelectItem value="3px">Thick (3px)</SelectItem>
+                      <SelectItem value="4px">Extra Thick (4px)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="textBorderStyle">Border Style</Label>
+                  <Select value={announcementData.textBorderStyle} onValueChange={(value) => setAnnouncementData(prev => ({...prev, textBorderStyle: value}))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="solid">Solid</SelectItem>
+                      <SelectItem value="dashed">Dashed</SelectItem>
+                      <SelectItem value="dotted">Dotted</SelectItem>
+                      <SelectItem value="double">Double</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="textBorderColor">Border Color</Label>
+                  <div className="flex gap-2 items-center">
+                    <ColorPicker
+                      selectedColor={announcementData.textBorderColor}
+                      onColorChange={(color) => setAnnouncementData(prev => ({...prev, textBorderColor: color}))}
+                    />
+                    <Input
+                      value={announcementData.textBorderColor}
+                      onChange={(e) => setAnnouncementData(prev => ({...prev, textBorderColor: e.target.value}))}
+                      className="flex-1"
+                      placeholder="#000000"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Banner Border Options */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Banner Border Options</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="bannerBorderWidth">Border Width</Label>
+                  <Select value={announcementData.bannerBorderWidth} onValueChange={(value) => setAnnouncementData(prev => ({...prev, bannerBorderWidth: value}))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0px">None (0px)</SelectItem>
+                      <SelectItem value="1px">Thin (1px)</SelectItem>
+                      <SelectItem value="2px">Medium (2px)</SelectItem>
+                      <SelectItem value="3px">Thick (3px)</SelectItem>
+                      <SelectItem value="4px">Extra Thick (4px)</SelectItem>
+                      <SelectItem value="5px">Very Thick (5px)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="bannerBorderStyle">Border Style</Label>
+                  <Select value={announcementData.bannerBorderStyle} onValueChange={(value) => setAnnouncementData(prev => ({...prev, bannerBorderStyle: value}))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="solid">Solid</SelectItem>
+                      <SelectItem value="dashed">Dashed</SelectItem>
+                      <SelectItem value="dotted">Dotted</SelectItem>
+                      <SelectItem value="double">Double</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="bannerBorderColor">Border Color</Label>
+                  <div className="flex gap-2 items-center">
+                    <ColorPicker
+                      selectedColor={announcementData.bannerBorderColor}
+                      onColorChange={(color) => setAnnouncementData(prev => ({...prev, bannerBorderColor: color}))}
+                    />
+                    <Input
+                      value={announcementData.bannerBorderColor}
+                      onChange={(e) => setAnnouncementData(prev => ({...prev, bannerBorderColor: e.target.value}))}
+                      className="flex-1"
+                      placeholder="#000000"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Preview */}
             <div>
               <Label>Preview</Label>
               <div 
-                className="p-3 rounded-md text-center font-medium border"
+                className="p-3 rounded-md text-center font-medium"
                 style={{
                   backgroundColor: announcementData.backgroundColor,
                   color: announcementData.textColor,
                   fontSize: announcementData.fontSize,
                   fontWeight: announcementData.fontWeight,
                   textDecoration: announcementData.textDecoration,
-                  fontStyle: announcementData.fontStyle
+                  fontStyle: announcementData.fontStyle,
+                  textShadow: `${announcementData.textBorderWidth || '0px'} 0 0 ${announcementData.textBorderColor || '#000000'}, 0 ${announcementData.textBorderWidth || '0px'} 0 ${announcementData.textBorderColor || '#000000'}, -${announcementData.textBorderWidth || '0px'} 0 0 ${announcementData.textBorderColor || '#000000'}, 0 -${announcementData.textBorderWidth || '0px'} 0 ${announcementData.textBorderColor || '#000000'}`,
+                  border: `${announcementData.bannerBorderWidth || '0px'} ${announcementData.bannerBorderStyle || 'solid'} ${announcementData.bannerBorderColor || '#000000'}`
                 }}
               >
                 {announcementData.message || 'Your announcement will appear here...'}

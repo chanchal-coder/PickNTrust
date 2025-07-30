@@ -922,6 +922,12 @@ export function setupRoutes(app: Express, storage: IStorage) {
           textDecoration: row.text_decoration || 'none',
           fontStyle: row.font_style || 'normal',
           animationSpeed: row.animation_speed,
+          textBorderWidth: row.text_border_width || '0px',
+          textBorderStyle: row.text_border_style || 'solid',
+          textBorderColor: row.text_border_color || '#000000',
+          bannerBorderWidth: row.banner_border_width || '0px',
+          bannerBorderStyle: row.banner_border_style || 'solid',
+          bannerBorderColor: row.banner_border_color || '#000000',
           createdAt: row.created_at
         };
         console.log('Formatted announcement:', announcement);
