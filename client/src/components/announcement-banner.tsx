@@ -8,6 +8,8 @@ interface Announcement {
   backgroundColor: string;
   fontSize: string;
   fontWeight: string;
+  textDecoration?: string;
+  fontStyle?: string;
   animationSpeed: string;
   createdAt: string;
 }
@@ -43,8 +45,10 @@ export function AnnouncementBanner() {
 
   if (!announcement) {
     return (
-      <div className="bg-blue-600 text-white text-center py-2">
-        <div className="animate-pulse">Loading announcement...</div>
+      <div className="bg-blue-600 text-white text-center py-2" style={{minHeight: '50px'}}>
+        <div className="animate-pulse flex items-center justify-center h-full">
+          <span className="inline-block">Loading announcement...</span>
+        </div>
       </div>
     );
   }
@@ -75,14 +79,17 @@ export function AnnouncementBanner() {
       </button>
 
       {/* Marquee Container */}
-      <div className="py-3 relative">
+      <div className="py-3 relative marquee-container">
         <div 
           className="marquee-content whitespace-nowrap inline-block"
           style={{
             color: announcement.textColor,
             fontSize: announcement.fontSize,
             fontWeight: announcement.fontWeight,
-            animation: `marquee ${announcement.animationSpeed}s linear infinite`
+            textDecoration: announcement.textDecoration || 'none',
+            fontStyle: announcement.fontStyle || 'normal',
+            animation: `marquee ${announcement.animationSpeed}s linear infinite`,
+            animationPlayState: 'running'
           }}
         >
           {announcement.message}
@@ -104,6 +111,15 @@ export function AnnouncementBanner() {
             padding-left: 100%;
             animation-delay: 0s !important;
             animation-fill-mode: both !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateX(100%) !important;
+          }
+          
+          .marquee-container {
+            will-change: transform;
+            contain: layout style paint;
           }
         `
       }} />

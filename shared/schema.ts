@@ -81,6 +81,8 @@ export const announcements = pgTable("announcements", {
   backgroundColor: text("background_color").default('#3b82f6'),
   fontSize: text("font_size").default('16px'),
   fontWeight: text("font_weight").default('normal'),
+  textDecoration: text("text_decoration").default('none'),
+  fontStyle: text("font_style").default('normal'),
   animationSpeed: text("animation_speed").default('30'),
   createdAt: timestamp("created_at").defaultNow(),
 });

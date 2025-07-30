@@ -44,6 +44,8 @@ function AnnouncementManager() {
     backgroundColor: '#3b82f6',
     fontSize: '16px',
     fontWeight: 'normal',
+    textDecoration: 'none',
+    fontStyle: 'normal',
     animationSpeed: '30',
     isActive: true
   });
@@ -89,6 +91,8 @@ function AnnouncementManager() {
         backgroundColor: '#3b82f6',
         fontSize: '16px',
         fontWeight: 'normal',
+        textDecoration: 'none',
+        fontStyle: 'normal',
         animationSpeed: '30',
         isActive: true
       });
@@ -132,7 +136,9 @@ function AnnouncementManager() {
               backgroundColor: activeAnnouncement.backgroundColor,
               color: activeAnnouncement.textColor,
               fontSize: activeAnnouncement.fontSize,
-              fontWeight: activeAnnouncement.fontWeight
+              fontWeight: activeAnnouncement.fontWeight,
+              textDecoration: activeAnnouncement.textDecoration || 'none',
+              fontStyle: activeAnnouncement.fontStyle || 'normal'
             }}
           >
             {activeAnnouncement.message}
@@ -148,6 +154,8 @@ function AnnouncementManager() {
                   backgroundColor: activeAnnouncement.backgroundColor,
                   fontSize: activeAnnouncement.fontSize,
                   fontWeight: activeAnnouncement.fontWeight,
+                  textDecoration: activeAnnouncement.textDecoration || 'none',
+                  fontStyle: activeAnnouncement.fontStyle || 'normal',
                   animationSpeed: activeAnnouncement.animationSpeed,
                   isActive: true
                 });
@@ -224,7 +232,7 @@ function AnnouncementManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="fontSize">Font Size</Label>
                 <Select value={announcementData.fontSize} onValueChange={(value) => setAnnouncementData(prev => ({...prev, fontSize: value}))}>
@@ -253,7 +261,39 @@ function AnnouncementManager() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="fontStyle">Font Style</Label>
+                <Select value={announcementData.fontStyle} onValueChange={(value) => setAnnouncementData(prev => ({...prev, fontStyle: value}))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="italic">Italic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="textDecoration">Text Decoration</Label>
+                <Select value={announcementData.textDecoration} onValueChange={(value) => setAnnouncementData(prev => ({...prev, textDecoration: value}))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="underline">Underline</SelectItem>
+                    <SelectItem value="line-through">Strikethrough</SelectItem>
+                    <SelectItem value="underline line-through">Underline + Strikethrough</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <Label htmlFor="animationSpeed">Animation Speed</Label>
                 <Select value={announcementData.animationSpeed} onValueChange={(value) => setAnnouncementData(prev => ({...prev, animationSpeed: value}))}>
@@ -278,7 +318,9 @@ function AnnouncementManager() {
                   backgroundColor: announcementData.backgroundColor,
                   color: announcementData.textColor,
                   fontSize: announcementData.fontSize,
-                  fontWeight: announcementData.fontWeight
+                  fontWeight: announcementData.fontWeight,
+                  textDecoration: announcementData.textDecoration,
+                  fontStyle: announcementData.fontStyle
                 }}
               >
                 {announcementData.message || 'Your announcement will appear here...'}
