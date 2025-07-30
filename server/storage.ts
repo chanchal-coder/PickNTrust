@@ -1257,6 +1257,19 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount || 0;
   }
 
+  async cleanupExpiredBlogPosts(): Promise<number> {
+    const now = new Date();
+    const result = await db
+      .delete(blogPosts)
+      .where(sql`
+        has_timer = true 
+        AND timer_start_time IS NOT NULL 
+        AND timer_duration IS NOT NULL 
+        AND (timer_start_time + INTERVAL '1 hour' * timer_duration) < ${now}
+      `);
+    return result.rowCount || 0;
+  }
+
   // Admin Product Management
   async addProduct(product: any): Promise<Product> {
     // Handle timer logic
@@ -1320,9 +1333,18 @@ export class DatabaseStorage implements IStorage {
 
   // Blog Management
   async addBlogPost(blogPost: any): Promise<BlogPost> {
+    const blogPostData = {
+      ...blogPost,
+      hasTimer: blogPost.hasTimer || false,
+      timerDuration: blogPost.hasTimer && blogPost.timerDuration ? parseInt(blogPost.timerDuration.toString()) : null,
+      timerStartTime: blogPost.hasTimer ? new Date() : null,
+      publishedAt: new Date(blogPost.publishedAt || new Date()),
+      slug: blogPost.slug || blogPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    };
+    
     const [newBlogPost] = await db
       .insert(blogPosts)
-      .values(blogPost)
+      .values(blogPostData)
       .returning();
     return newBlogPost;
   }

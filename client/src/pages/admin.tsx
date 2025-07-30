@@ -786,7 +786,9 @@ export default function AdminPage() {
     videoUrl: '',
     publishedAt: new Date().toISOString().split('T')[0],
     readTime: '3 min read',
-    slug: ''
+    slug: '',
+    hasTimer: false,
+    timerDuration: '24'
   });
   const [editingBlog, setEditingBlog] = useState<any>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -974,7 +976,7 @@ export default function AdminPage() {
       toast({ title: 'Blog Post Added!', description: 'Your blog post has been published successfully.' });
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
-      setBlogFormData({ title: '', excerpt: '', content: '', category: '', tags: [], imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '' });
+      setBlogFormData({ title: '', excerpt: '', content: '', category: '', tags: [], imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '', hasTimer: false, timerDuration: '24' });
       setShowBlogForm(false);
     },
     onError: () => {
@@ -2660,6 +2662,64 @@ Add as many affiliate links as needed!"
                         onChange={(e) => setBlogFormData({...blogFormData, slug: e.target.value})}
                         placeholder="url-friendly-title"
                       />
+                    </div>
+
+                    {/* Timer Controls */}
+                    <div className="border rounded-lg p-4 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-600">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="w-4 h-4 text-orange-600" />
+                        <Label className="text-orange-800 dark:text-orange-300 font-semibold">Auto-Delete Timer</Label>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="blog-timer"
+                            checked={blogFormData.hasTimer}
+                            onChange={(e) => setBlogFormData({
+                              ...blogFormData, 
+                              hasTimer: e.target.checked,
+                              timerDuration: e.target.checked ? blogFormData.timerDuration : '24'
+                            })}
+                            className="rounded"
+                          />
+                          <Label htmlFor="blog-timer" className="text-sm">
+                            Enable auto-delete timer (blog post will be automatically removed after expiry)
+                          </Label>
+                        </div>
+                        
+                        {blogFormData.hasTimer && (
+                          <div>
+                            <Label htmlFor="blog-timer-duration" className="text-sm">Timer Duration</Label>
+                            <Select
+                              value={blogFormData.timerDuration}
+                              onValueChange={(value) => setBlogFormData({...blogFormData, timerDuration: value})}
+                            >
+                              <SelectTrigger className="w-48">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 hour</SelectItem>
+                                <SelectItem value="3">3 hours</SelectItem>
+                                <SelectItem value="6">6 hours</SelectItem>
+                                <SelectItem value="12">12 hours</SelectItem>
+                                <SelectItem value="18">18 hours</SelectItem>
+                                <SelectItem value="24">24 hours</SelectItem>
+                                <SelectItem value="48">48 hours</SelectItem>
+                                <SelectItem value="72">72 hours</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                              Post will show countdown timer and automatically delete after {blogFormData.timerDuration} hour{blogFormData.timerDuration !== '1' ? 's' : ''}
+                            </p>
+                          </div>
+                        )}
+                        
+                        <div className="text-xs text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-800/30 p-2 rounded">
+                          <strong>Timer OFF:</strong> Blog post stays until you manually delete it<br/>
+                          <strong>Timer ON:</strong> Blog post shows countdown and auto-deletes after expiry
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center">

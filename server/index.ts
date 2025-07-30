@@ -42,12 +42,17 @@ app.use((req, res, next) => {
   
   setupRoutes(app, storage);
   
-  // Setup automatic cleanup for expired products every 5 minutes
+  // Setup automatic cleanup for expired products and blog posts every 5 minutes
   setInterval(async () => {
     try {
-      const removedCount = await storage.cleanupExpiredProducts();
-      if (removedCount > 0) {
-        log(`Cleaned up ${removedCount} expired products`);
+      const removedProductsCount = await storage.cleanupExpiredProducts();
+      const removedBlogPostsCount = await storage.cleanupExpiredBlogPosts();
+      
+      if (removedProductsCount > 0) {
+        log(`Cleaned up ${removedProductsCount} expired products`);
+      }
+      if (removedBlogPostsCount > 0) {
+        log(`Cleaned up ${removedBlogPostsCount} expired blog posts`);
       }
     } catch (error) {
       console.error('Error during automatic cleanup:', error);
