@@ -385,7 +385,7 @@ function HeaderSocialProofBar() {
   }, [recentPurchases.length]);
 
   return (
-    <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 py-4 border-y border-green-200 dark:border-gray-600">
+    <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 py-2 border-y border-green-200 dark:border-gray-600">
       <div className="w-full px-0">
         <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-4 px-3 sm:px-6 lg:px-8">
           
