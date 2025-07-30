@@ -985,6 +985,12 @@ export function setupRoutes(app: Express, storage: IStorage) {
           textDecoration: announcementData.textDecoration || 'none',
           fontStyle: announcementData.fontStyle || 'normal',
           animationSpeed: announcementData.animationSpeed,
+          textBorderWidth: announcementData.textBorderWidth || '0px',
+          textBorderStyle: announcementData.textBorderStyle || 'solid',
+          textBorderColor: announcementData.textBorderColor || '#000000',
+          bannerBorderWidth: announcementData.bannerBorderWidth || '0px',
+          bannerBorderStyle: announcementData.bannerBorderStyle || 'solid',
+          bannerBorderColor: announcementData.bannerBorderColor || '#000000',
           isActive: true,
           createdAt: new Date()
         })
