@@ -19,10 +19,10 @@ export function AnnouncementBanner() {
   useEffect(() => {
     fetchActiveAnnouncement();
     
-    // Set up polling to refresh announcement data every 5 seconds
+    // Set up polling to refresh announcement data every 2 seconds for faster updates
     const interval = setInterval(() => {
       fetchActiveAnnouncement();
-    }, 5000);
+    }, 2000);
     
     return () => clearInterval(interval);
   }, []);

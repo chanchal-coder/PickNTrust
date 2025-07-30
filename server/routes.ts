@@ -945,14 +945,20 @@ export function setupRoutes(app: Express, storage: IStorage) {
       }
 
       // First, deactivate all existing announcements to ensure only one is active
+      console.log('Deactivating existing announcements...');
       const existingAnnouncements = await storage.getAnnouncements();
+      console.log('Found existing announcements:', existingAnnouncements.length);
+      
       for (const announcement of existingAnnouncements) {
         if (announcement.isActive) {
+          console.log('Deactivating announcement:', announcement.id);
           await storage.updateAnnouncement(announcement.id, { isActive: false });
         }
       }
 
+      console.log('Creating new announcement with data:', announcementData);
       const newAnnouncement = await storage.createAnnouncement(announcementData);
+      console.log('New announcement created:', newAnnouncement);
       res.json(newAnnouncement);
     } catch (error) {
       console.error('Error creating announcement:', error);
