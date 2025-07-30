@@ -1036,5 +1036,25 @@ export function setupRoutes(app: Express, storage: IStorage) {
       res.status(500).json({ error: 'Failed to delete announcement' });
     }
   });
+
+  // Cleanup expired products endpoint
+  app.post('/api/admin/cleanup', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const removedCount = await storage.cleanupExpiredProducts();
+      res.json({ 
+        message: `Cleanup completed. Removed ${removedCount} expired products.`,
+        removedCount 
+      });
+    } catch (error) {
+      console.error('Error during manual cleanup:', error);
+      res.status(500).json({ error: 'Failed to cleanup expired products' });
+    }
+  });
 }
 

@@ -981,6 +981,10 @@ Remember: The best gadget is the one you'll actually use consistently!`,
       discount: productData.discount ? parseInt(productData.discount) : undefined,
       isNew: productData.isNew || false,
       isFeatured: productData.isFeatured || false,
+      hasTimer: productData.hasTimer || false,
+      timerDuration: productData.hasTimer && productData.timerDuration ? parseInt(productData.timerDuration) : null,
+      timerStartTime: productData.hasTimer ? new Date() : null,
+      createdAt: new Date()
     };
     
     this.products.set(id, product);
@@ -1005,6 +1009,24 @@ Remember: The best gadget is the one you'll actually use consistently!`,
 
     this.products.set(id, updatedProduct);
     return updatedProduct;
+  }
+
+  async cleanupExpiredProducts(): Promise<number> {
+    let removedCount = 0;
+    const now = new Date();
+
+    for (const [id, product] of this.products.entries()) {
+      if (product.hasTimer && product.timerStartTime && product.timerDuration) {
+        const expiryTime = new Date(product.timerStartTime.getTime() + (product.timerDuration * 60 * 60 * 1000));
+        if (now >= expiryTime) {
+          this.products.delete(id);
+          removedCount++;
+          console.log(`Removed expired product: ${product.name} (ID: ${id})`);
+        }
+      }
+    }
+
+    return removedCount;
   }
 
   async addBlogPost(blogPostData: any): Promise<BlogPost> {
