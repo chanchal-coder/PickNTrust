@@ -48,10 +48,7 @@ export const blogPosts = pgTable("blog_posts", {
   publishedAt: timestamp("published_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   readTime: text("read_time").notNull(),
-  slug: text("slug").notNull(),
-  hasTimer: boolean("has_timer").default(false), // Whether to show timer
-  timerDuration: integer("timer_duration"), // Duration in hours (null = no timer)
-  timerStartTime: timestamp("timer_start_time"), // When the timer started (null = no timer)
+  slug: text("slug").notNull()
 });
 
 export const newsletterSubscribers = pgTable("newsletter_subscribers", {
