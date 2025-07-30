@@ -8,9 +8,11 @@ import {
   insertProductSchema, 
   insertNewsletterSubscriberSchema,
   type Product,
-  type NewsletterSubscriber 
+  type NewsletterSubscriber,
+  announcements
 } from "@shared/schema";
 import { IStorage } from "./storage";
+import { db } from "./db";
 import * as crypto from 'crypto';
 
 // Helper function to verify admin password
@@ -944,17 +946,12 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      // First, deactivate all existing announcements to ensure only one is active
-      console.log('Deactivating existing announcements...');
-      const existingAnnouncements = await storage.getAnnouncements();
-      console.log('Found existing announcements:', existingAnnouncements.length);
+      // Use a transaction-like approach: deactivate all, then create new
+      console.log('Deactivating all existing announcements...');
       
-      for (const announcement of existingAnnouncements) {
-        if (announcement.isActive) {
-          console.log('Deactivating announcement:', announcement.id);
-          await storage.updateAnnouncement(announcement.id, { isActive: false });
-        }
-      }
+      // Direct SQL to deactivate all announcements
+      await db.update(announcements).set({ isActive: false });
+      console.log('All existing announcements deactivated');
 
       console.log('Creating new announcement with data:', announcementData);
       const newAnnouncement = await storage.createAnnouncement(announcementData);
