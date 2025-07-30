@@ -154,7 +154,9 @@ export default function Header() {
 
           {/* Centered Brand Text */}
           <div className="flex-1 flex justify-center items-center px-2">
-            <CenteredBrandText />
+            <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-105">
+              <CenteredBrandText />
+            </Link>
           </div>
 
           {/* Admin indicator for corner balance */}
@@ -172,7 +174,7 @@ export default function Header() {
         </div>
 
         {/* Centered Navigation Row - Mobile Optimized */}
-        <div className="flex justify-center items-center space-x-2 sm:space-x-4 lg:space-x-6 pb-2 sm:pb-3 border-t border-gray-100 dark:border-gray-800 pt-2 px-1 sm:px-4 lg:px-8 overflow-x-auto">
+        <div className="flex justify-center items-center space-x-2 sm:space-x-4 lg:space-x-6 pb-1 sm:pb-2 border-t border-gray-100 dark:border-gray-800 pt-2 px-1 sm:px-4 lg:px-8 overflow-x-auto">
           {/* Home link - Mobile Optimized */}
           <Link 
             href="/" 
