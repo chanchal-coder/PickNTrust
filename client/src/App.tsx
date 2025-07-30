@@ -16,6 +16,7 @@ import PrivacyPolicyPage from "@/pages/privacy-policy";
 import TermsOfServicePage from "@/pages/terms-of-service";
 import BlogPostPage from "@/pages/blog-post";
 import LogoPreviewPage from "@/pages/logo-preview";
+import TimerDemoPage from "@/pages/timer-demo";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
@@ -55,6 +56,7 @@ function AppRouter() {
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/blog/:slug" component={BlogPostPage} />
         <Route path="/logo-preview" component={LogoPreviewPage} />
+        <Route path="/timer-demo" component={TimerDemoPage} />
         <Route component={NotFound} />
       </Switch>
     </Router>
