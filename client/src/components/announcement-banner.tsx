@@ -71,7 +71,7 @@ export function AnnouncementBanner() {
         className="relative overflow-hidden border-b border-gray-200 dark:border-gray-600"
         style={{ 
           backgroundColor: announcement.backgroundColor,
-          minHeight: '50px'
+          minHeight: '35px'
         }}
       >
         {/* Close Button */}
@@ -84,7 +84,7 @@ export function AnnouncementBanner() {
         </button>
 
         {/* Marquee Text */}
-        <div className="py-3 overflow-hidden">
+        <div className="py-1 overflow-hidden">
           <div 
             className="announcement-marquee"
             style={{
