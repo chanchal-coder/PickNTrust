@@ -324,9 +324,14 @@ function AnnouncementManager() {
               </div>
             </div>
 
+            {/* Separator */}
+            <div className="border-t border-gray-200 dark:border-gray-600 my-4"></div>
+
             {/* Text Border Options */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Text Border Options</h4>
+            <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h4 className="font-semibold text-lg text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                <span className="text-xl">🔲</span> Text Border Options
+              </h4>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label htmlFor="textBorderWidth">Border Width</Label>
@@ -376,8 +381,10 @@ function AnnouncementManager() {
             </div>
 
             {/* Banner Border Options */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Banner Border Options</h4>
+            <div className="space-y-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <h4 className="font-semibold text-lg text-green-800 dark:text-green-300 flex items-center gap-2">
+                <span className="text-xl">🎯</span> Banner Border Options
+              </h4>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label htmlFor="bannerBorderWidth">Border Width</Label>
