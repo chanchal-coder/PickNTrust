@@ -338,7 +338,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Extract product details from URL - Uses Flask Python service for accurate extraction
+  // Extract product details from URL - Uses built-in extraction without Flask dependency
   app.post("/api/products/extract", async (req, res) => {
     try {
       const { url } = req.body;
@@ -352,43 +352,8 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(400).json({ message: "Invalid URL format" });
       }
 
-      let extractedData: any = {};
-
-      try {
-        // Enhanced HTML extraction with improved reliability
-        console.log('Starting enhanced product extraction for:', url);
-        
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-          },
-          // @ts-ignore
-          timeout: 10000
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const html = await response.text();
-        
-        // Enhanced product extraction from HTML
-        extractedData = extractProductFromHtml(html, url);
-        console.log('Enhanced HTML extraction successful:', extractedData.name);
-
-      } catch (fetchError) {
-        console.log(`Enhanced extraction failed: ${fetchError}`);
-        console.log('Using reliable URL-based extraction...');
-        
-        // Use enhanced URL-based extraction as fallback
-        extractedData = extractFromUrlPattern(url);
-      }
+      // Use enhanced URL-based extraction directly
+      const extractedData = await extractFromUrlPattern(url);
 
       res.json({
         success: true,
@@ -704,48 +669,301 @@ export function setupRoutes(app: Express, storage: IStorage) {
     };
   }
 
-  function extractFromUrlPattern(url: string): any {
-    const domain = new URL(url).hostname.replace('www.', '');
-    
-    if (url.includes('amazon.')) {
+  async function extractFromUrlPattern(url: string): Promise<any> {
+    try {
+      // Fetch the HTML content of the page
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+      }
+      
+      const html = await response.text();
+      const domain = new URL(url).hostname.replace('www.', '');
+      
+      // Extract title/name using multiple fallback methods
+      let name = '';
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      if (titleMatch) {
+        name = titleMatch[1].trim().replace(/\s*\|.*$/g, '').replace(/\s*-.*$/g, '').trim();
+      }
+      
+      // If no title, try to find product name in common patterns
+      if (!name) {
+        const productTitlePatterns = [
+          /<h1[^>]*class="[^"]*product-title[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*id="[^"]*product-title[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*>([^<]+)<\/h1>/i,
+          /"name"\s*:\s*"([^"]+)"/i,
+        ];
+        
+        for (const pattern of productTitlePatterns) {
+          const match = html.match(pattern);
+          if (match) {
+            name = match[1].trim();
+            break;
+          }
+        }
+      }
+      
+      // Fallback to domain name if still no name
+      if (!name) {
+        name = `Product from ${domain}`;
+      }
+      
+      // Extract price with multiple fallback methods
+      let price = '';
+      let originalPrice = '';
+      let discount = '';
+      
+      // Try to find price in common patterns
+      const pricePatterns = [
+        /"price"\s*:\s*"([^"]+)"/i,
+        /"price":\s*([0-9.]+)/i,
+        /<span[^>]*class="[^"]*price[^"]*"[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/span>/i,
+        /<[^>]*data-price="([^"]+)"/i,
+        /₹\s*([0-9,]+\.?[0-9]*)/i,
+      ];
+      
+      for (const pattern of pricePatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          price = match[1].replace(/[^0-9.]/g, '');
+          break;
+        }
+      }
+      
+      // Try to find original price (strikethrough price)
+      const originalPricePatterns = [
+        /<s[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/s>/i,
+        /<span[^>]*class="[^"]*original-price[^"]*"[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/span>/i,
+        /<del[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/del>/i,
+        /"originalPrice"\s*:\s*"([^"]+)"/i,
+      ];
+      
+      for (const pattern of originalPricePatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          originalPrice = match[1].replace(/[^0-9.]/g, '');
+          break;
+        }
+      }
+      
+      // Calculate discount if we have both prices
+      if (price && originalPrice) {
+        const priceNum = parseFloat(price);
+        const originalPriceNum = parseFloat(originalPrice);
+        if (priceNum > 0 && originalPriceNum > 0 && originalPriceNum > priceNum) {
+          discount = Math.round(((originalPriceNum - priceNum) / originalPriceNum) * 100).toString();
+        }
+      }
+      
+      // Extract image with multiple fallback methods
+      let imageUrl = '';
+      
+      // Try to find main product image
+      const imagePatterns = [
+        /<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i,
+        /<img[^>]*id="[^"]*product-image[^"]*"[^>]*src="([^"]+)"/i,
+        /<img[^>]*class="[^"]*product-image[^"]*"[^>]*src="([^"]+)"/i,
+        /<img[^>]*src="([^"]+)"[^>]*id="[^"]*main-image/i,
+        /"image"\s*:\s*"([^"]+)"/i,
+      ];
+      
+      for (const pattern of imagePatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          imageUrl = match[1];
+          // Convert relative URLs to absolute
+          if (imageUrl.startsWith('//')) {
+            imageUrl = 'https:' + imageUrl;
+          } else if (imageUrl.startsWith('/')) {
+            imageUrl = `https://${domain}${imageUrl}`;
+          }
+          break;
+        }
+      }
+      
+      // Fallback to default image if no image found
+      if (!imageUrl) {
+        imageUrl = `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80`;
+      }
+      
+      // Extract rating and review count
+      let rating = '4.0';
+      let reviewCount = '100';
+      
+      const ratingPatterns = [
+        /"ratingValue"[^>]*>\s*([0-9.]+)/i,
+        /<span[^>]*class="[^"]*rating[^"]*"[^>]*>([0-9.]+)/i,
+        /([0-9.]+)\s*stars/i,
+        /([0-9.]+)\/5/i,
+      ];
+      
+      for (const pattern of ratingPatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          rating = match[1];
+          break;
+        }
+      }
+      
+      const reviewCountPatterns = [
+        /"reviewCount"[^>]*>\s*([0-9,]+)/i,
+        /([0-9,]+)\s*reviews/i,
+        /([0-9,]+)\s*ratings?/i,
+      ];
+      
+      for (const pattern of reviewCountPatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          reviewCount = match[1].replace(/,/g, '');
+          break;
+        }
+      }
+      
+      // Determine category based on URL and content
+      let category = 'Electronics & Gadgets';
+      
+      if (url.includes('amazon.')) {
+        category = 'Electronics & Gadgets';
+      } else if (url.includes('flipkart.com')) {
+        category = 'Electronics & Gadgets';
+      } else {
+        // Try to determine category from content
+        const content = (html + ' ' + name).toLowerCase();
+        
+        // Electronics & Gadgets
+        if (content.includes('electronics') || content.includes('gadget') || content.includes('electronic')) {
+          category = 'Electronics & Gadgets';
+        }
+        // Mobiles & Accessories
+        else if (content.includes('iphone') || content.includes('smartphone') || content.includes('mobile') || 
+                 content.includes('phone') || content.includes('samsung') || content.includes('oneplus')) {
+          category = 'Mobiles & Accessories';
+        }
+        // Computers & Laptops
+        else if (content.includes('laptop') || content.includes('computer') || content.includes('macbook') || 
+                 content.includes('pc') || content.includes('desktop') || content.includes('notebook')) {
+          category = 'Computers & Laptops';
+        }
+        // Fashion
+        else if (content.includes('fashion') || content.includes('clothing') || content.includes('shirt') || 
+                 content.includes('dress') || content.includes('jeans') || content.includes('shoes')) {
+          category = 'Fashion';
+        }
+        // Beauty & Grooming
+        else if (content.includes('beauty') || content.includes('skincare') || content.includes('makeup') || 
+                 content.includes('cosmetic') || content.includes('grooming') || content.includes('perfume')) {
+          category = 'Beauty & Grooming';
+        }
+        // Home
+        else if (content.includes('home') || content.includes('kitchen') || content.includes('furniture') || 
+                 content.includes('appliance')) {
+          category = 'Home';
+        }
+      }
+      
+      // Generate description if needed
+      let description = `High-quality ${name} from ${domain} with excellent value and fast delivery.`;
+      
+      // Try to find actual description
+      const descriptionPatterns = [
+        /<meta[^>]*name="description"[^>]*content="([^"]+)"/i,
+        /<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i,
+        /<p[^>]*class="[^"]*description[^"]*"[^>]*>([^<]+)<\/p>/i,
+        /"description"\s*:\s*"([^"]+)"/i,
+      ];
+      
+      for (const pattern of descriptionPatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          description = match[1].trim();
+          break;
+        }
+      }
+      
+      // Determine affiliate network ID
+      let affiliateNetworkId = "1"; // Default to Amazon
+      
+      if (url.includes('amazon.')) {
+        affiliateNetworkId = "1";
+      } else if (url.includes('flipkart.com')) {
+        affiliateNetworkId = "4";
+      } else if (url.includes('commission') || url.includes('cj.com')) {
+        affiliateNetworkId = "2";
+      } else if (url.includes('shareasale.com')) {
+        affiliateNetworkId = "3";
+      } else if (url.includes('clickbank.com')) {
+        affiliateNetworkId = "5";
+      }
+      
       return {
-        name: "Amazon Product",
-        description: "High-quality product from Amazon with fast delivery",
-        price: "2,999.00",
-        originalPrice: "4,999.00",
-        discount: "40",
-        rating: "4.3",
-        reviewCount: "1247",
-        category: "Electronics & Gadgets",
-        affiliateNetworkId: "1",
-        imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&q=80",
+        name: name.substring(0, 100),
+        description: description.substring(0, 200),
+        price: price || "1,599.00",
+        originalPrice: originalPrice || undefined,
+        discount: discount || undefined,
+        rating: rating,
+        reviewCount: reviewCount,
+        category: category,
+        affiliateNetworkId: affiliateNetworkId,
+        imageUrl: imageUrl,
+        affiliateUrl: url,
       };
-    } else if (url.includes('flipkart.com')) {
-      return {
-        name: "Flipkart Product",
-        description: "Trending product from Flipkart with great value",
-        price: "1,899.00",
-        originalPrice: "2,999.00",
-        discount: "37",
-        rating: "4.1",
-        reviewCount: "856",
-        category: "Fashion",
-        affiliateNetworkId: "4",
-        imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80",
-      };
-    } else {
-      return {
-        name: `Product from ${domain}`,
-        description: `Quality product from ${domain} with excellent value`,
-        price: "1,599.00",
-        originalPrice: "2,299.00",
-        discount: "30",
-        rating: "4.0",
-        reviewCount: "423",
-        category: "Electronics & Gadgets",
-        affiliateNetworkId: "1",
-        imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80",
-      };
+    } catch (error) {
+      console.error('Error extracting product details:', error);
+      
+      // Fallback to domain-based extraction if web scraping fails
+      const domain = new URL(url).hostname.replace('www.', '');
+      
+      if (url.includes('amazon.')) {
+        return {
+          name: "Amazon Product",
+          description: "High-quality product from Amazon with fast delivery",
+          price: "2,999.00",
+          originalPrice: "4,999.00",
+          discount: "40",
+          rating: "4.3",
+          reviewCount: "1247",
+          category: "Electronics & Gadgets",
+          affiliateNetworkId: "1",
+          imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&q=80",
+          affiliateUrl: url,
+        };
+      } else if (url.includes('flipkart.com')) {
+        return {
+          name: "Flipkart Product",
+          description: "Trending product from Flipkart with great value",
+          price: "1,899.00",
+          originalPrice: "2,999.00",
+          discount: "37",
+          rating: "4.1",
+          reviewCount: "856",
+          category: "Fashion",
+          affiliateNetworkId: "4",
+          imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80",
+          affiliateUrl: url,
+        };
+      } else {
+        return {
+          name: `Product from ${domain}`,
+          description: `Quality product from ${domain} with excellent value`,
+          price: "1,599.00",
+          originalPrice: "2,299.00",
+          discount: "30",
+          rating: "4.0",
+          reviewCount: "423",
+          category: "Electronics & Gadgets",
+          affiliateNetworkId: "1",
+          imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80",
+          affiliateUrl: url,
+        };
+      }
     }
   }
 
