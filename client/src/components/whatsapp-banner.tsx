@@ -17,7 +17,7 @@ export default function WhatsAppBanner() {
             <i className="fab fa-whatsapp text-lg sm:text-xl text-green-500"></i>
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-sm sm:text-base font-bold text-white drop-shadow-md truncate">Join 10,000+ Smart Shoppers!</span>
+            <span className="text-sm sm:text-base font-bold text-white drop-shadow-md truncate">Get Daily Hot Deals on WhatsApp!</span>
             <span className="text-xs sm:text-sm text-yellow-100 font-medium hidden xs:block truncate">Get exclusive deals & flash sales instantly</span>
             <span className="text-xs text-yellow-100 font-medium xs:hidden">Exclusive deals on WhatsApp</span>
           </div>

@@ -43,8 +43,11 @@ export default function Footer() {
                 <a href="https://whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors group">
                   <i className="fab fa-whatsapp text-white text-lg group-hover:scale-110 transition-transform"></i>
                 </a>
-                <a href="https://www.facebook.com/profile.php?id=61578764277648" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
+                <a href="https://www.facebook.com/profile.php?id=61578969445670" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
                   <i className="fab fa-facebook-f text-white"></i>
+                </a>
+                <a href="https://t.me/+m-O-S6SSpVU2NWU1" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-400 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors ml-2">
+                  <i className="fab fa-telegram-plane text-white"></i>
                 </a>
                 <a href="https://x.com/pickntrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
                   <div className="text-white text-lg font-bold">𝕏</div>

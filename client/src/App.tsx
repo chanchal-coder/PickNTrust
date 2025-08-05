@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useState, useEffect } from "react";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import Home from "@/pages/home";
 import CategoryPage from "@/pages/category";
 import AdminPage from "@/pages/admin";
@@ -18,6 +19,7 @@ import BlogPostPage from "@/pages/blog-post";
 import LogoPreviewPage from "@/pages/logo-preview";
 import TimerDemoPage from "@/pages/timer-demo";
 import NotFound from "@/pages/not-found";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 
 function AppRouter() {
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +41,7 @@ function AppRouter() {
 
   return (
     <Router>
+      <AnnouncementBanner />
       {isLoading && (
         <div className="fixed top-0 left-0 w-full h-1 bg-blue-500 z-50 animate-pulse">
           <div className="h-full bg-blue-600 animate-pulse"></div>
@@ -68,8 +71,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="pickntrust-theme">
         <TooltipProvider>
-          <Toaster />
-          <AppRouter />
+          <WishlistProvider>
+            <Toaster />
+            <AppRouter />
+          </WishlistProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

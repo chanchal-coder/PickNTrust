@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { dbInstance as db } from "./db.mts";
 import { products, categories, blogPosts, affiliateNetworks } from "@shared/schema";
 
 async function seedDatabase() {
@@ -18,7 +18,7 @@ async function seedDatabase() {
         name: "Amazon Associates",
         slug: "amazon",
         description: "World's largest online marketplace with competitive commissions",
-        commissionRate: "4.50",
+        commissionRate: 4.50,
         trackingParams: "tag=pickntrust-21",
         logoUrl: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
         isActive: true,
@@ -28,7 +28,7 @@ async function seedDatabase() {
         name: "Commission Junction",
         slug: "cj",
         description: "Leading affiliate marketing network with top brands",
-        commissionRate: "6.00",
+        commissionRate: 6.00,
         trackingParams: "sid=pickntrust",
         logoUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
         isActive: true,
@@ -38,7 +38,7 @@ async function seedDatabase() {
         name: "ShareASale",
         slug: "shareasale",
         description: "Diverse merchant network with excellent tools",
-        commissionRate: "5.50",
+        commissionRate: 5.50,
         trackingParams: "afftrack=pickntrust",
         logoUrl: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
         isActive: true,
@@ -48,7 +48,7 @@ async function seedDatabase() {
         name: "Flipkart Affiliate",
         slug: "flipkart",
         description: "India's leading e-commerce platform",
-        commissionRate: "3.50",
+        commissionRate: 3.50,
         trackingParams: "affid=pickntrust",
         logoUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
         isActive: true,
@@ -58,7 +58,7 @@ async function seedDatabase() {
         name: "ClickBank",
         slug: "clickbank",
         description: "Digital products and online courses marketplace",
-        commissionRate: "8.00",
+        commissionRate: 8.00,
         trackingParams: "tid=pickntrust",
         logoUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
         isActive: true,
@@ -68,7 +68,7 @@ async function seedDatabase() {
         name: "Impact",
         slug: "impact",
         description: "Performance marketing platform for enterprise brands",
-        commissionRate: "7.00",
+        commissionRate: 7.00,
         trackingParams: "utm_source=pickntrust",
         logoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
         isActive: true,
@@ -81,157 +81,157 @@ async function seedDatabase() {
     await db.insert(categories).values([
       {
         name: "Electronics & Gadgets",
-        icon: "fas fa-microchip",
+        icon: "microchip",
         color: "#3B82F6",
         description: "Latest Electronics & Tech Gadgets"
       },
       {
         name: "Mobiles & Accessories",
-        icon: "fas fa-mobile-alt",
+        icon: "mobile-alt",
         color: "#10B981",
         description: "Smartphones & Mobile Accessories"
       },
       {
         name: "Computers & Laptops",
-        icon: "fas fa-laptop",
+        icon: "laptop",
         color: "#8B5CF6",
         description: "Laptops, PCs & Computer Hardware"
       },
       {
         name: "Fashion Men",
-        icon: "fas fa-male",
+        icon: "male",
         color: "#059669",
         description: "Men's Clothing & Fashion"
       },
       {
         name: "Fashion Women",
-        icon: "fas fa-female",
+        icon: "female",
         color: "#EC4899",
         description: "Women's Clothing & Fashion"
       },
       {
         name: "Fashion Kids",
-        icon: "fas fa-child",
+        icon: "child",
         color: "#F472B6",
         description: "Kids' Clothing & Fashion"
       },
       {
         name: "Shoes & Footwear",
-        icon: "fas fa-shoe-prints",
+        icon: "shoe-prints",
         color: "#8B5A2B",
         description: "Footwear for All Ages"
       },
       {
         name: "Watches & Accessories",
-        icon: "fas fa-clock",
+        icon: "clock",
         color: "#6366F1",
         description: "Watches & Fashion Accessories"
       },
       {
         name: "Beauty & Personal Care",
-        icon: "fas fa-spa",
+        icon: "spa",
         color: "#F59E0B",
         description: "Beauty & Personal Care Products"
       },
       {
         name: "Health & Wellness",
-        icon: "fas fa-heartbeat",
+        icon: "heartbeat",
         color: "#EF4444",
         description: "Health & Wellness Products"
       },
       {
         name: "Home & Kitchen",
-        icon: "fas fa-home",
+        icon: "home",
         color: "#84CC16",
         description: "Home & Kitchen Essentials"
       },
       {
         name: "Furniture & Decor",
-        icon: "fas fa-couch",
+        icon: "couch",
         color: "#A855F7",
         description: "Furniture & Home Decor"
       },
       {
         name: "Appliances",
-        icon: "fas fa-blender",
+        icon: "blender",
         color: "#06B6D4",
         description: "Home & Kitchen Appliances"
       },
       {
         name: "Garden & Outdoor",
-        icon: "fas fa-leaf",
+        icon: "leaf",
         color: "#22C55E",
         description: "Garden & Outdoor Living"
       },
       {
         name: "Books & Stationery",
-        icon: "fas fa-book",
+        icon: "book",
         color: "#DC2626",
         description: "Books & Stationery Items"
       },
       {
         name: "Sports & Fitness",
-        icon: "fas fa-dumbbell",
+        icon: "dumbbell",
         color: "#059669",
         description: "Sports & Fitness Equipment"
       },
       {
         name: "Toys & Games",
-        icon: "fas fa-gamepad",
+        icon: "gamepad",
         color: "#7C2D12",
         description: "Toys, Games & Entertainment"
       },
       {
         name: "Music & Instruments",
-        icon: "fas fa-music",
+        icon: "music",
         color: "#BE185D",
         description: "Musical Instruments & Audio"
       },
       {
         name: "Movies & Entertainment",
-        icon: "fas fa-film",
+        icon: "film",
         color: "#1E40AF",
         description: "Movies & Entertainment"
       },
       {
         name: "Food & Grocery",
-        icon: "fas fa-shopping-basket",
+        icon: "shopping-basket",
         color: "#DC2626",
         description: "Food & Grocery Items"
       },
       {
         name: "Travel & Luggage",
-        icon: "fas fa-suitcase-rolling",
+        icon: "suitcase-rolling",
         color: "#1E40AF",
         description: "Travel & Luggage"
       },
       {
         name: "Credit Cards & Finance",
-        icon: "fas fa-credit-card",
+        icon: "credit-card",
         color: "#7C3AED",
         description: "Financial Services"
       },
       {
         name: "Cars & Bikes Accessories",
-        icon: "fas fa-car",
+        icon: "car",
         color: "#F59E0B",
         description: "Vehicle Accessories"
       },
       {
         name: "Baby Products",
-        icon: "fas fa-baby",
+        icon: "baby",
         color: "#F472B6",
         description: "Baby Care & Products"
       },
       {
         name: "Pet Supplies",
-        icon: "fas fa-paw",
+        icon: "paw",
         color: "#FB7185",
         description: "Pet Care & Accessories"
       },
       {
         name: "Gifting & Occasions",
-        icon: "fas fa-gift",
+        icon: "gift",
         color: "#F87171",
         description: "Gifts & Special Occasions"
       }
@@ -243,13 +243,13 @@ async function seedDatabase() {
       {
         name: "Premium Wireless Smartphone",
         description: "Latest model with advanced camera and long battery life",
-        price: "49999.00",
-        originalPrice: "66599.00",
+        price: 49999.00,
+        originalPrice: 66599.00,
         imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
         affiliateUrl: "https://amazon.in/dp/B08N5WRWNW?tag=pickntrust-21",
         affiliateNetworkId: 1,
         category: "Mobiles & Accessories",
-        rating: "5.0",
+        rating: 5.0,
         reviewCount: 1234,
         discount: 25,
         isFeatured: true
@@ -257,13 +257,13 @@ async function seedDatabase() {
       {
         name: "Smart Kitchen Appliance Set",
         description: "Complete kitchen solution with smart controls",
-        price: "24999.00",
-        originalPrice: "41599.00",
+        price: 24999.00,
+        originalPrice: 41599.00,
         imageUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
         affiliateUrl: "https://www.flipkart.com/kitchen-appliances?affid=pickntrust",
         affiliateNetworkId: 4,
         category: "Appliances",
-        rating: "4.0",
+        rating: 4.0,
         reviewCount: 856,
         discount: 40,
         isFeatured: true
@@ -271,13 +271,13 @@ async function seedDatabase() {
       {
         name: "Professional Gaming Laptop",
         description: "High-performance laptop for gaming and professional work",
-        price: "89999.00",
-        originalPrice: "124999.00",
+        price: 89999.00,
+        originalPrice: 124999.00,
         imageUrl: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
         affiliateUrl: "https://amazon.in/dp/B08N5WRWNW?tag=pickntrust-21",
         affiliateNetworkId: 1,
         category: "Computers & Laptops",
-        rating: "4.8",
+        rating: 4.8,
         reviewCount: 2156,
         discount: 28,
         isFeatured: true

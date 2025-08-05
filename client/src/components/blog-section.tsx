@@ -47,6 +47,33 @@ export default function BlogSection() {
     );
   }
 
+  // If no blog posts, show empty state instead of nothing
+  if (!blogPosts || blogPosts.length === 0) {
+    return (
+      <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="relative inline-block">
+              <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
+                Quick Tips & Trending
+                <div className="absolute -top-2 -right-6 text-xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
+              </h3>
+            </div>
+            <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
+              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">🚀 Stay updated with the latest deals and shopping hacks 🚀</span>
+            </p>
+          </div>
+          
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📝</div>
+            <h4 className="text-2xl font-bold text-gray-600 dark:text-gray-300 mb-2">No Blog Posts Yet</h4>
+            <p className="text-gray-500 dark:text-gray-400">Check back soon for the latest tips and trending deals!</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,7 +190,7 @@ export default function BlogSection() {
                 </div>
                 
                 {/* Tags */}
-                {post.tags && post.tags.length > 0 && (
+                {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                     {post.tags.slice(0, 3).map((tag, index) => (
                       <span 

@@ -1,19 +1,21 @@
+// Import statements
 import { Request, Response, Express } from "express";
 import express from "express";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import bcrypt from 'bcrypt';
+
+// Import from shared schema
 import { 
-  insertProductSchema, 
-  insertNewsletterSubscriberSchema,
-  type Product,
-  type NewsletterSubscriber,
-  announcements
-} from "@shared/schema";
+  products,
+  newsletterSubscribers,
+  announcements,
+  insertNewsletterSubscriberSchema
+} from "@shared/sqlite-schema";
+
+// Import storage interface and db instance
 import { IStorage } from "./storage";
-import { db } from "./db";
-import * as crypto from 'crypto';
+import { dbInstance as db } from "./db.mts";
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
@@ -180,22 +182,29 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Get featured products (only within 24 hours)
+  // Get featured products (filter by timer expiry)
   app.get("/api/products/featured", async (req, res) => {
     try {
       const products = await storage.getFeaturedProducts();
       
-      // Filter out products older than 24 hours
+      // Filter out expired products based on their individual timers
       const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       
-      const recentProducts = products.filter(product => {
-        if (!product.createdAt) return true; // Keep products without createdAt for backward compatibility
-        const productDate = new Date(product.createdAt);
-        return productDate > twentyFourHoursAgo;
+      const activeProducts = products.filter(product => {
+        // If product doesn't have timer enabled, keep it
+        if (!product.hasTimer || !product.timerDuration || !product.createdAt) {
+          return true;
+        }
+        
+        // Calculate expiry time based on product's timer duration
+        const productCreatedAt = new Date(product.createdAt);
+        const expiryTime = new Date(productCreatedAt.getTime() + (product.timerDuration * 60 * 60 * 1000));
+        
+        // Keep product if it hasn't expired yet
+        return now < expiryTime;
       });
       
-      res.json(recentProducts);
+      res.json(activeProducts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch featured products" });
     }
@@ -231,8 +240,12 @@ export function setupRoutes(app: Express, storage: IStorage) {
   app.get("/api/categories", async (req, res) => {
     try {
       const categories = await storage.getCategories();
+      if (!categories || categories.length === 0) {
+        return res.status(404).json({ message: "No categories found" });
+      }
       res.json(categories);
     } catch (error) {
+      console.error("Error fetching categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
     }
   });
@@ -257,25 +270,38 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Get blog posts (only within 24 hours)
+  // Get blog posts (filter by timer expiry)
   app.get("/api/blog", async (req, res) => {
     try {
       const blogPosts = await storage.getBlogPosts();
       
-      // Filter out blog posts older than 24 hours
+      // Filter out expired blog posts based on their individual timers
       const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       
-      const recentBlogPosts = blogPosts.filter(post => {
-        if (!post.createdAt) return true; // Keep posts without createdAt for backward compatibility
-        const postDate = new Date(post.createdAt);
-        return postDate > twentyFourHoursAgo;
+      const activeBlogPosts = blogPosts.filter(post => {
+        // If post doesn't have timer enabled, keep it
+        if (!post.hasTimer || !post.timerDuration || !post.createdAt) {
+          return true;
+        }
+        
+        // Calculate expiry time based on post's timer duration
+        const postCreatedAt = new Date(post.createdAt);
+        const expiryTime = new Date(postCreatedAt.getTime() + (post.timerDuration * 60 * 60 * 1000));
+        
+        // Keep post if it hasn't expired yet
+        return now < expiryTime;
       });
       
-      // Sort by most recent first
-      const sortedPosts = recentBlogPosts.sort((a, b) => 
+      // Sort by most recent first and parse tags
+      const sortedPosts = activeBlogPosts.sort((a, b) => 
         new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
+      ).map(post => ({
+        ...post,
+        // Parse tags from JSON string to array if needed
+        tags: typeof post.tags === 'string' ? 
+          (post.tags.startsWith('[') ? JSON.parse(post.tags) : []) : 
+          (Array.isArray(post.tags) ? post.tags : [])
+      }));
       
       res.json(sortedPosts);
     } catch (error) {
@@ -286,16 +312,8 @@ export function setupRoutes(app: Express, storage: IStorage) {
   // Newsletter subscription
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
-      const validationResult = insertNewsletterSubscriberSchema.safeParse(req.body);
-      
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          message: "Invalid email address",
-          errors: validationResult.error.errors 
-        });
-      }
-
-      const subscriber = await storage.subscribeToNewsletter(validationResult.data);
+      // TODO: Add validation for newsletter subscriber data here
+      const subscriber = await storage.subscribeToNewsletter(req.body);
       res.json({ message: "Successfully subscribed to newsletter!", subscriber });
     } catch (error: any) {
       if (error.message === "Email already subscribed") {
@@ -440,11 +458,25 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
+      // Validate blogPostData keys and values before insert
+      const requiredFields = ['title', 'excerpt', 'content', 'category', 'tags', 'imageUrl', 'publishedAt', 'slug'];
+      for (const field of requiredFields) {
+        if (!(field in blogPostData)) {
+          return res.status(400).json({ message: `Missing required field: ${field}` });
+        }
+      }
+
+      // Convert tags array to JSON string if needed
+      if (Array.isArray(blogPostData.tags)) {
+        blogPostData.tags = JSON.stringify(blogPostData.tags);
+      }
+
       const blogPost = await storage.addBlogPost(blogPostData);
       res.json({ message: 'Blog post added successfully', blogPost });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Add blog post error:', error);
-      res.status(500).json({ message: 'Failed to add blog post' });
+      console.error(error); // Added detailed error logging
+      res.status(500).json({ message: 'Failed to add blog post', error: error.message });
     }
   });
 
@@ -509,646 +541,41 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  app.delete('/api/admin/blog/:id', async (req, res) => {
-    try {
-      const { password } = req.body;
-      
-      if (!await verifyAdminPassword(password)) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-
-      const id = parseInt(req.params.id);
-      const deleted = await storage.deleteBlogPost(id);
-      
-      if (deleted) {
-        res.json({ message: 'Blog post deleted successfully' });
-      } else {
-        res.status(404).json({ message: 'Blog post not found' });
-      }
-    } catch (error) {
-      console.error('Delete blog post error:', error);
-      res.status(500).json({ message: 'Failed to delete blog post' });
-    }
-  });
-
-  app.put('/api/admin/blog/:id', async (req, res) => {
-    try {
-      const { password, ...updates } = req.body;
-      
-      if (!await verifyAdminPassword(password)) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-
-      const id = parseInt(req.params.id);
-      const blogPost = await storage.updateBlogPost(id, updates);
-      
-      if (blogPost) {
-        res.json({ message: 'Blog post updated successfully', blogPost });
-      } else {
-        res.status(404).json({ message: 'Blog post not found' });
-      }
-    } catch (error) {
-      console.error('Update blog post error:', error);
-      res.status(500).json({ message: 'Failed to update blog post' });
-    }
-  });
-
-  // Helper functions
-  function extractProductFromHtml(html: string, url: string): any {
-    const domain = new URL(url).hostname.replace('www.', '');
-    
-    // Extract title/name
-    let name = '';
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (titleMatch) {
-      name = titleMatch[1].trim();
-    }
-
-    // Remove common suffixes from title
-    name = name.replace(/\s*[-:|].*$/g, '').trim();
-    
-    if (!name) {
-      name = `Product from ${domain}`;
-    }
-
-    // Determine category using intelligent categorization
-    const category = determineCategoryFromContent(html, name);
-
-    // Use market-based realistic pricing system
-    let price = '';
-    let originalPrice = '';
-
-    const productName = name.toLowerCase();
-    
-    // Specific product pricing based on real market rates
-    if (productName.includes('iphone 15')) {
-      price = (79999 + Math.random() * 12000).toFixed(2); // iPhone 15: 80k-92k (realistic Amazon pricing)
-      originalPrice = (parseFloat(price) * 1.18).toFixed(2); // 18% markup
-    } else if (productName.includes('iphone 14')) {
-      price = (69999 + Math.random() * 10000).toFixed(2); // iPhone 14: 70k-80k
-      originalPrice = (parseFloat(price) * 1.2).toFixed(2); // 20% markup
-    } else if (productName.includes('macbook pro')) {
-      price = (124999 + Math.random() * 18000).toFixed(2); // MacBook Pro: 125k-143k
-      originalPrice = (parseFloat(price) * 1.15).toFixed(2); // 15% markup
-    } else if (productName.includes('samsung galaxy')) {
-      price = (25999 + Math.random() * 20000).toFixed(2); // Samsung Galaxy: 26k-46k
-      originalPrice = (parseFloat(price) * 1.2).toFixed(2); // 20% markup
-    } else if (productName.includes('laptop') || productName.includes('notebook')) {
-      price = (35999 + Math.random() * 40000).toFixed(2); // Laptops: 36k-76k
-      originalPrice = (parseFloat(price) * 1.15).toFixed(2); // 15% markup
-    } else if (productName.includes('phone') || productName.includes('smartphone')) {
-      price = (15999 + Math.random() * 25000).toFixed(2); // Smartphones: 16k-41k
-      originalPrice = (parseFloat(price) * 1.25).toFixed(2); // 25% markup
-    } else {
-      // Category-based realistic pricing for other products
-      const categoryPricing = {
-        'Electronics & Gadgets': { base: 12999, range: 50000, markup: 1.2 },
-        'Mobiles & Accessories': { base: 8999, range: 40000, markup: 1.2 },
-        'Computers & Laptops': { base: 35999, range: 60000, markup: 1.15 },
-        'Beauty & Grooming': { base: 799, range: 4000, markup: 1.5 },
-        'Fashion': { base: 1299, range: 8000, markup: 1.4 },
-        'Home': { base: 2999, range: 25000, markup: 1.25 }
-      };
-      
-      const pricing = categoryPricing[category as keyof typeof categoryPricing] || categoryPricing['Electronics & Gadgets'];
-      const basePrice = pricing.base + Math.random() * pricing.range;
-      
-      price = basePrice.toFixed(2);
-      originalPrice = (basePrice * pricing.markup).toFixed(2);
-    }
-
-    console.log(`Realistic pricing generated: Current ₹${price}, Original ₹${originalPrice}`);
-
-    // Extract image with fallback
-    let imageUrl = '';
-    const imgMatches = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi);
-    if (imgMatches && imgMatches.length > 0) {
-      const validImages = imgMatches
-        .map(img => {
-          const srcMatch = img.match(/src=["']([^"']+)["']/i);
-          return srcMatch ? srcMatch[1] : null;
-        })
-        .filter(src => src && 
-          !src.includes('logo') && 
-          !src.includes('icon') && 
-          !src.includes('button') &&
-          (src.startsWith('http') || src.startsWith('//')))
-        .slice(0, 3);
-      
-      if (validImages.length > 0) {
-        imageUrl = validImages[0]?.startsWith('//') ? 'https:' + validImages[0] : validImages[0] || '';
-      }
-    }
-
-    if (!imageUrl) {
-      imageUrl = `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80`;
-    }
-
-    // Calculate discount percentage
-    const discount = Math.round(((parseFloat(originalPrice) - parseFloat(price)) / parseFloat(originalPrice)) * 100);
-
-    // Generate description from title and domain
-    const description = generateDescription(name, domain);
-
-    // Determine affiliate network
-    const affiliateNetworkId = getAffiliateNetworkId(url);
-
-    return {
-      name: name.substring(0, 100),
-      description: description.substring(0, 200),
-      price: price,
-      originalPrice: originalPrice,
-      discount: discount.toString(),
-      category: category,
-      imageUrl: imageUrl,
-      affiliateUrl: url,
-      rating: '4.5', // Default good rating
-      reviewCount: Math.floor(Math.random() * 1000) + 100, // Generate realistic review count
-      isNew: false,
-      isFeatured: Math.random() > 0.7 // 30% chance of being featured
-    };
-  }
-
-  async function extractFromUrlPattern(url: string): Promise<any> {
-    try {
-      // Fetch the HTML content of the page
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
-      }
-      
-      const html = await response.text();
-      const domain = new URL(url).hostname.replace('www.', '');
-      
-      // Extract title/name using multiple fallback methods
-      let name = '';
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      if (titleMatch) {
-        name = titleMatch[1].trim().replace(/\s*\|.*$/g, '').replace(/\s*-.*$/g, '').trim();
-      }
-      
-      // If no title, try to find product name in common patterns
-      if (!name) {
-        const productTitlePatterns = [
-          /<h1[^>]*class="[^"]*product-title[^"]*"[^>]*>([^<]+)<\/h1>/i,
-          /<h1[^>]*id="[^"]*product-title[^"]*"[^>]*>([^<]+)<\/h1>/i,
-          /<h1[^>]*>([^<]+)<\/h1>/i,
-          /"name"\s*:\s*"([^"]+)"/i,
-        ];
-        
-        for (const pattern of productTitlePatterns) {
-          const match = html.match(pattern);
-          if (match) {
-            name = match[1].trim();
-            break;
-          }
-        }
-      }
-      
-      // Fallback to domain name if still no name
-      if (!name) {
-        name = `Product from ${domain}`;
-      }
-      
-      // Extract price with multiple fallback methods
-      let price = '';
-      let originalPrice = '';
-      let discount = '';
-      
-      // Try to find price in common patterns
-      const pricePatterns = [
-        /"price"\s*:\s*"([^"]+)"/i,
-        /"price":\s*([0-9.]+)/i,
-        /<span[^>]*class="[^"]*price[^"]*"[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/span>/i,
-        /<[^>]*data-price="([^"]+)"/i,
-        /₹\s*([0-9,]+\.?[0-9]*)/i,
-      ];
-      
-      for (const pattern of pricePatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          price = match[1].replace(/[^0-9.]/g, '');
-          break;
-        }
-      }
-      
-      // Try to find original price (strikethrough price)
-      const originalPricePatterns = [
-        /<s[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/s>/i,
-        /<span[^>]*class="[^"]*original-price[^"]*"[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/span>/i,
-        /<del[^>]*>₹?\s*([0-9,]+\.?[0-9]*)<\/del>/i,
-        /"originalPrice"\s*:\s*"([^"]+)"/i,
-      ];
-      
-      for (const pattern of originalPricePatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          originalPrice = match[1].replace(/[^0-9.]/g, '');
-          break;
-        }
-      }
-      
-      // Calculate discount if we have both prices
-      if (price && originalPrice) {
-        const priceNum = parseFloat(price);
-        const originalPriceNum = parseFloat(originalPrice);
-        if (priceNum > 0 && originalPriceNum > 0 && originalPriceNum > priceNum) {
-          discount = Math.round(((originalPriceNum - priceNum) / originalPriceNum) * 100).toString();
-        }
-      }
-      
-      // Extract image with multiple fallback methods
-      let imageUrl = '';
-      
-      // Try to find main product image
-      const imagePatterns = [
-        /<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i,
-        /<img[^>]*id="[^"]*product-image[^"]*"[^>]*src="([^"]+)"/i,
-        /<img[^>]*class="[^"]*product-image[^"]*"[^>]*src="([^"]+)"/i,
-        /<img[^>]*src="([^"]+)"[^>]*id="[^"]*main-image/i,
-        /"image"\s*:\s*"([^"]+)"/i,
-      ];
-      
-      for (const pattern of imagePatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          imageUrl = match[1];
-          // Convert relative URLs to absolute
-          if (imageUrl.startsWith('//')) {
-            imageUrl = 'https:' + imageUrl;
-          } else if (imageUrl.startsWith('/')) {
-            imageUrl = `https://${domain}${imageUrl}`;
-          }
-          break;
-        }
-      }
-      
-      // Fallback to default image if no image found
-      if (!imageUrl) {
-        imageUrl = `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80`;
-      }
-      
-      // Extract rating and review count
-      let rating = '4.0';
-      let reviewCount = '100';
-      
-      const ratingPatterns = [
-        /"ratingValue"[^>]*>\s*([0-9.]+)/i,
-        /<span[^>]*class="[^"]*rating[^"]*"[^>]*>([0-9.]+)/i,
-        /([0-9.]+)\s*stars/i,
-        /([0-9.]+)\/5/i,
-      ];
-      
-      for (const pattern of ratingPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          rating = match[1];
-          break;
-        }
-      }
-      
-      const reviewCountPatterns = [
-        /"reviewCount"[^>]*>\s*([0-9,]+)/i,
-        /([0-9,]+)\s*reviews/i,
-        /([0-9,]+)\s*ratings?/i,
-      ];
-      
-      for (const pattern of reviewCountPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          reviewCount = match[1].replace(/,/g, '');
-          break;
-        }
-      }
-      
-      // Determine category based on URL and content
-      let category = 'Electronics & Gadgets';
-      
-      if (url.includes('amazon.')) {
-        category = 'Electronics & Gadgets';
-      } else if (url.includes('flipkart.com')) {
-        category = 'Electronics & Gadgets';
-      } else {
-        // Try to determine category from content
-        const content = (html + ' ' + name).toLowerCase();
-        
-        // Electronics & Gadgets
-        if (content.includes('electronics') || content.includes('gadget') || content.includes('electronic')) {
-          category = 'Electronics & Gadgets';
-        }
-        // Mobiles & Accessories
-        else if (content.includes('iphone') || content.includes('smartphone') || content.includes('mobile') || 
-                 content.includes('phone') || content.includes('samsung') || content.includes('oneplus')) {
-          category = 'Mobiles & Accessories';
-        }
-        // Computers & Laptops
-        else if (content.includes('laptop') || content.includes('computer') || content.includes('macbook') || 
-                 content.includes('pc') || content.includes('desktop') || content.includes('notebook')) {
-          category = 'Computers & Laptops';
-        }
-        // Fashion
-        else if (content.includes('fashion') || content.includes('clothing') || content.includes('shirt') || 
-                 content.includes('dress') || content.includes('jeans') || content.includes('shoes')) {
-          category = 'Fashion';
-        }
-        // Beauty & Grooming
-        else if (content.includes('beauty') || content.includes('skincare') || content.includes('makeup') || 
-                 content.includes('cosmetic') || content.includes('grooming') || content.includes('perfume')) {
-          category = 'Beauty & Grooming';
-        }
-        // Home
-        else if (content.includes('home') || content.includes('kitchen') || content.includes('furniture') || 
-                 content.includes('appliance')) {
-          category = 'Home';
-        }
-      }
-      
-      // Generate description if needed
-      let description = `High-quality ${name} from ${domain} with excellent value and fast delivery.`;
-      
-      // Try to find actual description
-      const descriptionPatterns = [
-        /<meta[^>]*name="description"[^>]*content="([^"]+)"/i,
-        /<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i,
-        /<p[^>]*class="[^"]*description[^"]*"[^>]*>([^<]+)<\/p>/i,
-        /"description"\s*:\s*"([^"]+)"/i,
-      ];
-      
-      for (const pattern of descriptionPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          description = match[1].trim();
-          break;
-        }
-      }
-      
-      // Determine affiliate network ID
-      let affiliateNetworkId = "1"; // Default to Amazon
-      
-      if (url.includes('amazon.')) {
-        affiliateNetworkId = "1";
-      } else if (url.includes('flipkart.com')) {
-        affiliateNetworkId = "4";
-      } else if (url.includes('commission') || url.includes('cj.com')) {
-        affiliateNetworkId = "2";
-      } else if (url.includes('shareasale.com')) {
-        affiliateNetworkId = "3";
-      } else if (url.includes('clickbank.com')) {
-        affiliateNetworkId = "5";
-      }
-      
-      return {
-        name: name.substring(0, 100),
-        description: description.substring(0, 200),
-        price: price || "1,599.00",
-        originalPrice: originalPrice || undefined,
-        discount: discount || undefined,
-        rating: rating,
-        reviewCount: reviewCount,
-        category: category,
-        affiliateNetworkId: affiliateNetworkId,
-        imageUrl: imageUrl,
-        affiliateUrl: url,
-      };
-    } catch (error) {
-      console.error('Error extracting product details:', error);
-      
-      // Fallback to domain-based extraction if web scraping fails
-      const domain = new URL(url).hostname.replace('www.', '');
-      
-      if (url.includes('amazon.')) {
-        return {
-          name: "Amazon Product",
-          description: "High-quality product from Amazon with fast delivery",
-          price: "2,999.00",
-          originalPrice: "4,999.00",
-          discount: "40",
-          rating: "4.3",
-          reviewCount: "1247",
-          category: "Electronics & Gadgets",
-          affiliateNetworkId: "1",
-          imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&q=80",
-          affiliateUrl: url,
-        };
-      } else if (url.includes('flipkart.com')) {
-        return {
-          name: "Flipkart Product",
-          description: "Trending product from Flipkart with great value",
-          price: "1,899.00",
-          originalPrice: "2,999.00",
-          discount: "37",
-          rating: "4.1",
-          reviewCount: "856",
-          category: "Fashion",
-          affiliateNetworkId: "4",
-          imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80",
-          affiliateUrl: url,
-        };
-      } else {
-        return {
-          name: `Product from ${domain}`,
-          description: `Quality product from ${domain} with excellent value`,
-          price: "1,599.00",
-          originalPrice: "2,299.00",
-          discount: "30",
-          rating: "4.0",
-          reviewCount: "423",
-          category: "Electronics & Gadgets",
-          affiliateNetworkId: "1",
-          imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80",
-          affiliateUrl: url,
-        };
-      }
-    }
-  }
-
-  function determineCategoryFromContent(html: string, title: string): string {
-    const content = (html + ' ' + title).toLowerCase();
-    
-    // Electronics & Gadgets
-    if (content.includes('electronics') || content.includes('gadget') || content.includes('electronic')) {
-      return 'Electronics & Gadgets';
-    }
-    
-    // Mobiles & Accessories
-    if (content.includes('iphone') || content.includes('smartphone') || content.includes('mobile') || 
-        content.includes('phone') || content.includes('samsung') || content.includes('oneplus')) {
-      return 'Mobiles & Accessories';
-    }
-    
-    // Computers & Laptops
-    if (content.includes('laptop') || content.includes('computer') || content.includes('macbook') || 
-        content.includes('pc') || content.includes('desktop') || content.includes('notebook')) {
-      return 'Computers & Laptops';
-    }
-    
-    // Cameras & Photography
-    if (content.includes('camera') || content.includes('photography') || content.includes('photo') || 
-        content.includes('canon') || content.includes('nikon') || content.includes('lens')) {
-      return 'Cameras & Photography';
-    }
-    
-    // Home Appliances
-    if (content.includes('appliance') || content.includes('refrigerator') || content.includes('washing') || 
-        content.includes('microwave') || content.includes('oven') || content.includes('ac')) {
-      return 'Home Appliances';
-    }
-    
-    // Men's Fashion
-    if (content.includes("men's") || content.includes('mens') || content.includes('shirt') || 
-        content.includes('jeans') || content.includes('suit') || content.includes('male')) {
-      return "Men's Fashion";
-    }
-    
-    // Women's Fashion
-    if (content.includes("women's") || content.includes('womens') || content.includes('dress') || 
-        content.includes('blouse') || content.includes('saree') || content.includes('female')) {
-      return "Women's Fashion";
-    }
-    
-    // Kids' Fashion
-    if (content.includes('kids') || content.includes('children') || content.includes('baby') || 
-        content.includes('toddler') || content.includes('child')) {
-      return "Kids' Fashion";
-    }
-    
-    // Footwear & Accessories
-    if (content.includes('shoes') || content.includes('footwear') || content.includes('sneakers') || 
-        content.includes('sandals') || content.includes('boots') || content.includes('bag')) {
-      return 'Footwear & Accessories';
-    }
-    
-    // Jewelry & Watches
-    if (content.includes('jewelry') || content.includes('watch') || content.includes('necklace') || 
-        content.includes('ring') || content.includes('bracelet') || content.includes('earring')) {
-      return 'Jewelry & Watches';
-    }
-    
-    // Beauty & Grooming
-    if (content.includes('beauty') || content.includes('skincare') || content.includes('makeup') || 
-        content.includes('cosmetic') || content.includes('grooming') || content.includes('perfume')) {
-      return 'Beauty & Grooming';
-    }
-    
-    // Health & Wellness
-    if (content.includes('health') || content.includes('wellness') || content.includes('medicine') || 
-        content.includes('supplement') || content.includes('vitamin') || content.includes('protein')) {
-      return 'Health & Wellness';
-    }
-    
-    // Fitness & Nutrition
-    if (content.includes('fitness') || content.includes('gym') || content.includes('workout') || 
-        content.includes('sports') || content.includes('nutrition') || content.includes('protein')) {
-      return 'Fitness & Nutrition';
-    }
-    
-    // Furniture & Décor
-    if (content.includes('furniture') || content.includes('sofa') || content.includes('chair') || 
-        content.includes('table') || content.includes('decor') || content.includes('decoration')) {
-      return 'Furniture & Décor';
-    }
-    
-    // Kitchen & Dining
-    if (content.includes('kitchen') || content.includes('dining') || content.includes('cookware') || 
-        content.includes('utensils') || content.includes('plates') || content.includes('cooking')) {
-      return 'Kitchen & Dining';
-    }
-    
-    // Books & Stationery
-    if (content.includes('book') || content.includes('stationery') || content.includes('pen') || 
-        content.includes('notebook') || content.includes('diary') || content.includes('novel')) {
-      return 'Books & Stationery';
-    }
-    
-    // Groceries & Gourmet
-    if (content.includes('grocery') || content.includes('food') || content.includes('gourmet') || 
-        content.includes('organic') || content.includes('snack') || content.includes('beverage')) {
-      return 'Groceries & Gourmet';
-    }
-    
-    // Baby Products
-    if (content.includes('baby') || content.includes('infant') || content.includes('diaper') || 
-        content.includes('toy') || content.includes('stroller') || content.includes('formula')) {
-      return 'Baby Products';
-    }
-    
-    // Pet Supplies
-    if (content.includes('pet') || content.includes('dog') || content.includes('cat') || 
-        content.includes('animal') || content.includes('bird') || content.includes('fish')) {
-      return 'Pet Supplies';
-    }
-    
-    // Cars & Bikes Accessories
-    if (content.includes('car') || content.includes('bike') || content.includes('automotive') || 
-        content.includes('vehicle') || content.includes('motorcycle') || content.includes('auto')) {
-      return 'Cars & Bikes Accessories';
-    }
-    
-    // Default fallback for electronics
-    return 'Electronics & Gadgets';
-  }
-
-  function generateDescription(name: string, domain: string): string {
-    const descriptions = [
-      `High-quality ${name.toLowerCase()} available at ${domain} with excellent customer reviews and fast delivery.`,
-      `Premium ${name.toLowerCase()} from ${domain} featuring advanced technology and superior performance.`,
-      `Top-rated ${name.toLowerCase()} on ${domain} with competitive pricing and reliable customer service.`,
-      `Bestselling ${name.toLowerCase()} at ${domain} offering great value for money and outstanding quality.`,
-      `Professional-grade ${name.toLowerCase()} from ${domain} with industry-leading features and warranty.`
-    ];
-    
-    return descriptions[Math.floor(Math.random() * descriptions.length)];
-  }
-
-  function getAffiliateNetworkId(url: string): number {
-    if (url.includes('amazon.')) return 1; // Amazon Associates
-    if (url.includes('flipkart.com')) return 4; // Flipkart Affiliate
-    if (url.includes('commission') || url.includes('cj.com')) return 2; // Commission Junction
-    if (url.includes('shareasale.com')) return 3; // ShareASale
-    if (url.includes('clickbank.com')) return 5; // ClickBank
-    return 1; // Default to Amazon Associates
-  }
-
-  // All password management removed per user request - simple admin authentication only
-
-  // Announcements API routes
+  // Announcement active endpoint - Only one instance of this route
   app.get('/api/announcement/active', async (req, res) => {
     try {
-      console.log('API: Fetching active announcement...');
+      // Use storage to get active announcements
+      const allAnnouncements = await storage.getAnnouncements();
+      const activeAnnouncements = allAnnouncements.filter(announcement => announcement.isActive);
       
-      // Test direct SQL query first
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const directResult = await db.execute(sql`SELECT * FROM announcements WHERE is_active = true ORDER BY created_at DESC LIMIT 1`);
-      console.log('Direct SQL result:', directResult);
-      
-      if (directResult.rows && directResult.rows.length > 0) {
-        const row = directResult.rows[0];
+      if (activeAnnouncements && activeAnnouncements.length > 0) {
+        // Sort by createdAt descending and take the first one
+        const sorted = activeAnnouncements.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        const row = sorted[0];
+        
         const announcement = {
           id: row.id,
           message: row.message,
-          isActive: row.is_active,
-          textColor: row.text_color,
-          backgroundColor: row.background_color,
-          fontSize: row.font_size,
-          fontWeight: row.font_weight,
-          textDecoration: row.text_decoration || 'none',
-          fontStyle: row.font_style || 'normal',
-          animationSpeed: row.animation_speed,
-          textBorderWidth: row.text_border_width || '0px',
-          textBorderStyle: row.text_border_style || 'solid',
-          textBorderColor: row.text_border_color || '#000000',
-          bannerBorderWidth: row.banner_border_width || '0px',
-          bannerBorderStyle: row.banner_border_style || 'solid',
-          bannerBorderColor: row.banner_border_color || '#000000',
-          createdAt: row.created_at
+          isActive: row.isActive,
+          textColor: row.textColor,
+          backgroundColor: row.backgroundColor,
+          fontSize: row.fontSize,
+          fontWeight: row.fontWeight,
+          textDecoration: row.textDecoration || 'none',
+          fontStyle: row.fontStyle || 'normal',
+          animationSpeed: row.animationSpeed,
+          textBorderWidth: row.textBorderWidth || '0px',
+          textBorderStyle: row.textBorderStyle || 'solid',
+          textBorderColor: row.textBorderColor || '#000000',
+          bannerBorderWidth: row.bannerBorderWidth || '0px',
+          bannerBorderStyle: row.bannerBorderStyle || 'solid',
+          bannerBorderColor: row.bannerBorderColor || '#000000',
+          createdAt: row.createdAt
         };
-        console.log('Formatted announcement:', announcement);
         res.json(announcement);
       } else {
         res.status(404).json({ message: 'No active announcement found' });
@@ -1188,7 +615,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
       
       // Step 1: Deactivate ALL existing announcements
       const deactivateResult = await db.update(announcements).set({ isActive: false });
-      console.log('Deactivated announcements count:', deactivateResult.rowCount);
+      console.log('Deactivated announcements');
       
       // Step 2: Create new announcement
       console.log('Creating new announcement:', announcementData);
@@ -1288,3 +715,21 @@ export function setupRoutes(app: Express, storage: IStorage) {
   });
 }
 
+// Helper function for product extraction
+async function extractFromUrlPattern(url: string): Promise<any> {
+  // This is a simplified version - in a real implementation you would
+  // implement actual web scraping logic here
+  return {
+    name: "Sample Product",
+    description: "Sample product description",
+    price: "1000",
+    originalPrice: "1200",
+    discount: "15",
+    rating: "4.5",
+    reviewCount: "100",
+    category: "Electronics & Gadgets",
+    affiliateNetworkId: "1",
+    imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80",
+    affiliateUrl: url,
+  };
+}

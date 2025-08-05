@@ -83,13 +83,16 @@ export default function FeaturedProducts() {
   };
 
   const handleWishlistToggle = (product: Product) => {
+    console.log('Wishlist toggle clicked for product:', product);
     if (isInWishlist(product.id)) {
+      console.log('Product is in wishlist, removing:', product.id);
       removeFromWishlist(product.id);
       toast({
         title: "Removed from wishlist",
         description: `${product.name} removed from your wishlist`,
       });
     } else {
+      console.log('Product not in wishlist, adding:', product);
       addToWishlist(product);
       toast({
         title: "Added to wishlist",
@@ -210,36 +213,50 @@ export default function FeaturedProducts() {
                       
                       {showShareMenu[product.id] && (
                         <div className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
-                          <button
-                            onClick={() => handleShare('facebook', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded w-full text-left"
-                          >
-                            <i className="fab fa-facebook text-blue-600"></i>
-                            Facebook
-                          </button>
-                          <button
-                            onClick={() => handleShare('twitter', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded w-full text-left"
-                          >
-                            <div className="w-4 h-4 bg-black dark:bg-white rounded-sm flex items-center justify-center">
-                              <span className="text-white dark:text-black text-xs font-bold">𝕏</span>
-                            </div>
-                            X (Twitter)
-                          </button>
-                          <button
-                            onClick={() => handleShare('whatsapp', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/20 rounded w-full text-left"
-                          >
-                            <i className="fab fa-whatsapp text-green-600"></i>
-                            WhatsApp
-                          </button>
-                          <button
-                            onClick={() => handleShare('instagram', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded w-full text-left"
-                          >
-                            <i className="fab fa-instagram text-purple-600"></i>
-                            Instagram
-                          </button>
+                      <button
+                        onClick={() => handleShare('facebook', product)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded w-full text-left"
+                      >
+                        <i className="fab fa-facebook text-blue-600"></i>
+                        Facebook
+                      </button>
+                      <button
+                        onClick={() => handleShare('twitter', product)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded w-full text-left"
+                      >
+                        <div className="w-4 h-4 bg-black dark:bg-white rounded-sm flex items-center justify-center">
+                          <span className="text-white dark:text-black text-xs font-bold">𝕏</span>
+                        </div>
+                        X (Twitter)
+                      </button>
+                      <button
+                        onClick={() => handleShare('telegram', product)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded w-full text-left"
+                      >
+                        <i className="fab fa-telegram text-blue-500"></i>
+                        Telegram
+                      </button>
+                      <button
+                        onClick={() => handleShare('whatsapp', product)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/20 rounded w-full text-left"
+                      >
+                        <i className="fab fa-whatsapp text-green-600"></i>
+                        WhatsApp
+                      </button>
+                      <button
+                        onClick={() => handleShare('youtube', product)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/20 rounded w-full text-left"
+                      >
+                        <i className="fab fa-youtube text-red-600"></i>
+                        YouTube
+                      </button>
+                      <button
+                        onClick={() => handleShare('instagram', product)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded w-full text-left"
+                      >
+                        <i className="fab fa-instagram text-purple-600"></i>
+                        Instagram
+                      </button>
                         </div>
                       )}
                     </div>

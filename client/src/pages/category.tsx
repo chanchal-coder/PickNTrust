@@ -350,7 +350,10 @@ export default function CategoryPage() {
     
     switch (platform) {
       case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
+        shareUrl = `https://www.facebook.com/profile.php?id=61578969445670`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/+m-O-S6SSpVU2NWU1`;
         break;
       case 'twitter':
         shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;

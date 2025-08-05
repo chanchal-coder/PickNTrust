@@ -129,7 +129,15 @@ function AnnouncementManager() {
       });
       return;
     }
-    createAnnouncementMutation.mutate(announcementData);
+    createAnnouncementMutation.mutate({
+      ...announcementData,
+      textBorderWidth: announcementData.textBorderWidth || '0px',
+      textBorderStyle: announcementData.textBorderStyle || 'solid',
+      textBorderColor: announcementData.textBorderColor || '#000000',
+      bannerBorderWidth: announcementData.bannerBorderWidth || '0px',
+      bannerBorderStyle: announcementData.bannerBorderStyle || 'solid',
+      bannerBorderColor: announcementData.bannerBorderColor || '#000000',
+    });
   };
 
   return (
@@ -573,7 +581,10 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
     
     switch (platform) {
       case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
+        shareUrl = `https://www.facebook.com/profile.php?id=61578969445670`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/+m-O-S6SSpVU2NWU1`;
         break;
       case 'twitter':
         shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
@@ -581,6 +592,10 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
       case 'whatsapp':
         // Try to open channel admin interface for posting
         shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        break;
+      case 'youtube':
+        // Open YouTube homepage or a specific channel (update as needed)
+        shareUrl = `https://www.youtube.com/`;
         break;
       case 'instagram':
         // Updated Instagram sharing - opens Instagram with better integration
@@ -677,6 +692,13 @@ function ProductManagementCard({ product, onUpdate, onDelete }: { product: any, 
                   >
                     <Twitter className="w-4 h-4 text-blue-400" />
                     Twitter
+                  </button>
+                  <button
+                    onClick={() => handleShare('telegram')}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                  >
+                    <MessageCircle className="w-4 h-4 text-blue-500" />
+                    Telegram
                   </button>
                   <button
                     onClick={() => handleShare('whatsapp')}
@@ -897,6 +919,18 @@ export default function AdminPage() {
   const [isEditingPreview, setIsEditingPreview] = useState(false);
   const [activeTab, setActiveTab] = useState('products');
   const [showBlogForm, setShowBlogForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [socialSettings, setSocialSettings] = useState({
+    telegramChannelUrl: 'https://t.me/+m-O-S6SSpVU2NWU1',
+    facebookPageUrl: 'https://www.facebook.com/profile.php?id=61578969445670',
+    whatsappChannelUrl: 'https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C'
+  });
+  const [timerSettings, setTimerSettings] = useState({
+    hasTimer: false,
+    timerDuration: '24',
+    timerType: 'hours'
+  });
+  // Removed duplicate declaration of showSettings to fix redeclaration error
   
 
   
@@ -1093,7 +1127,10 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...blogData, password: 'pickntrust2025' }),
       });
-      if (!response.ok) throw new Error('Failed to add blog post');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to add blog post');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -1103,8 +1140,8 @@ export default function AdminPage() {
       setBlogFormData({ title: '', excerpt: '', content: '', category: '', tags: [], imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '', hasTimer: false, timerDuration: '24' });
       setShowBlogForm(false);
     },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to add blog post. Please try again.', variant: 'destructive' });
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to add blog post. Please try again.', variant: 'destructive' });
     },
   });
 
@@ -1368,10 +1405,8 @@ export default function AdminPage() {
       title: 'Logged Out',
       description: 'Redirecting to homepage...',
     });
-    // Redirect to homepage after logout
-    setTimeout(() => {
-      setLocation('/');
-    }, 1000);
+    // Redirect to homepage using window.location for better compatibility
+    window.location.href = '/';
   };
 
   if (!isAuthenticated) {
@@ -1544,7 +1579,7 @@ export default function AdminPage() {
 
           {/* Admin Navigation Tabs with Animations */}
           <div className="mb-8">
-            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-md">
+            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-lg">
               <button
                 onClick={() => setActiveTab('products')}
                 className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
@@ -1553,7 +1588,8 @@ export default function AdminPage() {
                     : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
                 }`}
               >
-                📦 Products
+                <span className="inline-block w-5 h-5 mr-1 rounded bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white text-center leading-5 shadow-md shadow-pink-300/50">📦</span>
+                Products
               </button>
               <button
                 onClick={() => setActiveTab('blog')}
@@ -1563,7 +1599,19 @@ export default function AdminPage() {
                     : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
                 }`}
               >
-                📝 Blog Posts
+                <span className="inline-block w-5 h-5 mr-1 rounded bg-gradient-to-r from-green-400 via-yellow-400 to-orange-400 text-white text-center leading-5 shadow-md shadow-yellow-300/50">📝</span>
+                Blog Posts
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'settings'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                <span className="inline-block w-5 h-5 mr-1 rounded bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white text-center leading-5 shadow-md shadow-purple-300/50">⚙️</span>
+                Settings
               </button>
             </div>
           </div>
