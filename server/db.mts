@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
-import * as schema from "@shared/sqlite-schema";
+import * as schema from "../shared/sqlite-schema.js";
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';

@@ -1,5 +1,5 @@
 import { dbInstance as db } from "./db.mts";
-import { products, categories, blogPosts, affiliateNetworks } from "@shared/schema";
+import { products, categories, blogPosts, affiliateNetworks } from "../shared/schema.js";
 
 async function seedDatabase() {
   console.log("🌱 Seeding database...");

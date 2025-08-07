@@ -101,3 +101,51 @@ export const announcements = sqliteTable("announcements", {
   bannerBorderColor: text("banner_border_color").default('#000000'),
   createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
 });
+
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+});
+
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({
+  id: true,
+  subscribedAt: true,
+});
+
+export const insertCategorySchema = createInsertSchema(categories).omit({
+  id: true,
+});
+
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+  lastLogin: true,
+});
+
+export const insertAffiliateNetworkSchema = createInsertSchema(affiliateNetworks).omit({
+  id: true,
+});
+
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Product = typeof products.$inferSelect;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type Category = typeof categories.$inferSelect;
+export type AffiliateNetwork = typeof affiliateNetworks.$inferSelect;
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type Announcement = typeof announcements.$inferSelect;
+
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type InsertAffiliateNetwork = z.infer<typeof insertAffiliateNetworkSchema>;
+export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;

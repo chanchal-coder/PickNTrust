@@ -20,7 +20,7 @@ import {
   type InsertAdminUser,
   type Announcement,
   type InsertAnnouncement
-} from "@shared/sqlite-schema";
+} from "../shared/sqlite-schema.js";
 import { dbInstance as db } from "./db.mts";
 import { eq, desc, ne, sql } from "drizzle-orm";
 

@@ -11,7 +11,7 @@ import {
   newsletterSubscribers,
   announcements,
   insertNewsletterSubscriberSchema
-} from "@shared/sqlite-schema";
+} from "../shared/sqlite-schema.js";
 
 // Import storage interface and db instance
 import { IStorage } from "./storage";
