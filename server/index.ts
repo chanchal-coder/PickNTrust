@@ -108,16 +108,27 @@ app.use((req, res, next) => {
     setupVite(app, server);
   } else {
   // Serve static files in production
-  // Fix path to serve from dist/public instead of dist/client
   const path = require('path');
   const expressStatic = require('express').static;
   const publicPath = path.resolve(__dirname, '../public');
+  
   if (!require('fs').existsSync(publicPath)) {
     console.error('Public directory not found:', publicPath);
+    console.log('Attempting to serve from dist/public...');
+    const distPublicPath = path.resolve(__dirname, '../dist/public');
+    if (require('fs').existsSync(distPublicPath)) {
+      app.use(expressStatic(distPublicPath));
+      app.use('*', (_req, res) => {
+        res.sendFile(path.resolve(distPublicPath, 'index.html'));
+      });
+    } else {
+      console.error('Both public and dist/public directories not found');
+    }
+  } else {
+    app.use(expressStatic(publicPath));
+    app.use('*', (_req, res) => {
+      res.sendFile(path.resolve(publicPath, 'index.html'));
+    });
   }
-  app.use(expressStatic(publicPath));
-  app.use('*', (_req, res) => {
-    res.sendFile(path.resolve(publicPath, 'index.html'));
-  });
   }
 })();

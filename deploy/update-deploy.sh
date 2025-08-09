@@ -22,11 +22,22 @@ npm cache clean --force
 echo "🏗️ Building frontend and backend..."
 npm run build
 
-# Step 5: Start frontend static server (if needed)
-# For production, frontend is served as static files by backend/nginx
-# Uncomment below if you want to run a separate frontend server
-# echo "🚀 Starting frontend static server..."
-# nohup serve -s dist/public -l 3000 &
+# Step 5: Ensure frontend build is in correct location
+echo "📁 Ensuring frontend build is in correct location..."
+if [ -d "dist/public" ]; then
+    echo "✅ Frontend build found in dist/public"
+else
+    echo "❌ Frontend build not found in dist/public"
+    echo "Checking for build in client/dist..."
+    if [ -d "client/dist" ]; then
+        echo "Found frontend build in client/dist, copying to dist/public..."
+        mkdir -p dist/public
+        cp -r client/dist/* dist/public/
+    else
+        echo "❌ No frontend build found. Please check the build process."
+        exit 1
+    fi
+fi
 
 # Step 6: Restart backend service with PM2
 echo "🔄 Restarting backend service with PM2..."
