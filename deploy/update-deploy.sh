@@ -27,7 +27,7 @@ mkdir -p logs
 
 # Step 6: Start/restart both frontend and backend with PM2 using ecosystem file
 echo "🔄 Starting/restarting both frontend and backend with PM2..."
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 
 # Step 7: Restart nginx to clear cache
 echo "🔄 Restarting nginx..."
