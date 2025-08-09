@@ -67,7 +67,7 @@ echo "✅ Updated vite.config.ts with domain allowlist"
 sudo yum install -y certbot python3-certbot-nginx
 
 # Get SSL certificate for your domain
-sudo certbot --nginx -d pickntrust.com -d www.pickntrust.com --non-interactive --agree-tos --email your-email@example.com
+sudo certbot --nginx -d pickntrust.com -d www.pickntrust.com --non-interactive --agree-tos --email sharmachanchalcvp@gmail.com
 
 # Verify SSL certificate
 sudo certbot certificates

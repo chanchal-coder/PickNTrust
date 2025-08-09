@@ -13,38 +13,31 @@ npm install
 # Step 3: Clean previous builds and caches
 echo "🧹 Cleaning previous build artifacts and caches..."
 rm -rf dist/
-rm -rf dist/public/
 rm -rf node_modules/.vite/
 rm -rf .vite/
 npm cache clean --force
 
-# Step 4: Build frontend and backend
-echo "🏗️ Building frontend and backend..."
+# Step 4: Build backend
+echo "🏗️ Building backend..."
 npm run build
 
-# Step 5: Ensure frontend build is in correct location
-echo "📁 Ensuring frontend build is in correct location..."
-if [ -d "dist/public" ]; then
-    echo "✅ Frontend build found in dist/public"
-else
-    echo "❌ Frontend build not found in dist/public"
-    echo "Checking for build in client/dist..."
-    if [ -d "client/dist" ]; then
-        echo "Found frontend build in client/dist, copying to dist/public..."
-        mkdir -p dist/public
-        cp -r client/dist/* dist/public/
-    else
-        echo "❌ No frontend build found. Please check the build process."
-        exit 1
-    fi
-fi
+# Step 5: Create logs directory for PM2
+echo "📁 Creating logs directory..."
+mkdir -p logs
 
-# Step 6: Restart backend service with PM2
-echo "🔄 Restarting backend service with PM2..."
-pm2 restart pickntrust-backend || pm2 start dist/server/index.js --name pickntrust-backend
+# Step 6: Start/restart both frontend and backend with PM2 using ecosystem file
+echo "🔄 Starting/restarting both frontend and backend with PM2..."
+pm2 start ecosystem.config.js
 
 # Step 7: Restart nginx to clear cache
 echo "🔄 Restarting nginx..."
 sudo systemctl restart nginx
 
+# Step 8: Show PM2 status
+echo "📊 PM2 Status:"
+pm2 status
+
 echo "✅ Deployment update completed successfully!"
+echo "🌐 Frontend running on port 5173"
+echo "🔧 Backend running on port 5000"
+echo "� Check logs with: pm2 logs"

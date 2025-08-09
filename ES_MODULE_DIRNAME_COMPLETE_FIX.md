@@ -207,4 +207,3 @@ The problem was that multiple files were using `__dirname` without the ES module
 - **Main Website**: `http://YOUR_SERVER_IP`
 - **Admin Panel**: `http://YOUR_SERVER_IP/admin`
 - **Direct Backend**: `http://YOUR_SERVER_IP:5000`
-- **Direct Frontend**: `http://YOUR_SERVER_IP:5173`

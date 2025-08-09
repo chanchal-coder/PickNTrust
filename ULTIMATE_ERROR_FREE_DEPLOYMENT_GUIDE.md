@@ -50,7 +50,7 @@ sudo systemctl start nginx
 cd /home/ec2-user
 
 # Clone your project (replace with your repo URL)
-git clone https://github.com/yourusername/PickNTrust.git
+git clone https://github.com/chanchal-coder/PickNTrust.git
 cd PickNTrust
 
 # Install dependencies
@@ -369,7 +369,7 @@ curl http://localhost:5000/api/health
 curl http://localhost:5173
 
 # Test through Nginx
-curl http://YOUR_SERVER_IP
+curl http://51.20.43.157
 ```
 
 ### **6.2 View Logs**
