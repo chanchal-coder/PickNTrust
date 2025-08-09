@@ -1,84 +1,41 @@
-import { Switch, Route, Router } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/theme-provider";
-import { useState, useEffect } from "react";
-import { AnnouncementBanner } from "@/components/announcement-banner";
-import Home from "@/pages/home";
-import CategoryPage from "@/pages/category";
-import AdminPage from "@/pages/admin";
-import WishlistPage from "@/pages/wishlist";
-import AffiliateTrackerPage from "@/pages/affiliate-tracker";
-import AffiliateDisclosurePage from "@/pages/affiliate-disclosure";
-import HowItWorksPage from "@/pages/how-it-works";
-import PrivacyPolicyPage from "@/pages/privacy-policy";
-import TermsOfServicePage from "@/pages/terms-of-service";
-import BlogPostPage from "@/pages/blog-post";
-import LogoPreviewPage from "@/pages/logo-preview";
-import TimerDemoPage from "@/pages/timer-demo";
-import NotFound from "@/pages/not-found";
-import { WishlistProvider } from "@/contexts/WishlistContext";
-
-function AppRouter() {
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Handle route changes to show loading state
-  useEffect(() => {
-    const handleStart = () => setIsLoading(true);
-    const handleComplete = () => setIsLoading(false);
-
-    // Listen for route changes
-    const handlePopState = () => {
-      handleStart();
-      setTimeout(handleComplete, 100);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  return (
-    <Router>
-      <AnnouncementBanner />
-      {isLoading && (
-        <div className="fixed top-0 left-0 w-full h-1 bg-blue-500 z-50 animate-pulse">
-          <div className="h-full bg-blue-600 animate-pulse"></div>
-        </div>
-      )}
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/category/:category" component={CategoryPage} />
-        <Route path="/admin" component={AdminPage} />
-        <Route path="/wishlist" component={WishlistPage} />
-        <Route path="/affiliate-tracker" component={AffiliateTrackerPage} />
-        <Route path="/affiliate-disclosure" component={AffiliateDisclosurePage} />
-        <Route path="/how-it-works" component={HowItWorksPage} />
-        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
-        <Route path="/terms-of-service" component={TermsOfServicePage} />
-        <Route path="/blog/:slug" component={BlogPostPage} />
-        <Route path="/logo-preview" component={LogoPreviewPage} />
-        <Route path="/timer-demo" component={TimerDemoPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Router>
-  );
-}
+cat > client/src/App.tsx << 'EOF'
+import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Link } from "wouter";
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="pickntrust-theme">
-        <TooltipProvider>
-          <WishlistProvider>
-            <Toaster />
-            <AppRouter />
-          </WishlistProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <h1 className="text-3xl font-bold text-gray-900">PickNTrust</h1>
+          <p className="text-gray-600">Your trusted e-commerce platform</p>
+        </div>
+      </header>
+      
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold mb-4">Welcome to PickNTrust</h2>
+          <p className="text-gray-600 mb-4">
+            Your website is now fully operational!
+          </p>
+          <div className="space-y-4">
+            <Link href="/products">
+              <a className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                Browse Products
+              </a>
+            </Link>
+            <Link href="/admin">
+              <a className="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 ml-4">
+                Admin Panel
+              </a>
+            </Link>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
 
 export default App;
+EOF
