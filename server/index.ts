@@ -111,26 +111,47 @@ app.use((req, res, next) => {
     setupVite(app, server);
   } else {
     // Serve static files in production
-    const path = require('path');
+    const fs = require('fs');
     const expressStatic = require('express').static;
-    const publicPath = path.resolve(__dirname, '../public');
     
-    if (!require('fs').existsSync(publicPath)) {
-      console.error('Public directory not found:', publicPath);
-      console.log('Attempting to serve from dist/public...');
-      const distPublicPath = path.resolve(__dirname, '../dist/public');
-      if (require('fs').existsSync(distPublicPath)) {
-        app.use(expressStatic(distPublicPath));
-        app.use('*', (_req, res) => {
-          res.sendFile(path.resolve(distPublicPath, 'index.html'));
-        });
-      } else {
-        console.error('Both public and dist/public directories not found');
+    // Try multiple possible paths for the built frontend
+    const possiblePaths = [
+      path.resolve(__dirname, '../public'),
+      path.resolve(__dirname, '../../public'),
+      path.resolve(__dirname, '../dist/public'),
+      path.resolve(__dirname, '../../dist/public')
+    ];
+    
+    let publicPath = null;
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath) && fs.existsSync(path.join(testPath, 'index.html'))) {
+        publicPath = testPath;
+        console.log(`Found frontend files at: ${publicPath}`);
+        break;
       }
-    } else {
+    }
+    
+    if (publicPath) {
       app.use(expressStatic(publicPath));
       app.use('*', (_req, res) => {
         res.sendFile(path.resolve(publicPath, 'index.html'));
+      });
+    } else {
+      console.error('Frontend build files not found. Serving basic response.');
+      app.use('*', (_req, res) => {
+        res.send(`
+          <html>
+            <head><title>PickNTrust</title></head>
+            <body>
+              <h1>PickNTrust Backend Running</h1>
+              <p>Frontend build files not found. Please run the build process.</p>
+              <p>Available paths checked:</p>
+              <ul>
+                ${possiblePaths.map(p => `<li>${p} - ${fs.existsSync(p) ? 'exists' : 'not found'}</li>`).join('')}
+              </ul>
+            </body>
+          </html>
+        `);
       });
     }
   }
