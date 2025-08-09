@@ -20,9 +20,7 @@ module.exports = {
     },
     {
       name: 'pickntrust-frontend',
-      script: 'npm',
-      args: 'run dev',
-      cwd: './client',
+      script: 'start-frontend.js',
       env: {
         NODE_ENV: 'development'
       },
@@ -33,7 +31,10 @@ module.exports = {
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',
       log_file: './logs/frontend-combined.log',
-      time: true
+      time: true,
+      autorestart: true,
+      max_restarts: 5,
+      min_uptime: '10s'
     }
   ]
 };
