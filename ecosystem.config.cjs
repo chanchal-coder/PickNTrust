@@ -3,14 +3,12 @@ module.exports = {
     {
       name: 'pickntrust-backend',
       script: 'dist/server/index.js',
-      cwd: '/home/ec2-user/PickNTrust',
       env: {
         NODE_ENV: 'production',
         PORT: 5000
       },
       instances: 1,
       exec_mode: 'fork',
-      autorestart: true,
       watch: false,
       max_memory_restart: '1G',
       error_file: './logs/backend-error.log',
@@ -20,9 +18,8 @@ module.exports = {
     },
     {
       name: 'pickntrust-frontend',
-      script: 'npm',
-      args: 'run dev',
-      cwd: './client',
+      script: 'npx',
+      args: 'vite --host 0.0.0.0 --port 5173',
       env: {
         NODE_ENV: 'development'
       },
