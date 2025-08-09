@@ -414,65 +414,6 @@ export class DatabaseStorage implements IStorage {
     return updatedAnnouncement || null;
   }
 
-  async deleteAnnouncement(id: number): Promise<boolean> {
-    const result = await db.delete(announcements).where(eq(announcements.id, id));
-    return true;
-  }
-
-  async deleteBlogPost(id: number): Promise<boolean> {
-    const result = await db.delete(blogPosts).where(eq(blogPosts.id, id));
-    // For SQLite, we'll assume it worked
-    return true;
-  }
-
-  async updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<BlogPost | null> {
-    const [updatedBlogPost] = await db
-      .update(blogPosts)
-      .set(updates)
-      .where(eq(blogPosts.id, id))
-      .returning();
-    return updatedBlogPost || null;
-  }
-
-
-  // Announcements (Database implementation)
-  async getAnnouncements(): Promise<Announcement[]> {
-    return await db.select().from(announcements).orderBy(desc(announcements.createdAt));
-  }
-
-  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
-    // First deactivate all other announcements if this one is active
-    if (announcement.isActive) {
-      await db.update(announcements).set({ isActive: false });
-    }
-    
-    const [newAnnouncement] = await db.insert(announcements).values({
-      ...announcement,
-      createdAt: new Date()
-    }).returning();
-    return newAnnouncement;
-  }
-
-  async updateAnnouncement(id: number, updates: Partial<Announcement>): Promise<Announcement | null> {
-    // If setting this one active, deactivate others first
-    if (updates.isActive) {
-      await db.update(announcements)
-        .set({ isActive: false })
-        .where(ne(announcements.id, id));
-    }
-    
-    const [updatedAnnouncement] = await db.update(announcements)
-      .set(updates)
-      .where(eq(announcements.id, id))
-      .returning();
-    return updatedAnnouncement || null;
-  }
-
-  async deleteAnnouncement(id: number): Promise<boolean> {
-    const result = await db.delete(announcements).where(eq(announcements.id, id));
-    // For SQLite, we'll assume it worked
-    return true;
-  }
 
   // Admin User Management
   async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
