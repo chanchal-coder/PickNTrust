@@ -13,7 +13,7 @@ npm install
 # Step 3: Clean previous builds and caches
 echo "🧹 Cleaning previous build artifacts and caches..."
 rm -rf dist/
-rm -rf client/dist/
+rm -rf dist/public/
 rm -rf node_modules/.vite/
 rm -rf .vite/
 npm cache clean --force
@@ -22,11 +22,11 @@ npm cache clean --force
 echo "🏗️ Building frontend and backend..."
 npm run build
 
-# Step 5: Start frontend dev server in background (if needed)
-# Note: For production, frontend is served as static files by backend/nginx
-# Uncomment below if you want to run frontend dev server separately
-# echo "🚀 Starting frontend dev server..."
-# nohup npm run dev --prefix client &
+# Step 5: Start frontend static server (if needed)
+# For production, frontend is served as static files by backend/nginx
+# Uncomment below if you want to run a separate frontend server
+# echo "🚀 Starting frontend static server..."
+# nohup serve -s dist/public -l 3000 &
 
 # Step 6: Restart backend service with PM2
 echo "🔄 Restarting backend service with PM2..."
