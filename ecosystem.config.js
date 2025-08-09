@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   apps: [
     {
       name: 'pickntrust-backend',
@@ -18,11 +18,11 @@ module.exports = {
     },
     {
       name: 'pickntrust-frontend',
-      script: 'npx',
-      args: 'vite preview --host 0.0.0.0 --port 5173',
+      script: 'npm',
+      args: 'run dev',
       cwd: './client',
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'development'
       },
       instances: 1,
       exec_mode: 'fork',
