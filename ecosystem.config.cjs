@@ -18,8 +18,12 @@ module.exports = {
     },
     {
       name: 'pickntrust-frontend',
+<<<<<<< HEAD
       script: 'npx',
       args: 'vite --host 0.0.0.0 --port 5173',
+=======
+      script: 'start-frontend.js',
+>>>>>>> 567c32dff71c13903bd7b6a7ba6ad0acf8691e28
       env: {
         NODE_ENV: 'development'
       },
@@ -30,7 +34,10 @@ module.exports = {
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',
       log_file: './logs/frontend-combined.log',
-      time: true
+      time: true,
+      autorestart: true,
+      max_restarts: 5,
+      min_uptime: '10s'
     }
   ]
 };
