@@ -20,8 +20,13 @@ if [ -d "dist" ] && [ -f "dist/index.html" ]; then
     # Copy built files to public directory
     cp -r dist/* public/
     
-    echo "📁 Files copied to public directory"
+    # Also create dist/client for the npm build script compatibility
+    mkdir -p dist/client
+    cp -r dist/* dist/client/
+    
+    echo "📁 Files copied to both public and dist/client directories"
     ls -la public/
+    ls -la dist/client/
 else
     echo "❌ Frontend build failed!"
     exit 1
