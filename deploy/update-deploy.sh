@@ -17,23 +17,27 @@ rm -rf node_modules/.vite/
 rm -rf .vite/
 npm cache clean --force
 
-# Step 4: Build backend
+# Step 4: Build frontend
+echo "🏗️ Building frontend..."
+./build-frontend.sh
+
+# Step 5: Build backend
 echo "🏗️ Building backend..."
 npm run build
 
-# Step 5: Stop any existing PM2 processes
+# Step 6: Stop any existing PM2 processes
 echo "🛑 Stopping existing PM2 processes..."
 pm2 delete all || true
 
-# Step 6: Start both servers using the simple script
+# Step 7: Start both servers using the simple script
 echo "🚀 Starting both frontend and backend servers..."
 nohup ./start-dev-server.sh > server-output.log 2>&1 &
 
-# Step 7: Wait for servers to start
+# Step 8: Wait for servers to start
 echo "⏳ Waiting for servers to start..."
 sleep 10
 
-# Step 8: Check if servers are running
+# Step 9: Check if servers are running
 echo "🔍 Checking server status..."
 if curl -s http://localhost:5000 > /dev/null 2>&1; then
     echo "✅ Backend is running on port 5000"
@@ -47,7 +51,7 @@ else
     echo "❌ Frontend failed to start"
 fi
 
-# Step 9: Restart nginx to clear cache
+# Step 10: Restart nginx to clear cache
 echo "🔄 Restarting nginx..."
 sudo systemctl restart nginx
 
