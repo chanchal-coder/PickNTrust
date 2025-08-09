@@ -2,6 +2,12 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { setupRoutes } from "./routes";
 import { serveStatic, log } from "./vite";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Fix __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors({
@@ -90,13 +96,10 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Backend server on port 5000
   const port = parseInt(process.env.PORT || '5000', 10);
   const server = app.listen(port, '0.0.0.0', () => {
-    log(`serving on port ${port}`);
+    log(`Backend server running on port ${port}`);
   });
 
   // importantly only setup vite in development and after
@@ -107,28 +110,28 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     setupVite(app, server);
   } else {
-  // Serve static files in production
-  const path = require('path');
-  const expressStatic = require('express').static;
-  const publicPath = path.resolve(__dirname, '../public');
-  
-  if (!require('fs').existsSync(publicPath)) {
-    console.error('Public directory not found:', publicPath);
-    console.log('Attempting to serve from dist/public...');
-    const distPublicPath = path.resolve(__dirname, '../dist/public');
-    if (require('fs').existsSync(distPublicPath)) {
-      app.use(expressStatic(distPublicPath));
-      app.use('*', (_req, res) => {
-        res.sendFile(path.resolve(distPublicPath, 'index.html'));
-      });
+    // Serve static files in production
+    const path = require('path');
+    const expressStatic = require('express').static;
+    const publicPath = path.resolve(__dirname, '../public');
+    
+    if (!require('fs').existsSync(publicPath)) {
+      console.error('Public directory not found:', publicPath);
+      console.log('Attempting to serve from dist/public...');
+      const distPublicPath = path.resolve(__dirname, '../dist/public');
+      if (require('fs').existsSync(distPublicPath)) {
+        app.use(expressStatic(distPublicPath));
+        app.use('*', (_req, res) => {
+          res.sendFile(path.resolve(distPublicPath, 'index.html'));
+        });
+      } else {
+        console.error('Both public and dist/public directories not found');
+      }
     } else {
-      console.error('Both public and dist/public directories not found');
+      app.use(expressStatic(publicPath));
+      app.use('*', (_req, res) => {
+        res.sendFile(path.resolve(publicPath, 'index.html'));
+      });
     }
-  } else {
-    app.use(expressStatic(publicPath));
-    app.use('*', (_req, res) => {
-      res.sendFile(path.resolve(publicPath, 'index.html'));
-    });
-  }
   }
 })();
