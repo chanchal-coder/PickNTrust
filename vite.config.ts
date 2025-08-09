@@ -30,6 +30,9 @@ export default defineConfig({
     }
   },
   server: {
+    allowedHosts: ["pickntrust.com", "www.pickntrust.com", "51.20.43.157"],
+    host: true,
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

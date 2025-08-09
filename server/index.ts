@@ -8,14 +8,19 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     // Allow localhost on any port for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
       return callback(null, true);
     }
-    
-    // Allow same-origin requests (production)
-    return callback(null, true);
+
+    // Allow your domain and www subdomain
+    if (origin && (origin.includes('pickntrust.com') || origin.includes('www.pickntrust.com'))) {
+      return callback(null, true);
+    }
+
+    // Reject other origins
+    return callback(new Error('Not allowed by CORS'));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],

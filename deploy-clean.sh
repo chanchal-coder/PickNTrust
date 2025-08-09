@@ -1,6 +1,6 @@
 #!/bin/bash
 # Clean One-Command Deployment Script for PickNTrust
-# Run this on your local machine to deploy to EC2 (Amazon Linux 2023)
+# Run this on your local machine to deploy to EC2
 
 set -e
 
@@ -19,7 +19,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}🚀 PickNTrust One-Command Deployment${NC}"
-echo -e "${BLUE}Starting deployment to EC2 (Amazon Linux 2023)...${NC}"
+echo -e "${BLUE}Starting deployment to EC2...${NC}"
 
 # Step 1: Test SSH connection
 echo -e "${YELLOW}🔐 Testing SSH connection to EC2...${NC}"
@@ -37,14 +37,11 @@ ssh -i "$KEY_PATH" "$EC2_USER@$EC2_IP" bash -s << 'REMOTE_SCRIPT'
 set -e
 
 echo "📦 Updating system packages..."
-sudo dnf update -y
+sudo apt update && sudo apt upgrade -y
 
 echo "📦 Installing dependencies..."
-# Install Node.js 18
-curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-sudo dnf install -y nodejs git nginx
-
-# Install PM2 globally
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs git nginx
 sudo npm install -g pm2
 
 echo "📂 Cloning PickNTrust repository..."
@@ -61,7 +58,7 @@ npm run build
 echo "⚙️ Creating environment file..."
 cat > .env << 'ENVFILE'
 NODE_ENV=production
-PORT=5000
+PORT=3000
 DATABASE_URL=postgresql://postgres.byhevspaetryxpmnkyxd:cvpmaa123pnt@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
 SUPABASE_URL=https://byhevspaetryxpmnkyxd.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5aGV2c3BhZXRyeXhwbW5reXhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzQ2NzMsImV4cCI6MjA2OTcxMDY3M30.77OtZdtskXkvdNIrRKjb53EBWeL1kmQJcbcsNueXxBU
@@ -76,13 +73,13 @@ pm2 save
 pm2 startup systemd -u ec2-user --hp /home/ec2-user | grep 'sudo' | bash || true
 
 echo "🌐 Configuring Nginx..."
-sudo tee /etc/nginx/conf.d/pickntrust.conf > /dev/null << 'NGINXFILE'
+sudo tee /etc/nginx/sites-available/pickntrust > /dev/null << 'NGINXFILE'
 server {
     listen 80;
     server_name 51.20.43.157;
 
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -94,7 +91,7 @@ server {
     }
 
     location /api {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -107,13 +104,9 @@ server {
 }
 NGINXFILE
 
-# Remove default nginx config if it exists
-sudo rm -f /etc/nginx/conf.d/default.conf
-
-# Test nginx configuration
+sudo ln -sf /etc/nginx/sites-available/pickntrust /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
-
-# Start and enable nginx
 sudo systemctl restart nginx
 sudo systemctl enable nginx
 
