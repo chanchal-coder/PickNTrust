@@ -21,23 +21,37 @@ npm cache clean --force
 echo "🏗️ Building backend..."
 npm run build
 
-# Step 5: Create logs directory for PM2
-echo "📁 Creating logs directory..."
-mkdir -p logs
+# Step 5: Stop any existing PM2 processes
+echo "🛑 Stopping existing PM2 processes..."
+pm2 delete all || true
 
-# Step 6: Start/restart both frontend and backend with PM2 using ecosystem file
-echo "🔄 Starting/restarting both frontend and backend with PM2..."
-pm2 start ecosystem.config.cjs
+# Step 6: Start both servers using the simple script
+echo "🚀 Starting both frontend and backend servers..."
+nohup ./start-dev-server.sh > server-output.log 2>&1 &
 
-# Step 7: Restart nginx to clear cache
+# Step 7: Wait for servers to start
+echo "⏳ Waiting for servers to start..."
+sleep 10
+
+# Step 8: Check if servers are running
+echo "🔍 Checking server status..."
+if curl -s http://localhost:5000 > /dev/null 2>&1; then
+    echo "✅ Backend is running on port 5000"
+else
+    echo "❌ Backend failed to start"
+fi
+
+if curl -s http://localhost:5173 > /dev/null 2>&1; then
+    echo "✅ Frontend is running on port 5173"
+else
+    echo "❌ Frontend failed to start"
+fi
+
+# Step 9: Restart nginx to clear cache
 echo "🔄 Restarting nginx..."
 sudo systemctl restart nginx
 
-# Step 8: Show PM2 status
-echo "📊 PM2 Status:"
-pm2 status
-
 echo "✅ Deployment update completed successfully!"
-echo "🌐 Frontend running on port 5173"
-echo "🔧 Backend running on port 5000"
-echo "� Check logs with: pm2 logs"
+echo "🌐 Frontend: http://localhost:5173"
+echo "🔧 Backend: http://localhost:5000"
+echo "📝 Check logs: tail -f server-output.log"
