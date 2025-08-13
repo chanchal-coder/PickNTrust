@@ -1,0 +1,20 @@
+# Node / build
+node_modules/
+dist/
+.build/
+.cache/
+coverage/
+
+# Environment & secrets
+.env
+*.pem
+*.pem.txt
+
+# Databases / uploads
+sqlite.db
+uploads/
+
+# OS / tool junk
+.DS_Store
+Thumbs.db
+*.log
