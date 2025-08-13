@@ -11,11 +11,11 @@ import {
   newsletterSubscribers,
   announcements,
   insertNewsletterSubscriberSchema
-} from "../shared/sqlite-schema.js";
+} from "../shared/sqlite-schema";
 
 // Import storage interface and db instance
 import { IStorage } from "./storage";
-import { dbInstance as db } from "./db.mts";
+import { dbInstance as db } from "./db";
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
