@@ -61,12 +61,17 @@ export default function Categories() {
 
   if (isLoading) {
     return (
-      <section className="py-12 bg-white">
+      <section className="py-16 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-3xl font-bold text-center text-navy mb-8">Shop by Category</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(13)].map((_, i) => (
-              <div key={i} className="bg-gray-200 rounded-2xl p-4 animate-pulse h-28"></div>
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-2xl md:text-3xl font-bold text-white">Browse Categories</h3>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+              + Add Category
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+            {[...Array(35)].map((_, i) => (
+              <div key={i} className="bg-gray-700 rounded-2xl p-4 animate-pulse h-24"></div>
             ))}
           </div>
         </div>
@@ -75,19 +80,14 @@ export default function Categories() {
   }
 
   return (
-    <section className="py-12 bg-white dark:bg-gray-800">
+    <section className="py-16 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <div className="relative">
-            <h3 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent relative">
-              Browse Categories
-              <div className="absolute -top-1 -right-4 text-lg animate-pulse">🏪</div>
-            </h3>
-          </div>
+          <h3 className="text-2xl md:text-3xl font-bold text-white">Browse Categories</h3>
           {isAdmin && (
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-semibold"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
             >
               + Add Category
             </button>
@@ -96,47 +96,47 @@ export default function Categories() {
 
         {/* Add Category Form - Admin Only */}
         {isAdmin && showAddForm && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-8">
-            <h4 className="text-lg font-semibold text-navy dark:text-blue-400 mb-4">Add New Category</h4>
+          <div className="bg-gray-800 rounded-lg p-6 mb-8 border border-gray-700">
+            <h4 className="text-lg font-semibold text-white mb-4">Add New Category</h4>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Category Name</label>
                 <input
                   type="text"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-white"
                   placeholder="e.g., Sports"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
                 <input
                   type="text"
                   value={newCategory.description}
                   onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-white"
                   placeholder="Brief description"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Icon (FontAwesome class)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Icon (FontAwesome class)</label>
                 <input
                   type="text"
                   value={newCategory.icon}
                   onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-white"
                   placeholder="e.g., fas fa-dumbbell"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color (Tailwind classes)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Color (Hex code)</label>
                 <input
                   type="text"
                   value={newCategory.color}
                   onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                  className="w-full p-2 border rounded-lg dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                  placeholder="e.g., from-blue-500 to-purple-600"
+                  className="w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-white"
+                  placeholder="e.g., #3B82F6"
                 />
               </div>
             </div>
@@ -144,13 +144,13 @@ export default function Categories() {
               <button
                 onClick={handleAddCategory}
                 disabled={addCategoryMutation.isPending}
-                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 {addCategoryMutation.isPending ? 'Adding...' : 'Add Category'}
               </button>
               <button
                 onClick={() => setShowAddForm(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -158,14 +158,14 @@ export default function Categories() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
           {categories?.map((category) => (
             <Link 
               key={category.id}
-              href={`/category/${category.name}`}
-              className={`rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block relative group ${
+              href={`/category/${encodeURIComponent(category.name)}`}
+              className={`rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg block relative group min-h-[100px] flex flex-col justify-center ${
                 category.name === 'AI Apps & Services' 
-                  ? 'ring-4 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
+                  ? 'ring-2 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
                   : ''
               }`}
               style={{ backgroundColor: category.color }}
@@ -178,13 +178,15 @@ export default function Categories() {
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl"></div>
                 </>
               )}
-              <i className={`${category.icon} text-2xl mb-3 ${category.name === 'AI Apps & Services' ? 'animate-pulse text-yellow-200' : ''}`}></i>
-              <h4 className={`font-bold text-sm ${category.name === 'AI Apps & Services' ? 'text-yellow-100' : ''}`}>
-                {category.name}
-              </h4>
-              <p className={`text-xs opacity-90 ${category.name === 'AI Apps & Services' ? 'text-yellow-200' : ''}`}>
-                {category.description}
-              </p>
+              <div className="relative z-10">
+                <i className={`${category.icon} text-2xl mb-2 block ${category.name === 'AI Apps & Services' ? 'animate-pulse text-yellow-200' : ''}`}></i>
+                <h4 className={`font-bold text-xs leading-tight ${category.name === 'AI Apps & Services' ? 'text-yellow-100' : ''}`}>
+                  {category.name}
+                </h4>
+                <p className={`text-xs opacity-90 mt-1 ${category.name === 'AI Apps & Services' ? 'text-yellow-200' : ''}`}>
+                  {category.description}
+                </p>
+              </div>
             </Link>
           ))}
         </div>
