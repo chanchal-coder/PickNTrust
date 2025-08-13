@@ -1091,8 +1091,12 @@ export default function AdminPage() {
         title: 'Product Added!',
         description: 'New product has been added successfully.',
       });
+      // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+      // Force refetch to ensure immediate update
+      queryClient.refetchQueries({ queryKey: ['/api/products/featured'] });
       // Reset form to default values instead of clearing
       form.reset({
         name: '',
@@ -1135,8 +1139,11 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       toast({ title: 'Blog Post Added!', description: 'Your blog post has been published successfully.' });
+      // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+      // Force refetch to ensure immediate update
+      queryClient.refetchQueries({ queryKey: ['/api/blog'] });
       setBlogFormData({ title: '', excerpt: '', content: '', category: '', tags: [], imageUrl: '', videoUrl: '', publishedAt: new Date().toISOString().split('T')[0], readTime: '3 min read', slug: '', hasTimer: false, timerDuration: '24' });
       setShowBlogForm(false);
     },
@@ -1332,9 +1339,12 @@ export default function AdminPage() {
           description: `"${extractedProduct.name}" has been added to your catalog.`,
         });
         
-        // Refresh the products list and admin stats
+        // Invalidate all related queries to ensure fresh data
         queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/products'] });
         queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+        // Force refetch to ensure immediate update
+        queryClient.refetchQueries({ queryKey: ['/api/products/featured'] });
         
         // Clear everything
         setProductUrl('');
@@ -1731,14 +1741,45 @@ export default function AdminPage() {
                           onValueChange={(value) => setExtractedProduct({...extractedProduct, category: value})}
                         >
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
-                          <SelectContent>
-                            {(categories as any[]).map((category: any) => (
-                              <SelectItem key={category.id} value={category.name}>
-                                {category.name} - {category.description}
-                              </SelectItem>
-                            ))}
+                          <SelectContent className="max-h-60 overflow-y-auto">
+                            <SelectItem value="Electronics & Gadgets">📱 Electronics & Gadgets - Latest Tech & Electronics</SelectItem>
+                            <SelectItem value="Mobiles & Accessories">📱 Mobiles & Accessories - Smartphones & Mobile Gear</SelectItem>
+                            <SelectItem value="Computers & Laptops">💻 Computers & Laptops - Computing Solutions</SelectItem>
+                            <SelectItem value="Cameras & Photography">📷 Cameras & Photography - Capture Perfect Moments</SelectItem>
+                            <SelectItem value="Home Appliances">🏠 Home Appliances - Smart Home Solutions</SelectItem>
+                            <SelectItem value="Men's Fashion">👔 Men's Fashion - Stylish Men's Wear</SelectItem>
+                            <SelectItem value="Women's Fashion">👗 Women's Fashion - Elegant Women's Collection</SelectItem>
+                            <SelectItem value="Kids' Fashion">👶 Kids' Fashion - Trendy Kids' Clothing</SelectItem>
+                            <SelectItem value="Footwear & Accessories">👟 Footwear & Accessories - Shoes & Style Accessories</SelectItem>
+                            <SelectItem value="Jewelry & Watches">💎 Jewelry & Watches - Luxury & Timepieces</SelectItem>
+                            <SelectItem value="Beauty & Grooming">💄 Beauty & Grooming - Beauty & Personal Care</SelectItem>
+                            <SelectItem value="Health & Wellness">❤️ Health & Wellness - Health & Fitness Products</SelectItem>
+                            <SelectItem value="Fitness & Nutrition">🏋️ Fitness & Nutrition - Fitness & Sports Gear</SelectItem>
+                            <SelectItem value="Personal Care">🧴 Personal Care - Appliances</SelectItem>
+                            <SelectItem value="Furniture & Décor">🛋️ Furniture & Décor - Home Furniture & Decor</SelectItem>
+                            <SelectItem value="Kitchen & Dining">🍽️ Kitchen & Dining - Kitchen Essentials</SelectItem>
+                            <SelectItem value="Bedding & Home Essentials">🛏️ Bedding & Home Essentials - Comfort & Home Basics</SelectItem>
+                            <SelectItem value="Gardening & Outdoor">🌱 Gardening & Outdoor - Garden & Outdoor Living</SelectItem>
+                            <SelectItem value="Books & Stationery">📚 Books & Stationery - Books & Learning Materials</SelectItem>
+                            <SelectItem value="Music, Movies & Games">🎮 Music, Movies & Games - Entertainment & Gaming</SelectItem>
+                            <SelectItem value="E-learning & Courses">🎓 E-learning & Courses - Online Learning & Skills</SelectItem>
+                            <SelectItem value="Groceries & Gourmet">🛒 Groceries & Gourmet - Fresh & Gourmet Foods</SelectItem>
+                            <SelectItem value="Food Delivery & Meal Kits">🍕 Food Delivery & Meal Kits - Ready Meals & Delivery</SelectItem>
+                            <SelectItem value="Flights & Hotels">✈️ Flights & Hotels - Travel Bookings</SelectItem>
+                            <SelectItem value="Holiday Packages">🏖️ Holiday Packages - Complete Travel Packages</SelectItem>
+                            <SelectItem value="Experiences & Activities">🎪 Experiences & Activities - Adventure & Experiences</SelectItem>
+                            <SelectItem value="Credit Cards & Finance">💳 Credit Cards & Finance - Financial Services</SelectItem>
+                            <SelectItem value="Loans & Insurance">🛡️ Loans & Insurance - Loans & Protection Plans</SelectItem>
+                            <SelectItem value="Investments & Trading Tools">📈 Investments & Trading Tools - Investment & Trading</SelectItem>
+                            <SelectItem value="Utility & Bill Payments">📄 Utility & Bill Payments - Bills & Utility Services</SelectItem>
+                            <SelectItem value="Cars & Bikes">🚗 Cars & Bikes - Vehicle Accessories</SelectItem>
+                            <SelectItem value="Parts & Maintenance">🔧 Parts & Maintenance - Auto Parts & Services</SelectItem>
+                            <SelectItem value="Baby Products">🍼 Baby Products - Baby Care & Products</SelectItem>
+                            <SelectItem value="Pet Supplies">🐾 Pet Supplies - Pet Care & Accessories</SelectItem>
+                            <SelectItem value="Gifting & Occasions">🎁 Gifting & Occasions - Gifts & Special Occasions</SelectItem>
+                            <SelectItem value="AI Apps & Services">🤖 AI Apps & Services - Cutting-edge AI tools and applications</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -2066,17 +2107,48 @@ export default function AdminPage() {
                       <Label htmlFor="category">Category *</Label>
                       <Select 
                         onValueChange={(value) => form.setValue('category', value as any)}
-                        defaultValue="Tech"
+                        defaultValue="Electronics & Gadgets"
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {(categories as any[]).map((category: any) => (
-                            <SelectItem key={category.id} value={category.name}>
-                              {category.name} - {category.description}
-                            </SelectItem>
-                          ))}
+                        <SelectContent className="max-h-60 overflow-y-auto">
+                          <SelectItem value="Electronics & Gadgets">📱 Electronics & Gadgets - Latest Tech & Electronics</SelectItem>
+                          <SelectItem value="Mobiles & Accessories">📱 Mobiles & Accessories - Smartphones & Mobile Gear</SelectItem>
+                          <SelectItem value="Computers & Laptops">💻 Computers & Laptops - Computing Solutions</SelectItem>
+                          <SelectItem value="Cameras & Photography">📷 Cameras & Photography - Capture Perfect Moments</SelectItem>
+                          <SelectItem value="Home Appliances">🏠 Home Appliances - Smart Home Solutions</SelectItem>
+                          <SelectItem value="Men's Fashion">👔 Men's Fashion - Stylish Men's Wear</SelectItem>
+                          <SelectItem value="Women's Fashion">👗 Women's Fashion - Elegant Women's Collection</SelectItem>
+                          <SelectItem value="Kids' Fashion">👶 Kids' Fashion - Trendy Kids' Clothing</SelectItem>
+                          <SelectItem value="Footwear & Accessories">👟 Footwear & Accessories - Shoes & Style Accessories</SelectItem>
+                          <SelectItem value="Jewelry & Watches">💎 Jewelry & Watches - Luxury & Timepieces</SelectItem>
+                          <SelectItem value="Beauty & Grooming">💄 Beauty & Grooming - Beauty & Personal Care</SelectItem>
+                          <SelectItem value="Health & Wellness">❤️ Health & Wellness - Health & Fitness Products</SelectItem>
+                          <SelectItem value="Fitness & Nutrition">🏋️ Fitness & Nutrition - Fitness & Sports Gear</SelectItem>
+                          <SelectItem value="Personal Care">🧴 Personal Care - Appliances</SelectItem>
+                          <SelectItem value="Furniture & Décor">🛋️ Furniture & Décor - Home Furniture & Decor</SelectItem>
+                          <SelectItem value="Kitchen & Dining">🍽️ Kitchen & Dining - Kitchen Essentials</SelectItem>
+                          <SelectItem value="Bedding & Home Essentials">🛏️ Bedding & Home Essentials - Comfort & Home Basics</SelectItem>
+                          <SelectItem value="Gardening & Outdoor">🌱 Gardening & Outdoor - Garden & Outdoor Living</SelectItem>
+                          <SelectItem value="Books & Stationery">📚 Books & Stationery - Books & Learning Materials</SelectItem>
+                          <SelectItem value="Music, Movies & Games">🎮 Music, Movies & Games - Entertainment & Gaming</SelectItem>
+                          <SelectItem value="E-learning & Courses">🎓 E-learning & Courses - Online Learning & Skills</SelectItem>
+                          <SelectItem value="Groceries & Gourmet">🛒 Groceries & Gourmet - Fresh & Gourmet Foods</SelectItem>
+                          <SelectItem value="Food Delivery & Meal Kits">🍕 Food Delivery & Meal Kits - Ready Meals & Delivery</SelectItem>
+                          <SelectItem value="Flights & Hotels">✈️ Flights & Hotels - Travel Bookings</SelectItem>
+                          <SelectItem value="Holiday Packages">🏖️ Holiday Packages - Complete Travel Packages</SelectItem>
+                          <SelectItem value="Experiences & Activities">🎪 Experiences & Activities - Adventure & Experiences</SelectItem>
+                          <SelectItem value="Credit Cards & Finance">💳 Credit Cards & Finance - Financial Services</SelectItem>
+                          <SelectItem value="Loans & Insurance">🛡️ Loans & Insurance - Loans & Protection Plans</SelectItem>
+                          <SelectItem value="Investments & Trading Tools">📈 Investments & Trading Tools - Investment & Trading</SelectItem>
+                          <SelectItem value="Utility & Bill Payments">📄 Utility & Bill Payments - Bills & Utility Services</SelectItem>
+                          <SelectItem value="Cars & Bikes">🚗 Cars & Bikes - Vehicle Accessories</SelectItem>
+                          <SelectItem value="Parts & Maintenance">🔧 Parts & Maintenance - Auto Parts & Services</SelectItem>
+                          <SelectItem value="Baby Products">🍼 Baby Products - Baby Care & Products</SelectItem>
+                          <SelectItem value="Pet Supplies">🐾 Pet Supplies - Pet Care & Accessories</SelectItem>
+                          <SelectItem value="Gifting & Occasions">🎁 Gifting & Occasions - Gifts & Special Occasions</SelectItem>
+                          <SelectItem value="AI Apps & Services">🤖 AI Apps & Services - Cutting-edge AI tools and applications</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

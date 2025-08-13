@@ -72,6 +72,21 @@ export default function Header() {
   // Use predefined categories instead of API call
   const categories = predefinedCategories;
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (mobileMenuOpen && !target.closest('.mobile-menu-container')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [mobileMenuOpen]);
+
   // Check admin status
   useEffect(() => {
     const adminSession = localStorage.getItem('pickntrust-admin-session');
@@ -254,10 +269,10 @@ export default function Header() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
-            aria-label="Menu"
+            aria-label={mobileMenuOpen ? "Close Menu" : "Open Menu"}
           >
-            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} group-hover:rotate-180 transition-transform duration-300`}></i>
-            <span className="font-semibold hidden xs:inline">Menu</span>
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : 'rotate-0'}`}></i>
+            <span className="font-semibold hidden xs:inline">{mobileMenuOpen ? 'Close' : 'Menu'}</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
@@ -309,7 +324,7 @@ export default function Header() {
 
         {/* Hamburger Menu - Beautiful Colorful Dropdown */}
         {mobileMenuOpen && (
-          <div className="pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30">
+          <div className="mobile-menu-container pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-2xl"></div>
             <nav className="relative z-10 flex flex-col space-y-2 p-4">
               {/* Home Link with Special Styling */}
