@@ -1,23 +1,48 @@
 module.exports = {
-  apps: [{
-    name: 'pickntrust',
-    script: 'dist/server/index.js',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 5000,
-      DATABASE_URL: 'file:./sqlite.db',
-      SUPABASE_URL: 'http://localhost:54321',
-      SUPABASE_ANON_KEY: 'dummy_key_for_local_sqlite',
-      SUPABASE_SERVICE_ROLE_KEY: 'dummy_service_key_for_local_sqlite',
-      VITE_API_URL: 'http://localhost:5000/api'
+  apps: [
+    {
+      name: 'pickntrust-backend',
+      script: 'dist/server/index.js',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 5000,
+        DATABASE_URL: 'file:./sqlite.db'
+      },
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      error_file: './logs/backend-err.log',
+      out_file: './logs/backend-out.log',
+      log_file: './logs/backend-combined.log',
+      time: true,
+      restart_delay: 4000,
+      max_restarts: 10,
+      min_uptime: '10s'
     },
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    error_file: './logs/err.log',
-    out_file: './logs/out.log',
-    log_file: './logs/combined.log',
-    time: true
-  }]
+    {
+      name: 'pickntrust-frontend',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './client',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 5173,
+        VITE_API_URL: 'http://localhost:5000'
+      },
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      error_file: './logs/frontend-err.log',
+      out_file: './logs/frontend-out.log',
+      log_file: './logs/frontend-combined.log',
+      time: true,
+      restart_delay: 4000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    }
+  ]
 };
