@@ -13,7 +13,7 @@ interface Product {
   affiliateNetworkName: string | null;
   category: string;
   gender: string | null;
-  rating: number;
+  rating: string;
   reviewCount: number;
   discount: number | null;
   isNew: boolean;

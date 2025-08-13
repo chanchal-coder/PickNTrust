@@ -77,8 +77,8 @@ export default function Categories() {
               + Add Category
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
-            {[...Array(35)].map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 gap-4">
+            {[...Array(36)].map((_, i) => (
               <div key={i} className="bg-gray-700 rounded-2xl p-4 animate-pulse h-24"></div>
             ))}
           </div>
@@ -166,7 +166,7 @@ export default function Categories() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 gap-4">
           {categories?.map((category) => (
             <Link 
               key={category.id}

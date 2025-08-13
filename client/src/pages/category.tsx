@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { GenderSwitchTabs } from '@/components/gender-switch-tabs';
+import CategoryNavigation from '@/components/category-navigation';
 
 // Define Product type locally to avoid schema conflicts
 interface Product {
@@ -1007,28 +1008,8 @@ export default function CategoryPage() {
           </section>
         )}
 
-        {/* Category Navigation for Mobile */}
-        <section className="py-8 md:hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Browse Categories</h3>
-            <div className="flex overflow-x-auto pb-2 space-x-3">
-              {allCategories.map((cat: any) => (
-                <Link
-                  key={cat.name}
-                  href={`/category/${encodeURIComponent(cat.name)}`}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                    decodeURIComponent(category || '') === cat.name
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
-                  }`}
-                >
-                  <i className={`${cat.icon} text-xs mr-2`} style={{color: decodeURIComponent(category || '') === cat.name ? 'white' : cat.color}}></i>
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Category Navigation Tabs */}
+        <CategoryNavigation currentCategory={category || ''} />
 
         {/* Products Grid */}
         <section className="py-16">

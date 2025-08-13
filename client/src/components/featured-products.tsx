@@ -18,7 +18,7 @@ interface Product {
   affiliateNetworkName: string | null;
   category: string;
   gender: string | null;
-  rating: number;
+  rating: string;
   reviewCount: number;
   discount: number | null;
   isNew: boolean;
@@ -124,9 +124,10 @@ export default function FeaturedProducts() {
     }
   };
 
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
+  const renderStars = (rating: string) => {
+    const ratingNum = parseFloat(rating);
+    const fullStars = Math.floor(ratingNum);
+    const hasHalfStar = ratingNum % 1 !== 0;
     
     return (
       <div className="flex items-center text-yellow-400">
@@ -303,20 +304,7 @@ export default function FeaturedProducts() {
                     <div></div>
                   )}
                   <div className="flex items-center">
-                    <div className="flex items-center text-yellow-400 text-sm sm:text-base">
-                      {[...Array(5)].map((_, i) => (
-                        <i 
-                          key={i}
-                          className={`${
-                            i < Math.floor(product.rating) 
-                              ? 'fas fa-star' 
-                              : i === Math.floor(product.rating) && product.rating % 1 !== 0
-                                ? 'fas fa-star-half-alt' 
-                                : 'far fa-star'
-                          } text-xs sm:text-sm`}
-                        ></i>
-                      ))}
-                    </div>
+                    {renderStars(product.rating)}
                     <span className="text-gray-600 dark:text-gray-300 ml-1 sm:ml-2 text-xs sm:text-sm">({product.reviewCount})</span>
                   </div>
                 </div>
