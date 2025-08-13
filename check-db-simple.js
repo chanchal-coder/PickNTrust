@@ -1,47 +1,55 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fetch from 'node-fetch';
+const Database = require('better-sqlite3');
+const fs = require('fs');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Open the database
-const dbPath = path.join(__dirname, 'sqlite.db');
-console.log('Database path:', dbPath);
+console.log('🔍 Checking Database Setup...\n');
 
 try {
-  const db = new Database(dbPath);
-  console.log('Connected to the SQLite database.');
+  // Check if database file exists
+  const dbExists = fs.existsSync('sqlite.db');
+  console.log(`Database file exists: ${dbExists ? '✅ Yes' : '❌ No'}`);
   
-  // Check if announcements table exists
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='announcements'").all();
-  console.log('Announcements table exists:', tables.length > 0);
-  
-  if (tables.length > 0) {
-    // Get all announcements
-    const allAnnouncements = db.prepare("SELECT * FROM announcements").all();
-    console.log('All announcements:', allAnnouncements);
-    
-    // Get active announcements
-    const activeAnnouncements = db.prepare("SELECT * FROM announcements WHERE is_active = 1").all();
-    console.log('Active announcements:', activeAnnouncements);
-  } else {
-    console.log('No announcements table found.');
+  if (!dbExists) {
+    console.log('Creating new database...');
   }
-
-  // Fetch categories from API
-  fetch('http://localhost:3001/api/categories')
-    .then(response => response.json())
-    .then(data => {
-      console.log('Categories from API:', data);
-    })
-    .catch(error => {
-      console.error('Error fetching categories:', error);
-    });
-
+  
+  // Open database connection
+  const db = new Database('sqlite.db');
+  console.log('✅ Database connection established');
+  
+  // Check if tables exist
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+  console.log(`\n📊 Found ${tables.length} tables:`);
+  tables.forEach(table => {
+    console.log(`  - ${table.name}`);
+  });
+  
+  // Check products table
+  try {
+    const productCount = db.prepare("SELECT COUNT(*) as count FROM products").get();
+    console.log(`\n📦 Products table: ${productCount.count} records`);
+  } catch (error) {
+    console.log('❌ Products table not accessible:', error.message);
+  }
+  
+  // Check blog_posts table
+  try {
+    const blogCount = db.prepare("SELECT COUNT(*) as count FROM blog_posts").get();
+    console.log(`📝 Blog posts table: ${blogCount.count} records`);
+  } catch (error) {
+    console.log('❌ Blog posts table not accessible:', error.message);
+  }
+  
+  // Check announcements table
+  try {
+    const announcementCount = db.prepare("SELECT COUNT(*) as count FROM announcements").get();
+    console.log(`📢 Announcements table: ${announcementCount.count} records`);
+  } catch (error) {
+    console.log('❌ Announcements table not accessible:', error.message);
+  }
+  
   db.close();
-  console.log('Database connection closed.');
+  console.log('\n✅ Database check completed successfully');
+  
 } catch (error) {
-  console.error('Error checking database:', error.message);
+  console.error('❌ Database check failed:', error.message);
 }

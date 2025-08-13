@@ -1,12 +1,62 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
 import AmazingBrandLogo from "@/components/amazing-brand-logo";
 import CenteredBrandText from "@/components/centered-brand-text";
 import { GenderSelectionPopup } from "@/components/gender-selection-popup";
+
+// Use the same predefined categories as the main categories component
+const predefinedCategories = [
+  // Row 1
+  { id: 1, name: "Electronics & Gadgets", description: "Latest Tech & Electronics", icon: "⚙️", color: "#6366F1" },
+  { id: 2, name: "Mobiles & Accessories", description: "Smartphones & Mobile Gear", icon: "📱", color: "#8B5CF6" },
+  { id: 3, name: "Computers & Laptops", description: "Computing Solutions", icon: "💻", color: "#3B82F6" },
+  { id: 4, name: "Cameras & Photography", description: "Capture Perfect Moments", icon: "📷", color: "#A855F7" },
+  { id: 5, name: "Home Appliances", description: "Smart Home Solutions", icon: "🏠", color: "#10B981" },
+  { id: 6, name: "Men's Fashion", description: "Stylish Men's Wear", icon: "👔", color: "#059669" },
+  
+  // Row 2
+  { id: 7, name: "Women's Fashion", description: "Elegant Women's Collection", icon: "👗", color: "#EC4899" },
+  { id: 8, name: "Kids' Fashion", description: "Trendy Kids' Clothing", icon: "👶", color: "#F59E0B" },
+  { id: 9, name: "Footwear & Accessories", description: "Shoes & Style Accessories", icon: "👟", color: "#8B5CF6" },
+  { id: 10, name: "Jewelry & Watches", description: "Luxury & Timepieces", icon: "💎", color: "#A855F7" },
+  { id: 11, name: "Beauty & Grooming", description: "Beauty & Personal Care", icon: "💄", color: "#F472B6" },
+  { id: 12, name: "Health & Wellness", description: "Health & Fitness Products", icon: "❤️", color: "#EF4444" },
+  
+  // Row 3
+  { id: 13, name: "Fitness & Nutrition", description: "Fitness & Sports Gear", icon: "🏋️", color: "#F97316" },
+  { id: 14, name: "Personal Care", description: "Appliances", icon: "🧴", color: "#84CC16" },
+  { id: 15, name: "Furniture & Décor", description: "Home Furniture & Decor", icon: "🛋️", color: "#10B981" },
+  { id: 16, name: "Kitchen & Dining", description: "Kitchen Essentials", icon: "🍽️", color: "#22C55E" },
+  { id: 17, name: "Bedding & Home Essentials", description: "Comfort & Home Basics", icon: "🛏️", color: "#06B6D4" },
+  { id: 18, name: "Gardening & Outdoor", description: "Garden & Outdoor Living", icon: "🌱", color: "#65A30D" },
+  
+  // Row 4
+  { id: 19, name: "Books & Stationery", description: "Books & Learning Materials", icon: "📚", color: "#D97706" },
+  { id: 20, name: "Music, Movies & Games", description: "Entertainment & Gaming", icon: "🎮", color: "#DC2626" },
+  { id: 21, name: "E-learning & Courses", description: "Online Learning & Skills", icon: "🎓", color: "#B91C1C" },
+  { id: 22, name: "Groceries & Gourmet", description: "Fresh & Gourmet Foods", icon: "🛒", color: "#D97706" },
+  { id: 23, name: "Food Delivery & Meal Kits", description: "Ready Meals & Delivery", icon: "🍕", color: "#EA580C" },
+  { id: 24, name: "Flights & Hotels", description: "Travel Bookings", icon: "✈️", color: "#3B82F6" },
+  
+  // Row 5
+  { id: 25, name: "Holiday Packages", description: "Complete Travel Packages", icon: "🏖️", color: "#0891B2" },
+  { id: 26, name: "Experiences & Activities", description: "Adventure & Experiences", icon: "🎪", color: "#1E40AF" },
+  { id: 27, name: "Credit Cards & Finance", description: "Financial Services", icon: "💳", color: "#7C3AED" },
+  { id: 28, name: "Loans & Insurance", description: "Loans & Protection Plans", icon: "🛡️", color: "#8B5CF6" },
+  { id: 29, name: "Investments & Trading Tools", description: "Investment & Trading", icon: "📈", color: "#A855F7" },
+  { id: 30, name: "Utility & Bill Payments", description: "Bills & Utility Services", icon: "📄", color: "#6366F1" },
+  
+  // Row 6
+  { id: 31, name: "Cars & Bikes", description: "Vehicle Accessories", icon: "🚗", color: "#D97706" },
+  { id: 32, name: "Parts & Maintenance", description: "Auto Parts & Services", icon: "🔧", color: "#DC2626" },
+  { id: 33, name: "Baby Products", description: "Baby Care & Products", icon: "🍼", color: "#F472B6" },
+  { id: 34, name: "Pet Supplies", description: "Pet Care & Accessories", icon: "🐾", color: "#FB7185" },
+  { id: 35, name: "Gifting & Occasions", description: "Gifts & Special Occasions", icon: "🎁", color: "#F87171" },
+  { id: 36, name: "AI Apps & Services", description: "🤖 Cutting-edge AI tools and applications", icon: "🤖", color: "#8B5CF6", isNew: true },
+];
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,12 +69,8 @@ export default function Header() {
   const [showGenderPopup, setShowGenderPopup] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
 
-
-  // Fetch all categories dynamically
-  const { data: categories = [] } = useQuery({
-    queryKey: ['/api/categories'],
-    queryFn: () => fetch('/api/categories').then(res => res.json()),
-  });
+  // Use predefined categories instead of API call
+  const categories = predefinedCategories;
 
   // Check admin status
   useEffect(() => {
@@ -261,38 +307,50 @@ export default function Header() {
           </div>
         )}
 
-        {/* Hamburger Menu - Now for both mobile and desktop */}
+        {/* Hamburger Menu - Beautiful Colorful Dropdown */}
         {mobileMenuOpen && (
-          <div className="pb-2 sm:pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gray-50 dark:bg-gray-800 rounded-lg mt-2">
-            <nav className="flex flex-col space-y-1 sm:space-y-3 p-2 sm:p-4">
+          <div className="pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-2xl"></div>
+            <nav className="relative z-10 flex flex-col space-y-2 p-4">
+              {/* Home Link with Special Styling */}
               <Link 
                 href="/" 
-                className="text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400 transition-colors font-medium text-left py-2"
+                className="group bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center font-semibold"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                🏠 Home
+                <span className="text-xl mr-3">🏠</span>
+                Home
+                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity"></div>
               </Link>
               
-
-              
-              {/* Show ALL categories in hamburger menu - PERSISTENT (no auto-close) */}
+              {/* Categories with Individual Colors */}
               {categories.map((category: any) => {
                 const isGenderSpecific = genderSpecificCategories.includes(category.name);
+                
+                const baseClasses = `group relative px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center font-medium text-white overflow-hidden ${
+                  category.isNew ? 'animate-pulse ring-2 ring-yellow-400/50' : ''
+                }`;
+                
+                const gradientStyle = {
+                  background: `linear-gradient(135deg, ${category.color}CC, ${category.color}FF)`,
+                };
                 
                 if (isGenderSpecific) {
                   return (
                     <button
                       key={category.name}
                       onClick={() => handleCategoryClick(category.name)}
-                      className={`transition-colors font-medium text-left py-2 flex items-center w-full ${
-                        category.name.toLowerCase().includes('deal') 
-                          ? 'text-orange-600 dark:text-orange-400 font-bold'
-                          : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
-                      }`}
+                      className={baseClasses}
+                      style={gradientStyle}
                     >
-                      <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
-                      {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
-                      <i className="fas fa-chevron-right text-xs ml-auto text-gray-400"></i>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <span className="text-2xl mr-3 relative z-10">
+                        {category.icon}
+                      </span>
+                      <span className="relative z-10 flex-1 text-left">
+                        {category.isNew ? '🔥 ' : ''}{category.name}
+                      </span>
+                      <i className="fas fa-chevron-right text-sm ml-2 relative z-10 opacity-70 group-hover:opacity-100 transition-opacity"></i>
                     </button>
                   );
                 } else {
@@ -300,14 +358,17 @@ export default function Header() {
                     <Link 
                       key={category.name}
                       href={`/category/${encodeURIComponent(category.name)}`}
-                      className={`transition-colors font-medium text-left py-2 flex items-center ${
-                        category.name.toLowerCase().includes('deal') 
-                          ? 'text-orange-600 dark:text-orange-400 font-bold'
-                          : 'text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-400'
-                      }`}
+                      className={baseClasses}
+                      style={gradientStyle}
                     >
-                      <i className={`${category.icon} text-sm mr-3 w-4`} style={{color: category.color}}></i>
-                      {category.name.toLowerCase().includes('deal') ? '🔥 ' : ''}{category.name}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <span className="text-2xl mr-3 relative z-10">
+                        {category.icon}
+                      </span>
+                      <span className="relative z-10 flex-1 text-left">
+                        {category.isNew ? '🔥 ' : ''}{category.name}
+                      </span>
+                      <i className="fas fa-arrow-right text-sm ml-2 relative z-10 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
                     </Link>
                   );
                 }
@@ -315,19 +376,21 @@ export default function Header() {
               
               {/* Admin Controls - Only visible to authenticated admins */}
               {isAdmin && (
-                <div className="border-t border-gray-200 dark:border-gray-600 mt-4 pt-4">
+                <div className="border-t border-white/20 mt-4 pt-4 space-y-2">
                   <Link 
                     href="/admin" 
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors text-center block mb-2"
+                    className="group bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-center block relative overflow-hidden"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    ⚙️ Admin Dashboard
+                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                    <span className="relative z-10">⚙️ Admin Dashboard</span>
                   </Link>
                   <button
                     onClick={handleAdminLogout}
-                    className="w-full bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-center"
+                    className="group w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-center relative overflow-hidden"
                   >
-                    🚪 Logout Admin
+                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                    <span className="relative z-10">🚪 Logout Admin</span>
                   </button>
                 </div>
               )}
