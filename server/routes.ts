@@ -1,4 +1,4 @@
-// Import statements
+ // Import statements
 import { Request, Response, Express } from "express";
 import express from "express";
 import multer from 'multer';
@@ -15,7 +15,7 @@ import {
 
 // Import storage interface and db instance
 import { IStorage } from "./storage";
-import { db } from "./db";
+import { dbInstance as db } from "./db.js";
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {

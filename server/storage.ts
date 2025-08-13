@@ -21,7 +21,7 @@ import {
   type Announcement,
   type InsertAnnouncement
 } from "../shared/sqlite-schema.js";
-import { db } from "./db";
+import { dbInstance as db } from "./db.js";
 import { eq, desc, ne, sql } from "drizzle-orm";
 
 export interface IStorage {

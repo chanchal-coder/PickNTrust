@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import type { Product } from "@shared/schema";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +13,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { GenderSwitchTabs } from '@/components/gender-switch-tabs';
+
+// Define Product type locally to avoid schema conflicts
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string | null;
+  imageUrl: string;
+  affiliateUrl: string;
+  affiliateNetworkId: number | null;
+  affiliateNetworkName: string | null;
+  category: string;
+  gender: string | null;
+  rating: string;
+  reviewCount: number;
+  discount: number | null;
+  isNew: boolean;
+  isFeatured: boolean;
+  hasTimer: boolean;
+  timerDuration: number | null;
+  timerStartTime: Date | null;
+  createdAt: Date | null;
+}
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();

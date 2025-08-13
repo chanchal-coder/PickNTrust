@@ -1,10 +1,33 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import type { Product } from "@shared/schema";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { ProductTimer } from "@/components/product-timer";
+
+// Define Product type locally to avoid schema conflicts
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string | null;
+  imageUrl: string;
+  affiliateUrl: string;
+  affiliateNetworkId: number | null;
+  affiliateNetworkName: string | null;
+  category: string;
+  gender: string | null;
+  rating: number;
+  reviewCount: number;
+  discount: number | null;
+  isNew: boolean;
+  isFeatured: boolean;
+  hasTimer: boolean;
+  timerDuration: number | null;
+  timerStartTime: Date | null;
+  createdAt: Date | null;
+}
 
 export default function FeaturedProducts() {
   const { data: products, isLoading } = useQuery<Product[]>({
@@ -101,10 +124,9 @@ export default function FeaturedProducts() {
     }
   };
 
-  const renderStars = (rating: string) => {
-    const ratingNum = parseFloat(rating);
-    const fullStars = Math.floor(ratingNum);
-    const hasHalfStar = ratingNum % 1 !== 0;
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
     
     return (
       <div className="flex items-center text-yellow-400">
@@ -286,9 +308,9 @@ export default function FeaturedProducts() {
                         <i 
                           key={i}
                           className={`${
-                            i < Math.floor(parseFloat(product.rating)) 
+                            i < Math.floor(product.rating) 
                               ? 'fas fa-star' 
-                              : i === Math.floor(parseFloat(product.rating)) && parseFloat(product.rating) % 1 !== 0
+                              : i === Math.floor(product.rating) && product.rating % 1 !== 0
                                 ? 'fas fa-star-half-alt' 
                                 : 'far fa-star'
                           } text-xs sm:text-sm`}

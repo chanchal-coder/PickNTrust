@@ -1,7 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import type { BlogPost } from "@shared/schema";
 
+// Define BlogPost type locally to avoid schema conflicts
+interface BlogPost {
+  id: number;
+  title: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  tags: string[];
+  imageUrl: string;
+  videoUrl?: string;
+  publishedAt: Date | string;
+  createdAt: Date | null;
+  readTime: string;
+  slug: string;
+  hasTimer: boolean;
+  timerDuration: number | null;
+  timerStartTime: Date | null;
+}
 export default function BlogSection() {
   const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],

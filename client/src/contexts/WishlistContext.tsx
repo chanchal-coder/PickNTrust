@@ -1,5 +1,28 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Product } from '@shared/schema';
+
+// Define Product type locally to avoid schema conflicts
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string | null;
+  imageUrl: string;
+  affiliateUrl: string;
+  affiliateNetworkId: number | null;
+  affiliateNetworkName: string | null;
+  category: string;
+  gender: string | null;
+  rating: number;
+  reviewCount: number;
+  discount: number | null;
+  isNew: boolean;
+  isFeatured: boolean;
+  hasTimer: boolean;
+  timerDuration: number | null;
+  timerStartTime: Date | null;
+  createdAt: Date | null;
+}
 
 interface WishlistContextType {
   wishlist: Product[];

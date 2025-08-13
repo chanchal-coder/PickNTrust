@@ -1,8 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-import type { Category } from "@shared/schema";
 import { useToast } from '@/hooks/use-toast';
+
+// Define Category type locally to avoid schema conflicts
+interface Category {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+  description: string;
+}
 
 export default function Categories() {
   const { data: categories, isLoading } = useQuery<Category[]>({
