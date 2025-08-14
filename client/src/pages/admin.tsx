@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
-import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Play, X, Tag, Plus, Megaphone } from 'lucide-react';
+import { 
+  Edit, ExternalLink, Star, DollarSign, Package, Globe, FileText, Play, Plus, 
+  Megaphone
+} from 'lucide-react';
 import { ColorPicker } from '@/components/color-picker';
 
 const productSchema = z.object({
@@ -257,7 +258,6 @@ function AnnouncementManager() {
 export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
