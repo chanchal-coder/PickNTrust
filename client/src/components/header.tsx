@@ -351,9 +351,9 @@ export default function Header() {
           </div>
         )}
 
-        {/* Hamburger Menu - Beautiful Colorful Dropdown with proper width */}
+        {/* Hamburger Menu - Beautiful Colorful Dropdown positioned below hamburger button */}
         {mobileMenuOpen && (
-          <div className="mobile-menu-container absolute top-full left-4 right-4 sm:left-auto sm:right-4 sm:w-80 pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30 z-50">
+          <div className="mobile-menu-container absolute top-full left-1/2 transform -translate-x-1/2 w-80 max-w-[90vw] pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30 z-50">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-2xl"></div>
             <nav className="relative z-10 flex flex-col space-y-2 p-4">
               {/* Home Link with Special Styling */}
