@@ -268,45 +268,93 @@ export default function Categories() {
   const categoriesData = apiCategories && Array.isArray(apiCategories) && apiCategories.length > 0 
     ? apiCategories 
     : fallbackCategoriesData;
-  return (
-    <section className="py-12 bg-white dark:bg-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="relative">
-            <h3 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent relative">
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Browse Categories
-              <div className="absolute -top-1 -right-4 text-lg animate-pulse">🏪</div>
-            </h3>
+            </h2>
+            <p className="text-slate-300 text-lg">
+              Loading categories...
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="bg-slate-700 rounded-[20px] p-6 animate-pulse">
+                <div className="w-8 h-8 bg-slate-600 rounded mb-4 mx-auto"></div>
+                <div className="h-4 bg-slate-600 rounded mb-2"></div>
+                <div className="h-3 bg-slate-600 rounded"></div>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
+    );
+  }
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+  return (
+    <section className="py-16 bg-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Browse Categories
+          </h2>
+          <p className="text-slate-300 text-lg">
+            Discover amazing deals across all categories
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
           {categoriesData.map((category) => (
             <Link 
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
-              className={`rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block relative group ${
-                category.name === 'AI Apps & Services' 
-                  ? 'ring-4 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
-                  : ''
-              }`}
-              style={{ backgroundColor: category.color }}
+              className="group block"
             >
-              {category.name === 'AI Apps & Services' && (
-                <>
-                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce">
-                    NEW! 🔥
+              <div 
+                className={`
+                  relative overflow-hidden rounded-[20px] p-6 text-center
+                  transform transition-all duration-300 ease-out
+                  hover:scale-105 hover:shadow-2xl hover:shadow-black/20
+                  shadow-lg shadow-black/10
+                  ${category.name === 'AI Apps & Services' 
+                    ? 'ring-2 ring-yellow-400/50 shadow-yellow-400/20' 
+                    : ''
+                  }
+                `}
+                style={{ 
+                  background: `linear-gradient(135deg, ${category.color}CC, ${category.color}FF)`
+                }}
+              >
+                {/* Special badge for AI Apps & Services */}
+                {category.name === 'AI Apps & Services' && (
+                  <div className="absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-pulse shadow-lg">
+                    NEW
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl"></div>
-                </>
-              )}
-              <i className={`${category.icon} text-2xl mb-3 ${category.name === 'AI Apps & Services' ? 'animate-pulse text-yellow-200' : ''}`}></i>
-              <h4 className={`font-bold text-sm ${category.name === 'AI Apps & Services' ? 'text-yellow-100' : ''}`}>
-                {category.name}
-              </h4>
-              <p className={`text-xs opacity-90 ${category.name === 'AI Apps & Services' ? 'text-yellow-200' : ''}`}>
-                {category.description}
-              </p>
+                )}
+
+                {/* Inner highlight effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-[20px]"></div>
+                
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="mb-4">
+                    <i className={`${category.icon} text-3xl text-white drop-shadow-lg`}></i>
+                  </div>
+                  <h3 className="font-bold text-white text-sm mb-2 leading-tight drop-shadow-sm">
+                    {category.name}
+                  </h3>
+                  <p className="text-white/90 text-xs leading-relaxed drop-shadow-sm">
+                    {category.description}
+                  </p>
+                </div>
+
+                {/* Hover effect overlay */}
+                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[20px]"></div>
+              </div>
             </Link>
           ))}
         </div>
