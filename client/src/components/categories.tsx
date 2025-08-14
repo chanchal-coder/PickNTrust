@@ -1,216 +1,300 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+
+const categoriesData = [
+  {
+    id: 1,
+    name: 'Electronics & Gadgets',
+    description: 'Latest tech & gadgets',
+    icon: 'fas fa-laptop',
+    color: '#6366F1'
+  },
+  {
+    id: 2,
+    name: 'Fashion & Clothing',
+    description: 'Trendy fashion items',
+    icon: 'fas fa-tshirt',
+    color: '#EC4899'
+  },
+  {
+    id: 3,
+    name: 'Home & Kitchen',
+    description: 'Home essentials',
+    icon: 'fas fa-home',
+    color: '#10B981'
+  },
+  {
+    id: 4,
+    name: 'Health & Beauty',
+    description: 'Beauty & wellness',
+    icon: 'fas fa-heart',
+    color: '#F59E0B'
+  },
+  {
+    id: 5,
+    name: 'Sports & Fitness',
+    description: 'Fitness equipment',
+    icon: 'fas fa-dumbbell',
+    color: '#EF4444'
+  },
+  {
+    id: 6,
+    name: 'Books & Education',
+    description: 'Learning resources',
+    icon: 'fas fa-book',
+    color: '#8B5CF6'
+  },
+  {
+    id: 7,
+    name: 'Toys & Games',
+    description: 'Fun for all ages',
+    icon: 'fas fa-gamepad',
+    color: '#06B6D4'
+  },
+  {
+    id: 8,
+    name: 'Automotive',
+    description: 'Car accessories',
+    icon: 'fas fa-car',
+    color: '#84CC16'
+  },
+  {
+    id: 9,
+    name: 'Travel & Luggage',
+    description: 'Travel essentials',
+    icon: 'fas fa-suitcase',
+    color: '#F97316'
+  },
+  {
+    id: 10,
+    name: 'Pet Supplies',
+    description: 'Pet care products',
+    icon: 'fas fa-paw',
+    color: '#14B8A6'
+  },
+  {
+    id: 11,
+    name: 'Office Supplies',
+    description: 'Work essentials',
+    icon: 'fas fa-briefcase',
+    color: '#6B7280'
+  },
+  {
+    id: 12,
+    name: 'Garden & Outdoor',
+    description: 'Outdoor living',
+    icon: 'fas fa-leaf',
+    color: '#22C55E'
+  },
+  {
+    id: 13,
+    name: 'Baby & Kids',
+    description: 'Child care items',
+    icon: 'fas fa-baby',
+    color: '#F472B6'
+  },
+  {
+    id: 14,
+    name: 'Music & Instruments',
+    description: 'Musical equipment',
+    icon: 'fas fa-music',
+    color: '#A855F7'
+  },
+  {
+    id: 15,
+    name: 'Art & Crafts',
+    description: 'Creative supplies',
+    icon: 'fas fa-palette',
+    color: '#FB7185'
+  },
+  {
+    id: 16,
+    name: 'Food & Beverages',
+    description: 'Gourmet foods',
+    icon: 'fas fa-utensils',
+    color: '#FBBF24'
+  },
+  {
+    id: 17,
+    name: 'Jewelry & Watches',
+    description: 'Luxury accessories',
+    icon: 'fas fa-gem',
+    color: '#C084FC'
+  },
+  {
+    id: 18,
+    name: 'Photography',
+    description: 'Camera equipment',
+    icon: 'fas fa-camera',
+    color: '#60A5FA'
+  },
+  {
+    id: 19,
+    name: 'Gaming',
+    description: 'Gaming gear',
+    icon: 'fas fa-gamepad',
+    color: '#34D399'
+  },
+  {
+    id: 20,
+    name: 'Tools & Hardware',
+    description: 'DIY tools',
+    icon: 'fas fa-tools',
+    color: '#F87171'
+  },
+  {
+    id: 21,
+    name: 'Collectibles',
+    description: 'Rare collectibles',
+    icon: 'fas fa-trophy',
+    color: '#FBBF24'
+  },
+  {
+    id: 22,
+    name: 'Software & Apps',
+    description: 'Digital products',
+    icon: 'fas fa-code',
+    color: '#818CF8'
+  },
+  {
+    id: 23,
+    name: 'Subscription Services',
+    description: 'Monthly services',
+    icon: 'fas fa-calendar',
+    color: '#FB923C'
+  },
+  {
+    id: 24,
+    name: 'Gift Cards',
+    description: 'Digital gift cards',
+    icon: 'fas fa-gift',
+    color: '#F472B6'
+  },
+  {
+    id: 25,
+    name: 'Courses & Training',
+    description: 'Online learning',
+    icon: 'fas fa-graduation-cap',
+    color: '#A78BFA'
+  },
+  {
+    id: 26,
+    name: 'Streaming Services',
+    description: 'Entertainment',
+    icon: 'fas fa-play',
+    color: '#EF4444'
+  },
+  {
+    id: 27,
+    name: 'Cloud Storage',
+    description: 'Data storage',
+    icon: 'fas fa-cloud',
+    color: '#06B6D4'
+  },
+  {
+    id: 28,
+    name: 'VPN & Security',
+    description: 'Online security',
+    icon: 'fas fa-shield-alt',
+    color: '#10B981'
+  },
+  {
+    id: 29,
+    name: 'Web Hosting',
+    description: 'Website hosting',
+    icon: 'fas fa-server',
+    color: '#6B7280'
+  },
+  {
+    id: 30,
+    name: 'Design Tools',
+    description: 'Creative software',
+    icon: 'fas fa-paint-brush',
+    color: '#F59E0B'
+  },
+  {
+    id: 31,
+    name: 'Productivity Apps',
+    description: 'Work efficiency',
+    icon: 'fas fa-tasks',
+    color: '#8B5CF6'
+  },
+  {
+    id: 32,
+    name: 'Marketing Tools',
+    description: 'Business growth',
+    icon: 'fas fa-chart-line',
+    color: '#14B8A6'
+  },
+  {
+    id: 33,
+    name: 'E-commerce Platforms',
+    description: 'Online stores',
+    icon: 'fas fa-shopping-cart',
+    color: '#F97316'
+  },
+  {
+    id: 34,
+    name: 'Communication Tools',
+    description: 'Team collaboration',
+    icon: 'fas fa-comments',
+    color: '#84CC16'
+  },
+  {
+    id: 35,
+    name: 'Finance & Crypto',
+    description: 'Financial tools',
+    icon: 'fas fa-coins',
+    color: '#FBBF24'
+  },
+  {
+    id: 36,
+    name: 'AI Apps & Services',
+    description: 'AI-powered tools',
+    icon: 'fas fa-robot',
+    color: '#A855F7'
+  }
+];
 
 export default function Categories() {
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ['/api/categories'],
-  });
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: '', description: '', icon: '', color: '' });
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Check admin status
-  useEffect(() => {
-    const adminSession = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminSession === 'active');
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'pickntrust-admin-session') {
-        setIsAdmin(e.newValue === 'active');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  // Add category mutation
-  const addCategoryMutation = useMutation({
-    mutationFn: async (category: any) => {
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(category),
-      });
-      if (!response.ok) throw new Error('Failed to add category');
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: 'Category Added!', description: 'New category created successfully.' });
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      setShowAddForm(false);
-      setNewCategory({ name: '', description: '', icon: '', color: '' });
-    },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to add category.', variant: 'destructive' });
-    },
-  });
-
-  const handleAddCategory = () => {
-    if (!newCategory.name.trim()) {
-      toast({ title: 'Name Required', description: 'Please enter a category name.', variant: 'destructive' });
-      return;
-    }
-    addCategoryMutation.mutate(newCategory);
-  };
-
-  if (isLoading) {
-    return (
-      <section className="py-12" style={{ backgroundColor: '#1e293b' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-green-400 mb-8">Browse Categories</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {[...Array(36)].map((_, i) => (
-              <div key={i} className="bg-gray-600 rounded-[20px] p-6 animate-pulse min-h-[140px]"></div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="py-12" style={{ backgroundColor: '#1e293b' }}>
+    <section className="py-12 bg-white dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <div className="relative">
-            <h2 className="text-3xl font-bold text-green-400 mb-2">Browse Categories</h2>
+            <h3 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent relative">
+              Browse Categories
+              <div className="absolute -top-1 -right-4 text-lg animate-pulse">🏪</div>
+            </h3>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-semibold"
-            >
-              + Add Category
-            </button>
-          )}
         </div>
 
-        {/* Add Category Form - Admin Only */}
-        {isAdmin && showAddForm && (
-          <div className="bg-gray-700 rounded-lg p-6 mb-8">
-            <h4 className="text-lg font-semibold text-blue-400 mb-4">Add New Category</h4>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Category Name</label>
-                <input
-                  type="text"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
-                  placeholder="e.g., Sports"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                <input
-                  type="text"
-                  value={newCategory.description}
-                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
-                  placeholder="Brief description"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Icon (FontAwesome class)</label>
-                <input
-                  type="text"
-                  value={newCategory.icon}
-                  onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
-                  placeholder="e.g., fas fa-dumbbell"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Color (hex code)</label>
-                <input
-                  type="text"
-                  value={newCategory.color}
-                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
-                  placeholder="e.g., #6366F1"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleAddCategory}
-                disabled={addCategoryMutation.isPending}
-                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-              >
-                {addCategoryMutation.isPending ? 'Adding...' : 'Add Category'}
-              </button>
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 6x6 Grid Layout - EXACTLY matching the image with perfect styling */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {Array.isArray(categories) && categories.map((category: any) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {categoriesData.map((category) => (
             <Link 
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
-              className={`group relative rounded-[20px] p-6 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl block min-h-[140px] flex flex-col justify-center items-center ${
+              className={`rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all cursor-pointer shadow-lg block relative group ${
                 category.name === 'AI Apps & Services' 
-                  ? 'ring-2 ring-yellow-400 ring-opacity-60' 
+                  ? 'ring-4 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
                   : ''
               }`}
-              style={{ 
-                background: `linear-gradient(180deg, ${category.color}E6 0%, ${category.color}CC 100%)`,
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-              }}
+              style={{ backgroundColor: category.color }}
             >
-              {/* NEW badge for AI category - positioned exactly like in image */}
               {category.name === 'AI Apps & Services' && (
-                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full z-20">
-                  NEW!
-                </div>
+                <>
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+                    NEW! 🔥
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl"></div>
+                </>
               )}
-              
-              {/* Pure White Icon - FontAwesome icons */}
-              <div className={`text-4xl mb-3 ${category.name === 'AI Apps & Services' ? 'animate-pulse' : ''}`} 
-                   style={{ 
-                     color: '#ffffff',
-                     filter: 'brightness(1) contrast(1)',
-                     fontWeight: '300',
-                     strokeWidth: '2px'
-                   }}>
-                <i className={category.icon}></i>
-              </div>
-              
-              {/* Bold Title - Pure White, Semi-bold */}
-              <h3 className="font-semibold text-sm leading-tight mb-2 text-center text-white" 
-                  style={{ 
-                    color: '#ffffff',
-                    fontWeight: '600',
-                    letterSpacing: '0.025em'
-                  }}>
+              <i className={`${category.icon} text-2xl mb-3 ${category.name === 'AI Apps & Services' ? 'animate-pulse text-yellow-200' : ''}`}></i>
+              <h4 className={`font-bold text-sm ${category.name === 'AI Apps & Services' ? 'text-yellow-100' : ''}`}>
                 {category.name}
-              </h3>
-              
-              {/* Subtitle - Lighter White, 80% opacity */}
-              <p className="text-xs leading-tight text-center" 
-                 style={{ 
-                   color: '#ffffff',
-                   opacity: '0.8',
-                   fontWeight: '400',
-                   letterSpacing: '0.025em'
-                 }}>
+              </h4>
+              <p className={`text-xs opacity-90 ${category.name === 'AI Apps & Services' ? 'text-yellow-200' : ''}`}>
                 {category.description}
               </p>
-
-              {/* Subtle inner highlight for neumorphic effect */}
-              <div className="absolute inset-0 rounded-[20px] bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </Link>
           ))}
         </div>
