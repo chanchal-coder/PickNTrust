@@ -1,10 +1,36 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { ProductTimer } from "@/components/product-timer";
 
-// Sample featured products data
-const sampleProducts = [
+// Define Product type locally to avoid schema conflicts
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string | null;
+  imageUrl: string;
+  affiliateUrl: string;
+  affiliateNetworkId: number | null;
+  affiliateNetworkName: string | null;
+  category: string;
+  gender: string | null;
+  rating: string;
+  reviewCount: number;
+  discount: number | null;
+  isNew: boolean;
+  isFeatured: boolean;
+  hasTimer: boolean;
+  timerDuration: number | null;
+  timerStartTime: Date | null;
+  createdAt: Date | null;
+}
+
+// Fallback sample products data (shown only if API returns empty)
+const fallbackProducts = [
   {
     id: 1,
     name: "iPhone 15 Pro Max",
@@ -140,10 +166,16 @@ const sampleProducts = [
 ];
 
 export default function FeaturedProducts() {
+  const { data: products, isLoading } = useQuery<Product[]>({
+    queryKey: ['/api/products/featured'],
+  });
   const [isAdmin, setIsAdmin] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const { toast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+  // Use API data if available, otherwise fallback to sample data
+  const displayProducts = products && products.length > 0 ? products : fallbackProducts;
 
   // Check admin status
   useEffect(() => {
@@ -159,6 +191,12 @@ export default function FeaturedProducts() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  const trackAffiliateMutation = useMutation({
+    mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
+      return apiRequest('POST', '/api/affiliate/track', data);
+    },
+  });
 
   const handleShare = (platform: string, product: any) => {
     const productUrl = `${window.location.origin}`;
@@ -194,12 +232,18 @@ export default function FeaturedProducts() {
     setShowShareMenu(prev => ({...prev, [product.id]: false}));
   };
 
-  const handleAffiliateClick = (product: any) => {
+  const handleAffiliateClick = (product: Product) => {
+    // Track the click
+    trackAffiliateMutation.mutate({
+      productId: product.id,
+      affiliateUrl: product.affiliateUrl
+    });
+    
     // Open affiliate link in new tab
     window.open(product.affiliateUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleWishlistToggle = (product: any) => {
+  const handleWishlistToggle = (product: Product) => {
     if (isInWishlist(product.id)) {
       removeFromWishlist(product.id);
       toast({
@@ -254,7 +298,7 @@ export default function FeaturedProducts() {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {sampleProducts.map((product, index) => (
+          {displayProducts.map((product: Product, index: number) => (
             <div 
               key={product.id}
               className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-102 sm:hover:scale-105 overflow-hidden"
