@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -72,18 +72,36 @@ export default function Header() {
   // Use predefined categories instead of API call
   const categories = predefinedCategories;
 
-  // Close mobile menu when clicking outside
+  // Close mobile menu when clicking outside or pressing escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (mobileMenuOpen && !target.closest('.mobile-menu-container')) {
+      // Check if click is outside the mobile menu container and hamburger button
+      if (mobileMenuOpen && 
+          !target.closest('.mobile-menu-container') && 
+          !target.closest('[aria-label="Open Menu"]') &&
+          !target.closest('[aria-label="Close Menu"]')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && mobileMenuOpen) {
         setMobileMenuOpen(false);
       }
     };
 
     if (mobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+        document.body.style.overflow = 'unset';
+      };
     }
   }, [mobileMenuOpen]);
 
@@ -354,7 +372,10 @@ export default function Header() {
                   return (
                     <button
                       key={category.name}
-                      onClick={() => handleCategoryClick(category.name)}
+                      onClick={() => {
+                        handleCategoryClick(category.name);
+                        setMobileMenuOpen(false);
+                      }}
                       className={baseClasses}
                       style={gradientStyle}
                     >
@@ -375,6 +396,7 @@ export default function Header() {
                       href={`/category/${encodeURIComponent(category.name)}`}
                       className={baseClasses}
                       style={gradientStyle}
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <span className="text-2xl mr-3 relative z-10">

@@ -21,7 +21,7 @@ const predefinedCategories = [
   
   // Row 3
   { id: 13, name: "Fitness & Nutrition", description: "Fitness & Sports Gear", icon: "🏋️", color: "#F97316" },
-  { id: 14, name: "Personal Care", description: "Appliances", icon: "🧴", color: "#84CC16" },
+  { id: 14, name: "Personal Care Appliances", description: "Personal Care Devices", icon: "🧴", color: "#84CC16" },
   { id: 15, name: "Furniture & Décor", description: "Home Furniture & Decor", icon: "🛋️", color: "#10B981" },
   { id: 16, name: "Kitchen & Dining", description: "Kitchen Essentials", icon: "🍽️", color: "#22C55E" },
   { id: 17, name: "Bedding & Home Essentials", description: "Comfort & Home Basics", icon: "🛏️", color: "#06B6D4" },
@@ -44,7 +44,7 @@ const predefinedCategories = [
   { id: 30, name: "Utility & Bill Payments", description: "Bills & Utility Services", icon: "📄", color: "#6366F1" },
   
   // Row 6
-  { id: 31, name: "Cars & Bikes", description: "Vehicle Accessories", icon: "🚗", color: "#D97706" },
+  { id: 31, name: "Cars & Bikes Accessories", description: "Vehicle Accessories", icon: "🚗", color: "#D97706" },
   { id: 32, name: "Parts & Maintenance", description: "Auto Parts & Services", icon: "🔧", color: "#DC2626" },
   { id: 33, name: "Baby Products", description: "Baby Care & Products", icon: "🍼", color: "#F472B6" },
   { id: 34, name: "Pet Supplies", description: "Pet Care & Accessories", icon: "🐾", color: "#FB7185" },
@@ -71,44 +71,49 @@ export default function Categories() {
   }, []);
 
   return (
-    <section className="py-16" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+    <section className="py-12 bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="text-2xl md:text-3xl font-bold text-white">Browse Categories</h3>
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-green-400 mb-2">Browse Categories</h2>
         </div>
 
         {/* 6x6 Grid Layout - Exactly matching the image */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {predefinedCategories.map((category) => (
             <Link 
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
-              className={`rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg block relative group min-h-[120px] flex flex-col justify-center ${
+              className={`group relative rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg block min-h-[140px] flex flex-col justify-center items-center ${
                 category.isNew 
                   ? 'ring-2 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
                   : ''
               }`}
               style={{ backgroundColor: category.color }}
             >
+              {/* NEW badge for AI category */}
               {category.isNew && (
-                <>
-                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce z-20">
-                    NEW! 🔥
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl"></div>
-                </>
-              )}
-              <div className="relative z-10">
-                <div className={`text-3xl mb-2 block ${category.isNew ? 'animate-pulse' : ''}`}>
-                  {category.icon}
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce z-20">
+                  NEW!
                 </div>
-                <h4 className={`font-bold text-sm leading-tight mb-1 ${category.isNew ? 'text-yellow-100' : ''}`}>
-                  {category.name}
-                </h4>
-                <p className={`text-xs opacity-90 leading-tight ${category.isNew ? 'text-yellow-200' : ''}`}>
-                  {category.description}
-                </p>
+              )}
+              
+              {/* Icon */}
+              <div className={`text-4xl mb-3 ${category.isNew ? 'animate-pulse' : ''}`}>
+                {category.icon}
               </div>
+              
+              {/* Category Name */}
+              <h3 className={`font-bold text-sm leading-tight mb-2 text-center ${category.isNew ? 'text-yellow-100' : 'text-white'}`}>
+                {category.name}
+              </h3>
+              
+              {/* Description */}
+              <p className={`text-xs opacity-90 leading-tight text-center ${category.isNew ? 'text-yellow-200' : 'text-white'}`}>
+                {category.description}
+              </p>
+
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300"></div>
             </Link>
           ))}
         </div>

@@ -1056,6 +1056,8 @@ export default function AdminPage() {
 
   const addProductMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
+      console.log('🚀 Starting product mutation with data:', data);
+      
       const productData = {
         ...data,
         price: data.price,
@@ -1072,6 +1074,8 @@ export default function AdminPage() {
         password: 'pickntrust2025', // Add admin password for authentication
       };
       
+      console.log('📤 Sending product data to API:', productData);
+      
       const response = await fetch('/api/admin/products', {
         method: 'POST',
         headers: {
@@ -1080,11 +1084,17 @@ export default function AdminPage() {
         body: JSON.stringify(productData),
       });
       
+      console.log('📥 API Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to add product');
+        const errorText = await response.text();
+        console.error('❌ API Error:', errorText);
+        throw new Error(`Failed to add product: ${errorText}`);
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log('✅ Product added successfully:', result);
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -1114,10 +1124,11 @@ export default function AdminPage() {
       });
       setShowAddForm(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('❌ Product mutation failed:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add product. Please try again.',
+        description: error.message || 'Failed to add product. Please try again.',
         variant: 'destructive',
       });
     },
@@ -1126,16 +1137,29 @@ export default function AdminPage() {
   // Blog management mutations
   const addBlogMutation = useMutation({
     mutationFn: async (blogData: any) => {
+      console.log('🚀 Starting blog mutation with data:', blogData);
+      
+      const blogPayload = { ...blogData, password: 'pickntrust2025' };
+      console.log('📤 Sending blog data to API:', blogPayload);
+      
       const response = await fetch('/api/admin/blog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...blogData, password: 'pickntrust2025' }),
+        body: JSON.stringify(blogPayload),
       });
+      
+      console.log('📥 Blog API Response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Blog API Error:', errorText);
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to add blog post');
+        throw new Error(errorData.message || `Failed to add blog post: ${errorText}`);
       }
-      return response.json();
+      
+      const result = await response.json();
+      console.log('✅ Blog post added successfully:', result);
+      return result;
     },
     onSuccess: () => {
       toast({ title: 'Blog Post Added!', description: 'Your blog post has been published successfully.' });
@@ -1214,6 +1238,7 @@ export default function AdminPage() {
   });
 
   const onSubmit = (data: ProductForm) => {
+    console.log('Form submitted with data:', data);
     addProductMutation.mutate(data);
   };
 
