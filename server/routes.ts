@@ -240,71 +240,13 @@ export function setupRoutes(app: Express, storage: IStorage) {
   app.get("/api/categories", async (req, res) => {
     try {
       const categories = await storage.getCategories();
+      if (!categories || categories.length === 0) {
+        return res.status(404).json({ message: "No categories found" });
+      }
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
-    }
-  });
-
-  // Admin category management routes
-  app.post('/api/admin/categories', async (req, res) => {
-    try {
-      const { password, ...categoryData } = req.body;
-
-      if (!await verifyAdminPassword(password)) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-
-      const category = await storage.addCategory(categoryData);
-      res.json({ message: 'Category added successfully', category });
-    } catch (error) {
-      console.error('Add category error:', error);
-      res.status(500).json({ message: 'Failed to add category' });
-    }
-  });
-
-  app.put('/api/admin/categories/:id', async (req, res) => {
-    try {
-      const { password, ...updates } = req.body;
-      
-      if (!await verifyAdminPassword(password)) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-
-      const id = parseInt(req.params.id);
-      const category = await storage.updateCategory(id, updates);
-      
-      if (category) {
-        res.json({ message: 'Category updated successfully', category });
-      } else {
-        res.status(404).json({ message: 'Category not found' });
-      }
-    } catch (error) {
-      console.error('Update category error:', error);
-      res.status(500).json({ message: 'Failed to update category' });
-    }
-  });
-
-  app.delete('/api/admin/categories/:id', async (req, res) => {
-    try {
-      const { password } = req.body;
-      
-      if (!await verifyAdminPassword(password)) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-
-      const id = parseInt(req.params.id);
-      const deleted = await storage.deleteCategory(id);
-      
-      if (deleted) {
-        res.json({ message: 'Category deleted successfully' });
-      } else {
-        res.status(404).json({ message: 'Category not found' });
-      }
-    } catch (error) {
-      console.error('Delete category error:', error);
-      res.status(500).json({ message: 'Failed to delete category' });
     }
   });
 

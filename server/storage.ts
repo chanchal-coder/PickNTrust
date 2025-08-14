@@ -34,8 +34,6 @@ export interface IStorage {
   // Categories
   getCategories(): Promise<Category[]>;
   addCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(id: number, updates: Partial<Category>): Promise<Category | null>;
-  deleteCategory(id: number): Promise<boolean>;
   
   // Blog Posts
   getBlogPosts(): Promise<BlogPost[]>;
@@ -105,14 +103,6 @@ export class MemStorage implements IStorage {
 
   async addCategory(category: InsertCategory): Promise<Category> {
     throw new Error("Method not implemented.");
-  }
-
-  async updateCategory(id: number, updates: Partial<Category>): Promise<Category | null> {
-    return null;
-  }
-
-  async deleteCategory(id: number): Promise<boolean> {
-    return false;
   }
 
   async getBlogPosts(): Promise<BlogPost[]> {
@@ -263,20 +253,6 @@ export class DatabaseStorage implements IStorage {
       .values(category)
       .returning();
     return newCategory;
-  }
-
-  async updateCategory(id: number, updates: Partial<Category>): Promise<Category | null> {
-    const [updatedCategory] = await db
-      .update(categories)
-      .set(updates)
-      .where(eq(categories.id, id))
-      .returning();
-    return updatedCategory || null;
-  }
-
-  async deleteCategory(id: number): Promise<boolean> {
-    const result = await db.delete(categories).where(eq(categories.id, id));
-    return true;
   }
 
   // Blog Posts

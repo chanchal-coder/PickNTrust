@@ -1,8 +1,6 @@
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 
-// Fallback categories data in case API fails
-const fallbackCategoriesData = [
+const categoriesData = [
   {
     id: 1,
     name: 'Electronics & Gadgets',
@@ -258,16 +256,6 @@ const fallbackCategoriesData = [
 ];
 
 export default function Categories() {
-  // Fetch categories from API with fallback to hardcoded data
-  const { data: apiCategories, isLoading } = useQuery({
-    queryKey: ['/api/categories'],
-    retry: false
-  });
-
-  // Use API data if available, otherwise use fallback data
-  const categoriesData = apiCategories && Array.isArray(apiCategories) && apiCategories.length > 0 
-    ? apiCategories 
-    : fallbackCategoriesData;
   return (
     <section className="py-12 bg-white dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
