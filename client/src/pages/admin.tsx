@@ -11,9 +11,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
-import { Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Plus, Megaphone } from 'lucide-react';
+import { 
+  Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, 
+  Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Plus, Megaphone,
+  Settings, Users, BarChart3, Link, Sparkles, BookOpen, Tags, Palette, Loader2
+} from 'lucide-react';
+
+// Import existing admin components
+import ProductManagement from '@/components/admin/ProductManagement';
+import CategoryManagement from '@/components/admin/CategoryManagement';
+import BlogManagement from '@/components/admin/AdminBlogPostForm';
+import AnnouncementManagement from '@/components/admin/AnnouncementManagement';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -39,6 +50,9 @@ export default function AdminPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractUrl, setExtractUrl] = useState('');
 
   // Check if admin session exists on page load
   useEffect(() => {
@@ -68,6 +82,53 @@ export default function AdminPage() {
       }
       return response.json();
     }
+  });
+
+  const { data: blogPosts = [] } = useQuery({
+    queryKey: ['/api/blog'],
+    queryFn: async () => {
+      const response = await fetch('/api/blog');
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog posts');
+      }
+      return response.json();
+    }
+  });
+
+  // URL extraction mutation
+  const extractProductMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const response = await fetch('/api/products/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to extract product details');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: 'Product Extracted!',
+          description: 'Product details have been extracted. You can now edit and save.',
+        });
+        // Here you would populate the form with extracted data
+        // This would require form state management
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Extraction Failed',
+        description: 'Could not extract product details from the URL.',
+        variant: 'destructive',
+      });
+    },
   });
 
   const addProductMutation = useMutation({
@@ -157,7 +218,7 @@ export default function AdminPage() {
         localStorage.setItem('pickntrust-admin-session', 'active');
         toast({
           title: 'Access Granted',
-          description: 'Welcome to PickNTrust Admin Panel.',
+          description: 'Welcome to PickNTrust Enhanced Admin Panel.',
         });
       } else {
         toast({
@@ -178,6 +239,20 @@ export default function AdminPage() {
     }
   };
 
+  const handleExtractProduct = () => {
+    if (!extractUrl.trim()) {
+      toast({
+        title: 'URL Required',
+        description: 'Please enter a product URL to extract details.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsExtracting(true);
+    extractProductMutation.mutate(extractUrl);
+    setTimeout(() => setIsExtracting(false), 2000);
+  };
+
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('pickntrust-admin-session');
@@ -190,31 +265,37 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="max-w-md w-full">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-navy dark:text-blue-400">PickNTrust Admin</CardTitle>
-              <CardDescription>Enter password to access admin panel</CardDescription>
+          <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+            <CardHeader className="text-center pb-8">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4">
+                <Settings className="w-8 h-8 text-white" />
+              </div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                PickNTrust Admin
+              </CardTitle>
+              <CardDescription className="text-lg">Enhanced Admin Panel</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <form onSubmit={handlePasswordSubmit} className="space-y-6">
                 <div>
-                  <Label htmlFor="password">Admin Password</Label>
+                  <Label htmlFor="password" className="text-base font-medium">Admin Password</Label>
                   <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter admin password"
+                    className="mt-2 h-12 text-lg"
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full bg-bright-blue hover:bg-navy">
+                <Button type="submit" className="w-full h-12 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   Access Admin Panel
                 </Button>
               </form>
-              <p className="text-xs text-gray-500 mt-4 text-center">
+              <p className="text-xs text-gray-500 mt-6 text-center">
                 Only authorized users can access this panel
               </p>
             </CardContent>
@@ -229,13 +310,14 @@ export default function AdminPage() {
       <Header />
       <div className="pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Section */}
           <div className="mb-8 flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-navy dark:text-blue-400 mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 PickNTrust Admin Panel
               </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                Manage your products and affiliate links
+              <p className="text-gray-600 dark:text-gray-300 text-lg">
+                Complete management dashboard for your affiliate platform
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -250,297 +332,232 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Dashboard Stats */}
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm">Total Products</p>
-                    <p className="text-2xl font-bold">{Array.isArray(products) ? products.length : 0}</p>
-                  </div>
-                  <Package className="w-8 h-8 text-blue-200" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm">Featured Products</p>
-                    <p className="text-2xl font-bold">{Array.isArray(products) ? products.filter((p: any) => p.isFeatured).length : 0}</p>
-                  </div>
-                  <Star className="w-8 h-8 text-green-200" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm">Categories</p>
-                    <p className="text-2xl font-bold">{Array.isArray(categories) ? categories.length : 0}</p>
-                  </div>
-                  <Globe className="w-8 h-8 text-purple-200" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100 text-sm">New Products</p>
-                    <p className="text-2xl font-bold">{Array.isArray(products) ? products.filter((p: any) => p.isNew).length : 0}</p>
-                  </div>
-                  <Trophy className="w-8 h-8 text-orange-200" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Main Admin Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-6 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-lg">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="products" className="flex items-center gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white">
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">Products</span>
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="flex items-center gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
+                <Tags className="w-4 h-4" />
+                <span className="hidden sm:inline">Categories</span>
+              </TabsTrigger>
+              <TabsTrigger value="blog" className="flex items-center gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden sm:inline">Blog</span>
+              </TabsTrigger>
+              <TabsTrigger value="announcements" className="flex items-center gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white">
+                <Megaphone className="w-4 h-4" />
+                <span className="hidden sm:inline">Announcements</span>
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="flex items-center gap-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white">
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">Tools</span>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Product Management */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-navy dark:text-blue-400">Product Management</CardTitle>
-              <CardDescription>Add and manage your products</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="bg-bright-blue hover:bg-navy text-white mb-4"
-              >
-                {showAddForm ? 'Cancel' : 'Add New Product'}
-              </Button>
-
-              {showAddForm && (
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Product Name *</Label>
-                      <Input
-                        id="name"
-                        {...form.register('name')}
-                        placeholder="Premium Wireless Smartphone"
-                      />
-                      {form.formState.errors.name && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {form.formState.errors.name.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="category">Category *</Label>
-                      <Select 
-                        onValueChange={(value) => form.setValue('category', value)}
-                        defaultValue="Electronics & Gadgets"
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.isArray(categories) && categories.map((category: any) => (
-                            <SelectItem key={category.id} value={category.name}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Description *</Label>
-                    <Textarea
-                      id="description"
-                      {...form.register('description')}
-                      placeholder="High-quality product with amazing features..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="price">Current Price (₹) *</Label>
-                      <Input
-                        id="price"
-                        {...form.register('price')}
-                        placeholder="9999"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="originalPrice">Original Price (₹)</Label>
-                      <Input
-                        id="originalPrice"
-                        {...form.register('originalPrice')}
-                        placeholder="14999"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="discount">Discount %</Label>
-                      <Input
-                        id="discount"
-                        {...form.register('discount')}
-                        placeholder="33"
-                        type="number"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="rating">Rating (1-5) *</Label>
-                      <Input
-                        id="rating"
-                        {...form.register('rating')}
-                        placeholder="4.5"
-                        type="number"
-                        step="0.1"
-                        min="1"
-                        max="5"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="reviewCount">Review Count *</Label>
-                      <Input
-                        id="reviewCount"
-                        {...form.register('reviewCount')}
-                        placeholder="1234"
-                        type="number"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="imageUrl">Product Image URL *</Label>
-                    <Input
-                      id="imageUrl"
-                      {...form.register('imageUrl')}
-                      placeholder="https://images.unsplash.com/photo-..."
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="affiliateUrl">Affiliate Link *</Label>
-                    <Input
-                      id="affiliateUrl"
-                      {...form.register('affiliateUrl')}
-                      placeholder="https://amzn.to/XXXXXXX"
-                    />
-                  </div>
-
-                  <div className="flex gap-4">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        {...form.register('isNew')}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Mark as NEW</span>
-                    </label>
-
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        {...form.register('isFeatured')}
-                        className="rounded"
-                        defaultChecked
-                      />
-                      <span className="text-sm">Featured Product</span>
-                    </label>
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    disabled={addProductMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {addProductMutation.isPending ? 'Adding Product...' : 'Add Product'}
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Current Products */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-navy dark:text-blue-400">Current Products</CardTitle>
-              <CardDescription>Manage your existing products</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Array.isArray(products) && products.length > 0 ? (
-                  products.map((product: any) => (
-                    <div key={product.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex gap-4 flex-1">
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name}
-                            className="w-20 h-20 object-cover rounded-lg"
-                          />
-                          <div className="flex-1">
-                            <h5 className="font-semibold text-navy dark:text-blue-400">{product.name}</h5>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{product.description}</p>
-                            
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1">
-                                <DollarSign className="w-4 h-4 text-green-600" />
-                                <span className="font-semibold text-green-600">₹{product.price}</span>
-                                {product.originalPrice && (
-                                  <span className="text-gray-500 line-through">₹{product.originalPrice}</span>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center gap-1">
-                                <Star className="w-4 h-4 text-yellow-500" />
-                                <span>{product.rating}</span>
-                                <span className="text-gray-500">({product.reviewCount})</span>
-                              </div>
-                              
-                              <Badge variant="outline" className="text-xs">
-                                {product.category}
-                              </Badge>
-                              
-                              {product.isNew && (
-                                <Badge className="bg-green-100 text-green-800 text-xs">NEW</Badge>
-                              )}
-                              
-                              {product.isFeatured && (
-                                <Badge className="bg-blue-100 text-blue-800 text-xs">FEATURED</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(product.affiliateUrl, '_blank')}
-                            className="p-2"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </Button>
-                        </div>
+            {/* Dashboard Tab */}
+            <TabsContent value="dashboard" className="space-y-6">
+              <div className="grid md:grid-cols-4 gap-6">
+                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Products</p>
+                        <p className="text-3xl font-bold">{Array.isArray(products) ? products.length : 0}</p>
                       </div>
+                      <Package className="w-10 h-10 text-blue-200" />
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    No products found. Add your first product above!
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">Featured Products</p>
+                        <p className="text-3xl font-bold">{Array.isArray(products) ? products.filter((p: any) => p.isFeatured).length : 0}</p>
+                      </div>
+                      <Star className="w-10 h-10 text-green-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm font-medium">Categories</p>
+                        <p className="text-3xl font-bold">{Array.isArray(categories) ? categories.length : 0}</p>
+                      </div>
+                      <Tags className="w-10 h-10 text-purple-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-medium">Blog Posts</p>
+                        <p className="text-3xl font-bold">{Array.isArray(blogPosts) ? blogPosts.length : 0}</p>
+                      </div>
+                      <BookOpen className="w-10 h-10 text-orange-200" />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Quick Actions
+                  </CardTitle>
+                  <CardDescription>
+                    Frequently used admin actions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <Button 
+                      onClick={() => setActiveTab('products')}
+                      className="h-16 bg-green-600 hover:bg-green-700 flex flex-col gap-1"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Product
+                    </Button>
+                    <Button 
+                      onClick={() => setActiveTab('categories')}
+                      className="h-16 bg-purple-600 hover:bg-purple-700 flex flex-col gap-1"
+                    >
+                      <Tags className="w-5 h-5" />
+                      Add Category
+                    </Button>
+                    <Button 
+                      onClick={() => setActiveTab('blog')}
+                      className="h-16 bg-orange-600 hover:bg-orange-700 flex flex-col gap-1"
+                    >
+                      <BookOpen className="w-5 h-5" />
+                      Write Blog Post
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Products Tab */}
+            <TabsContent value="products">
+              <ProductManagement />
+            </TabsContent>
+
+            {/* Categories Tab */}
+            <TabsContent value="categories">
+              <CategoryManagement />
+            </TabsContent>
+
+            {/* Blog Tab */}
+            <TabsContent value="blog">
+              <BlogManagement />
+            </TabsContent>
+
+            {/* Announcements Tab */}
+            <TabsContent value="announcements">
+              <AnnouncementManagement />
+            </TabsContent>
+
+            {/* Tools Tab */}
+            <TabsContent value="tools" className="space-y-6">
+              {/* URL Product Extractor */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Link className="w-5 h-5" />
+                    Product URL Extractor
+                  </CardTitle>
+                  <CardDescription>
+                    Extract product details automatically from URLs (Amazon, eBay, etc.)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-4">
+                    <Input
+                      placeholder="Paste product URL here (e.g., https://amazon.com/product/...)"
+                      value={extractUrl}
+                      onChange={(e) => setExtractUrl(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleExtractProduct}
+                      disabled={isExtracting || extractProductMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isExtracting || extractProductMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Extracting...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Extract Details
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <p className="font-medium mb-2">Supported platforms:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">Amazon</Badge>
+                      <Badge variant="outline">eBay</Badge>
+                      <Badge variant="outline">AliExpress</Badge>
+                      <Badge variant="outline">Flipkart</Badge>
+                      <Badge variant="outline">And more...</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Other Tools */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" />
+                      Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 mb-4">View detailed analytics and performance metrics.</p>
+                    <Button variant="outline" className="w-full">
+                      View Analytics
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      System Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 mb-4">Configure system settings and preferences.</p>
+                    <Button variant="outline" className="w-full">
+                      Open Settings
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
