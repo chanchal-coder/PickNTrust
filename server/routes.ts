@@ -15,7 +15,7 @@ import {
 
 // Import storage interface and db instance
 import { IStorage } from "./storage";
-import { dbInstance as db } from "./db.js";
+import { db } from "./db.js";
 
 // Helper function to verify admin password
 async function verifyAdminPassword(password: string): Promise<boolean> {
