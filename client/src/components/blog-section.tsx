@@ -1,29 +1,58 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
-// Define BlogPost type locally to avoid schema conflicts
-interface BlogPost {
-  id: number;
-  title: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  tags: string[];
-  imageUrl: string;
-  videoUrl?: string;
-  publishedAt: Date | string;
-  createdAt: Date | null;
-  readTime: string;
-  slug: string;
-  hasTimer: boolean;
-  timerDuration: number | null;
-  timerStartTime: Date | null;
-}
-export default function BlogSection() {
-  const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
-    queryKey: ['/api/blog'],
-  });
+// Sample blog posts data
+const sampleBlogPosts = [
+  {
+    id: 1,
+    title: "Top 10 Best Deals This Week",
+    excerpt: "Discover the hottest deals and discounts available this week. From electronics to fashion, we've curated the best offers just for you.",
+    content: "Full blog content here...",
+    category: "Deals",
+    tags: ["deals", "discounts", "shopping", "weekly"],
+    imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&q=80",
+    publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    createdAt: new Date(),
+    readTime: "5 min read",
+    slug: "top-10-best-deals-this-week",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  },
+  {
+    id: 2,
+    title: "Smart Shopping Tips for 2024",
+    excerpt: "Learn the best strategies to save money while shopping online. Expert tips and tricks to get the most value for your money.",
+    content: "Full blog content here...",
+    category: "Tips",
+    tags: ["shopping", "tips", "money-saving", "guide"],
+    imageUrl: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&q=80",
+    publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    createdAt: new Date(),
+    readTime: "7 min read",
+    slug: "smart-shopping-tips-2024",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  },
+  {
+    id: 3,
+    title: "iPhone 15 vs Samsung Galaxy S24: Which to Buy?",
+    excerpt: "Complete comparison of the latest flagship smartphones. We break down specs, features, and value to help you make the right choice.",
+    content: "Full blog content here...",
+    category: "Reviews",
+    tags: ["iphone", "samsung", "comparison", "smartphones"],
+    imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&q=80",
+    publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    createdAt: new Date(),
+    readTime: "10 min read",
+    slug: "iphone-15-vs-samsung-galaxy-s24",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  }
+];
 
+export default function BlogSection() {
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return d.toLocaleDateString('en-US', { 
@@ -32,64 +61,6 @@ export default function BlogSection() {
       day: 'numeric' 
     });
   };
-
-  if (isLoading) {
-    return (
-      <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
-            <p className="text-xl text-gray-600 dark:text-gray-300">Stay updated with the latest deals and shopping hacks</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[...Array(3)].map((_, i) => (
-              <article key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse border border-gray-100 dark:border-gray-700">
-                <div className={`w-full h-48 ${
-                  i === 0 ? 'bg-gradient-to-br from-blue-200 to-purple-300 dark:from-blue-700 dark:to-purple-800' :
-                  i === 1 ? 'bg-gradient-to-br from-green-200 to-teal-300 dark:from-green-700 dark:to-teal-800' :
-                  'bg-gradient-to-br from-pink-200 to-orange-300 dark:from-pink-700 dark:to-orange-800'
-                }`}></div>
-                <div className="p-6">
-                  <div className="h-4 bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-700 dark:to-purple-700 rounded mb-3"></div>
-                  <div className="h-6 bg-gradient-to-r from-green-200 to-teal-200 dark:from-green-700 dark:to-teal-700 rounded mb-3"></div>
-                  <div className="h-4 bg-gradient-to-r from-pink-200 to-orange-200 dark:from-pink-700 dark:to-orange-700 rounded mb-4"></div>
-                  <div className="h-4 bg-gradient-to-r from-purple-200 to-indigo-200 dark:from-purple-700 dark:to-indigo-700 rounded w-24"></div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  // If no blog posts, show empty state instead of nothing
-  if (!blogPosts || blogPosts.length === 0) {
-    return (
-      <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <div className="relative inline-block">
-              <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
-                Quick Tips & Trending
-                <div className="absolute -top-2 -right-6 text-xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
-              </h3>
-            </div>
-            <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
-              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">🚀 Stay updated with the latest deals and shopping hacks 🚀</span>
-            </p>
-          </div>
-          
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
-            <h4 className="text-2xl font-bold text-gray-600 dark:text-gray-300 mb-2">No Blog Posts Yet</h4>
-            <p className="text-gray-500 dark:text-gray-400">Check back soon for the latest tips and trending deals!</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
@@ -107,67 +78,18 @@ export default function BlogSection() {
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
-          {blogPosts?.map((post, index) => (
+          {sampleBlogPosts.map((post, index) => (
             <article key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:-translate-y-2 hover:scale-105 group">
               <div className={`w-full h-48 relative p-2 dark:bg-gradient-to-br dark:from-green-900 dark:via-teal-900 dark:to-blue-900 ${
                 index % 3 === 0 ? 'bg-blue-400' : 
                 index % 3 === 1 ? 'bg-green-400' : 
                 'bg-orange-400'
               }`}>
-                {post.videoUrl ? (
-                  <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-white/50 dark:border-gray-700/50 shadow-lg">
-                    {/* YouTube Videos */}
-                    {(post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be')) ? (
-                      <iframe
-                        src={post.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                        className="w-full h-full"
-                        frameBorder="0"
-                        allowFullScreen
-                        title={post.title}
-                      />
-                    ) : 
-                    /* Instagram Reels */
-                    post.videoUrl.includes('instagram.com/reel/') ? (
-                      <iframe
-                        src={`${post.videoUrl}embed/`}
-                        className="w-full h-full"
-                        frameBorder="0"
-                        allowFullScreen
-                        title={post.title}
-                      />
-                    ) : 
-                    /* Facebook Reels */
-                    post.videoUrl.includes('facebook.com/reel/') ? (
-                      <iframe
-                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(post.videoUrl)}&show_text=false&width=400`}
-                        className="w-full h-full"
-                        frameBorder="0"
-                        allowFullScreen
-                        title={post.title}
-                      />
-                    ) : 
-                    /* Direct Video Files (uploaded or external) */
-                    (
-                      <video 
-                        src={post.videoUrl.startsWith('/uploads/') ? `${window.location.origin}${post.videoUrl}` : post.videoUrl}
-                        className="w-full h-full object-cover"
-                        controls
-                        poster={post.imageUrl}
-                      />
-                    )}
-                    <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
-                      {post.videoUrl.includes('instagram.com') ? '📱 Reel' : 
-                       post.videoUrl.includes('facebook.com') ? '📘 Reel' : 
-                       post.videoUrl.includes('youtube.com') ? '🎥 Video' : '📹 Video'}
-                    </div>
-                  </div>
-                ) : (
-                  <img 
-                    src={post.imageUrl} 
-                    alt={post.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                  />
-                )}
+                <img 
+                  src={post.imageUrl} 
+                  alt={post.title} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
+                />
               </div>
               <div className={`p-6 ${
                 index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
@@ -183,7 +105,7 @@ export default function BlogSection() {
                     <span>{post.readTime}</span>
                   </div>
                   {post.category && (
-                    <span className="bg-bright-blue text-white px-2 py-1 rounded-full text-xs font-medium">
+                    <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
                       {post.category}
                     </span>
                   )}
@@ -192,12 +114,11 @@ export default function BlogSection() {
                   <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1">{post.title}</h4>
                 </div>
                 <div className="text-gray-600 dark:text-gray-300 mb-4">
-                  {/* Show only first 4-5 lines of excerpt */}
                   <span>{post.excerpt.length > 120 ? `${post.excerpt.substring(0, 120)}...` : post.excerpt}</span>
                   <br />
                   <Link 
                     href={`/blog/${post.slug}`} 
-                    className="text-bright-blue hover:text-navy dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline cursor-pointer"
+                    className="text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline cursor-pointer"
                     onClick={() => {
                       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
                     }}
