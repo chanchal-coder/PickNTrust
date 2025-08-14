@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
+import CategoryManagement from '@/components/admin/CategoryManagement';
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -131,15 +132,26 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Admin Content */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-navy dark:text-blue-400 mb-4">
-              Admin Dashboard
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              Admin functionality will be available here.
-            </p>
+          {/* Admin Navigation Tabs */}
+          <div className="mb-8">
+            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-2xl">
+              <button
+                onClick={() => setActiveTab('categories')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'categories'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                🏷️ Categories
+              </button>
+            </div>
           </div>
+
+          {/* Categories Management Tab */}
+          {activeTab === 'categories' && (
+            <CategoryManagement />
+          )}
         </div>
       </div>
     </div>
