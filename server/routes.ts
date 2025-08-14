@@ -250,6 +250,23 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // Add category (Admin only)
+  app.post('/api/categories', async (req, res) => {
+    try {
+      const { password, ...categoryData } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const category = await storage.addCategory(categoryData);
+      res.json({ message: 'Category added successfully', category });
+    } catch (error) {
+      console.error('Add category error:', error);
+      res.status(500).json({ message: 'Failed to add category' });
+    }
+  });
+
   // Get all affiliate networks
   app.get("/api/affiliate-networks", async (req, res) => {
     try {

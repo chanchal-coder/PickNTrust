@@ -1,59 +1,17 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-
-// Categories matching the EXACT image layout with EXACT names and colors (6 rows x 6 columns = 36 categories)
-const predefinedCategories = [
-  // Row 1 - EXACT as image
-  { id: 1, name: "Electronics & Gadgets", description: "Latest Tech & Electronics", icon: "⚙", color: "#6366F1" },
-  { id: 2, name: "Mobiles & Accessories", description: "Smartphones & Mobile Gear", icon: "📱", color: "#8B5CF6" },
-  { id: 3, name: "Computers & Laptops", description: "Computing Solutions", icon: "💻", color: "#3B82F6" },
-  { id: 4, name: "Cameras & Photography", description: "Capture Perfect Moments", icon: "📷", color: "#A855F7" },
-  { id: 5, name: "Home Appliances", description: "Smart Home Solutions", icon: "🏠", color: "#10B981" },
-  { id: 6, name: "Men's Fashion", description: "Stylish Men's Wear", icon: "👤", color: "#059669" },
-  
-  // Row 2 - EXACT as image
-  { id: 7, name: "Women's Fashion", description: "Elegant Women's Collection", icon: "👤", color: "#EC4899" },
-  { id: 8, name: "Kids' Fashion", description: "Trendy Kids' Clothing", icon: "👤", color: "#F59E0B" },
-  { id: 9, name: "Footwear & Accessories", description: "Shoes & Style Accessories", icon: "👟", color: "#8B5CF6" },
-  { id: 10, name: "Jewelry & Watches", description: "Luxury & Timepieces", icon: "💎", color: "#A855F7" },
-  { id: 11, name: "Beauty & Grooming", description: "Beauty & Personal Care", icon: "🌸", color: "#F472B6" },
-  { id: 12, name: "Health & Wellness", description: "Health & Fitness Products", icon: "❤", color: "#EF4444" },
-  
-  // Row 3 - EXACT as image
-  { id: 13, name: "Fitness & Nutrition", description: "Fitness & Sports Gear", icon: "🏋", color: "#F97316" },
-  { id: 14, name: "Personal Care Appliances", description: "Personal Care Devices", icon: "🔧", color: "#84CC16" },
-  { id: 15, name: "Furniture & Décor", description: "Home Furniture & Decor", icon: "🛋", color: "#10B981" },
-  { id: 16, name: "Kitchen & Dining", description: "Kitchen Essentials", icon: "🍽", color: "#22C55E" },
-  { id: 17, name: "Bedding & Home Essentials", description: "Comfort & Home Basics", icon: "🛏", color: "#06B6D4" },
-  { id: 18, name: "Gardening & Outdoor", description: "Garden & Outdoor Living", icon: "🌱", color: "#65A30D" },
-  
-  // Row 4 - EXACT as image
-  { id: 19, name: "Books & Stationery", description: "Books & Learning Materials", icon: "📄", color: "#D97706" },
-  { id: 20, name: "Music, Movies & Games", description: "Entertainment & Gaming", icon: "⭕", color: "#DC2626" },
-  { id: 21, name: "E-learning & Courses", description: "Online Learning & Skills", icon: "🎓", color: "#B91C1C" },
-  { id: 22, name: "Groceries & Gourmet", description: "Fresh & Gourmet Foods", icon: "🛒", color: "#D97706" },
-  { id: 23, name: "Food Delivery & Meal Kits", description: "Ready Meals & Delivery", icon: "🍕", color: "#EA580C" },
-  { id: 24, name: "Flights & Hotels", description: "Travel Bookings", icon: "✈", color: "#3B82F6" },
-  
-  // Row 5 - EXACT as image
-  { id: 25, name: "Holiday Packages", description: "Complete Travel Packages", icon: "🏖", color: "#0891B2" },
-  { id: 26, name: "Experiences & Activities", description: "Adventure & Experiences", icon: "👥", color: "#1E40AF" },
-  { id: 27, name: "Credit Cards & Finance", description: "Financial Services", icon: "💳", color: "#7C3AED" },
-  { id: 28, name: "Loans & Insurance", description: "Loans & Protection Plans", icon: "🛡", color: "#8B5CF6" },
-  { id: 29, name: "Investments & Trading Tools", description: "Investment & Trading", icon: "📈", color: "#A855F7" },
-  { id: 30, name: "Utility & Bill Payments", description: "Bills & Utility Services", icon: "📄", color: "#6366F1" },
-  
-  // Row 6 - EXACT as image
-  { id: 31, name: "Cars & Bikes Accessories", description: "Vehicle Accessories", icon: "🚗", color: "#D97706" },
-  { id: 32, name: "Parts & Maintenance", description: "Auto Parts & Services", icon: "🔧", color: "#DC2626" },
-  { id: 33, name: "Baby Products", description: "Baby Care & Products", icon: "🍼", color: "#F472B6" },
-  { id: 34, name: "Pet Supplies", description: "Pet Care & Accessories", icon: "🐾", color: "#FB7185" },
-  { id: 35, name: "Gifting & Occasions", description: "Gifts & Special Occasions", icon: "🎁", color: "#F87171" },
-  { id: 36, name: "AI Apps & Services", description: "Cutting-edge AI tools and applications", icon: "🤖", color: "#8B5CF6", isNew: true },
-];
+import { useToast } from "@/hooks/use-toast";
 
 export default function Categories() {
+  const { data: categories, isLoading } = useQuery({
+    queryKey: ['/api/categories'],
+  });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', icon: '', color: '' });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Check admin status
   useEffect(() => {
@@ -70,21 +28,140 @@ export default function Categories() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Add category mutation
+  const addCategoryMutation = useMutation({
+    mutationFn: async (category: any) => {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(category),
+      });
+      if (!response.ok) throw new Error('Failed to add category');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Category Added!', description: 'New category created successfully.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      setShowAddForm(false);
+      setNewCategory({ name: '', description: '', icon: '', color: '' });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to add category.', variant: 'destructive' });
+    },
+  });
+
+  const handleAddCategory = () => {
+    if (!newCategory.name.trim()) {
+      toast({ title: 'Name Required', description: 'Please enter a category name.', variant: 'destructive' });
+      return;
+    }
+    addCategoryMutation.mutate(newCategory);
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-12" style={{ backgroundColor: '#1e293b' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-green-400 mb-8">Browse Categories</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            {[...Array(36)].map((_, i) => (
+              <div key={i} className="bg-gray-600 rounded-[20px] p-6 animate-pulse min-h-[140px]"></div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-12" style={{ backgroundColor: '#1e293b' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-green-400 mb-2">Browse Categories</h2>
+        <div className="flex justify-between items-center mb-8">
+          <div className="relative">
+            <h2 className="text-3xl font-bold text-green-400 mb-2">Browse Categories</h2>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-semibold"
+            >
+              + Add Category
+            </button>
+          )}
         </div>
+
+        {/* Add Category Form - Admin Only */}
+        {isAdmin && showAddForm && (
+          <div className="bg-gray-700 rounded-lg p-6 mb-8">
+            <h4 className="text-lg font-semibold text-blue-400 mb-4">Add New Category</h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Category Name</label>
+                <input
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
+                  placeholder="e.g., Sports"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <input
+                  type="text"
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
+                  placeholder="Brief description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Icon (FontAwesome class)</label>
+                <input
+                  type="text"
+                  value={newCategory.icon}
+                  onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
+                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
+                  placeholder="e.g., fas fa-dumbbell"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Color (hex code)</label>
+                <input
+                  type="text"
+                  value={newCategory.color}
+                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                  className="w-full p-2 border rounded-lg bg-gray-600 border-gray-500 text-white"
+                  placeholder="e.g., #6366F1"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleAddCategory}
+                disabled={addCategoryMutation.isPending}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+              >
+                {addCategoryMutation.isPending ? 'Adding...' : 'Add Category'}
+              </button>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 6x6 Grid Layout - EXACTLY matching the image with perfect styling */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {predefinedCategories.map((category) => (
+          {Array.isArray(categories) && categories.map((category: any) => (
             <Link 
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
               className={`group relative rounded-[20px] p-6 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl block min-h-[140px] flex flex-col justify-center items-center ${
-                category.isNew 
+                category.name === 'AI Apps & Services' 
                   ? 'ring-2 ring-yellow-400 ring-opacity-60' 
                   : ''
               }`}
@@ -94,21 +171,21 @@ export default function Categories() {
               }}
             >
               {/* NEW badge for AI category - positioned exactly like in image */}
-              {category.isNew && (
+              {category.name === 'AI Apps & Services' && (
                 <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full z-20">
                   NEW!
                 </div>
               )}
               
-              {/* Pure White Icon - thin 2px strokes, minimalist style */}
-              <div className={`text-4xl mb-3 ${category.isNew ? 'animate-pulse' : ''}`} 
+              {/* Pure White Icon - FontAwesome icons */}
+              <div className={`text-4xl mb-3 ${category.name === 'AI Apps & Services' ? 'animate-pulse' : ''}`} 
                    style={{ 
                      color: '#ffffff',
                      filter: 'brightness(1) contrast(1)',
                      fontWeight: '300',
                      strokeWidth: '2px'
                    }}>
-                {category.icon}
+                <i className={category.icon}></i>
               </div>
               
               {/* Bold Title - Pure White, Semi-bold */}

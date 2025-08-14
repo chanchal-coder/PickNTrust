@@ -33,6 +33,7 @@ export interface IStorage {
   
   // Categories
   getCategories(): Promise<Category[]>;
+  addCategory(category: InsertCategory): Promise<Category>;
   
   // Blog Posts
   getBlogPosts(): Promise<BlogPost[]>;
@@ -98,6 +99,10 @@ export class MemStorage implements IStorage {
 
   async getCategories(): Promise<Category[]> {
     return [];
+  }
+
+  async addCategory(category: InsertCategory): Promise<Category> {
+    throw new Error("Method not implemented.");
   }
 
   async getBlogPosts(): Promise<BlogPost[]> {
@@ -240,6 +245,14 @@ export class DatabaseStorage implements IStorage {
   async getCategories(): Promise<Category[]> {
     // Simplified to just select all categories without subquery and ordering
     return await db.select().from(categories);
+  }
+
+  async addCategory(category: InsertCategory): Promise<Category> {
+    const [newCategory] = await db
+      .insert(categories)
+      .values(category)
+      .returning();
+    return newCategory;
   }
 
   // Blog Posts

@@ -1,227 +1,261 @@
+import { createClient } from '@supabase/supabase-js';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
+import { categories } from './shared/sqlite-schema.js';
 
-const db = new Database('sqlite.db');
+// Use SQLite database
+const sqlite = new Database('sqlite.db');
+const db = drizzle(sqlite);
 
-// Categories from the image with their colors and icons
-const categories = [
+const categoriesData = [
   {
-    name: "Electronics & Gadgets",
-    icon: "fas fa-mobile-alt",
-    color: "#3B82F6", // Blue
-    description: "Latest Tech & Electronics"
+    name: 'Electronics & Gadgets',
+    description: 'Latest tech & gadgets',
+    icon: 'fas fa-laptop',
+    color: '#6366F1'
   },
   {
-    name: "Mobiles & Accessories",
-    icon: "fas fa-mobile",
-    color: "#6366F1", // Indigo
-    description: "Smartphones & Accessories"
+    name: 'Fashion & Clothing',
+    description: 'Trendy fashion items',
+    icon: 'fas fa-tshirt',
+    color: '#EC4899'
   },
   {
-    name: "Computers & Laptops",
-    icon: "fas fa-laptop",
-    color: "#8B5CF6", // Purple
-    description: "Computing Solutions"
+    name: 'Home & Kitchen',
+    description: 'Home essentials',
+    icon: 'fas fa-home',
+    color: '#10B981'
   },
   {
-    name: "Cameras & Photography",
-    icon: "fas fa-camera",
-    color: "#A855F7", // Purple
-    description: "Photography Equipment"
+    name: 'Health & Beauty',
+    description: 'Beauty & wellness',
+    icon: 'fas fa-heart',
+    color: '#F59E0B'
   },
   {
-    name: "Home Appliances",
-    icon: "fas fa-home",
-    color: "#10B981", // Emerald
-    description: "Smart Home Solutions"
+    name: 'Sports & Fitness',
+    description: 'Fitness equipment',
+    icon: 'fas fa-dumbbell',
+    color: '#EF4444'
   },
   {
-    name: "Women's Fashion",
-    icon: "fas fa-female",
-    color: "#EC4899", // Pink
-    description: "Trendy Women's Clothing"
+    name: 'Books & Education',
+    description: 'Learning resources',
+    icon: 'fas fa-book',
+    color: '#8B5CF6'
   },
   {
-    name: "Kids' Fashion",
-    icon: "fas fa-child",
-    color: "#F59E0B", // Amber
-    description: "Children's Clothing & Toys"
+    name: 'Toys & Games',
+    description: 'Fun for all ages',
+    icon: 'fas fa-gamepad',
+    color: '#06B6D4'
   },
   {
-    name: "Footwear & Accessories",
-    icon: "fas fa-shoe-prints",
-    color: "#8B5CF6", // Purple
-    description: "Shoes & Style Accessories"
+    name: 'Automotive',
+    description: 'Car accessories',
+    icon: 'fas fa-car',
+    color: '#84CC16'
   },
   {
-    name: "Jewelry & Watches",
-    icon: "fas fa-gem",
-    color: "#A855F7", // Purple
-    description: "Luxury & Fashion Jewelry"
+    name: 'Travel & Luggage',
+    description: 'Travel essentials',
+    icon: 'fas fa-suitcase',
+    color: '#F97316'
   },
   {
-    name: "Beauty & Grooming",
-    icon: "fas fa-heart",
-    color: "#EC4899", // Pink
-    description: "Beauty & Personal Care"
+    name: 'Pet Supplies',
+    description: 'Pet care products',
+    icon: 'fas fa-paw',
+    color: '#14B8A6'
   },
   {
-    name: "Health & Wellness",
-    icon: "fas fa-heartbeat",
-    color: "#EF4444", // Red
-    description: "Health & Fitness Products"
+    name: 'Office Supplies',
+    description: 'Work essentials',
+    icon: 'fas fa-briefcase',
+    color: '#6B7280'
   },
   {
-    name: "Fitness & Nutrition",
-    icon: "fas fa-dumbbell",
-    color: "#F97316", // Orange
-    description: "Fitness & Nutrition Gear"
+    name: 'Garden & Outdoor',
+    description: 'Outdoor living',
+    icon: 'fas fa-leaf',
+    color: '#22C55E'
   },
   {
-    name: "Personal Care",
-    icon: "fas fa-spa",
-    color: "#10B981", // Emerald
-    description: "Personal Care Essentials"
+    name: 'Baby & Kids',
+    description: 'Child care items',
+    icon: 'fas fa-baby',
+    color: '#F472B6'
   },
   {
-    name: "Furniture & Decor",
-    icon: "fas fa-couch",
-    color: "#F59E0B", // Amber
-    description: "Home Furniture & Decor"
+    name: 'Music & Instruments',
+    description: 'Musical equipment',
+    icon: 'fas fa-music',
+    color: '#A855F7'
   },
   {
-    name: "Kitchen & Dining",
-    icon: "fas fa-utensils",
-    color: "#10B981", // Emerald
-    description: "Kitchen Essentials"
+    name: 'Art & Crafts',
+    description: 'Creative supplies',
+    icon: 'fas fa-palette',
+    color: '#FB7185'
   },
   {
-    name: "Bedding & Home",
-    icon: "fas fa-bed",
-    color: "#06B6D4", // Cyan
-    description: "Comfort & Home Essentials"
+    name: 'Food & Beverages',
+    description: 'Gourmet foods',
+    icon: 'fas fa-utensils',
+    color: '#FBBF24'
   },
   {
-    name: "Gardening & Outdoor",
-    icon: "fas fa-seedling",
-    color: "#84CC16", // Lime
-    description: "Garden & Outdoor Living"
+    name: 'Jewelry & Watches',
+    description: 'Luxury accessories',
+    icon: 'fas fa-gem',
+    color: '#C084FC'
   },
   {
-    name: "Sports & Outdoors",
-    icon: "fas fa-football-ball",
-    color: "#F97316", // Orange
-    description: "Sports & Outdoor Gear"
+    name: 'Photography',
+    description: 'Camera equipment',
+    icon: 'fas fa-camera',
+    color: '#60A5FA'
   },
   {
-    name: "Music, Books &",
-    icon: "fas fa-music",
-    color: "#3B82F6", // Blue
-    description: "Entertainment & Gaming"
+    name: 'Gaming',
+    description: 'Gaming gear',
+    icon: 'fas fa-gamepad',
+    color: '#34D399'
   },
   {
-    name: "E-learning & Courses",
-    icon: "fas fa-graduation-cap",
-    color: "#8B5CF6", // Purple
-    description: "Online Learning & Skills"
+    name: 'Tools & Hardware',
+    description: 'DIY tools',
+    icon: 'fas fa-tools',
+    color: '#F87171'
   },
   {
-    name: "Automotive",
-    icon: "fas fa-car",
-    color: "#F59E0B", // Amber
-    description: "Car Accessories & Parts"
+    name: 'Collectibles',
+    description: 'Rare collectibles',
+    icon: 'fas fa-trophy',
+    color: '#FBBF24'
   },
   {
-    name: "Food Delivery & Meal",
-    icon: "fas fa-pizza-slice",
-    color: "#06B6D4", // Cyan
-    description: "Ready Meals & Delivery"
+    name: 'Software & Apps',
+    description: 'Digital products',
+    icon: 'fas fa-code',
+    color: '#818CF8'
   },
   {
-    name: "Travel & Tourism",
-    icon: "fas fa-plane",
-    color: "#3B82F6", // Blue
-    description: "Travel Bookings"
+    name: 'Subscription Services',
+    description: 'Monthly services',
+    icon: 'fas fa-calendar',
+    color: '#FB923C'
   },
   {
-    name: "Cleaning Essentials",
-    icon: "fas fa-broom",
-    color: "#06B6D4", // Cyan
-    description: "Cleaning Supplies"
+    name: 'Gift Cards',
+    description: 'Digital gift cards',
+    icon: 'fas fa-gift',
+    color: '#F472B6'
   },
   {
-    name: "Pet Supplies",
-    icon: "fas fa-paw",
-    color: "#8B5CF6", // Purple
-    description: "Pet Care & Accessories"
+    name: 'Courses & Training',
+    description: 'Online learning',
+    icon: 'fas fa-graduation-cap',
+    color: '#A78BFA'
   },
   {
-    name: "Credit Cards & Finance",
-    icon: "fas fa-credit-card",
-    color: "#8B5CF6", // Purple
-    description: "Banking & Finance Services"
+    name: 'Streaming Services',
+    description: 'Entertainment',
+    icon: 'fas fa-play',
+    color: '#EF4444'
   },
   {
-    name: "Loans & Investment",
-    icon: "fas fa-chart-line",
-    color: "#A855F7", // Purple
-    description: "Loans & Investment Plans"
+    name: 'Cloud Storage',
+    description: 'Data storage',
+    icon: 'fas fa-cloud',
+    color: '#06B6D4'
   },
   {
-    name: "Insurance & Trading",
-    icon: "fas fa-shield-alt",
-    color: "#10B981", // Emerald
-    description: "Insurance & Trading"
+    name: 'VPN & Security',
+    description: 'Online security',
+    icon: 'fas fa-shield-alt',
+    color: '#10B981'
   },
   {
-    name: "Cars & Bikes",
-    icon: "fas fa-motorcycle",
-    color: "#F97316", // Orange
-    description: "Automotive Marketplace"
+    name: 'Web Hosting',
+    description: 'Website hosting',
+    icon: 'fas fa-server',
+    color: '#6B7280'
   },
   {
-    name: "Parts & Maintenance",
-    icon: "fas fa-tools",
-    color: "#EF4444", // Red
-    description: "Auto Parts & Services"
+    name: 'Design Tools',
+    description: 'Creative software',
+    icon: 'fas fa-paint-brush',
+    color: '#F59E0B'
   },
   {
-    name: "Baby Products",
-    icon: "fas fa-baby",
-    color: "#EC4899", // Pink
-    description: "Baby Care & Accessories"
+    name: 'Productivity Apps',
+    description: 'Work efficiency',
+    icon: 'fas fa-tasks',
+    color: '#8B5CF6'
   },
   {
-    name: "Pet Supplies",
-    icon: "fas fa-dog",
-    color: "#F97316", // Orange
-    description: "Pet Care & Accessories"
+    name: 'Marketing Tools',
+    description: 'Business growth',
+    icon: 'fas fa-chart-line',
+    color: '#14B8A6'
   },
   {
-    name: "Writing & Occasions",
-    icon: "fas fa-pen",
-    color: "#EC4899", // Pink
-    description: "Gifts & Special Occasions"
+    name: 'E-commerce Platforms',
+    description: 'Online stores',
+    icon: 'fas fa-shopping-cart',
+    color: '#F97316'
   },
   {
-    name: "AI Apps & Services",
-    icon: "fas fa-robot",
-    color: "#8B5CF6", // Purple with special styling
-    description: "Latest AI Tools & Services"
+    name: 'Communication Tools',
+    description: 'Team collaboration',
+    icon: 'fas fa-comments',
+    color: '#84CC16'
+  },
+  {
+    name: 'Finance & Crypto',
+    description: 'Financial tools',
+    icon: 'fas fa-coins',
+    color: '#FBBF24'
+  },
+  {
+    name: 'AI Apps & Services',
+    description: 'AI-powered tools',
+    icon: 'fas fa-robot',
+    color: '#A855F7'
   }
 ];
 
-// Clear existing categories
-db.prepare('DELETE FROM categories').run();
+async function seedCategories() {
+  try {
+    console.log('🌱 Seeding categories...');
+    
+    // Clear existing categories
+    await db.delete(categories);
+    console.log('✅ Cleared existing categories');
+    
+    // Insert new categories
+    for (const category of categoriesData) {
+      await db.insert(categories).values({
+        name: category.name,
+        description: category.description,
+        icon: category.icon,
+        color: category.color,
+        createdAt: new Date()
+      });
+    }
+    
+    console.log(`✅ Successfully seeded ${categoriesData.length} categories!`);
+    console.log('Categories include:');
+    categoriesData.forEach((cat, index) => {
+      console.log(`${index + 1}. ${cat.name} (${cat.icon})`);
+    });
+    
+  } catch (error) {
+    console.error('❌ Error seeding categories:', error);
+  } finally {
+    sqlite.close();
+  }
+}
 
-// Insert categories
-const insertCategory = db.prepare(`
-  INSERT INTO categories (name, icon, color, description)
-  VALUES (?, ?, ?, ?)
-`);
-
-categories.forEach(category => {
-  insertCategory.run(category.name, category.icon, category.color, category.description);
-});
-
-console.log(`✅ Successfully seeded ${categories.length} categories!`);
-db.close();
+seedCategories();
