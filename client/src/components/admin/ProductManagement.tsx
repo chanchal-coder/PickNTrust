@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Link, Sparkles, Loader2 } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -24,6 +27,8 @@ export default function ProductManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [extractUrl, setExtractUrl] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -109,6 +114,56 @@ export default function ProductManagement() {
     }
   });
 
+  // URL extraction mutation
+  const extractProductMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const response = await fetch('/api/products/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to extract product details');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.success && data.data) {
+        const extracted = data.data;
+        setNewProduct({
+          name: extracted.name || '',
+          description: extracted.description || '',
+          price: extracted.price || '',
+          originalPrice: extracted.originalPrice || '',
+          imageUrl: extracted.imageUrl || '',
+          affiliateUrl: extracted.affiliateUrl || extractUrl,
+          category: extracted.category || 'Electronics & Gadgets',
+          rating: extracted.rating || '4.5',
+          reviewCount: extracted.reviewCount || '100',
+          discount: extracted.discount || '',
+          isFeatured: true
+        });
+        setExtractUrl('');
+        setIsAddingProduct(true);
+        toast({
+          title: 'Product Extracted!',
+          description: 'Product details have been extracted. You can now edit and save.',
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Extraction Failed',
+        description: 'Could not extract product details from the URL. You can still add manually.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: number) => {
@@ -157,6 +212,20 @@ export default function ProductManagement() {
     addProductMutation.mutate(newProduct);
   };
 
+  const handleExtractProduct = () => {
+    if (!extractUrl.trim()) {
+      toast({
+        title: 'URL Required',
+        description: 'Please enter a product URL to extract details.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsExtracting(true);
+    extractProductMutation.mutate(extractUrl);
+    setTimeout(() => setIsExtracting(false), 2000);
+  };
+
   const handleDeleteProduct = (productId: number) => {
     if (confirm('Are you sure you want to delete this product?')) {
       deleteProductMutation.mutate(productId);
@@ -184,22 +253,75 @@ export default function ProductManagement() {
 
   return (
     <div className="space-y-6">
+      {/* URL Product Extractor */}
+      <Card className="border-2 border-dashed border-blue-200 bg-blue-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-700">
+            <Sparkles className="w-5 h-5" />
+            Smart Product Extractor
+          </CardTitle>
+          <CardDescription>
+            Paste any product URL to automatically extract details (Amazon, eBay, Flipkart, etc.)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-4">
+            <Input
+              placeholder="Paste product URL here (e.g., https://amazon.com/product/...)"
+              value={extractUrl}
+              onChange={(e) => setExtractUrl(e.target.value)}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleExtractProduct}
+              disabled={isExtracting || extractProductMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
+            >
+              {isExtracting || extractProductMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Extracting...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Extract Details
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="text-sm text-gray-600">
+            <p className="font-medium mb-2">Supported platforms:</p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="bg-white">Amazon</Badge>
+              <Badge variant="outline" className="bg-white">eBay</Badge>
+              <Badge variant="outline" className="bg-white">AliExpress</Badge>
+              <Badge variant="outline" className="bg-white">Flipkart</Badge>
+              <Badge variant="outline" className="bg-white">Shopify</Badge>
+              <Badge variant="outline" className="bg-white">And more...</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add Product Form */}
       <Card>
         <CardHeader>
           <CardTitle>Add New Product</CardTitle>
           <CardDescription>
-            Add a new product to your catalog
+            Add a new product manually or use the extractor above
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!isAddingProduct ? (
-            <Button 
-              onClick={() => setIsAddingProduct(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Add Product
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                onClick={() => setIsAddingProduct(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Add Product Manually
+              </Button>
+            </div>
           ) : (
             <form onSubmit={handleAddProduct} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
