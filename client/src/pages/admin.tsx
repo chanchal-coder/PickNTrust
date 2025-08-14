@@ -49,11 +49,25 @@ export default function AdminPage() {
   }, []);
 
   const { data: products = [] } = useQuery({
-    queryKey: ['/api/products/featured']
+    queryKey: ['/api/products/featured'],
+    queryFn: async () => {
+      const response = await fetch('/api/products/featured');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      return response.json();
+    }
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ['/api/categories']
+    queryKey: ['/api/categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+      return response.json();
+    }
   });
 
   const addProductMutation = useMutation({
