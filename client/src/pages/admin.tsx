@@ -6,13 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
 import CategoryManagement from '@/components/admin/CategoryManagement';
+import ProductManagement from '@/components/admin/ProductManagement';
+import BlogManagement from '@/components/admin/AdminBlogPostForm';
+import AnnouncementManagement from '@/components/admin/AnnouncementManagement';
+import SocialSettings from '@/components/admin/SocialSettings';
+import AdminDashboard from '@/components/admin/AdminDashboard';
 
 export default function AdminPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('categories');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [socialSettings, setSocialSettings] = useState({
+    telegramChannelUrl: 'https://t.me/pickntrust',
+    facebookPageUrl: 'https://facebook.com/pickntrust',
+    whatsappChannelUrl: 'https://web.whatsapp.com/channel/pickntrust'
+  });
 
   // Check if admin session exists on page load
   useState(() => {
@@ -134,7 +144,27 @@ export default function AdminPage() {
 
           {/* Admin Navigation Tabs */}
           <div className="mb-8">
-            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-2xl">
+            <div className="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'dashboard'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                📊 Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'products'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                📦 Products
+              </button>
               <button
                 onClick={() => setActiveTab('categories')}
                 className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
@@ -145,12 +175,72 @@ export default function AdminPage() {
               >
                 🏷️ Categories
               </button>
+              <button
+                onClick={() => setActiveTab('blog')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'blog'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                📝 Blog Posts
+              </button>
+              <button
+                onClick={() => setActiveTab('announcements')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'announcements'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                📢 Announcements
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'settings'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                ⚙️ Settings
+              </button>
             </div>
           </div>
+
+          {/* Dashboard Tab */}
+          {activeTab === 'dashboard' && (
+            <AdminDashboard />
+          )}
+
+          {/* Products Management Tab */}
+          {activeTab === 'products' && (
+            <ProductManagement />
+          )}
 
           {/* Categories Management Tab */}
           {activeTab === 'categories' && (
             <CategoryManagement />
+          )}
+
+          {/* Blog Management Tab */}
+          {activeTab === 'blog' && (
+            <BlogManagement />
+          )}
+
+          {/* Announcements Management Tab */}
+          {activeTab === 'announcements' && (
+            <AnnouncementManagement />
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <SocialSettings 
+              telegramChannelUrl={socialSettings.telegramChannelUrl}
+              facebookPageUrl={socialSettings.facebookPageUrl}
+              whatsappChannelUrl={socialSettings.whatsappChannelUrl}
+              onSave={(settings) => setSocialSettings(settings)}
+            />
           )}
         </div>
       </div>
