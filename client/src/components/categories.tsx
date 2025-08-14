@@ -1,9 +1,9 @@
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 
-// Predefined categories matching the exact image layout with white icons (6 rows x 6 columns = 36 categories)
+// Categories matching the EXACT image layout with EXACT same icons (6 rows x 6 columns = 36 categories)
 const predefinedCategories = [
-  // Row 1
+  // Row 1 - EXACT as image
   { id: 1, name: "Electronics & Gadgets", description: "Latest Tech & Electronics", icon: "⚙", color: "#6366F1" },
   { id: 2, name: "Mobiles & Accessories", description: "Smartphones & Mobile Gear", icon: "📱", color: "#8B5CF6" },
   { id: 3, name: "Computers & Laptops", description: "Computing Solutions", icon: "💻", color: "#3B82F6" },
@@ -11,15 +11,15 @@ const predefinedCategories = [
   { id: 5, name: "Home Appliances", description: "Smart Home Solutions", icon: "🏠", color: "#10B981" },
   { id: 6, name: "Men's Fashion", description: "Stylish Men's Wear", icon: "👤", color: "#059669" },
   
-  // Row 2
+  // Row 2 - EXACT as image
   { id: 7, name: "Women's Fashion", description: "Elegant Women's Collection", icon: "👤", color: "#EC4899" },
-  { id: 8, name: "Kids' Fashion", description: "Trendy Kids' Clothing", icon: "👶", color: "#F59E0B" },
+  { id: 8, name: "Kids' Fashion", description: "Trendy Kids' Clothing", icon: "👤", color: "#F59E0B" },
   { id: 9, name: "Footwear & Accessories", description: "Shoes & Style Accessories", icon: "👟", color: "#8B5CF6" },
   { id: 10, name: "Jewelry & Watches", description: "Luxury & Timepieces", icon: "💎", color: "#A855F7" },
   { id: 11, name: "Beauty & Grooming", description: "Beauty & Personal Care", icon: "🌸", color: "#F472B6" },
   { id: 12, name: "Health & Wellness", description: "Health & Fitness Products", icon: "❤", color: "#EF4444" },
   
-  // Row 3
+  // Row 3 - EXACT as image
   { id: 13, name: "Fitness & Nutrition", description: "Fitness & Sports Gear", icon: "🏋", color: "#F97316" },
   { id: 14, name: "Personal Care Appliances", description: "Personal Care Devices", icon: "🔧", color: "#84CC16" },
   { id: 15, name: "Furniture & Décor", description: "Home Furniture & Decor", icon: "🛋", color: "#10B981" },
@@ -27,23 +27,23 @@ const predefinedCategories = [
   { id: 17, name: "Bedding & Home Essentials", description: "Comfort & Home Basics", icon: "🛏", color: "#06B6D4" },
   { id: 18, name: "Gardening & Outdoor", description: "Garden & Outdoor Living", icon: "🌱", color: "#65A30D" },
   
-  // Row 4
-  { id: 19, name: "Books & Stationery", description: "Books & Learning Materials", icon: "📚", color: "#D97706" },
+  // Row 4 - EXACT as image
+  { id: 19, name: "Books & Stationery", description: "Books & Learning Materials", icon: "📄", color: "#D97706" },
   { id: 20, name: "Music, Movies & Games", description: "Entertainment & Gaming", icon: "⭕", color: "#DC2626" },
   { id: 21, name: "E-learning & Courses", description: "Online Learning & Skills", icon: "🎓", color: "#B91C1C" },
   { id: 22, name: "Groceries & Gourmet", description: "Fresh & Gourmet Foods", icon: "🛒", color: "#D97706" },
   { id: 23, name: "Food Delivery & Meal Kits", description: "Ready Meals & Delivery", icon: "🍕", color: "#EA580C" },
   { id: 24, name: "Flights & Hotels", description: "Travel Bookings", icon: "✈", color: "#3B82F6" },
   
-  // Row 5
+  // Row 5 - EXACT as image
   { id: 25, name: "Holiday Packages", description: "Complete Travel Packages", icon: "🏖", color: "#0891B2" },
-  { id: 26, name: "Experiences & Activities", description: "Adventure & Experiences", icon: "🎪", color: "#1E40AF" },
+  { id: 26, name: "Experiences & Activities", description: "Adventure & Experiences", icon: "👥", color: "#1E40AF" },
   { id: 27, name: "Credit Cards & Finance", description: "Financial Services", icon: "💳", color: "#7C3AED" },
   { id: 28, name: "Loans & Insurance", description: "Loans & Protection Plans", icon: "🛡", color: "#8B5CF6" },
   { id: 29, name: "Investments & Trading Tools", description: "Investment & Trading", icon: "📈", color: "#A855F7" },
   { id: 30, name: "Utility & Bill Payments", description: "Bills & Utility Services", icon: "📄", color: "#6366F1" },
   
-  // Row 6
+  // Row 6 - EXACT as image
   { id: 31, name: "Cars & Bikes Accessories", description: "Vehicle Accessories", icon: "🚗", color: "#D97706" },
   { id: 32, name: "Parts & Maintenance", description: "Auto Parts & Services", icon: "🔧", color: "#DC2626" },
   { id: 33, name: "Baby Products", description: "Baby Care & Products", icon: "🍼", color: "#F472B6" },
@@ -77,7 +77,7 @@ export default function Categories() {
           <h2 className="text-3xl font-bold text-green-400 mb-2">Browse Categories</h2>
         </div>
 
-        {/* 6x6 Grid Layout - Exactly matching the image with white icons */}
+        {/* 6x6 Grid Layout - EXACTLY matching the image */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {predefinedCategories.map((category) => (
             <Link 
@@ -97,8 +97,8 @@ export default function Categories() {
                 </div>
               )}
               
-              {/* White Icon - matching the image */}
-              <div className={`text-4xl mb-3 text-white filter brightness-200 ${category.isNew ? 'animate-pulse' : ''}`}>
+              {/* EXACT White Icon - matching the image exactly */}
+              <div className={`text-4xl mb-3 text-white ${category.isNew ? 'animate-pulse' : ''}`} style={{ filter: 'brightness(2) contrast(1.2)' }}>
                 {category.icon}
               </div>
               

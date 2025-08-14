@@ -79,8 +79,8 @@ export default function Header() {
       // Check if click is outside the mobile menu container and hamburger button
       if (mobileMenuOpen && 
           !target.closest('.mobile-menu-container') && 
-          !target.closest('[aria-label="Open Menu"]') &&
-          !target.closest('[aria-label="Close Menu"]')) {
+          !target.closest('button[aria-label="Open Menu"]') &&
+          !target.closest('button[aria-label="Close Menu"]')) {
         setMobileMenuOpen(false);
       }
     };
@@ -92,12 +92,17 @@ export default function Header() {
     };
 
     if (mobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
+      // Add a small delay to prevent immediate closing when opening
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscapeKey);
+      }, 100);
+      
       // Prevent body scroll when menu is open
       document.body.style.overflow = 'hidden';
       
       return () => {
+        clearTimeout(timeoutId);
         document.removeEventListener('mousedown', handleClickOutside);
         document.removeEventListener('keydown', handleEscapeKey);
         document.body.style.overflow = 'unset';
@@ -283,11 +288,16 @@ export default function Header() {
           </Link>
 
           
-          {/* Hamburger Menu Button - Mobile Optimized */}
+          {/* Hamburger Menu Button - Mobile Optimized with proper toggle */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMobileMenuOpen(!mobileMenuOpen);
+            }}
             className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
             aria-label={mobileMenuOpen ? "Close Menu" : "Open Menu"}
+            type="button"
           >
             <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : 'rotate-0'}`}></i>
             <span className="font-semibold hidden xs:inline">{mobileMenuOpen ? 'Close' : 'Menu'}</span>
