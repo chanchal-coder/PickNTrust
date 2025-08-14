@@ -969,6 +969,206 @@ export default function AdminPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Revenue Optimization & Seasonal Content Calendar */}
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                {/* Revenue Optimization */}
+                <Card className="bg-gradient-to-br from-blue-900 to-blue-800 text-white">
+                  <CardHeader>
+                    <CardTitle className="text-blue-100">Revenue Optimization</CardTitle>
+                    <CardDescription className="text-blue-200">Track performance and optimize earnings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-blue-100 mb-2">Performance Tracking</h4>
+                      <ul className="text-sm text-blue-200 space-y-1">
+                        <li>• Monitor which products get the most clicks</li>
+                        <li>• Track conversion rates by category</li>
+                        <li>• Identify seasonal trending products</li>
+                        <li>• Analyze mobile vs desktop performance</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-blue-100 mb-2">A/B Testing Ideas</h4>
+                      <ul className="text-sm text-blue-200 space-y-1">
+                        <li>• Test different product descriptions</li>
+                        <li>• Compare image styles (lifestyle vs product)</li>
+                        <li>• Try different "Pick Now" button colors</li>
+                        <li>• Test product positioning on homepage</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-blue-100 mb-2">Click-Through Rate Tips</h4>
+                      <ul className="text-sm text-blue-200 space-y-1">
+                        <li>• Use urgency words: "Limited time", "Flash sale"</li>
+                        <li>• Highlight discounts prominently</li>
+                        <li>• Add social proof with review counts</li>
+                        <li>• Update bestsellers weekly</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Seasonal Content Calendar */}
+                <Card className="bg-gradient-to-br from-indigo-900 to-indigo-800 text-white">
+                  <CardHeader>
+                    <CardTitle className="text-indigo-100">Seasonal Content Calendar</CardTitle>
+                    <CardDescription className="text-indigo-200">Plan content for maximum revenue</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-indigo-100 mb-2">January - March</h4>
+                      <ul className="text-sm text-indigo-200 space-y-1">
+                        <li>• New Year fitness products</li>
+                        <li>• Valentine's Day gifts (Beauty, Fashion)</li>
+                        <li>• Holi festival deals</li>
+                        <li>• Summer prep products</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-indigo-100 mb-2">April - June</h4>
+                      <ul className="text-sm text-indigo-200 space-y-1">
+                        <li>• Summer cooling products</li>
+                        <li>• Father's Day tech deals</li>
+                        <li>• Student tech for exams</li>
+                        <li>• Monsoon prep items</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-indigo-100 mb-2">October - December</h4>
+                      <ul className="text-sm text-indigo-200 space-y-1">
+                        <li>• Diwali festival shopping</li>
+                        <li>• Winter clothing collection</li>
+                        <li>• Year-end tech deals</li>
+                        <li>• Christmas gifts and decor</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Affiliate Networks */}
+              <Card className="mb-8 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+                <CardHeader>
+                  <CardTitle className="text-gray-100">Affiliate Networks</CardTitle>
+                  <CardDescription className="text-gray-300">Manage your affiliate partnerships and commission rates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-3 gap-4 mb-6">
+                    {/* Amazon Associates */}
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-white">Amazon Associates</h4>
+                        <Badge className="bg-blue-600 text-white">Active</Badge>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-3">World's largest e-commerce affiliate program</p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Commission Rate:</span>
+                          <span className="text-green-400 font-medium">1-10%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Tracking:</span>
+                          <code className="text-xs bg-gray-700 px-1 rounded text-blue-300">tag=pickntrust-21</code>
+                        </div>
+                      </div>
+                      <a href="#" className="text-xs text-blue-400 hover:underline mt-2 block">Join Network →</a>
+                    </div>
+
+                    {/* Commission Junction */}
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-white">Commission Junction (CJ)</h4>
+                        <Badge className="bg-blue-600 text-white">Active</Badge>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-3">Global affiliate marketing network</p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Commission Rate:</span>
+                          <span className="text-green-400 font-medium">8.00%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Tracking:</span>
+                          <code className="text-xs bg-gray-700 px-1 rounded text-blue-300">sid=pickntrust</code>
+                        </div>
+                      </div>
+                      <a href="#" className="text-xs text-blue-400 hover:underline mt-2 block">Join Network →</a>
+                    </div>
+
+                    {/* ShareASale */}
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-white">ShareASale</h4>
+                        <Badge className="bg-blue-600 text-white">Active</Badge>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-3">Performance marketing network</p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Commission Rate:</span>
+                          <span className="text-green-400 font-medium">5-50%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Tracking:</span>
+                          <code className="text-xs bg-gray-700 px-1 rounded text-blue-300">afftrack=pickntrust</code>
+                        </div>
+                      </div>
+                      <a href="#" className="text-xs text-blue-400 hover:underline mt-2 block">Join Network →</a>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-800">
+                    <h4 className="font-semibold text-blue-100 mb-2">Network Integration Tips</h4>
+                    <ul className="text-sm text-blue-200 space-y-1">
+                      <li>• Apply for networks with highest commission rates first</li>
+                      <li>• Use proper tracking parameters in all affiliate links</li>
+                      <li>• Test links regularly to ensure they work properly</li>
+                      <li>• Monitor performance and focus on best-converting networks</li>
+                      <li>• Diversify across multiple networks to maximize revenue</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Daily Management Tips */}
+              <Card className="mb-8 bg-gradient-to-br from-green-900 to-green-800 text-white">
+                <CardHeader>
+                  <CardTitle className="text-green-100">Daily Management Tips</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-green-100 mb-2">Morning Routine (30 min)</h4>
+                    <ul className="text-sm text-green-200 space-y-1">
+                      <li>• Check affiliate partner sites for new deals</li>
+                      <li>• Update expired products with current prices</li>
+                      <li>• Add 1 new product to "Deals" category</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-green-100 mb-2">Best Practices</h4>
+                    <ul className="text-sm text-green-200 space-y-1">
+                      <li>• Always test affiliate links before adding</li>
+                      <li>• Use high-quality product images</li>
+                      <li>• Write compelling product copy</li>
+                      <li>• Monitor click-through rates</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-green-100 mb-2">Content Sources</h4>
+                    <ul className="text-sm text-green-200 space-y-1">
+                      <li>• Amazon Best Sellers & Daily Deals</li>
+                      <li>• Flipkart Super Deals & Flash Sales</li>
+                      <li>• Brand websites with affiliate programs</li>
+                      <li>• Social media trending products</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -983,6 +1183,68 @@ export default function AdminPage() {
                   Add New Blog Post
                 </Button>
               </div>
+
+              {/* Blog Content Ideas */}
+              <Card className="mb-8 bg-gradient-to-br from-purple-900 to-purple-800 text-white">
+                <CardHeader>
+                  <CardTitle className="text-purple-100">💡 Blog Content Ideas</CardTitle>
+                  <CardDescription className="text-purple-200">Proven topics with video/social support that drive affiliate sales</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-4 gap-4">
+                    {/* Shopping Tips & Guides */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-purple-100 text-sm">Shopping Tips & Guides</h4>
+                      <ul className="text-xs text-purple-200 space-y-1">
+                        <li>• "10 Things to Check Before Buying Online - Worth Every Penny!"</li>
+                        <li>• "How to Spot Fake Reviews on Amazon"</li>
+                        <li>• "Secret Cashback Apps You Should Be Using"</li>
+                        <li>• "Budget vs Premium: When to Splurge"</li>
+                      </ul>
+                    </div>
+
+                    {/* Product Reviews */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-purple-100 text-sm">Product Reviews</h4>
+                      <ul className="text-xs text-purple-200 space-y-1">
+                        <li>• "iPhone 15 vs OnePlus 12: Which Should You Buy?"</li>
+                        <li>• "Top 5 Air Purifiers for Indian Homes"</li>
+                        <li>• "Wireless Earbuds: Premium vs Budget"</li>
+                        <li>• "Best Laptops Under ₹50,000"</li>
+                      </ul>
+                    </div>
+
+                    {/* Social Media Integration */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-purple-100 text-sm">📱 Social Media Integration</h4>
+                      <ul className="text-xs text-purple-200 space-y-1">
+                        <li>• Share Instagram product posts</li>
+                        <li>• Embed Facebook shopping videos</li>
+                        <li>• YouTube unboxing & reviews</li>
+                        <li>• Mix text + video for engagement</li>
+                      </ul>
+                    </div>
+
+                    {/* Personal Content */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-purple-100 text-sm">📝 Personal Content</h4>
+                      <ul className="text-xs text-purple-200 space-y-1">
+                        <li>• Upload your own product photos</li>
+                        <li>• Record personal review videos</li>
+                        <li>• Share behind-the-scenes content</li>
+                        <li>• Create authentic user experiences</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-purple-800/50 rounded-lg border border-purple-700">
+                    <p className="text-sm text-purple-100 font-medium mb-2">💡 Pro Tip for Personal Touch:</p>
+                    <p className="text-xs text-purple-200">
+                      Mix each blog post with personal content up to 30% each for personal touch!
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
               {showBlogForm && (
                 <Card className="mb-8">
