@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Plus, Upload, Calendar, Clock, Link, Eye, Trash2 } from 'lucide-react';
 
 interface BlogPost {
   id: number;
@@ -31,8 +37,11 @@ export default function BlogManagement() {
     tags: '',
     imageUrl: '',
     videoUrl: '',
-    readTime: '5 min read',
-    slug: ''
+    readTime: '3 min read',
+    slug: '',
+    publishDate: new Date().toISOString().split('T')[0],
+    hasTimer: false,
+    timerDuration: ''
   });
 
   // Fetch blog posts
@@ -85,8 +94,11 @@ export default function BlogManagement() {
         tags: '',
         imageUrl: '',
         videoUrl: '',
-        readTime: '5 min read',
-        slug: ''
+        readTime: '3 min read',
+        slug: '',
+        publishDate: new Date().toISOString().split('T')[0],
+        hasTimer: false,
+        timerDuration: ''
       });
       setIsAddingPost(false);
       toast({
@@ -159,7 +171,13 @@ export default function BlogManagement() {
 
   const commonCategories = [
     'Technology', 'Lifestyle', 'Fashion', 'Health', 'Travel',
-    'Food', 'Business', 'Entertainment', 'Sports', 'Education'
+    'Food', 'Business', 'Entertainment', 'Sports', 'Education',
+    'Deals', 'Reviews', 'Gadgets', 'Mobile', 'Computing'
+  ];
+
+  const suggestedTags = [
+    'budget', 'premium', 'mobile', 'computing', 'fashion', 'beauty', 'deals',
+    'smartphone', 'laptop', 'gadgets', 'tech', 'review', 'comparison'
   ];
 
   if (error) {
@@ -177,153 +195,317 @@ export default function BlogManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Add Blog Post Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Blog Post</CardTitle>
-          <CardDescription>
-            Create a new blog post for your website
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!isAddingPost ? (
-            <Button 
-              onClick={() => setIsAddingPost(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Add Blog Post
-            </Button>
-          ) : (
-            <form onSubmit={handleAddPost} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={newPost.title}
-                    onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                    placeholder="e.g., 10 Best Tech Gadgets of 2024"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
-                  <select
-                    value={newPost.category}
-                    onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Category</option>
-                    {commonCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
+      {/* Blog Management Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Blog Management</h2>
+          <p className="text-gray-600 dark:text-gray-300">Add engaging content with video support to drive affiliate sales</p>
+        </div>
+        <Button 
+          onClick={() => setIsAddingPost(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add New Blog Post
+        </Button>
+      </div>
+
+      {/* Create New Blog Post Form */}
+      {isAddingPost && (
+        <Card className="bg-gray-900 text-white border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-400">
+              <Plus className="w-5 h-5" />
+              Create New Blog Post
+            </CardTitle>
+            <CardDescription className="text-gray-300">
+              Add engaging content with video support to drive affiliate sales
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleAddPost} className="space-y-6">
+              {/* Blog Title */}
+              <div>
+                <Label className="text-white font-medium">Blog Title *</Label>
+                <Input
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                  placeholder="10 Best Budget Smartphones Under ₹20,000"
+                  className="bg-gray-800 border-gray-600 text-white mt-2"
+                  required
+                />
               </div>
 
+              {/* Excerpt */}
               <div>
-                <label className="block text-sm font-medium mb-2">Excerpt</label>
-                <textarea
+                <Label className="text-white font-medium">Excerpt (4-5 lines for homepage) *</Label>
+                <Textarea
                   value={newPost.excerpt}
                   onChange={(e) => setNewPost({ ...newPost, excerpt: e.target.value })}
-                  placeholder="Brief description of the blog post..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  rows={3}
+                  placeholder="Short description that appears on the homepage. You can include affiliate links here: [Product Name](https://amzn.to/link)"
+                  className="bg-gray-800 border-gray-600 text-white mt-2"
+                  rows={4}
                   required
                 />
+                <p className="text-yellow-400 text-xs mt-1 flex items-center gap-1">
+                  💡 Add affiliate links in excerpt using [text](url) format - they'll work on homepage and full post
+                </p>
               </div>
 
+              {/* Full Content */}
               <div>
-                <label className="block text-sm font-medium mb-2">Content</label>
-                <textarea
+                <Label className="text-white font-medium">Full Content *</Label>
+                <Textarea
                   value={newPost.content}
                   onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                  placeholder="Full blog post content..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  rows={8}
+                  placeholder={`Full blog post content with unlimited affiliate links. Use Markdown formatting:
+
+# Main Heading
+## Sub Heading
+### Small Heading
+
+**Bold text**
+*Italic text*
+
+1. Numbered list item
+2. Another item
+
+💡 Affiliate Product Link: https://amzn.to/link (use as-is with)
+📱 Supports Markdown formatting. Add unlimited affiliate links using [text](url) format`}
+                  className="bg-gray-800 border-gray-600 text-white mt-2 font-mono text-sm"
+                  rows={12}
                   required
                 />
+                <p className="text-blue-400 text-xs mt-1">
+                  📝 Supports Markdown formatting. Add unlimited affiliate links using [text](url) format
+                </p>
               </div>
 
+              {/* Category and Tags */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Image URL</label>
-                  <input
-                    type="url"
-                    value={newPost.imageUrl}
-                    onChange={(e) => setNewPost({ ...newPost, imageUrl: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+                  <Label className="text-white font-medium">Category *</Label>
+                  <Select 
+                    value={newPost.category}
+                    onValueChange={(value) => setNewPost({ ...newPost, category: value })}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white mt-2">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600">
+                      {commonCategories.map(cat => (
+                        <SelectItem key={cat} value={cat} className="text-white hover:bg-gray-700">
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Video URL (Optional)</label>
-                  <input
-                    type="url"
-                    value={newPost.videoUrl}
-                    onChange={(e) => setNewPost({ ...newPost, videoUrl: e.target.value })}
-                    placeholder="https://example.com/video.mp4"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Tags (comma separated)</label>
-                  <input
-                    type="text"
+                  <Label className="text-white font-medium">Tags (comma separated)</Label>
+                  <Input
                     value={newPost.tags}
                     onChange={(e) => setNewPost({ ...newPost, tags: e.target.value })}
-                    placeholder="tech, gadgets, review"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="deals, budget, tech, gadgets, amazon"
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
+                  />
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <p className="text-yellow-400 text-xs">💡 Auto-suggested:</p>
+                    {suggestedTags.slice(0, 8).map(tag => (
+                      <Badge 
+                        key={tag} 
+                        variant="outline" 
+                        className="text-xs cursor-pointer hover:bg-gray-700"
+                        onClick={() => {
+                          const currentTags = newPost.tags ? newPost.tags.split(',').map(t => t.trim()) : [];
+                          if (!currentTags.includes(tag)) {
+                            setNewPost({ ...newPost, tags: [...currentTags, tag].join(', ') });
+                          }
+                        }}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* File Upload Section */}
+              <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">Drag & Drop Your Files Here</h3>
+                <p className="text-gray-400 mb-4">Images and videos up to 50MB each</p>
+                <div className="flex justify-center gap-4 text-sm text-gray-400">
+                  <span>📷 JPG, PNG, GIF</span>
+                  <span>🎥 MP4, WEBM, MOV</span>
+                </div>
+              </div>
+
+              {/* Blog Image and Video */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white font-medium">Blog Image</Label>
+                  <Input
+                    value={newPost.imageUrl}
+                    onChange={(e) => setNewPost({ ...newPost, imageUrl: e.target.value })}
+                    placeholder="https://images.unsplash.com/photo-... or use drag-drop above"
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
+                  />
+                  <div className="mt-2">
+                    <input type="file" accept="image/*" className="hidden" id="image-upload" />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                      className="text-xs"
+                    >
+                      Choose File
+                    </Button>
+                    <span className="text-gray-400 text-xs ml-2">No file chosen</span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-white font-medium">Video/Reel Content</Label>
+                  <Input
+                    value={newPost.videoUrl}
+                    onChange={(e) => setNewPost({ ...newPost, videoUrl: e.target.value })}
+                    placeholder="YouTube, Instagram Reel, Facebook Reel, or upload below"
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
+                  />
+                  <div className="mt-2">
+                    <input type="file" accept="video/*" className="hidden" id="video-upload" />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('video-upload')?.click()}
+                      className="text-xs"
+                    >
+                      Choose File
+                    </Button>
+                    <span className="text-gray-400 text-xs ml-2">No file chosen</span>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-400">
+                    <p>Social media links (up to 50MB):</p>
+                    <div className="flex gap-2 mt-1">
+                      <span className="text-blue-400">📘 Instagram: https://www.instagram.com/reel/ABC123/</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-blue-600">📘 Facebook: https://www.facebook.com/reel/123456789</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-red-500">🎬 YouTube: https://youtube.com/watch?v=ABC123</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 p-2 bg-green-800 rounded text-xs">
+                    ✅ Upload your own content or share social media links - perfect for personal blogging!
+                  </div>
+                </div>
+              </div>
+
+              {/* Publish Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-white font-medium">Publish Date</Label>
+                  <Input
+                    type="date"
+                    value={newPost.publishDate}
+                    onChange={(e) => setNewPost({ ...newPost, publishDate: e.target.value })}
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-2">Read Time</label>
-                  <input
-                    type="text"
+                  <Label className="text-white font-medium">Read Time</Label>
+                  <Input
                     value={newPost.readTime}
                     onChange={(e) => setNewPost({ ...newPost, readTime: e.target.value })}
-                    placeholder="5 min read"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="3 min read"
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-2">Slug (Optional)</label>
-                  <input
-                    type="text"
+                  <Label className="text-white font-medium">URL Slug (Auto-generated)</Label>
+                  <Input
                     value={newPost.slug}
                     onChange={(e) => setNewPost({ ...newPost, slug: e.target.value })}
-                    placeholder="best-tech-gadgets-2024"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="url-friendly-title"
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              {/* Auto-Delete Timer */}
+              <div className="bg-orange-900 border border-orange-600 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="timer"
+                    checked={newPost.hasTimer}
+                    onChange={(e) => setNewPost({ ...newPost, hasTimer: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="timer" className="text-orange-400 font-medium">⚠️ Auto-Delete Timer</Label>
+                </div>
+                <div className="text-sm text-orange-200 mb-2">
+                  ☑️ Enable auto-delete timer (blog post will be automatically removed after expiry)
+                </div>
+                {newPost.hasTimer && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-orange-300 text-sm mb-1">Timer OFF: Blog post stays until you manually delete it</p>
+                      <p className="text-orange-300 text-sm">Timer ON: Blog post shows countdown and auto-deletes after expiry</p>
+                    </div>
+                    <div>
+                      <Input
+                        type="number"
+                        value={newPost.timerDuration}
+                        onChange={(e) => setNewPost({ ...newPost, timerDuration: e.target.value })}
+                        placeholder="Hours until auto-delete"
+                        className="bg-orange-800 border-orange-600 text-white"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between items-center pt-4">
                 <Button 
-                  type="submit" 
-                  disabled={addBlogPostMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {addBlogPostMutation.isPending ? 'Publishing...' : 'Publish Post'}
-                </Button>
-                <Button 
-                  type="button" 
+                  type="button"
                   variant="outline"
-                  onClick={() => setIsAddingPost(false)}
+                  className="text-blue-400 border-blue-400 hover:bg-blue-900"
                 >
-                  Cancel
+                  <Eye className="w-4 h-4 mr-2" />
+                  Live Preview
                 </Button>
+
+                <div className="flex gap-3">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddingPost(false)}
+                    className="text-gray-400 border-gray-600 hover:bg-gray-800"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={addBlogPostMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {addBlogPostMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
+                  </Button>
+                </div>
               </div>
             </form>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Blog Posts List */}
       <Card>
