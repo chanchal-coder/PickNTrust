@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 
-// Categories matching the EXACT image layout with EXACT same icons (6 rows x 6 columns = 36 categories)
+// Categories matching the EXACT image layout with EXACT names and colors (6 rows x 6 columns = 36 categories)
 const predefinedCategories = [
   // Row 1 - EXACT as image
   { id: 1, name: "Electronics & Gadgets", description: "Latest Tech & Electronics", icon: "⚙", color: "#6366F1" },
@@ -71,49 +71,69 @@ export default function Categories() {
   }, []);
 
   return (
-    <section className="py-12 bg-gray-800">
+    <section className="py-12" style={{ backgroundColor: '#1e293b' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-green-400 mb-2">Browse Categories</h2>
         </div>
 
-        {/* 6x6 Grid Layout - EXACTLY matching the image */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {/* 6x6 Grid Layout - EXACTLY matching the image with perfect styling */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {predefinedCategories.map((category) => (
             <Link 
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
-              className={`group relative rounded-2xl p-4 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg block min-h-[140px] flex flex-col justify-center items-center ${
+              className={`group relative rounded-[20px] p-6 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl block min-h-[140px] flex flex-col justify-center items-center ${
                 category.isNew 
-                  ? 'ring-2 ring-yellow-400 ring-opacity-60 animate-pulse shadow-2xl' 
+                  ? 'ring-2 ring-yellow-400 ring-opacity-60' 
                   : ''
               }`}
-              style={{ backgroundColor: category.color }}
+              style={{ 
+                background: `linear-gradient(180deg, ${category.color}E6 0%, ${category.color}CC 100%)`,
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
             >
-              {/* NEW badge for AI category */}
+              {/* NEW badge for AI category - positioned exactly like in image */}
               {category.isNew && (
-                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce z-20">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full z-20">
                   NEW!
                 </div>
               )}
               
-              {/* EXACT White Icon - matching the image exactly */}
-              <div className={`text-4xl mb-3 text-white ${category.isNew ? 'animate-pulse' : ''}`} style={{ filter: 'brightness(2) contrast(1.2)' }}>
+              {/* Pure White Icon - thin 2px strokes, minimalist style */}
+              <div className={`text-4xl mb-3 ${category.isNew ? 'animate-pulse' : ''}`} 
+                   style={{ 
+                     color: '#ffffff',
+                     filter: 'brightness(1) contrast(1)',
+                     fontWeight: '300',
+                     strokeWidth: '2px'
+                   }}>
                 {category.icon}
               </div>
               
-              {/* Category Name */}
-              <h3 className={`font-bold text-sm leading-tight mb-2 text-center ${category.isNew ? 'text-yellow-100' : 'text-white'}`}>
+              {/* Bold Title - Pure White, Semi-bold */}
+              <h3 className="font-semibold text-sm leading-tight mb-2 text-center text-white" 
+                  style={{ 
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    letterSpacing: '0.025em'
+                  }}>
                 {category.name}
               </h3>
               
-              {/* Description */}
-              <p className={`text-xs opacity-90 leading-tight text-center ${category.isNew ? 'text-yellow-200' : 'text-white'}`}>
+              {/* Subtitle - Lighter White, 80% opacity */}
+              <p className="text-xs leading-tight text-center" 
+                 style={{ 
+                   color: '#ffffff',
+                   opacity: '0.8',
+                   fontWeight: '400',
+                   letterSpacing: '0.025em'
+                 }}>
                 {category.description}
               </p>
 
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300"></div>
+              {/* Subtle inner highlight for neumorphic effect */}
+              <div className="absolute inset-0 rounded-[20px] bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </Link>
           ))}
         </div>

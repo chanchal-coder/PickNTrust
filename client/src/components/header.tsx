@@ -293,6 +293,7 @@ export default function Header() {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              console.log('Hamburger button clicked, current state:', mobileMenuOpen);
               setMobileMenuOpen(!mobileMenuOpen);
             }}
             className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
@@ -350,9 +351,9 @@ export default function Header() {
           </div>
         )}
 
-        {/* Hamburger Menu - Beautiful Colorful Dropdown */}
+        {/* Hamburger Menu - Beautiful Colorful Dropdown with proper width */}
         {mobileMenuOpen && (
-          <div className="mobile-menu-container pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30">
+          <div className="mobile-menu-container absolute top-full left-4 right-4 sm:left-auto sm:right-4 sm:w-80 pb-4 max-h-80 sm:max-h-96 overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl mt-2 shadow-2xl border border-purple-500/30 z-50">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-2xl"></div>
             <nav className="relative z-10 flex flex-col space-y-2 p-4">
               {/* Home Link with Special Styling */}
