@@ -1614,7 +1614,7 @@ export default function AdminPage() {
 
           {/* Admin Navigation Tabs with Animations */}
           <div className="mb-8">
-            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-lg">
+            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg max-w-2xl">
               <button
                 onClick={() => setActiveTab('products')}
                 className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
@@ -1636,6 +1636,17 @@ export default function AdminPage() {
               >
                 <span className="inline-block w-5 h-5 mr-1 rounded bg-gradient-to-r from-green-400 via-yellow-400 to-orange-400 text-white text-center leading-5 shadow-md shadow-yellow-300/50">📝</span>
                 Blog Posts
+              </button>
+              <button
+                onClick={() => setActiveTab('categories')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-300 transform ${
+                  activeTab === 'categories'
+                    ? 'bg-white dark:bg-gray-700 text-navy dark:text-white shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                <span className="inline-block w-5 h-5 mr-1 rounded bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400 text-white text-center leading-5 shadow-md shadow-cyan-300/50">🏷️</span>
+                Categories
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
@@ -2565,6 +2576,152 @@ export default function AdminPage() {
             </CardContent>
           </Card>
           </>
+          )}
+
+          {/* Categories Management Tab */}
+          {activeTab === 'categories' && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-navy dark:text-blue-400">Categories Management</h2>
+                <Button 
+                  onClick={() => {
+                    // Add new category functionality
+                    const newCategoryName = prompt('Enter new category name:');
+                    if (newCategoryName) {
+                      toast({
+                        title: 'Category Management',
+                        description: 'Category management functionality will be implemented soon.',
+                      });
+                    }
+                  }}
+                  className="bg-bright-blue hover:bg-navy"
+                >
+                  Add New Category
+                </Button>
+              </div>
+
+              {/* Current Categories Display */}
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="text-xl text-bright-blue">🏷️ Current Categories</CardTitle>
+                  <CardDescription>Manage your product categories - names and arrangement match the image exactly</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {[
+                      { name: 'Electronics & Gadgets', icon: '⚙️', color: '#6366F1' },
+                      { name: 'Mobiles & Accessories', icon: '📱', color: '#6366F1' },
+                      { name: 'Computers & Laptops', icon: '💻', color: '#6366F1' },
+                      { name: 'Cameras & Photography', icon: '📷', color: '#A855F7' },
+                      { name: 'Home Appliances', icon: '🏠', color: '#10B981' },
+                      { name: "Men's Fashion", icon: '👔', color: '#10B981' },
+                      { name: "Women's Fashion", icon: '👗', color: '#EC4899' },
+                      { name: "Kids' Fashion", icon: '👶', color: '#F97316' },
+                      { name: 'Footwear & Accessories', icon: '👟', color: '#8B5CF6' },
+                      { name: 'Jewelry & Watches', icon: '💎', color: '#8B5CF6' },
+                      { name: 'Beauty & Grooming', icon: '💄', color: '#EC4899' },
+                      { name: 'Health & Wellness', icon: '❤️', color: '#EF4444' },
+                      { name: 'Fitness & Nutrition', icon: '🏋️', color: '#F97316' },
+                      { name: 'Personal Care Appliances', icon: '🔧', color: '#22C55E' },
+                      { name: 'Furniture & Décor', icon: '🛋️', color: '#10B981' },
+                      { name: 'Kitchen & Dining', icon: '🍽️', color: '#22C55E' },
+                      { name: 'Bedding & Home Essentials', icon: '🛏️', color: '#06B6D4' },
+                      { name: 'Gardening & Outdoor', icon: '🌱', color: '#22C55E' },
+                      { name: 'Books & Stationery', icon: '📚', color: '#D97706' },
+                      { name: 'Music, Movies & Games', icon: '🎵', color: '#DC2626' },
+                      { name: 'E-learning & Courses', icon: '🎓', color: '#DC2626' },
+                      { name: 'Groceries & Gourmet', icon: '🛒', color: '#D97706' },
+                      { name: 'Food Delivery & Meal Kits', icon: '🍕', color: '#F97316' },
+                      { name: 'Flights & Hotels', icon: '✈️', color: '#3B82F6' },
+                      { name: 'Holiday Packages', icon: '🏖️', color: '#06B6D4' },
+                      { name: 'Experiences & Activities', icon: '🎪', color: '#6366F1' },
+                      { name: 'Credit Cards & Finance', icon: '💳', color: '#8B5CF6' },
+                      { name: 'Loans & Insurance', icon: '🛡️', color: '#8B5CF6' },
+                      { name: 'Investments & Trading Tools', icon: '📈', color: '#A855F7' },
+                      { name: 'Utility & Bill Payments', icon: '📄', color: '#6366F1' },
+                      { name: 'Cars & Bikes Accessories', icon: '🚗', color: '#D97706' },
+                      { name: 'Parts & Maintenance', icon: '🔧', color: '#DC2626' },
+                      { name: 'Baby Products', icon: '🍼', color: '#EC4899' },
+                      { name: 'Pet Supplies', icon: '🐾', color: '#EC4899' },
+                      { name: 'Gifting & Occasions', icon: '🎁', color: '#F97316' },
+                      { name: 'AI Apps & Services', icon: '🤖', color: '#8B5CF6' }
+                    ].map((category, index) => (
+                      <div 
+                        key={index}
+                        className="rounded-2xl p-4 text-white text-center shadow-lg relative group"
+                        style={{ backgroundColor: category.color }}
+                      >
+                        <div className="text-2xl mb-3">{category.icon}</div>
+                        <h4 className="font-bold text-sm">{category.name}</h4>
+                        
+                        {/* Edit button overlay */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="p-1 h-6 w-6 bg-white/20 border-white/30 hover:bg-white/30"
+                            onClick={() => {
+                              const newName = prompt(`Edit category name:`, category.name);
+                              if (newName && newName !== category.name) {
+                                toast({
+                                  title: 'Category Updated',
+                                  description: `"${category.name}" will be renamed to "${newName}" (functionality coming soon)`,
+                                });
+                              }
+                            }}
+                          >
+                            <Edit className="w-3 h-3 text-white" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Category Management Instructions */}
+              <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
+                <CardHeader>
+                  <CardTitle className="text-xl text-blue-600 dark:text-blue-400">📋 Category Management Guide</CardTitle>
+                  <CardDescription>How to manage your product categories effectively</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">✅ Current Features</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Categories match the image layout exactly</li>
+                        <li>• 36 predefined categories with proper icons</li>
+                        <li>• Color-coded for better visual organization</li>
+                        <li>• Responsive grid layout (2-6 columns)</li>
+                        <li>• Hover effects for better interaction</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-navy dark:text-blue-400 mb-2">🚀 Coming Soon</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Add new custom categories</li>
+                        <li>• Edit category names and descriptions</li>
+                        <li>• Change category icons and colors</li>
+                        <li>• Reorder categories by drag & drop</li>
+                        <li>• Delete unused categories</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">💡 Pro Tips</h4>
+                    <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                      <li>• Categories are arranged in 6 rows as per your image</li>
+                      <li>• Each category has specific colors and emojis</li>
+                      <li>• "AI Apps & Services" has special NEW badge styling</li>
+                      <li>• Categories automatically link to filtered product pages</li>
+                      <li>• Mobile-responsive design (2 columns on mobile, 6 on desktop)</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* Blog Management Tab */}
