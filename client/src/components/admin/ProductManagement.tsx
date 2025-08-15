@@ -37,6 +37,7 @@ export default function ProductManagement() {
     imageUrl: '',
     affiliateUrl: '',
     category: '',
+    gender: '',
     rating: '4.5',
     reviewCount: '100',
     discount: '',
@@ -96,6 +97,7 @@ export default function ProductManagement() {
         imageUrl: '',
         affiliateUrl: '',
         category: '',
+        gender: '',
         rating: '4.5',
         reviewCount: '100',
         discount: '',
@@ -146,6 +148,7 @@ export default function ProductManagement() {
           imageUrl: extracted.imageUrl || '',
           affiliateUrl: extracted.affiliateUrl || extractUrl,
           category: extracted.category || 'Electronics & Gadgets',
+          gender: '',
           rating: extracted.rating || '4.5',
           reviewCount: extracted.reviewCount || '100',
           discount: extracted.discount || '',
@@ -356,6 +359,24 @@ export default function ProductManagement() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Gender (Optional)</label>
+                  <select
+                    value={newProduct.gender || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, gender: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
+                  >
+                    <option value="">Select Gender (Optional)</option>
+                    <option value="men">👨 Men</option>
+                    <option value="women">👩 Women</option>
+                    <option value="boys">👦 Boys</option>
+                    <option value="girls">👧 Girls</option>
+                  </select>
+                </div>
+                <div></div>
               </div>
 
               <div>

@@ -1,5 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import GenderSelectionModal from "./GenderSelectionModal";
 
 // Fallback categories data in case API fails - Cleaned up duplicates
 const fallbackCategoriesData = [
@@ -216,6 +218,9 @@ const fallbackCategoriesData = [
 ];
 
 export default function Categories() {
+  const [showGenderModal, setShowGenderModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
   // Don't show loading state - use fallback data immediately
   const { data: apiCategories } = useQuery({
     queryKey: ['/api/categories'],
@@ -232,6 +237,28 @@ export default function Categories() {
 
   // Always use fallback data for immediate display
   const categoriesData = fallbackCategoriesData;
+
+  // Categories that require gender selection
+  const genderSpecificCategories = [
+    'Fashion & Clothing',
+    'Health & Beauty', 
+    'Jewelry & Watches',
+    'Baby & Kids'
+  ];
+
+  const handleCategoryClick = (e: React.MouseEvent, categoryName: string) => {
+    if (genderSpecificCategories.includes(categoryName)) {
+      e.preventDefault();
+      setSelectedCategory(categoryName);
+      setShowGenderModal(true);
+    }
+  };
+
+  const handleGenderSelect = (gender: string) => {
+    setShowGenderModal(false);
+    // Navigate to category with gender parameter
+    window.location.href = `/category/${encodeURIComponent(selectedCategory)}?gender=${gender}`;
+  };
 
   // Remove loading state completely - always show content immediately
 
@@ -253,6 +280,7 @@ export default function Categories() {
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
               className="group block"
+              onClick={(e) => handleCategoryClick(e, category.name)}
             >
               <div 
                 className={`
@@ -265,11 +293,21 @@ export default function Categories() {
                     ? 'ring-2 ring-yellow-400/50 shadow-yellow-400/20' 
                     : ''
                   }
+                  ${genderSpecificCategories.includes(category.name) 
+                    ? 'ring-2 ring-purple-400/50 shadow-purple-400/20' 
+                    : ''
+                  }
                 `}
                 style={{ 
                   background: `linear-gradient(135deg, ${category.color}CC, ${category.color}FF)`
                 }}
               >
+                {/* Gender selection badge for specific categories */}
+                {genderSpecificCategories.includes(category.name) && (
+                  <div className="absolute -top-1 -left-1 bg-gradient-to-r from-purple-400 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                    👤
+                  </div>
+                )}
                 {/* Special badge for AI Apps & Services */}
                 {category.name === 'AI Apps & Services' && (
                   <div className="absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-pulse shadow-lg">
@@ -300,6 +338,14 @@ export default function Categories() {
           ))}
         </div>
       </div>
+
+      {/* Gender Selection Modal */}
+      <GenderSelectionModal
+        isOpen={showGenderModal}
+        onClose={() => setShowGenderModal(false)}
+        onSelect={handleGenderSelect}
+        category={selectedCategory}
+      />
     </section>
   );
 }

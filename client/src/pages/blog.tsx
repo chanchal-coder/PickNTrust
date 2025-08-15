@@ -124,13 +124,21 @@ const fallbackBlogPosts = [
 ];
 
 export default function Blog() {
-  const { data: blogPosts } = useQuery<BlogPost[]>({
+  const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],
-    enabled: false, // Use fallback data immediately
+    queryFn: async () => {
+      const response = await fetch('/api/blog');
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog posts');
+      }
+      return response.json();
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
-  // Always use fallback data for immediate display
-  const displayPosts = fallbackBlogPosts;
+  // Use API data if available, otherwise use fallback data
+  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : fallbackBlogPosts;
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -182,11 +190,20 @@ export default function Blog() {
                   index % 3 === 1 ? 'bg-green-400' : 
                   'bg-orange-400'
                 }`}>
-                  <img 
-                    src={post.imageUrl} 
-                    alt={post.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                  />
+                  {post.videoUrl ? (
+                    <video 
+                      src={post.videoUrl} 
+                      controls
+                      className="w-full h-full object-cover rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
+                      poster={post.imageUrl}
+                    />
+                  ) : (
+                    <img 
+                      src={post.imageUrl} 
+                      alt={post.title} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
+                    />
+                  )}
                 </div>
                 <div className={`p-6 ${
                   index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 

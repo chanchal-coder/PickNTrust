@@ -75,8 +75,8 @@ const fallbackBlogPosts = [
 ];
 
 export default function BlogSection() {
-  // Try to fetch from API but don't show loading state - show fallback immediately
-  const { data: blogPosts } = useQuery<BlogPost[]>({
+  // Fetch from API and show real blog posts
+  const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],
     queryFn: async () => {
       const response = await fetch('/api/blog');
@@ -85,10 +85,8 @@ export default function BlogSection() {
       }
       return response.json();
     },
-    retry: false,
+    retry: 1,
     refetchOnWindowFocus: false,
-    // Don't show loading state, fail silently and use fallback
-    enabled: false, // Disable automatic fetching for now
   });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -119,8 +117,8 @@ export default function BlogSection() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Always use fallback data for immediate display
-  const displayPosts = fallbackBlogPosts;
+  // Use API data if available, otherwise use fallback data
+  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : fallbackBlogPosts;
 
   // Delete blog post mutation
   const deleteBlogPostMutation = useMutation({
@@ -285,11 +283,20 @@ export default function BlogSection() {
                   index % 3 === 1 ? 'bg-green-400' : 
                   'bg-orange-400'
                 }`}>
-                  <img 
-                    src={post.imageUrl} 
-                    alt={post.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                  />
+                  {post.videoUrl ? (
+                    <video 
+                      src={post.videoUrl} 
+                      controls
+                      className="w-full h-full object-cover rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
+                      poster={post.imageUrl}
+                    />
+                  ) : (
+                    <img 
+                      src={post.imageUrl} 
+                      alt={post.title} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
+                    />
+                  )}
                 </div>
                 <div className={`p-6 ${
                   index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
@@ -339,9 +346,9 @@ export default function BlogSection() {
                             <i className="fas fa-share text-xs"></i>
                           </button>
                           
-                          {/* Share Menu */}
+                          {/* Share Menu - Fixed positioning to prevent cutoff */}
                           {showShareMenu[post.id] && (
-                            <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                            <div className="absolute right-0 bottom-full mb-2 bg-white border rounded-lg shadow-lg p-2 z-30 min-w-[140px]">
                               <button
                                 onClick={() => handleShare('facebook', post)}
                                 className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
@@ -372,6 +379,16 @@ export default function BlogSection() {
                                 <i className="fab fa-instagram text-purple-600"></i>
                                 Instagram
                               </button>
+                              {/* Telegram - Only for admin */}
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleShare('telegram', post)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                                >
+                                  <i className="fab fa-telegram text-blue-500"></i>
+                                  Telegram
+                                </button>
+                              )}
                               {/* Pinterest - Only for admin */}
                               {isAdmin && (
                                 <button

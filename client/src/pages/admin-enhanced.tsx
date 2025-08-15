@@ -69,7 +69,25 @@ export default function EnhancedAdminPage() {
         throw new Error('Failed to fetch products');
       }
       return response.json();
-    }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['/api/products'],
+    queryFn: async () => {
+      const response = await fetch('/api/products');
+      if (!response.ok) {
+        throw new Error('Failed to fetch all products');
+      }
+      const data = await response.json();
+      return data.products || [];
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: categories = [] } = useQuery({
@@ -80,7 +98,10 @@ export default function EnhancedAdminPage() {
         throw new Error('Failed to fetch categories');
       }
       return response.json();
-    }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: blogPosts = [] } = useQuery({
@@ -91,7 +112,10 @@ export default function EnhancedAdminPage() {
         throw new Error('Failed to fetch blog posts');
       }
       return response.json();
-    }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // URL extraction mutation
@@ -300,7 +324,7 @@ export default function EnhancedAdminPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-blue-100 text-sm font-medium">Total Products</p>
-                        <p className="text-3xl font-bold">{Array.isArray(products) ? products.length : 0}</p>
+                        <p className="text-3xl font-bold">{Array.isArray(allProducts) ? allProducts.length : 0}</p>
                       </div>
                       <Package className="w-10 h-10 text-blue-200" />
                     </div>
