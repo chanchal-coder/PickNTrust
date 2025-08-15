@@ -471,7 +471,8 @@ export default function BlogPost({
   };
 
   return (
-    <article className="max-w-4xl mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors min-h-screen">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <article className="max-w-4xl mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors min-h-screen">
       {/* Sticky Title Bar */}
       <div className={`fixed top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-40 transition-all duration-300 ${
         isSticky ? 'translate-y-0 shadow-lg border-b border-gray-200 dark:border-gray-700' : '-translate-y-full'
@@ -621,6 +622,7 @@ export default function BlogPost({
           </div>
         </div>
       </footer>
-    </article>
+      </article>
+    </div>
   );
 }

@@ -141,6 +141,22 @@ try {
           created_at INTEGER DEFAULT (strftime('%s', 'now')),
           is_active INTEGER DEFAULT 1
         );
+        
+        CREATE TABLE IF NOT EXISTS video_content (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT,
+          video_url TEXT NOT NULL,
+          thumbnail_url TEXT,
+          platform TEXT NOT NULL,
+          category TEXT NOT NULL,
+          tags TEXT,
+          duration TEXT,
+          has_timer INTEGER DEFAULT 0,
+          timer_duration INTEGER,
+          timer_start_time INTEGER,
+          created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
       `);
       console.log('Basic database schema created successfully');
     }
