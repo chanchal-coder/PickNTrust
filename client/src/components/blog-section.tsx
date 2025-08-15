@@ -283,20 +283,35 @@ export default function BlogSection() {
                   index % 3 === 1 ? 'bg-green-400' : 
                   'bg-orange-400'
                 }`}>
-                  {post.videoUrl ? (
+                  {post.videoUrl && post.videoUrl.trim() !== '' ? (
                     <video 
                       src={post.videoUrl} 
                       controls
                       className="w-full h-full object-cover rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
                       poster={post.imageUrl}
+                      onError={(e) => {
+                        // If video fails to load, hide it and show image instead
+                        const videoElement = e.target as HTMLVideoElement;
+                        videoElement.style.display = 'none';
+                        const imgElement = videoElement.nextElementSibling as HTMLImageElement;
+                        if (imgElement) {
+                          imgElement.style.display = 'block';
+                        }
+                      }}
                     />
-                  ) : (
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.title} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                    />
-                  )}
+                  ) : null}
+                  <img 
+                    src={post.imageUrl} 
+                    alt={post.title} 
+                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg ${
+                      post.videoUrl && post.videoUrl.trim() !== '' ? 'hidden' : 'block'
+                    }`}
+                    onError={(e) => {
+                      // If image fails to load, show a placeholder
+                      const imgElement = e.target as HTMLImageElement;
+                      imgElement.src = `https://via.placeholder.com/400x200/6366f1/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`;
+                    }}
+                  />
                 </div>
                 <div className={`p-6 ${
                   index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
@@ -379,26 +394,20 @@ export default function BlogSection() {
                                 <i className="fab fa-instagram text-purple-600"></i>
                                 Instagram
                               </button>
-                              {/* Telegram - Only for admin */}
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleShare('telegram', post)}
-                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
-                                >
-                                  <i className="fab fa-telegram text-blue-500"></i>
-                                  Telegram
-                                </button>
-                              )}
-                              {/* Pinterest - Only for admin */}
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleShare('pinterest', post)}
-                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 rounded w-full text-left text-gray-700"
-                                >
-                                  <i className="fab fa-pinterest text-red-600"></i>
-                                  Pinterest
-                                </button>
-                              )}
+                              <button
+                                onClick={() => handleShare('telegram', post)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                              >
+                                <i className="fab fa-telegram text-blue-500"></i>
+                                Telegram
+                              </button>
+                              <button
+                                onClick={() => handleShare('pinterest', post)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 rounded w-full text-left text-gray-700"
+                              >
+                                <i className="fab fa-pinterest text-red-600"></i>
+                                Pinterest
+                              </button>
                             </div>
                           )}
                         </div>

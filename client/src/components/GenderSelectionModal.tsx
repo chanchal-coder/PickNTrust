@@ -16,8 +16,8 @@ export default function GenderSelectionModal({ isOpen, onClose, onSelect, catego
     // For baby categories, show boys/girls
     if (category.toLowerCase().includes('baby') || category.toLowerCase().includes('kids') || category.toLowerCase().includes('children')) {
       return [
-        { value: 'boys', label: "Boy's", icon: '👦', color: 'from-blue-500 to-blue-600' },
-        { value: 'girls', label: "Girl's", icon: '👧', color: 'from-pink-500 to-pink-600' }
+        { value: 'boys', label: "Baby Boy", icon: '👦', color: 'from-blue-500 to-blue-600' },
+        { value: 'girls', label: "Baby Girl", icon: '👧', color: 'from-pink-500 to-pink-600' }
       ];
     }
     

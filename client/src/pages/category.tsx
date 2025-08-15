@@ -63,19 +63,21 @@ export default function CategoryPage() {
     imageUrl: '',
     affiliateUrl: '',
     isFeatured: false,
-    isAvailable: true
+    isAvailable: true,
+    customFields: {} as Record<string, string>
   });
+  const [customFields, setCustomFields] = useState<Array<{key: string, value: string}>>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Gender filtering state
-  const [currentGender, setCurrentGender] = useState('Men');
-  
+  const [currentGender, setCurrentGender] = useState('men');
   // Categories that require gender filtering
   const genderSpecificCategories = [
-    'Footwear & Accessories',
-    'Jewelry & Watches', 
-    'Beauty & Grooming'
+    'Fashion & Clothing',
+    'Health & Beauty', 
+    'Jewelry & Watches',
+    'Baby & Kids'
   ];
 
   const decodedCategory = category ? decodeURIComponent(category) : '';
@@ -85,13 +87,28 @@ export default function CategoryPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const genderParam = urlParams.get('gender');
-    if (genderParam && ['Men', 'Women', 'Kids'].includes(genderParam)) {
-      setCurrentGender(genderParam);
+    
+    // Check if this is a baby category
+    const isBabyCategory = decodedCategory.toLowerCase().includes('baby') || decodedCategory.toLowerCase().includes('kids');
+    
+    if (genderParam) {
+      if (isBabyCategory && ['boys', 'girls'].includes(genderParam)) {
+        setCurrentGender(genderParam);
+      } else if (!isBabyCategory && ['men', 'women', 'kids'].includes(genderParam)) {
+        setCurrentGender(genderParam);
+      }
+    } else {
+      // Set default gender based on category type
+      if (isBabyCategory) {
+        setCurrentGender('boys');
+      } else {
+        setCurrentGender('men');
+      }
     }
     
     // Scroll to top when category changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [category]);
+  }, [category, decodedCategory]);
 
   // Clear any previous state when category changes and scroll to top
   useEffect(() => {
@@ -296,6 +313,7 @@ export default function CategoryPage() {
       setProductUrl('');
       setExtractedProduct(null);
       setIsEditingPreview(false);
+      setCustomFields([]);
       
       // Refresh category products and featured products
       queryClient.invalidateQueries({ queryKey: ['/api/products/category', category] });
@@ -307,6 +325,43 @@ export default function CategoryPage() {
         variant: 'destructive',
       });
     }
+  };
+
+  // Add custom field
+  const addCustomField = () => {
+    setCustomFields([...customFields, { key: '', value: '' }]);
+  };
+
+  // Remove custom field
+  const removeCustomField = (index: number) => {
+    const newFields = customFields.filter((_, i) => i !== index);
+    setCustomFields(newFields);
+    
+    // Update manualProduct customFields
+    const updatedCustomFields = { ...manualProduct.customFields };
+    const fieldToRemove = customFields[index];
+    if (fieldToRemove.key) {
+      delete updatedCustomFields[fieldToRemove.key];
+    }
+    setManualProduct({ ...manualProduct, customFields: updatedCustomFields });
+  };
+
+  // Update custom field
+  const updateCustomField = (index: number, key: string, value: string) => {
+    const newFields = [...customFields];
+    const oldKey = newFields[index].key;
+    newFields[index] = { key, value };
+    setCustomFields(newFields);
+    
+    // Update manualProduct customFields
+    const updatedCustomFields = { ...manualProduct.customFields };
+    if (oldKey && oldKey !== key) {
+      delete updatedCustomFields[oldKey];
+    }
+    if (key) {
+      updatedCustomFields[key] = value;
+    }
+    setManualProduct({ ...manualProduct, customFields: updatedCustomFields });
   };
 
   // Add manual product
@@ -356,8 +411,10 @@ export default function CategoryPage() {
         imageUrl: '',
         affiliateUrl: '',
         isFeatured: false,
-        isAvailable: true
+        isAvailable: true,
+        customFields: {}
       });
+      setCustomFields([]);
       
       // Refresh category products and featured products
       queryClient.invalidateQueries({ queryKey: ['/api/products/category', category] });
@@ -957,6 +1014,68 @@ export default function CategoryPage() {
                                   </div>
                                 </div>
 
+                                {/* Custom Fields Section */}
+                                <div className="border-t pt-4">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <Label className="text-lg font-semibold text-navy dark:text-blue-400">Custom Fields</Label>
+                                    <Button
+                                      type="button"
+                                      onClick={addCustomField}
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                    >
+                                      <i className="fas fa-plus mr-2"></i>
+                                      Add Custom Field
+                                    </Button>
+                                  </div>
+                                  
+                                  {customFields.length > 0 && (
+                                    <div className="space-y-3">
+                                      {customFields.map((field, index) => (
+                                        <div key={index} className="flex gap-3 items-end">
+                                          <div className="flex-1">
+                                            <Label htmlFor={`custom-key-${index}`}>Field Name</Label>
+                                            <Input
+                                              id={`custom-key-${index}`}
+                                              value={field.key}
+                                              onChange={(e) => updateCustomField(index, e.target.value, field.value)}
+                                              placeholder="e.g., Brand, Color, Size"
+                                              className="text-sm"
+                                            />
+                                          </div>
+                                          <div className="flex-1">
+                                            <Label htmlFor={`custom-value-${index}`}>Field Value</Label>
+                                            <Input
+                                              id={`custom-value-${index}`}
+                                              value={field.value}
+                                              onChange={(e) => updateCustomField(index, field.key, e.target.value)}
+                                              placeholder="e.g., Nike, Red, Large"
+                                              className="text-sm"
+                                            />
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            onClick={() => removeCustomField(index)}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-red-600 border-red-600 hover:bg-red-50"
+                                          >
+                                            <i className="fas fa-trash"></i>
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {customFields.length === 0 && (
+                                    <div className="text-center py-4 text-gray-500 text-sm">
+                                      <i className="fas fa-info-circle mr-2"></i>
+                                      No custom fields added. Click "Add Custom Field" to add product-specific information.
+                                    </div>
+                                  )}
+                                </div>
+
                                 <div className="flex gap-3 pt-4 border-t">
                                   <Button
                                     onClick={addManualProduct}
@@ -980,8 +1099,10 @@ export default function CategoryPage() {
                                         imageUrl: '',
                                         affiliateUrl: '',
                                         isFeatured: false,
-                                        isAvailable: true
+                                        isAvailable: true,
+                                        customFields: {}
                                       });
+                                      setCustomFields([]);
                                     }}
                                   >
                                     Cancel

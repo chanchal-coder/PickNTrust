@@ -43,8 +43,47 @@ export default function ProductManagement() {
     discount: '',
     isFeatured: true,
     hasTimer: false,
-    timerDuration: '24'
+    timerDuration: '24',
+    customFields: {} as Record<string, string>
   });
+  const [customFields, setCustomFields] = useState<Array<{key: string, value: string}>>([]);
+
+  // Add custom field
+  const addCustomField = () => {
+    setCustomFields([...customFields, { key: '', value: '' }]);
+  };
+
+  // Remove custom field
+  const removeCustomField = (index: number) => {
+    const newFields = customFields.filter((_, i) => i !== index);
+    setCustomFields(newFields);
+    
+    // Update newProduct customFields
+    const updatedCustomFields = { ...newProduct.customFields };
+    const fieldToRemove = customFields[index];
+    if (fieldToRemove.key) {
+      delete updatedCustomFields[fieldToRemove.key];
+    }
+    setNewProduct({ ...newProduct, customFields: updatedCustomFields });
+  };
+
+  // Update custom field
+  const updateCustomField = (index: number, key: string, value: string) => {
+    const newFields = [...customFields];
+    const oldKey = newFields[index].key;
+    newFields[index] = { key, value };
+    setCustomFields(newFields);
+    
+    // Update newProduct customFields
+    const updatedCustomFields = { ...newProduct.customFields };
+    if (oldKey && oldKey !== key) {
+      delete updatedCustomFields[oldKey];
+    }
+    if (key) {
+      updatedCustomFields[key] = value;
+    }
+    setNewProduct({ ...newProduct, customFields: updatedCustomFields });
+  };
 
   // Fetch products
   const { data: products = [], isLoading, error } = useQuery({
@@ -103,8 +142,10 @@ export default function ProductManagement() {
         discount: '',
         isFeatured: true,
         hasTimer: false,
-        timerDuration: '24'
+        timerDuration: '24',
+        customFields: {}
       });
+      setCustomFields([]);
       setIsAddingProduct(false);
       toast({
         title: 'Success',
@@ -154,8 +195,10 @@ export default function ProductManagement() {
           discount: extracted.discount || '',
           isFeatured: true,
           hasTimer: false,
-          timerDuration: '24'
+          timerDuration: '24',
+          customFields: {}
         });
+        setCustomFields([]);
         setExtractUrl('');
         setIsAddingProduct(true);
         toast({
@@ -520,6 +563,68 @@ export default function ProductManagement() {
                     <p className="text-xs text-gray-400 mt-1">
                       ⚠️ Product will be automatically deleted when timer expires
                     </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Fields Section */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="text-lg font-semibold text-blue-300">Custom Fields</label>
+                  <Button
+                    type="button"
+                    onClick={addCustomField}
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                  >
+                    <i className="fas fa-plus mr-2"></i>
+                    Add Custom Field
+                  </Button>
+                </div>
+                
+                {customFields.length > 0 && (
+                  <div className="space-y-3">
+                    {customFields.map((field, index) => (
+                      <div key={index} className="flex gap-3 items-end">
+                        <div className="flex-1">
+                          <label htmlFor={`custom-key-${index}`} className="block text-sm font-medium mb-2 text-blue-300">Field Name</label>
+                          <input
+                            id={`custom-key-${index}`}
+                            value={field.key}
+                            onChange={(e) => updateCustomField(index, e.target.value, field.value)}
+                            placeholder="e.g., Brand, Color, Size"
+                            className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label htmlFor={`custom-value-${index}`} className="block text-sm font-medium mb-2 text-blue-300">Field Value</label>
+                          <input
+                            id={`custom-value-${index}`}
+                            value={field.value}
+                            onChange={(e) => updateCustomField(index, field.key, e.target.value)}
+                            placeholder="e.g., Nike, Red, Large"
+                            className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => removeCustomField(index)}
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 border-red-600 hover:bg-red-50"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {customFields.length === 0 && (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    <i className="fas fa-info-circle mr-2"></i>
+                    No custom fields added. Click "Add Custom Field" to add product-specific information.
                   </div>
                 )}
               </div>

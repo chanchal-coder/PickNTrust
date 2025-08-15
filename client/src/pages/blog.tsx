@@ -190,20 +190,35 @@ export default function Blog() {
                   index % 3 === 1 ? 'bg-green-400' : 
                   'bg-orange-400'
                 }`}>
-                  {post.videoUrl ? (
+                  {post.videoUrl && post.videoUrl.trim() !== '' ? (
                     <video 
                       src={post.videoUrl} 
                       controls
                       className="w-full h-full object-cover rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
                       poster={post.imageUrl}
+                      onError={(e) => {
+                        // If video fails to load, hide it and show image instead
+                        const videoElement = e.target as HTMLVideoElement;
+                        videoElement.style.display = 'none';
+                        const imgElement = videoElement.nextElementSibling as HTMLImageElement;
+                        if (imgElement) {
+                          imgElement.style.display = 'block';
+                        }
+                      }}
                     />
-                  ) : (
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.title} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                    />
-                  )}
+                  ) : null}
+                  <img 
+                    src={post.imageUrl} 
+                    alt={post.title} 
+                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg ${
+                      post.videoUrl && post.videoUrl.trim() !== '' ? 'hidden' : 'block'
+                    }`}
+                    onError={(e) => {
+                      // If image fails to load, show a placeholder
+                      const imgElement = e.target as HTMLImageElement;
+                      imgElement.src = `https://via.placeholder.com/400x200/6366f1/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`;
+                    }}
+                  />
                 </div>
                 <div className={`p-6 ${
                   index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
