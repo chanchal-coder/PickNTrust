@@ -43,7 +43,7 @@ export default function SimplifiedBlogForm() {
     timerDuration: '24'
   });
 
-  // Handle image upload - Enhanced to support all image formats
+  // Handle image upload - Enhanced to support all image formats with 50MB limit
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -64,11 +64,11 @@ export default function SimplifiedBlogForm() {
       return;
     }
 
-    // Check file size (limit to 5MB for better performance)
-    if (file.size > 5 * 1024 * 1024) {
+    // Check file size (limit to 50MB for high-quality images)
+    if (file.size > 50 * 1024 * 1024) {
       toast({
         title: 'File Too Large',
-        description: 'Please upload an image smaller than 5MB for optimal performance.',
+        description: 'Please upload an image smaller than 50MB for optimal performance.',
         variant: 'destructive',
       });
       return;
@@ -284,7 +284,7 @@ export default function SimplifiedBlogForm() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📝 Image Blog Management</h2>
-          <p className="text-gray-600 dark:text-gray-300">Create engaging blog posts with images and rich content</p>
+          <p className="text-gray-600 dark:text-gray-300">Create engaging blog posts with high-quality images up to 50MB</p>
         </div>
         <Button 
           onClick={() => setIsAddingPost(true)}
@@ -303,7 +303,7 @@ export default function SimplifiedBlogForm() {
               Create New Blog Post
             </CardTitle>
             <CardDescription className="text-gray-300">
-              Add engaging content with image support and optional auto-delete timer
+              Add engaging content with high-quality image support (up to 50MB) and optional auto-delete timer
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -374,7 +374,7 @@ export default function SimplifiedBlogForm() {
                 </div>
               </div>
 
-              {/* Image Section - Simplified */}
+              {/* Image Section - Enhanced with 50MB support */}
               <div>
                 <Label className="text-white font-medium">Blog Image</Label>
                 <Input
@@ -402,7 +402,7 @@ export default function SimplifiedBlogForm() {
                     <Upload className="w-3 h-3 mr-1" />
                     {uploadingImage ? 'Uploading...' : 'Upload from Device'}
                   </Button>
-                  <p className="text-xs text-blue-400 mt-1">📁 Supports: JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF, HEIC (max 5MB)</p>
+                  <p className="text-xs text-blue-400 mt-1">📁 Supports: JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF, HEIC (max 50MB)</p>
                 </div>
                 
                 {newPost.imageUrl && (
@@ -416,7 +416,7 @@ export default function SimplifiedBlogForm() {
                       }}
                     />
                     <div className="p-2 bg-gray-800">
-                      <p className="text-xs text-green-400">✅ Image loaded successfully</p>
+                      <p className="text-xs text-green-400">✅ High-quality image loaded successfully</p>
                     </div>
                   </div>
                 )}
@@ -535,7 +535,7 @@ export default function SimplifiedBlogForm() {
             Current Blog Posts ({blogPosts.length})
           </CardTitle>
           <CardDescription className="text-blue-200">
-            Manage all your image-based blog posts
+            Manage all your high-quality image-based blog posts (up to 50MB each)
           </CardDescription>
         </CardHeader>
         <CardContent>

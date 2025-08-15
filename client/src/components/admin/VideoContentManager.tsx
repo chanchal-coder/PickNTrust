@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Upload, Video, Youtube, Instagram, Music, Globe, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Upload, Video, Youtube, Instagram, Music, Globe, Edit, Trash2, Eye, Clock, Image, RefreshCw } from 'lucide-react';
 
 interface VideoContent {
   id: number;
@@ -23,6 +23,8 @@ interface VideoContent {
   views?: number;
   createdAt: string;
   customFields?: Record<string, string>;
+  hasTimer?: boolean;
+  timerDuration?: string;
 }
 
 interface CustomField {
@@ -36,8 +38,10 @@ export default function VideoContentManager() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('any-website');
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [showCustomFieldForm, setShowCustomFieldForm] = useState(false);
+  const [thumbnailMode, setThumbnailMode] = useState<'auto' | 'manual' | 'upload'>('auto');
   
   const [videoData, setVideoData] = useState({
     title: '',
@@ -48,7 +52,9 @@ export default function VideoContentManager() {
     thumbnailUrl: '',
     platform: 'any-website',
     duration: '',
-    customFields: {} as Record<string, string>
+    customFields: {} as Record<string, string>,
+    hasTimer: false,
+    timerDuration: '24'
   });
 
   const [newCustomField, setNewCustomField] = useState({
@@ -103,12 +109,110 @@ export default function VideoContentManager() {
     }
   ];
 
+  // Auto-generate thumbnail from video URL
+  const generateThumbnailFromUrl = (url: string, platform: string) => {
+    if (!url || thumbnailMode !== 'auto') return '';
+
+    // YouTube thumbnail extraction
+    const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    if (youtubeMatch) {
+      return `https://img.youtube.com/vi/${youtubeMatch[1]}/maxresdefault.jpg`;
+    }
+
+    // Vimeo thumbnail extraction
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      return `https://vumbnail.com/${vimeoMatch[1]}.jpg`;
+    }
+
+    // Instagram - use placeholder
+    if (url.includes('instagram.com')) {
+      return 'https://images.unsplash.com/photo-1611262588024-d12430b98920?w=400&h=300&fit=crop';
+    }
+
+    // TikTok - use placeholder
+    if (url.includes('tiktok.com')) {
+      return 'https://images.unsplash.com/photo-1611605698335-8b1569810432?w=400&h=300&fit=crop';
+    }
+
+    // Facebook - use placeholder
+    if (url.includes('facebook.com')) {
+      return 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop';
+    }
+
+    return '';
+  };
+
+  // Auto-update thumbnail when video URL changes
+  useEffect(() => {
+    if (videoData.videoUrl && thumbnailMode === 'auto') {
+      const autoThumbnail = generateThumbnailFromUrl(videoData.videoUrl, activeTab);
+      if (autoThumbnail) {
+        setVideoData(prev => ({ ...prev, thumbnailUrl: autoThumbnail }));
+      }
+    }
+  }, [videoData.videoUrl, activeTab, thumbnailMode]);
+
+  // Handle thumbnail upload
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const supportedImageTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 
+      'image/bmp', 'image/svg+xml', 'image/tiff', 'image/ico', 'image/avif'
+    ];
+    
+    if (!supportedImageTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid Image Format',
+        description: 'Please upload a valid image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'Image Too Large',
+        description: 'Please upload a thumbnail smaller than 10MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setVideoData({ ...videoData, thumbnailUrl: result });
+        setThumbnailMode('upload');
+        setUploadingThumbnail(false);
+        
+        toast({
+          title: 'Success',
+          description: 'Thumbnail uploaded successfully!',
+        });
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      setUploadingThumbnail(false);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload thumbnail',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Handle video file upload
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const supportedVideoTypes = [
       'video/mp4', 'video/webm', 'video/ogg', 'video/mov', 'video/avi', 
       'video/wmv', 'video/flv', 'video/mkv', 'video/m4v', 'video/3gp'
@@ -117,17 +221,16 @@ export default function VideoContentManager() {
     if (!supportedVideoTypes.includes(file.type)) {
       toast({
         title: 'Invalid Video Format',
-        description: 'Please upload a valid video file (MP4, WebM, OGG, MOV, AVI, WMV, FLV, MKV, M4V, 3GP)',
+        description: 'Please upload a valid video file',
         variant: 'destructive',
       });
       return;
     }
 
-    // Check file size (limit to 100MB for videos)
     if (file.size > 100 * 1024 * 1024) {
       toast({
         title: 'Video File Too Large',
-        description: 'Please upload a video smaller than 100MB for optimal performance.',
+        description: 'Please upload a video smaller than 100MB.',
         variant: 'destructive',
       });
       return;
@@ -136,26 +239,15 @@ export default function VideoContentManager() {
     setUploadingVideo(true);
     
     try {
-      // Convert file to base64 for storage
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
         setVideoData({ ...videoData, videoUrl: result, platform: 'file-upload' });
         setUploadingVideo(false);
         
-        const fileExtension = file.type.split('/')[1].toUpperCase();
         toast({
           title: 'Success',
-          description: `${fileExtension} video uploaded successfully! (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
-        });
-      };
-      
-      reader.onerror = () => {
-        setUploadingVideo(false);
-        toast({
-          title: 'Upload Error',
-          description: 'Failed to read the video file. Please try again.',
-          variant: 'destructive',
+          description: 'Video uploaded successfully!',
         });
       };
       
@@ -196,7 +288,6 @@ export default function VideoContentManager() {
     const fieldName = customFields[index].name;
     setCustomFields(customFields.filter((_, i) => i !== index));
     
-    // Remove from video data
     const newCustomFields = { ...videoData.customFields };
     delete newCustomFields[fieldName];
     setVideoData({ ...videoData, customFields: newCustomFields });
@@ -241,7 +332,6 @@ export default function VideoContentManager() {
       );
     }
 
-    // YouTube thumbnail
     const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
     if (youtubeMatch) {
       return (
@@ -260,7 +350,6 @@ export default function VideoContentManager() {
       );
     }
 
-    // Generic preview for other platforms
     return (
       <div className="w-full h-32 bg-gray-700 rounded flex items-center justify-center">
         <div className="text-center">
@@ -296,7 +385,9 @@ export default function VideoContentManager() {
           password: 'pickntrust2025',
           ...data,
           tags: data.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0),
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          hasTimer: data.hasTimer,
+          timerDuration: data.hasTimer ? data.timerDuration : null
         }),
       });
 
@@ -318,8 +409,11 @@ export default function VideoContentManager() {
         thumbnailUrl: '',
         platform: activeTab,
         duration: '',
-        customFields: {}
+        customFields: {},
+        hasTimer: false,
+        timerDuration: '24'
       });
+      setThumbnailMode('auto');
       toast({
         title: 'Success',
         description: 'Video content added successfully!',
@@ -345,7 +439,6 @@ export default function VideoContentManager() {
       return;
     }
 
-    // Validate required custom fields
     for (const field of customFields) {
       if (field.required && !videoData.customFields[field.name]?.trim()) {
         toast({
@@ -371,7 +464,7 @@ export default function VideoContentManager() {
             📹 Video Content Manager
           </CardTitle>
           <CardDescription className="text-purple-200">
-            Upload video files or add videos from any platform with custom fields and advanced management
+            Upload video files or add videos from any platform with auto-generated thumbnails, custom fields, and advanced management
           </CardDescription>
         </CardHeader>
       </Card>
@@ -406,10 +499,7 @@ export default function VideoContentManager() {
             Add {activePlatform?.name} Video
           </CardTitle>
           <CardDescription className="text-gray-300">
-            {activeTab === 'any-website' 
-              ? 'Upload video files or paste video URLs from any website'
-              : `Add videos from ${activePlatform?.name} with custom metadata`
-            }
+            Add videos with automatic thumbnail extraction and timer functionality
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -426,12 +516,11 @@ export default function VideoContentManager() {
                   required
                 />
                 
-                {/* File Upload Option */}
                 <div className="mt-3 p-4 bg-gray-800 rounded-lg border border-gray-600">
                   <Label className="text-white font-medium mb-2 block">Or Upload Video File</Label>
                   <input 
                     type="file" 
-                    accept="video/mp4,video/webm,video/ogg,video/mov,video/avi,video/wmv,video/flv,video/mkv,video/m4v,video/3gp" 
+                    accept="video/*" 
                     className="hidden" 
                     id="video-upload"
                     onChange={handleVideoUpload}
@@ -509,7 +598,7 @@ export default function VideoContentManager() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-white font-medium">Tags</Label>
                 <Input
@@ -529,196 +618,186 @@ export default function VideoContentManager() {
                   className="bg-gray-800 border-gray-600 text-white mt-2"
                 />
               </div>
-
-              <div>
-                <Label className="text-white font-medium">Thumbnail URL</Label>
-                <Input
-                  value={videoData.thumbnailUrl}
-                  onChange={(e) => setVideoData({ ...videoData, thumbnailUrl: e.target.value })}
-                  placeholder="https://example.com/thumb.jpg"
-                  className="bg-gray-800 border-gray-600 text-white mt-2"
-                />
-              </div>
             </div>
 
-            {/* Custom Fields Section */}
+            {/* Enhanced Thumbnail Section */}
             <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
-              <div className="flex items-center justify-between mb-4">
-                <Label className="text-white font-medium text-lg">Custom Fields</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCustomFieldForm(!showCustomFieldForm)}
-                  className="text-blue-400 border-blue-400 hover:bg-blue-900"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Field
-                </Button>
+              <div className="flex items-center gap-2 mb-3">
+                <Image className="w-5 h-5 text-blue-400" />
+                <Label className="text-white font-medium">Video Thumbnail</Label>
+              </div>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="auto-thumbnail"
+                    name="thumbnailMode"
+                    checked={thumbnailMode === 'auto'}
+                    onChange={() => {
+                      setThumbnailMode('auto');
+                      const autoThumbnail = generateThumbnailFromUrl(videoData.videoUrl, activeTab);
+                      if (autoThumbnail) {
+                        setVideoData({ ...videoData, thumbnailUrl: autoThumbnail });
+                      }
+                    }}
+                    className="rounded border-gray-600 bg-gray-700"
+                  />
+                  <Label htmlFor="auto-thumbnail" className="text-white text-sm">
+                    Auto-generate (Default)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="manual-thumbnail"
+                    name="thumbnailMode"
+                    checked={thumbnailMode === 'manual'}
+                    onChange={() => setThumbnailMode('manual')}
+                    className="rounded border-gray-600 bg-gray-700"
+                  />
+                  <Label htmlFor="manual-thumbnail" className="text-white text-sm">
+                    Manual URL
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="upload-thumbnail"
+                    name="thumbnailMode"
+                    checked={thumbnailMode === 'upload'}
+                    onChange={() => setThumbnailMode('upload')}
+                    className="rounded border-gray-600 bg-gray-700"
+                  />
+                  <Label htmlFor="upload-thumbnail" className="text-white text-sm">
+                    Upload Image
+                  </Label>
+                </div>
               </div>
 
-              {/* Add Custom Field Form */}
-              {showCustomFieldForm && (
-                <div className="mb-4 p-3 bg-gray-700 rounded border border-gray-600">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {thumbnailMode === 'auto' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
                     <Input
-                      value={newCustomField.name}
-                      onChange={(e) => setNewCustomField({ ...newCustomField, name: e.target.value })}
-                      placeholder="Field name"
-                      className="bg-gray-800 border-gray-600 text-white"
+                      value={videoData.thumbnailUrl}
+                      placeholder="Auto-generated from video URL"
+                      className="bg-gray-700 border-gray-600 text-white"
+                      disabled
                     />
-                    <Select 
-                      value={newCustomField.type}
-                      onValueChange={(value: any) => setNewCustomField({ ...newCustomField, type: value })}
-                    >
-                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-600">
-                        <SelectItem value="text" className="text-white">Text</SelectItem>
-                        <SelectItem value="textarea" className="text-white">Textarea</SelectItem>
-                        <SelectItem value="number" className="text-white">Number</SelectItem>
-                        <SelectItem value="date" className="text-white">Date</SelectItem>
-                        <SelectItem value="url" className="text-white">URL</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="required"
-                        checked={newCustomField.required}
-                        onChange={(e) => setNewCustomField({ ...newCustomField, required: e.target.checked })}
-                        className="rounded border-gray-600 bg-gray-700"
-                      />
-                      <Label htmlFor="required" className="text-white text-sm">Required</Label>
-                    </div>
                     <Button
                       type="button"
-                      onClick={addCustomField}
+                      variant="outline"
                       size="sm"
-                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        const autoThumbnail = generateThumbnailFromUrl(videoData.videoUrl, activeTab);
+                        if (autoThumbnail) {
+                          setVideoData({ ...videoData, thumbnailUrl: autoThumbnail });
+                          toast({
+                            title: 'Success',
+                            description: 'Thumbnail auto-generated!',
+                          });
+                        } else {
+                          toast({
+                            title: 'Info',
+                            description: 'Auto-generation not available for this platform.',
+                          });
+                        }
+                      }}
+                      disabled={!videoData.videoUrl}
                     >
-                      Add
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Regenerate
                     </Button>
                   </div>
+                  <p className="text-xs text-blue-400">
+                    ✨ Automatically extracts thumbnail from YouTube, Vimeo, and other supported platforms
+                  </p>
                 </div>
               )}
 
-              {/* Custom Fields Display */}
-              {customFields.length > 0 && (
-                <div className="space-y-3">
-                  {customFields.map((field, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Label className="text-white text-sm">{field.name}</Label>
-                          {field.required && <span className="text-red-400 text-xs">*</span>}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeCustomField(index)}
-                            className="text-red-400 hover:text-red-300 p-1 h-auto"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                        {field.type === 'textarea' ? (
-                          <Textarea
-                            value={videoData.customFields[field.name] || ''}
-                            onChange={(e) => updateCustomField(field.name, e.target.value)}
-                            className="bg-gray-700 border-gray-600 text-white"
-                            rows={2}
-                          />
-                        ) : (
-                          <Input
-                            type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'}
-                            value={videoData.customFields[field.name] || ''}
-                            onChange={(e) => updateCustomField(field.name, e.target.value)}
-                            className="bg-gray-700 border-gray-600 text-white"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              {thumbnailMode === 'manual' && (
+                <div className="space-y-2">
+                  <Input
+                    value={videoData.thumbnailUrl}
+                    onChange={(e) => setVideoData({ ...videoData, thumbnailUrl: e.target.value })}
+                    placeholder="https://example.com/thumbnail.jpg"
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                  <p className="text-xs text-green-400">
+                    🔗 Enter a direct URL to your custom thumbnail image
+                  </p>
+                </div>
+              )}
+
+              {thumbnailMode === 'upload' && (
+                <div className="space-y-2">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    id="thumbnail-upload"
+                    onChange={handleThumbnailUpload}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => document.getElementById('thumbnail-upload')?.click()}
+                    className="w-full"
+                    disabled={uploadingThumbnail}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploadingThumbnail ? 'Uploading...' : 'Upload Thumbnail Image'}
+                  </Button>
+                  <p className="text-xs text-purple-400">
+                    📁 Supports: JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF (max 10MB)
+                  </p>
+                </div>
+              )}
+
+              {videoData.thumbnailUrl && (
+                <div className="mt-3 border border-gray-600 rounded-lg overflow-hidden">
+                  <img 
+                    src={videoData.thumbnailUrl} 
+                    alt="Thumbnail preview" 
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400';
+                    }}
+                  />
+                  <div className="p-2 bg-gray-800">
+                    <p className="text-xs text-green-400">✅ Thumbnail loaded successfully</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button 
-                type="submit"
-                disabled={addVideoMutation.isPending}
-                className="bg-green-600 hover:bg-green-700 text-white px-8"
-              >
-                {addVideoMutation.isPending ? 'Adding Video...' : 'Add Video Content'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Video Library */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Video Library ({videoContent.length})</CardTitle>
-          <CardDescription>
-            Manage all your video content with editing and organization tools
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading video content...</p>
-            </div>
-          ) : videoContent.length === 0 ? (
-            <div className="text-center py-8">
-              <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No video content found. Add your first video above.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {videoContent.map((video: VideoContent) => (
-                <div key={video.id} className="bg-gray-800 rounded-lg overflow-hidden">
-                  <div className="relative">
-                    {getVideoPreview(video.videoUrl, video.platform)}
-                    <Badge className={`absolute top-2 right-2 ${
-                      platforms.find(p => p.id === video.platform)?.color || 'bg-gray-600'
-                    }`}>
-                      {platforms.find(p => p.id === video.platform)?.name || video.platform}
-                    </Badge>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-white font-semibold mb-2 line-clamp-2">{video.title}</h3>
-                    {video.description && (
-                      <p className="text-gray-300 text-sm mb-2 line-clamp-2">{video.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-                      {video.category && <span>{video.category}</span>}
-                      {video.duration && <span>• {video.duration}</span>}
-                      {video.views && <span>• {video.views} views</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <Eye className="w-3 h-3 mr-1" />
-                        View
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-red-400 border-red-400">
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
+            {/* Auto-Delete Timer Section */}
+            <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-5 h-5 text-yellow-400" />
+                <Label className="text-white font-medium">Auto-Delete Timer</Label>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="hasTimer"
+                    checked={videoData.hasTimer}
+                    onChange={(e) => setVideoData({ ...videoData, hasTimer: e.target.checked })}
+                    className="rounded border-gray-600 bg-gray-700"
+                  />
+                  <Label htmlFor="hasTimer" className="text-white text-sm">
+                    Enable auto-delete after specified hours
+                  </Label>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+                {videoData.hasTimer && (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={videoData.timerDuration}
+                      onValueChange={(value) => setVideoData({ ...videoData, timerDuration: value })}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-
