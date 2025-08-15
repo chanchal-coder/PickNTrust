@@ -13,6 +13,7 @@ import HowItWorks from "@/pages/how-it-works";
 import TermsOfService from "@/pages/terms-of-service";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import Search from "@/pages/search";
+import TopPicks from "@/pages/top-picks";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ function App() {
               <Route path="/terms-of-service" component={TermsOfService} />
               <Route path="/privacy-policy" component={PrivacyPolicy} />
               <Route path="/search" component={Search} />
+              <Route path="/top-picks" component={TopPicks} />
               <Route>404 - Page Not Found</Route>
             </Switch>
             <Toaster />

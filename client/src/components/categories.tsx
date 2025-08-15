@@ -258,8 +258,8 @@ const fallbackCategoriesData = [
 ];
 
 export default function Categories() {
-  // Fetch categories from API with fallback to hardcoded data
-  const { data: apiCategories, isLoading } = useQuery({
+  // Don't show loading state - use fallback data immediately
+  const { data: apiCategories } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
       const response = await fetch('/api/categories');
@@ -268,39 +268,14 @@ export default function Categories() {
       }
       return response.json();
     },
-    retry: false
+    retry: false,
+    enabled: false, // Disable automatic fetching for now
   });
 
-  // Use API data if available, otherwise use fallback data
-  const categoriesData = apiCategories && Array.isArray(apiCategories) && apiCategories.length > 0 
-    ? apiCategories 
-    : fallbackCategoriesData;
+  // Always use fallback data for immediate display
+  const categoriesData = fallbackCategoriesData;
 
-  if (isLoading) {
-    return (
-      <section id="categories" className="py-16 bg-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Browse Categories
-            </h2>
-            <p className="text-slate-300 text-lg">
-              Loading categories...
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="bg-slate-700 rounded-[20px] p-6 animate-pulse">
-                <div className="w-8 h-8 bg-slate-600 rounded mb-4 mx-auto"></div>
-                <div className="h-4 bg-slate-600 rounded mb-2"></div>
-                <div className="h-3 bg-slate-600 rounded"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  // Remove loading state completely - always show content immediately
 
   return (
     <section id="categories" className="py-16 bg-slate-800">

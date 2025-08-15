@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -34,7 +35,7 @@ const fallbackProducts = [
   {
     id: 1,
     name: "iPhone 15 Pro Max",
-    description: "Latest Apple iPhone with titanium design and advanced camera system",
+    description: "Latest Apple iPhone with titanium design",
     price: "134900",
     originalPrice: "159900",
     imageUrl: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&q=80",
@@ -56,7 +57,7 @@ const fallbackProducts = [
   {
     id: 2,
     name: "Samsung 55\" 4K Smart TV",
-    description: "Crystal UHD 4K Smart TV with HDR and built-in streaming apps",
+    description: "Crystal UHD 4K Smart TV with HDR",
     price: "42990",
     originalPrice: "54990",
     imageUrl: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&q=80",
@@ -78,7 +79,7 @@ const fallbackProducts = [
   {
     id: 3,
     name: "Nike Air Max 270",
-    description: "Comfortable running shoes with Max Air cushioning technology",
+    description: "Comfortable running shoes",
     price: "8995",
     originalPrice: "12995",
     imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80",
@@ -100,7 +101,7 @@ const fallbackProducts = [
   {
     id: 4,
     name: "MacBook Air M2",
-    description: "Apple MacBook Air with M2 chip, 13.6-inch Liquid Retina display",
+    description: "Apple MacBook Air with M2 chip",
     price: "114900",
     originalPrice: "119900",
     imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80",
@@ -122,7 +123,7 @@ const fallbackProducts = [
   {
     id: 5,
     name: "Sony WH-1000XM5 Headphones",
-    description: "Industry-leading noise canceling wireless headphones",
+    description: "Industry-leading noise canceling",
     price: "24990",
     originalPrice: "29990",
     imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80",
@@ -144,7 +145,7 @@ const fallbackProducts = [
   {
     id: 6,
     name: "Instant Pot Duo 7-in-1",
-    description: "Electric pressure cooker, slow cooker, rice cooker, and more",
+    description: "Electric pressure cooker",
     price: "7999",
     originalPrice: "12999",
     imageUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80",
@@ -166,71 +167,23 @@ const fallbackProducts = [
 ];
 
 export default function FeaturedProducts() {
-  const { data: products, isLoading } = useQuery<Product[]>({
+  const { data: products } = useQuery<Product[]>({
     queryKey: ['/api/products/featured'],
+    enabled: false, // Use fallback data immediately
   });
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  // Use API data if available, otherwise fallback to sample data
-  const displayProducts = products && products.length > 0 ? products : fallbackProducts;
-
-  // Check admin status
-  useEffect(() => {
-    const adminSession = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminSession === 'active');
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'pickntrust-admin-session') {
-        setIsAdmin(e.newValue === 'active');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Always use fallback data for immediate display
+  const displayProducts = fallbackProducts;
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
       return apiRequest('POST', '/api/affiliate/track', data);
     },
   });
-
-  const handleShare = (platform: string, product: any) => {
-    const productUrl = `${window.location.origin}`;
-    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
-    
-    let shareUrl = '';
-    
-    switch (platform) {
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(productText)}`;
-        break;
-      case 'twitter':
-        shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
-        break;
-      case 'whatsapp':
-        shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
-        break;
-      case 'instagram':
-        const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
-        navigator.clipboard.writeText(instagramText + '\n\n' + productUrl);
-        window.open('https://www.instagram.com/', '_blank');
-        toast({
-          title: 'Instagram Ready!',
-          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
-        });
-        return;
-    }
-    
-    if (shareUrl) {
-      window.open(shareUrl, '_blank', 'width=600,height=400');
-    }
-    
-    setShowShareMenu(prev => ({...prev, [product.id]: false}));
-  };
 
   const handleAffiliateClick = (product: Product) => {
     // Track the click
@@ -269,7 +222,7 @@ export default function FeaturedProducts() {
         {[...Array(5)].map((_, i) => (
           <i 
             key={i}
-            className={`${
+            className={`text-xs ${
               i < fullStars 
                 ? 'fas fa-star' 
                 : i === fullStars && hasHalfStar 
@@ -280,6 +233,26 @@ export default function FeaturedProducts() {
         ))}
       </div>
     );
+  };
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -280, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 280, behavior: 'smooth' });
+    }
+  };
+
+  // Handle mouse wheel scrolling
+  const handleWheel = (e: React.WheelEvent) => {
+    if (scrollContainerRef.current) {
+      e.preventDefault();
+      scrollContainerRef.current.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -297,132 +270,125 @@ export default function FeaturedProducts() {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {displayProducts.map((product: Product, index: number) => (
-            <div 
-              key={product.id}
-              className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-102 sm:hover:scale-105 overflow-hidden"
-            >
-              <div className={`relative p-1.5 sm:p-2 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 ${
-                index % 3 === 0 ? 'bg-blue-400' : 
-                index % 3 === 1 ? 'bg-green-400' : 
-                'bg-yellow-400'
-              }`}>
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="w-full h-40 sm:h-48 object-cover rounded-xl sm:rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                />
-                
-                {/* Wishlist Heart Icon */}
-                <button
-                  onClick={() => handleWishlistToggle(product)}
-                  className={`absolute top-1.5 left-1.5 sm:top-2 sm:left-2 p-1.5 sm:p-2 rounded-full shadow-md transition-colors touch-manipulation ${
-                    isInWishlist(product.id) 
-                      ? 'bg-red-500 text-white hover:bg-red-600' 
-                      : 'bg-white text-gray-400 hover:text-red-500'
-                  }`}
-                  title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                >
-                  <i className={`fas fa-heart text-xs sm:text-sm`}></i>
-                </button>
+        {/* Horizontal Scrollable Container */}
+        <div className="relative">
+          {/* Left Arrow */}
+          <button
+            onClick={scrollLeft}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:block"
+          >
+            <i className="fas fa-chevron-left text-gray-600 dark:text-gray-300"></i>
+          </button>
 
-                {isAdmin && (
-                  <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
-                        className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-md touch-manipulation"
-                      >
-                        <i className="fas fa-share text-blue-600 text-xs sm:text-sm"></i>
-                      </button>
-                      
-                      {showShareMenu[product.id] && (
-                        <div className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
-                          <button
-                            onClick={() => handleShare('facebook', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded w-full text-left"
-                          >
-                            <i className="fab fa-facebook text-blue-600"></i>
-                            Facebook
-                          </button>
-                          <button
-                            onClick={() => handleShare('twitter', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded w-full text-left"
-                          >
-                            <div className="w-4 h-4 bg-black dark:bg-white rounded-sm flex items-center justify-center">
-                              <span className="text-white dark:text-black text-xs font-bold">𝕏</span>
-                            </div>
-                            X (Twitter)
-                          </button>
-                          <button
-                            onClick={() => handleShare('whatsapp', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/20 rounded w-full text-left"
-                          >
-                            <i className="fab fa-whatsapp text-green-600"></i>
-                            WhatsApp
-                          </button>
-                          <button
-                            onClick={() => handleShare('instagram', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded w-full text-left"
-                          >
-                            <i className="fab fa-instagram text-purple-600"></i>
-                            Instagram
-                          </button>
-                        </div>
+          {/* Right Arrow */}
+          <button
+            onClick={scrollRight}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:block"
+          >
+            <i className="fas fa-chevron-right text-gray-600 dark:text-gray-300"></i>
+          </button>
+
+          {/* Scrollable Products Container */}
+          <div 
+            ref={scrollContainerRef}
+            onWheel={handleWheel}
+            className="flex gap-4 overflow-x-auto pb-4 px-8 md:px-12"
+            style={{ 
+              scrollbarWidth: 'none', 
+              msOverflowStyle: 'none'
+            }}
+          >
+            {displayProducts.map((product: Product, index: number) => (
+              <div 
+                key={product.id}
+                className="flex-shrink-0 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+              >
+                <div className={`relative p-2 ${
+                  index % 4 === 0 ? 'bg-blue-400' : 
+                  index % 4 === 1 ? 'bg-green-400' : 
+                  index % 4 === 2 ? 'bg-yellow-400' :
+                  'bg-purple-400'
+                }`}>
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-36 object-cover rounded-lg border-2 border-white/50 shadow-md" 
+                  />
+                  
+                  {/* Wishlist Heart Icon */}
+                  <button
+                    onClick={() => handleWishlistToggle(product)}
+                    className={`absolute top-2 left-2 p-1.5 rounded-full shadow-md transition-colors ${
+                      isInWishlist(product.id) 
+                        ? 'bg-red-500 text-white hover:bg-red-600' 
+                        : 'bg-white text-gray-400 hover:text-red-500'
+                    }`}
+                    title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                  >
+                    <i className="fas fa-heart text-xs"></i>
+                  </button>
+                </div>
+                
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    {product.discount ? (
+                      <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                        {product.discount}% OFF
+                      </span>
+                    ) : product.isNew ? (
+                      <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                        NEW
+                      </span>
+                    ) : (
+                      <div></div>
+                    )}
+                    <div className="flex items-center">
+                      {renderStars(product.rating)}
+                      <span className="text-gray-600 dark:text-gray-300 ml-1 text-xs">({product.reviewCount})</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="font-bold text-sm text-navy dark:text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs mb-3 line-clamp-2">{product.description}</p>
+                  
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="text-lg font-bold text-navy dark:text-blue-400">₹{product.price}</span>
+                      {product.originalPrice && (
+                        <span className="text-gray-400 dark:text-gray-500 line-through ml-1 text-sm">₹{product.originalPrice}</span>
                       )}
                     </div>
                   </div>
-                )}
-              </div>
-              <div className={`p-4 sm:p-6 ${
-                index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
-                index % 3 === 1 ? 'bg-green-50 dark:bg-gray-800' : 
-                'bg-yellow-50 dark:bg-gray-800'
-              }`}>
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  {product.discount ? (
-                    <span className="bg-red-500 text-white px-2 py-1 sm:px-3 rounded-full text-xs sm:text-sm font-bold">
-                      {product.discount}% OFF
-                    </span>
-                  ) : product.isNew ? (
-                    <span className="bg-pink-500 text-white px-2 py-1 sm:px-3 rounded-full text-xs sm:text-sm font-bold">
-                      NEW
-                    </span>
-                  ) : (
-                    <div></div>
-                  )}
-                  <div className="flex items-center">
-                    {renderStars(product.rating)}
-                    <span className="text-gray-600 dark:text-gray-300 ml-1 sm:ml-2 text-xs sm:text-sm">({product.reviewCount})</span>
+                  
+                  {/* Compact Product Timer */}
+                  <div className="mb-3">
+                    <ProductTimer product={product} />
                   </div>
+                  
+                  <button 
+                    onClick={() => handleAffiliateClick(product)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all transform hover:scale-105 text-sm"
+                  >
+                    <i className="fas fa-shopping-bag mr-1"></i>Pick Now
+                  </button>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 text-center">
+                    🔗 Affiliate Link - We earn from purchases
+                  </p>
                 </div>
-                <h4 className="font-bold text-base sm:text-lg text-navy dark:text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
-                <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{product.description}</p>
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div>
-                    <span className="text-xl sm:text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-gray-400 dark:text-gray-500 line-through ml-1 sm:ml-2 text-sm sm:text-base">₹{product.originalPrice}</span>
-                    )}
-                  </div>
-                </div>
-                {/* Individual Product Timer */}
-                <div className="mb-3 sm:mb-4">
-                  <ProductTimer product={product} />
-                </div>
-                <button 
-                  onClick={() => handleAffiliateClick(product)}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl sm:rounded-2xl hover:shadow-lg transition-all transform hover:scale-102 sm:hover:scale-105 text-sm sm:text-base touch-manipulation"
-                >
-                  <i className="fas fa-shopping-bag mr-1 sm:mr-2"></i>Pick Now
-                </button>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1.5 sm:mt-2 text-center">
-                  🔗 Affiliate Link - We earn from purchases
-                </p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+        
+        {/* More Button */}
+        <div className="flex justify-end mt-6">
+          <Link 
+            href="/top-picks"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+          >
+            <span className="mr-2">More</span>
+            <i className="fas fa-arrow-right"></i>
+          </Link>
         </div>
       </div>
     </section>

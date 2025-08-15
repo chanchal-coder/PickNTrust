@@ -73,12 +73,24 @@ const fallbackBlogPosts = [
 ];
 
 export default function BlogSection() {
-  const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
+  // Try to fetch from API but don't show loading state - show fallback immediately
+  const { data: blogPosts } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],
+    queryFn: async () => {
+      const response = await fetch('/api/blog');
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog posts');
+      }
+      return response.json();
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    // Don't show loading state, fail silently and use fallback
+    enabled: false, // Disable automatic fetching for now
   });
 
-  // Use API data if available, otherwise fallback to sample data
-  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : fallbackBlogPosts;
+  // Always use fallback data for immediate display
+  const displayPosts = fallbackBlogPosts;
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -89,36 +101,7 @@ export default function BlogSection() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-navy dark:text-blue-400 mb-4">Quick Tips & Trending 📝</h3>
-            <p className="text-xl text-gray-600 dark:text-gray-300">Stay updated with the latest deals and shopping hacks</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[...Array(3)].map((_, i) => (
-              <article key={i} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden animate-pulse border border-gray-100 dark:border-gray-700">
-                <div className={`w-full h-48 ${
-                  i === 0 ? 'bg-gradient-to-br from-blue-200 to-purple-300 dark:from-blue-700 dark:to-purple-800' :
-                  i === 1 ? 'bg-gradient-to-br from-green-200 to-teal-300 dark:from-green-700 dark:to-teal-800' :
-                  'bg-gradient-to-br from-pink-200 to-orange-300 dark:from-pink-700 dark:to-orange-800'
-                }`}></div>
-                <div className="p-6">
-                  <div className="h-4 bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-700 dark:to-purple-700 rounded mb-3"></div>
-                  <div className="h-6 bg-gradient-to-r from-green-200 to-teal-200 dark:from-green-700 dark:to-teal-700 rounded mb-3"></div>
-                  <div className="h-4 bg-gradient-to-r from-pink-200 to-orange-200 dark:from-pink-700 dark:to-orange-700 rounded mb-4"></div>
-                  <div className="h-4 bg-gradient-to-r from-purple-200 to-indigo-200 dark:from-purple-700 dark:to-indigo-700 rounded w-24"></div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  // Remove loading state completely - always show content immediately
 
   return (
     <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
