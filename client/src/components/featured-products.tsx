@@ -237,13 +237,13 @@ export default function FeaturedProducts() {
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -500, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: -540, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 500, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: 540, behavior: 'smooth' });
     }
   };
 
@@ -292,7 +292,7 @@ export default function FeaturedProducts() {
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-4 px-12 md:px-16 h-[800px]"
+            className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-6 px-12 md:px-16 h-[900px]"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -301,7 +301,7 @@ export default function FeaturedProducts() {
             {displayProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
-                className="w-[450px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                className="w-[520px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {/* Product Image with colored border */}
                 <div className={`relative p-3 ${
