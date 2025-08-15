@@ -102,6 +102,22 @@ export const announcements = sqliteTable("announcements", {
   createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
 });
 
+export const videoContent = sqliteTable("video_content", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description"),
+  videoUrl: text("video_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  platform: text("platform").notNull(), // youtube, vimeo, tiktok, etc.
+  category: text("category").notNull(),
+  tags: text("tags"), // Store as JSON string
+  duration: text("duration"), // e.g., "5:30"
+  hasTimer: integer("has_timer", { mode: 'boolean' }).default(false),
+  timerDuration: integer("timer_duration"), // Duration in hours
+  timerStartTime: integer("timer_start_time", { mode: 'timestamp' }),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
 });
@@ -129,6 +145,11 @@ export const insertAffiliateNetworkSchema = createInsertSchema(affiliateNetworks
   id: true,
 });
 
+export const insertVideoContentSchema = createInsertSchema(videoContent).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
   id: true,
   createdAt: true,
@@ -141,6 +162,7 @@ export type AffiliateNetwork = typeof affiliateNetworks.$inferSelect;
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
+export type VideoContent = typeof videoContent.$inferSelect;
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
@@ -149,3 +171,4 @@ export type InsertAffiliateNetwork = z.infer<typeof insertAffiliateNetworkSchema
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type InsertVideoContent = z.infer<typeof insertVideoContentSchema>;

@@ -441,10 +441,10 @@ export default function BlogPost({
   };
 
   return (
-    <article className="max-w-4xl mx-auto bg-white dark:bg-gray-900 transition-colors">
+    <article className="max-w-4xl mx-auto bg-background text-foreground transition-colors min-h-screen">
       {/* Sticky Title Bar */}
-      <div className={`fixed top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-40 transition-all duration-300 ${
-        isSticky ? 'translate-y-0 shadow-lg border-b border-gray-200 dark:border-gray-700' : '-translate-y-full'
+      <div className={`fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm z-40 transition-all duration-300 ${
+        isSticky ? 'translate-y-0 shadow-lg border-b border-border' : '-translate-y-full'
       }`}>
         <div className="max-w-4xl mx-auto px-4 py-3">
           <h1 className="text-lg font-bold text-navy dark:text-blue-400 truncate">{title}</h1>

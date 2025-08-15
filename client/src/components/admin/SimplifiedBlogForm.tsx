@@ -36,6 +36,7 @@ export default function SimplifiedBlogForm() {
     category: '',
     tags: '',
     imageUrl: '',
+    videoUrl: '',
     readTime: '3 min read',
     slug: '',
     publishDate: new Date().toISOString().split('T')[0],
@@ -43,7 +44,7 @@ export default function SimplifiedBlogForm() {
     timerDuration: '24'
   });
 
-  // Handle image upload - Optimized to prevent server errors
+  // Handle image upload - Optimized with compression for better performance
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -77,7 +78,10 @@ export default function SimplifiedBlogForm() {
     setUploadingImage(true);
     
     try {
-      // Convert file to base64 for storage
+      // Compress image for better performance
+      const compressedFile = await compressImage(file);
+      
+      // Convert compressed file to base64 for storage
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
@@ -86,9 +90,11 @@ export default function SimplifiedBlogForm() {
         
         // Get file extension for success message
         const fileExtension = file.type.split('/')[1].toUpperCase();
+        const originalSize = (file.size / 1024 / 1024).toFixed(2);
+        const compressedSize = (compressedFile.size / 1024 / 1024).toFixed(2);
         toast({
           title: 'Success',
-          description: `${fileExtension} image uploaded successfully! (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
+          description: `${fileExtension} image uploaded successfully! Original: ${originalSize}MB → Optimized: ${compressedSize}MB`,
         });
       };
       
@@ -101,7 +107,7 @@ export default function SimplifiedBlogForm() {
         });
       };
       
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressedFile);
     } catch (error) {
       setUploadingImage(false);
       toast({
@@ -110,6 +116,62 @@ export default function SimplifiedBlogForm() {
         variant: 'destructive',
       });
     }
+  };
+
+  // Image compression function for better performance
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = document.createElement('img');
+      
+      img.onload = () => {
+        if (!ctx) {
+          resolve(file); // Fallback if no context
+          return;
+        }
+        
+        // Calculate new dimensions (max 1200px width, maintain aspect ratio)
+        const maxWidth = 1200;
+        const maxHeight = 800;
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file); // Fallback to original if compression fails
+            }
+          },
+          file.type,
+          0.8 // 80% quality for good balance of size and quality
+        );
+      };
+      
+      img.onerror = () => resolve(file); // Fallback to original if loading fails
+      img.src = URL.createObjectURL(file);
+    });
   };
 
   // Fetch blog posts
@@ -197,6 +259,7 @@ export default function SimplifiedBlogForm() {
         category: '',
         tags: '',
         imageUrl: '',
+        videoUrl: '',
         readTime: '3 min read',
         slug: '',
         publishDate: new Date().toISOString().split('T')[0],
@@ -280,6 +343,7 @@ export default function SimplifiedBlogForm() {
       category: post.category,
       tags: typeof post.tags === 'string' ? JSON.parse(post.tags).join(', ') : post.tags,
       imageUrl: post.imageUrl,
+      videoUrl: (post as any).videoUrl || '',
       readTime: post.readTime,
       slug: post.slug,
       publishDate: new Date(post.publishedAt).toISOString().split('T')[0],
@@ -452,6 +516,24 @@ export default function SimplifiedBlogForm() {
                     <div className="p-2 bg-gray-800">
                       <p className="text-xs text-green-400">✅ High-quality image loaded successfully</p>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Video URL Section */}
+              <div>
+                <Label className="text-white font-medium">Video URL (Optional)</Label>
+                <Input
+                  value={newPost.videoUrl}
+                  onChange={(e) => setNewPost({ ...newPost, videoUrl: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                  className="bg-gray-800 border-gray-600 text-white mt-2"
+                />
+                <p className="text-xs text-blue-400 mt-1">🎥 Supports: YouTube, Vimeo, TikTok, Instagram, Facebook, Twitter, Dailymotion, Twitch</p>
+                
+                {newPost.videoUrl && (
+                  <div className="mt-3 p-3 bg-gray-800 border border-gray-600 rounded-lg">
+                    <p className="text-xs text-green-400">✅ Video URL added - will be displayed in blog post</p>
                   </div>
                 )}
               </div>

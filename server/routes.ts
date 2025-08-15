@@ -786,6 +786,129 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // Video Content Management Routes
+  app.get('/api/video-content', async (req, res) => {
+    try {
+      const videoContent = await storage.getVideoContent();
+      
+      // Filter out expired video content based on their individual timers
+      const now = new Date();
+      
+      const activeVideoContent = videoContent.filter(video => {
+        // If video doesn't have timer enabled, keep it
+        if (!video.hasTimer || !video.timerDuration || !video.createdAt) {
+          return true;
+        }
+        
+        // Calculate expiry time based on video's timer duration
+        const videoCreatedAt = video.createdAt ? new Date(video.createdAt) : new Date();
+        const expiryTime = new Date(videoCreatedAt.getTime() + (video.timerDuration * 60 * 60 * 1000));
+        
+        // Keep video if it hasn't expired yet
+        return now < expiryTime;
+      });
+      
+      // Sort by most recent first and parse tags
+      const sortedVideos = activeVideoContent.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      }).map(video => ({
+        ...video,
+        // Parse tags from JSON string to array if needed
+        tags: typeof video.tags === 'string' ? 
+          (video.tags.startsWith('[') ? JSON.parse(video.tags) : []) : 
+          (Array.isArray(video.tags) ? video.tags : [])
+      }));
+      
+      res.json(sortedVideos);
+    } catch (error) {
+      console.error('Error fetching video content:', error);
+      res.status(500).json({ message: "Failed to fetch video content" });
+    }
+  });
+
+  app.post('/api/admin/video-content', async (req, res) => {
+    try {
+      const { password, ...videoData } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Validate required fields
+      const requiredFields = ['title', 'videoUrl', 'platform', 'category'];
+      for (const field of requiredFields) {
+        if (!(field in videoData)) {
+          return res.status(400).json({ message: `Missing required field: ${field}` });
+        }
+      }
+
+      // Ensure video content is visible by default with proper settings
+      const enhancedVideoData = {
+        ...videoData,
+        // Convert tags array to JSON string if needed
+        tags: Array.isArray(videoData.tags) ? JSON.stringify(videoData.tags) : videoData.tags,
+        // Ensure proper timestamps
+        createdAt: new Date(),
+        // Set default values for visibility
+        description: videoData.description || '',
+        thumbnailUrl: videoData.thumbnailUrl || '',
+        duration: videoData.duration || '',
+      };
+
+      const videoContent = await storage.addVideoContent(enhancedVideoData);
+      res.json({ message: 'Video content added successfully', videoContent });
+    } catch (error: any) {
+      console.error('Add video content error:', error);
+      res.status(500).json({ message: 'Failed to add video content', error: error.message });
+    }
+  });
+
+  app.delete('/api/admin/video-content/:id', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteVideoContent(id);
+      
+      if (deleted) {
+        res.json({ message: 'Video content deleted successfully' });
+      } else {
+        res.status(404).json({ message: 'Video content not found' });
+      }
+    } catch (error) {
+      console.error('Delete video content error:', error);
+      res.status(500).json({ message: 'Failed to delete video content' });
+    }
+  });
+
+  app.put('/api/admin/video-content/:id', async (req, res) => {
+    try {
+      const { password, ...updates } = req.body;
+      
+      if (!await verifyAdminPassword(password)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = parseInt(req.params.id);
+      const videoContent = await storage.updateVideoContent(id, updates);
+      
+      if (videoContent) {
+        res.json({ message: 'Video content updated successfully', videoContent });
+      } else {
+        res.status(404).json({ message: 'Video content not found' });
+      }
+    } catch (error) {
+      console.error('Update video content error:', error);
+      res.status(500).json({ message: 'Failed to update video content' });
+    }
+  });
+
   // Cleanup expired products endpoint
   app.post('/api/admin/cleanup', async (req, res) => {
     try {

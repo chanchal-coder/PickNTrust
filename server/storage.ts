@@ -6,6 +6,7 @@ import {
   affiliateNetworks,
   adminUsers,
   announcements,
+  videoContent,
   type Product, 
   type InsertProduct,
   type BlogPost,
@@ -19,7 +20,9 @@ import {
   type AdminUser,
   type InsertAdminUser,
   type Announcement,
-  type InsertAnnouncement
+  type InsertAnnouncement,
+  type VideoContent,
+  type InsertVideoContent
 } from "../shared/sqlite-schema.js";
 import { db } from "./db.js";
 import { eq, desc, ne, sql } from "drizzle-orm";
@@ -76,9 +79,16 @@ export interface IStorage {
   clearResetToken(id: number): Promise<boolean>;
   updateLastLogin(id: number): Promise<boolean>;
   
+  // Video Content Management
+  getVideoContent(): Promise<VideoContent[]>;
+  addVideoContent(videoContent: any): Promise<VideoContent>;
+  deleteVideoContent(id: number): Promise<boolean>;
+  updateVideoContent(id: number, updates: Partial<VideoContent>): Promise<VideoContent | null>;
+  
   // Cleanup
   cleanupExpiredProducts(): Promise<number>;
   cleanupExpiredBlogPosts(): Promise<number>;
+  cleanupExpiredVideoContent(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -223,6 +233,27 @@ export class MemStorage implements IStorage {
 
   async updateLastLogin(id: number): Promise<boolean> {
     return false;
+  }
+
+  // Video Content Management
+  async getVideoContent(): Promise<VideoContent[]> {
+    return [];
+  }
+
+  async addVideoContent(videoContent: any): Promise<VideoContent> {
+    throw new Error("Method not implemented.");
+  }
+
+  async deleteVideoContent(id: number): Promise<boolean> {
+    return false;
+  }
+
+  async updateVideoContent(id: number, updates: Partial<VideoContent>): Promise<VideoContent | null> {
+    return null;
+  }
+
+  async cleanupExpiredVideoContent(): Promise<number> {
+    return 0;
   }
 }
 
@@ -518,6 +549,56 @@ export class DatabaseStorage implements IStorage {
       .where(eq(adminUsers.id, id));
     // For SQLite, we'll assume it worked
     return true;
+  }
+
+  // Video Content Management
+  async getVideoContent(): Promise<VideoContent[]> {
+    // Clean up expired video content first
+    await this.cleanupExpiredVideoContent();
+    
+    return await db.select().from(videoContent).orderBy(desc(videoContent.createdAt));
+  }
+
+  async addVideoContent(videoContentData: any): Promise<VideoContent> {
+    const videoData = {
+      ...videoContentData,
+      hasTimer: videoContentData.hasTimer || false,
+      timerDuration: videoContentData.hasTimer && videoContentData.timerDuration ? parseInt(videoContentData.timerDuration.toString()) : null,
+      timerStartTime: videoContentData.hasTimer ? new Date() : null,
+      tags: Array.isArray(videoContentData.tags) ? JSON.stringify(videoContentData.tags) : videoContentData.tags,
+      createdAt: new Date(),
+    };
+
+    const [newVideoContent] = await db
+      .insert(videoContent)
+      .values(videoData)
+      .returning();
+    return newVideoContent;
+  }
+
+  async deleteVideoContent(id: number): Promise<boolean> {
+    const result = await db.delete(videoContent).where(eq(videoContent.id, id));
+    // For SQLite, we'll assume it worked
+    return true;
+  }
+
+  async updateVideoContent(id: number, updates: Partial<VideoContent>): Promise<VideoContent | null> {
+    const [updatedVideoContent] = await db
+      .update(videoContent)
+      .set(updates)
+      .where(eq(videoContent.id, id))
+      .returning();
+    return updatedVideoContent || null;
+  }
+
+  async cleanupExpiredVideoContent(): Promise<number> {
+    try {
+      // Simple cleanup without complex SQL for now
+      return 0; // Return 0 to indicate no cleanup performed
+    } catch (error) {
+      console.error('Error in cleanupExpiredVideoContent:', error);
+      return 0;
+    }
   }
 }
 
