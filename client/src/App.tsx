@@ -9,6 +9,7 @@ import Admin from "@/pages/admin";
 import Wishlist from "@/pages/wishlist";
 import Blog from "@/pages/blog";
 import BlogPost from "@/pages/blog-post";
+import Videos from "@/pages/videos";
 import HowItWorks from "@/pages/how-it-works";
 import TermsOfService from "@/pages/terms-of-service";
 import PrivacyPolicy from "@/pages/privacy-policy";
@@ -30,6 +31,7 @@ function App() {
               <Route path="/wishlist" component={Wishlist} />
               <Route path="/blog" component={Blog} />
               <Route path="/blog/:slug" component={BlogPost} />
+              <Route path="/videos" component={Videos} />
               <Route path="/how-it-works" component={HowItWorks} />
               <Route path="/terms-of-service" component={TermsOfService} />
               <Route path="/privacy-policy" component={PrivacyPolicy} />
