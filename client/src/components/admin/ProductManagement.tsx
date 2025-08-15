@@ -254,13 +254,13 @@ export default function ProductManagement() {
   return (
     <div className="space-y-6">
       {/* URL Product Extractor */}
-      <Card className="border-2 border-dashed border-blue-200 bg-blue-50/50">
+      <Card className="border-2 border-dashed border-purple-400 bg-gradient-to-r from-purple-900/20 to-blue-900/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-700">
+          <CardTitle className="flex items-center gap-2 text-purple-300">
             <Sparkles className="w-5 h-5" />
             Smart Product Extractor
           </CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-blue-200">
             Paste any product URL to automatically extract details (Amazon, eBay, Flipkart, etc.)
           </CardDescription>
         </CardHeader>
@@ -270,12 +270,12 @@ export default function ProductManagement() {
               placeholder="Paste product URL here (e.g., https://amazon.com/product/...)"
               value={extractUrl}
               onChange={(e) => setExtractUrl(e.target.value)}
-              className="flex-1"
+              className="flex-1 bg-slate-800 border-slate-600 text-white placeholder-slate-400"
             />
             <Button 
               onClick={handleExtractProduct}
               disabled={isExtracting || extractProductMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
+              className="bg-purple-600 hover:bg-purple-700 min-w-[140px]"
             >
               {isExtracting || extractProductMutation.isPending ? (
                 <>
@@ -290,15 +290,15 @@ export default function ProductManagement() {
               )}
             </Button>
           </div>
-          <div className="text-sm text-gray-700">
-            <p className="font-medium mb-2 text-gray-800">Supported platforms:</p>
+          <div className="text-sm text-blue-200">
+            <p className="font-medium mb-2 text-purple-300">Supported platforms:</p>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="bg-white">Amazon</Badge>
-              <Badge variant="outline" className="bg-white">eBay</Badge>
-              <Badge variant="outline" className="bg-white">AliExpress</Badge>
-              <Badge variant="outline" className="bg-white">Flipkart</Badge>
-              <Badge variant="outline" className="bg-white">Shopify</Badge>
-              <Badge variant="outline" className="bg-white">And more...</Badge>
+              <Badge variant="outline" className="bg-slate-800 text-blue-300 border-slate-600">Amazon</Badge>
+              <Badge variant="outline" className="bg-slate-800 text-blue-300 border-slate-600">eBay</Badge>
+              <Badge variant="outline" className="bg-slate-800 text-blue-300 border-slate-600">AliExpress</Badge>
+              <Badge variant="outline" className="bg-slate-800 text-blue-300 border-slate-600">Flipkart</Badge>
+              <Badge variant="outline" className="bg-slate-800 text-blue-300 border-slate-600">Shopify</Badge>
+              <Badge variant="outline" className="bg-slate-800 text-blue-300 border-slate-600">And more...</Badge>
             </div>
           </div>
         </CardContent>
@@ -308,7 +308,7 @@ export default function ProductManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Product</CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-blue-200">
             Add a new product manually or use the extractor above
           </CardDescription>
         </CardHeader>
@@ -326,22 +326,22 @@ export default function ProductManagement() {
             <form onSubmit={handleAddProduct} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Product Name</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Product Name</label>
                   <input
                     type="text"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                     placeholder="e.g., Wireless Headphones"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Category</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Category</label>
                   <select
                     value={newProduct.category}
                     onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
                     required
                   >
                     <option value="">Select Category</option>
@@ -353,12 +353,12 @@ export default function ProductManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-800">Description</label>
+                <label className="block text-sm font-medium mb-2 text-blue-300">Description</label>
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                   placeholder="Product description..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                  className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                   rows={3}
                   required
                 />
@@ -366,60 +366,60 @@ export default function ProductManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Price ($)</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Price ($)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={newProduct.price}
                     onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
                     placeholder="29.99"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Original Price ($)</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Original Price ($)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={newProduct.originalPrice}
                     onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
                     placeholder="39.99"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Discount (%)</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Discount (%)</label>
                   <input
                     type="number"
                     value={newProduct.discount}
                     onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
                     placeholder="25"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Image URL</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Image URL</label>
                   <input
                     type="url"
                     value={newProduct.imageUrl}
                     onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
                     placeholder="https://example.com/image.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Affiliate URL</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Affiliate URL</label>
                   <input
                     type="url"
                     value={newProduct.affiliateUrl}
                     onChange={(e) => setNewProduct({ ...newProduct, affiliateUrl: e.target.value })}
                     placeholder="https://affiliate-link.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
                 </div>
@@ -427,7 +427,7 @@ export default function ProductManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Rating (1-5)</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Rating (1-5)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -435,16 +435,16 @@ export default function ProductManagement() {
                     max="5"
                     value={newProduct.rating}
                     onChange={(e) => setNewProduct({ ...newProduct, rating: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Review Count</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Review Count</label>
                   <input
                     type="number"
                     value={newProduct.reviewCount}
                     onChange={(e) => setNewProduct({ ...newProduct, reviewCount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                   />
                 </div>
               </div>
@@ -457,7 +457,7 @@ export default function ProductManagement() {
                   onChange={(e) => setNewProduct({ ...newProduct, isFeatured: e.target.checked })}
                   className="mr-2"
                 />
-                <label htmlFor="featured" className="text-sm font-medium text-gray-800">Featured Product</label>
+                <label htmlFor="featured" className="text-sm font-medium text-blue-300">Featured Product</label>
               </div>
 
               <div className="flex gap-2">
@@ -485,7 +485,7 @@ export default function ProductManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Products ({products.length})</CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-blue-200">
             View and manage all products
           </CardDescription>
         </CardHeader>

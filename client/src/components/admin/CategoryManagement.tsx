@@ -160,7 +160,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle className="text-red-600">Error Loading Categories</CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-blue-200">
             Failed to load categories. Using fallback data.
           </CardDescription>
         </CardHeader>
@@ -180,7 +180,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Category</CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-blue-200">
             Create a new category for organizing products
           </CardDescription>
         </CardHeader>
@@ -196,24 +196,24 @@ export default function CategoryManagement() {
             <form onSubmit={handleAddCategory} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Category Name</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Category Name</label>
                   <input
                     type="text"
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                     placeholder="e.g., Electronics & Gadgets"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Description</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Description</label>
                   <input
                     type="text"
                     value={newCategory.description}
                     onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                     placeholder="e.g., Latest tech & gadgets"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
                 </div>
@@ -221,11 +221,11 @@ export default function CategoryManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Icon</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Icon</label>
                   <select
                     value={newCategory.icon}
                     onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
                   >
                     {commonIcons.map(icon => (
                       <option key={icon} value={icon}>
@@ -239,7 +239,7 @@ export default function CategoryManagement() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-800">Color</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Color</label>
                   <div className="grid grid-cols-6 gap-2 mb-2">
                     {commonColors.map(color => (
                       <button
@@ -257,7 +257,7 @@ export default function CategoryManagement() {
                     type="color"
                     value={newCategory.color}
                     onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                    className="w-full h-10 border border-gray-300 rounded-lg bg-gray-100"
+                    className="w-full h-10 border border-slate-600 rounded-lg bg-slate-800"
                   />
                 </div>
               </div>
@@ -287,7 +287,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Categories ({categories.length})</CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-blue-200">
             View and manage all categories
           </CardDescription>
         </CardHeader>

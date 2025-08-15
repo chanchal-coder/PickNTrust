@@ -420,7 +420,7 @@ export default function AdminPage() {
                     <Sparkles className="w-5 h-5" />
                     Quick Actions
                   </CardTitle>
-                  <CardDescription className="text-gray-700">
+                  <CardDescription className="text-blue-200">
                     Frequently used admin actions
                   </CardDescription>
                 </CardHeader>
@@ -481,7 +481,7 @@ export default function AdminPage() {
                     <Link className="w-5 h-5" />
                     Product URL Extractor
                   </CardTitle>
-                  <CardDescription className="text-gray-700">
+                  <CardDescription className="text-blue-200">
                     Extract product details automatically from URLs (Amazon, eBay, etc.)
                   </CardDescription>
                 </CardHeader>
@@ -511,8 +511,8 @@ export default function AdminPage() {
                       )}
                     </Button>
                   </div>
-                  <div className="text-sm text-gray-700">
-                    <p className="font-medium mb-2 text-gray-800">Supported platforms:</p>
+                  <div className="text-sm text-blue-200">
+                    <p className="font-medium mb-2 text-purple-300">Supported platforms:</p>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline">Amazon</Badge>
                       <Badge variant="outline">eBay</Badge>
@@ -534,7 +534,7 @@ export default function AdminPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 mb-4">View detailed analytics and performance metrics.</p>
+                    <p className="text-blue-200 mb-4">View detailed analytics and performance metrics.</p>
                     <Button variant="outline" className="w-full">
                       View Analytics
                     </Button>
@@ -549,7 +549,7 @@ export default function AdminPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 mb-4">Configure system settings and preferences.</p>
+                    <p className="text-blue-200 mb-4">Configure system settings and preferences.</p>
                     <Button variant="outline" className="w-full">
                       Open Settings
                     </Button>
