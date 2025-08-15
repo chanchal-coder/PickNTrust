@@ -237,13 +237,13 @@ export default function FeaturedProducts() {
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -540, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: -340, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 540, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: 340, behavior: 'smooth' });
     }
   };
 
@@ -288,11 +288,11 @@ export default function FeaturedProducts() {
             <i className="fas fa-chevron-right text-lg"></i>
           </button>
 
-          {/* Scrollable Products Container - Double Row */}
+          {/* Scrollable Products Container - Single Row */}
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-6 px-12 md:px-16 h-[900px]"
+            className="flex gap-4 overflow-x-auto pb-6 px-12 md:px-16"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -301,20 +301,23 @@ export default function FeaturedProducts() {
             {displayProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
-                className="w-[520px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                className="flex-shrink-0 w-[320px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {/* Product Image with colored border */}
                 <div className={`relative p-3 ${
-                  index % 4 === 0 ? 'bg-blue-500' : 
-                  index % 4 === 1 ? 'bg-red-500' : 
-                  index % 4 === 2 ? 'bg-yellow-500' :
-                  'bg-green-500'
+                  index % 5 === 0 ? 'bg-blue-500' : 
+                  index % 5 === 1 ? 'bg-green-500' : 
+                  index % 5 === 2 ? 'bg-red-500' :
+                  index % 5 === 3 ? 'bg-purple-500' :
+                  'bg-yellow-500'
                 }`}>
-                  <img 
-                    src={product.imageUrl} 
-                    alt={product.name} 
-                    className="w-full h-32 object-cover rounded-lg" 
-                  />
+                  <div className="w-full h-32 bg-gray-800 rounded-lg overflow-hidden">
+                    <img 
+                      src={product.imageUrl} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
                   
                   {/* Wishlist Heart Icon */}
                   <button
@@ -331,18 +334,20 @@ export default function FeaturedProducts() {
                 </div>
                 
                 {/* Product Content */}
-                <div className="p-4 bg-gray-800 text-white space-y-3">
-                  {/* Rating and Discount */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {renderStars(product.rating)}
-                      <span className="text-gray-300 ml-1 text-xs">({product.reviewCount})</span>
-                    </div>
-                    {product.discount && (
+                <div className="p-4 bg-gray-800 text-white space-y-2">
+                  {/* Discount Badge */}
+                  {product.discount && (
+                    <div className="flex justify-start">
                       <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                         {product.discount}% OFF
                       </span>
-                    )}
+                    </div>
+                  )}
+                  
+                  {/* Rating */}
+                  <div className="flex items-center">
+                    {renderStars(product.rating)}
+                    <span className="text-gray-300 ml-1 text-xs">({product.reviewCount})</span>
                   </div>
                   
                   {/* Product Name */}
@@ -373,7 +378,7 @@ export default function FeaturedProducts() {
                   </button>
                   
                   {/* Affiliate Link Text */}
-                  <p className="text-[10px] text-gray-400 text-center mt-2">
+                  <p className="text-[10px] text-gray-400 text-center mt-1">
                     🔗 Affiliate Link - We earn from purchases
                   </p>
                 </div>
