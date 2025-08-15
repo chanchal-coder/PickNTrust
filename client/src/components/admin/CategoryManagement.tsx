@@ -17,6 +17,7 @@ export default function CategoryManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [newCategory, setNewCategory] = useState({
     name: '',
     description: '',
@@ -82,6 +83,51 @@ export default function CategoryManagement() {
     }
   });
 
+  // Update category mutation
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ categoryId, categoryData }: { categoryId: number; categoryData: any }) => {
+      const adminPassword = 'pickntrust2025';
+      const response = await fetch(`/api/admin/categories/${categoryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: adminPassword,
+          ...categoryData
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update category');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      setEditingCategory(null);
+      setNewCategory({
+        name: '',
+        description: '',
+        icon: 'fas fa-tag',
+        color: '#6366F1'
+      });
+      toast({
+        title: 'Success',
+        description: 'Category updated successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update category',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
     mutationFn: async (categoryId: number) => {
@@ -130,10 +176,48 @@ export default function CategoryManagement() {
     addCategoryMutation.mutate(newCategory);
   };
 
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setNewCategory({
+      name: category.name,
+      description: category.description,
+      icon: category.icon,
+      color: category.color
+    });
+    setIsAddingCategory(true);
+  };
+
+  const handleUpdateCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory || !newCategory.name.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Category name is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    updateCategoryMutation.mutate({
+      categoryId: editingCategory.id,
+      categoryData: newCategory
+    });
+  };
+
   const handleDeleteCategory = (categoryId: number) => {
     if (confirm('Are you sure you want to delete this category?')) {
       deleteCategoryMutation.mutate(categoryId);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null);
+    setNewCategory({
+      name: '',
+      description: '',
+      icon: 'fas fa-tag',
+      color: '#6366F1'
+    });
+    setIsAddingCategory(false);
   };
 
   const commonIcons = [
@@ -193,7 +277,7 @@ export default function CategoryManagement() {
               Add Category
             </Button>
           ) : (
-            <form onSubmit={handleAddCategory} className="space-y-4">
+            <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2 text-blue-300">Category Name</label>
@@ -265,15 +349,18 @@ export default function CategoryManagement() {
               <div className="flex gap-2">
                 <Button 
                   type="submit" 
-                  disabled={addCategoryMutation.isPending}
+                  disabled={editingCategory ? updateCategoryMutation.isPending : addCategoryMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {addCategoryMutation.isPending ? 'Adding...' : 'Add Category'}
+                  {editingCategory 
+                    ? (updateCategoryMutation.isPending ? 'Updating...' : 'Update Category')
+                    : (addCategoryMutation.isPending ? 'Adding...' : 'Add Category')
+                  }
                 </Button>
                 <Button 
                   type="button" 
                   variant="outline"
-                  onClick={() => setIsAddingCategory(false)}
+                  onClick={handleCancelEdit}
                 >
                   Cancel
                 </Button>
@@ -306,30 +393,42 @@ export default function CategoryManagement() {
               {categories.map((category: Category) => (
                 <div
                   key={category.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 flex-1">
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        className="w-12 h-12 rounded-lg flex items-center justify-center shadow-md"
                         style={{ backgroundColor: category.color }}
                       >
-                        <i className={`${category.icon} text-white`}></i>
+                        <i className={`${category.icon} text-white text-lg`}></i>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                        <p className="text-sm text-gray-600">{category.description}</p>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-lg">{category.name}</h3>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{category.description}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteCategory(category.id)}
-                      disabled={deleteCategoryMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditCategory(category)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-600"
+                      >
+                        <i className="fas fa-edit mr-1"></i>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteCategory(category.id)}
+                        disabled={deleteCategoryMutation.isPending}
+                        className="text-white bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+                      >
+                        <i className="fas fa-trash mr-1"></i>
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
