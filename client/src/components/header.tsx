@@ -258,8 +258,8 @@ export default function Header() {
         </div>
 
         {/* Centered Navigation Row - Mobile Optimized */}
-        <div className="flex justify-center items-center space-x-2 sm:space-x-4 lg:space-x-6 border-t border-gray-100 dark:border-gray-800 pt-2 px-1 sm:px-4 lg:px-8 overflow-x-auto">
-          {/* Home link - Mobile Optimized */}
+        <div className="flex justify-center items-center space-x-2 sm:space-x-3 lg:space-x-4 border-t border-gray-100 dark:border-gray-800 pt-2 px-1 sm:px-4 lg:px-8 overflow-x-auto">
+          {/* Home */}
           <Link 
             href="/" 
             className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
@@ -271,7 +271,40 @@ export default function Header() {
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
 
-          {/* Wishlist link - Mobile Optimized */}
+          {/* Top Picks */}
+          <button
+            onClick={() => scrollToSection('featured-products')}
+            className="group relative bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            title="Today's Top Picks"
+          >
+            <i className="fas fa-star group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden xs:inline">Top Picks</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+          </button>
+
+          {/* Categories (renamed from Menu) */}
+          <button
+            onClick={() => scrollToSection('categories')}
+            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            title="Browse Categories"
+          >
+            <i className="fas fa-th-large group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden xs:inline">Categories</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+          </button>
+
+          {/* Blog */}
+          <button
+            onClick={() => scrollToSection('blog')}
+            className="group relative bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            title="Quick Tips and Trends"
+          >
+            <i className="fas fa-blog group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden xs:inline">Blog</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+          </button>
+
+          {/* Wishlist */}
           <Link 
             href="/wishlist" 
             className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
@@ -287,26 +320,19 @@ export default function Header() {
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
 
-          
-          {/* Hamburger Menu Button - Mobile Optimized with proper toggle */}
+          {/* Contact Us */}
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Hamburger button clicked, current state:', mobileMenuOpen);
-              setMobileMenuOpen(!mobileMenuOpen);
-            }}
-            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
-            aria-label={mobileMenuOpen ? "Close Menu" : "Open Menu"}
-            type="button"
+            onClick={() => scrollToSection('footer')}
+            className="group relative bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            title="Contact Us"
           >
-            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : 'rotate-0'}`}></i>
-            <span className="font-semibold hidden xs:inline">{mobileMenuOpen ? 'Close' : 'Menu'}</span>
+            <i className="fas fa-envelope group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden xs:inline">Contact</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
-          {/* Theme Toggle - Mobile Optimized */}
-          <div className="relative bg-gradient-to-r from-indigo-500 to-cyan-600 hover:from-indigo-600 hover:to-cyan-700 rounded-full p-1 sm:p-1.5 lg:p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex-shrink-0">
+          {/* Theme Toggle */}
+          <div className="relative bg-gradient-to-r from-indigo-500 to-slate-600 hover:from-indigo-600 hover:to-slate-700 rounded-full p-1 sm:p-1.5 lg:p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex-shrink-0">
             <ThemeToggle />
           </div>
         </div>
