@@ -114,6 +114,7 @@ export default function CategoryManagement() {
         icon: 'fas fa-tag',
         color: '#6366F1'
       });
+      setIsAddingCategory(false);
       toast({
         title: 'Success',
         description: 'Category updated successfully!',
@@ -309,7 +310,7 @@ export default function CategoryManagement() {
                   <select
                     value={newCategory.icon}
                     onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white mb-2"
                   >
                     {commonIcons.map(icon => (
                       <option key={icon} value={icon}>
@@ -317,9 +318,25 @@ export default function CategoryManagement() {
                       </option>
                     ))}
                   </select>
-                  <div className="mt-2 flex items-center">
-                    <i className={`${newCategory.icon} text-xl mr-2`}></i>
-                    <span className="text-sm text-gray-700">Preview</span>
+                  
+                  {/* Custom Icon Input */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium mb-1 text-blue-300">Or enter custom icon class:</label>
+                    <input
+                      type="text"
+                      value={newCategory.icon}
+                      onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
+                      placeholder="e.g., fas fa-star, fab fa-apple, etc."
+                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400 text-sm"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Use FontAwesome classes like "fas fa-star" or "fab fa-apple"
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <i className={`${newCategory.icon} text-xl mr-2 text-blue-400`}></i>
+                    <span className="text-sm text-blue-300">Preview</span>
                   </div>
                 </div>
                 <div>
