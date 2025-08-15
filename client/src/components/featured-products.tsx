@@ -292,7 +292,7 @@ export default function FeaturedProducts() {
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="grid grid-rows-2 grid-flow-col gap-0 overflow-x-auto pb-4 px-12 md:px-16 h-[700px]"
+            className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-4 px-12 md:px-16 h-[800px]"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -301,24 +301,25 @@ export default function FeaturedProducts() {
             {displayProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
-                className="w-[480px] bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden mr-0"
+                className="w-[450px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className={`relative p-2 ${
-                  index % 4 === 0 ? 'bg-blue-400' : 
-                  index % 4 === 1 ? 'bg-green-400' : 
-                  index % 4 === 2 ? 'bg-yellow-400' :
-                  'bg-purple-400'
+                {/* Product Image with colored border */}
+                <div className={`relative p-3 ${
+                  index % 4 === 0 ? 'bg-blue-500' : 
+                  index % 4 === 1 ? 'bg-red-500' : 
+                  index % 4 === 2 ? 'bg-yellow-500' :
+                  'bg-green-500'
                 }`}>
                   <img 
                     src={product.imageUrl} 
                     alt={product.name} 
-                    className="w-full h-36 object-cover rounded-lg border-2 border-white/50 shadow-md" 
+                    className="w-full h-32 object-cover rounded-lg" 
                   />
                   
                   {/* Wishlist Heart Icon */}
                   <button
                     onClick={() => handleWishlistToggle(product)}
-                    className={`absolute top-2 left-2 p-1.5 rounded-full shadow-md transition-colors ${
+                    className={`absolute top-5 left-5 p-1.5 rounded-full shadow-md transition-colors ${
                       isInWishlist(product.id) 
                         ? 'bg-red-500 text-white hover:bg-red-600' 
                         : 'bg-white text-gray-400 hover:text-red-500'
@@ -329,49 +330,50 @@ export default function FeaturedProducts() {
                   </button>
                 </div>
                 
-                <div className="p-4 bg-gray-800 text-white">
-                  <div className="flex items-center justify-between mb-2">
+                {/* Product Content */}
+                <div className="p-4 bg-gray-800 text-white space-y-3">
+                  {/* Rating and Discount */}
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       {renderStars(product.rating)}
                       <span className="text-gray-300 ml-1 text-xs">({product.reviewCount})</span>
                     </div>
-                    {product.discount ? (
+                    {product.discount && (
                       <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                         {product.discount}% OFF
                       </span>
-                    ) : product.isNew ? (
-                      <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        NEW
-                      </span>
-                    ) : (
-                      <div></div>
                     )}
                   </div>
                   
-                  <h4 className="font-bold text-sm text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
-                  <p className="text-gray-300 text-xs mb-3 line-clamp-2">{product.description}</p>
+                  {/* Product Name */}
+                  <h4 className="font-bold text-sm text-blue-400 leading-tight">{product.name}</h4>
                   
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="text-lg font-bold text-blue-400">₹{product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-gray-500 line-through ml-1 text-sm">₹{product.originalPrice}</span>
-                      )}
-                    </div>
+                  {/* Product Description */}
+                  <p className="text-gray-300 text-xs leading-relaxed">{product.description}</p>
+                  
+                  {/* Price */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-bold text-blue-400">₹{product.price}</span>
+                    {product.originalPrice && (
+                      <span className="text-gray-500 line-through text-sm">₹{product.originalPrice}</span>
+                    )}
                   </div>
                   
-                  {/* Compact Product Timer */}
-                  <div className="mb-3">
+                  {/* Timer */}
+                  <div className="py-1">
                     <ProductTimer product={product} />
                   </div>
                   
+                  {/* Pick Now Button */}
                   <button 
                     onClick={() => handleAffiliateClick(product)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all transform hover:scale-105 text-sm"
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-sm"
                   >
-                    <i className="fas fa-shopping-bag mr-1"></i>Pick Now
+                    <i className="fas fa-shopping-bag mr-2"></i>Pick Now
                   </button>
-                  <p className="text-[10px] text-gray-400 mt-1 text-center">
+                  
+                  {/* Affiliate Link Text */}
+                  <p className="text-[10px] text-gray-400 text-center mt-2">
                     🔗 Affiliate Link - We earn from purchases
                   </p>
                 </div>
