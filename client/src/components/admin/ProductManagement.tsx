@@ -332,7 +332,7 @@ export default function ProductManagement() {
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                     placeholder="e.g., Wireless Headphones"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                     required
                   />
                 </div>
@@ -341,7 +341,7 @@ export default function ProductManagement() {
                   <select
                     value={newProduct.category}
                     onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900"
                     required
                   >
                     <option value="">Select Category</option>
@@ -358,7 +358,7 @@ export default function ProductManagement() {
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                   placeholder="Product description..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                   rows={3}
                   required
                 />
@@ -373,7 +373,7 @@ export default function ProductManagement() {
                     value={newProduct.price}
                     onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
                     placeholder="29.99"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                     required
                   />
                 </div>
@@ -385,7 +385,7 @@ export default function ProductManagement() {
                     value={newProduct.originalPrice}
                     onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
                     placeholder="39.99"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                   />
                 </div>
                 <div>
@@ -395,7 +395,7 @@ export default function ProductManagement() {
                     value={newProduct.discount}
                     onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
                     placeholder="25"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                   />
                 </div>
               </div>
@@ -408,7 +408,7 @@ export default function ProductManagement() {
                     value={newProduct.imageUrl}
                     onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
                     placeholder="https://example.com/image.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                     required
                   />
                 </div>
@@ -419,7 +419,7 @@ export default function ProductManagement() {
                     value={newProduct.affiliateUrl}
                     onChange={(e) => setNewProduct({ ...newProduct, affiliateUrl: e.target.value })}
                     placeholder="https://affiliate-link.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                     required
                   />
                 </div>
@@ -435,7 +435,7 @@ export default function ProductManagement() {
                     max="5"
                     value={newProduct.rating}
                     onChange={(e) => setNewProduct({ ...newProduct, rating: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                   />
                 </div>
                 <div>
@@ -444,7 +444,7 @@ export default function ProductManagement() {
                     type="number"
                     value={newProduct.reviewCount}
                     onChange={(e) => setNewProduct({ ...newProduct, reviewCount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                   />
                 </div>
               </div>

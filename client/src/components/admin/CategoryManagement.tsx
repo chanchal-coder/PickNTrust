@@ -202,7 +202,7 @@ export default function CategoryManagement() {
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                     placeholder="e.g., Electronics & Gadgets"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                     required
                   />
                 </div>
@@ -213,7 +213,7 @@ export default function CategoryManagement() {
                     value={newCategory.description}
                     onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                     placeholder="e.g., Latest tech & gadgets"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900 placeholder-gray-700"
                     required
                   />
                 </div>
@@ -225,7 +225,7 @@ export default function CategoryManagement() {
                   <select
                     value={newCategory.icon}
                     onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-900"
                   >
                     {commonIcons.map(icon => (
                       <option key={icon} value={icon}>
@@ -257,7 +257,7 @@ export default function CategoryManagement() {
                     type="color"
                     value={newCategory.color}
                     onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                    className="w-full h-10 border border-gray-300 rounded-lg bg-gray-50"
+                    className="w-full h-10 border border-gray-300 rounded-lg bg-gray-100"
                   />
                 </div>
               </div>
