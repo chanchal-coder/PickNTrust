@@ -152,7 +152,7 @@ const fallbackCategoriesData = [
   },
   {
     id: 22,
-    name: 'Subscription Services',
+    name: 'Subscriptions',
     description: 'Monthly services',
     icon: 'fas fa-calendar',
     color: '#FB923C'

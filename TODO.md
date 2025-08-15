@@ -131,11 +131,17 @@
   - **Blog Cards**: Small red circular delete button in top-right corner with trash icon
   - **Improved UX**: Buttons are positioned outside content area with hover effects and tooltips
 
+### Latest UI Improvements
+- **Product Card Size Increase**: Enlarged featured product cards from w-80 (320px) to w-96 (384px) for better visibility
+- **Updated Scroll Distance**: Adjusted horizontal scroll distance to 400px to match new card size
+- **Category Text Fix**: Shortened "Subscription Services" to "Subscriptions" to prevent text cutting off
+- **Better Product Visibility**: Larger cards provide more space for product timers, prices, and "Pick Now" buttons
+
 ## 🚀 READY FOR TESTING
 
 The application is now ready with:
 - Enhanced navigation panel with 7 buttons
-- Horizontally scrollable featured products section with improved UI (double row, larger cards)
+- Horizontally scrollable featured products section with improved UI (double row, larger cards w-96)
 - Dedicated "Today's Top Picks" page with header and footer
 - Improved admin panel with dark theme and small delete buttons
 - Professional color picker component
@@ -146,5 +152,7 @@ The application is now ready with:
 - Removed duplicate categories (30 unique categories)
 - Fixed category page scrolling to top
 - Enhanced admin delete functionality with prominent buttons
+- Larger product cards for better content visibility
+- Fixed category text overflow issues
 
 All TypeScript compilation errors have been resolved and the build is successful.
