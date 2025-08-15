@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, Megaphone, Palette, Type, Settings, Eye } from 'lucide-react';
 
 interface Announcement {
   id: number;
@@ -32,16 +38,16 @@ export default function AnnouncementManagement() {
     message: '',
     textColor: '#ffffff',
     backgroundColor: '#3b82f6',
-    fontSize: '16px',
-    fontWeight: 'normal',
-    textDecoration: 'none',
-    fontStyle: 'normal',
-    animationSpeed: '30',
-    textBorderWidth: '0px',
-    textBorderStyle: 'solid',
+    fontSize: 'Medium (16px)',
+    fontWeight: 'Normal',
+    textDecoration: 'None',
+    fontStyle: 'Normal',
+    animationSpeed: 'Medium (30s)',
+    textBorderWidth: 'None (0px)',
+    textBorderStyle: 'Solid',
     textBorderColor: '#000000',
-    bannerBorderWidth: '0px',
-    bannerBorderStyle: 'solid',
+    bannerBorderWidth: 'None (0px)',
+    bannerBorderStyle: 'Solid',
     bannerBorderColor: '#000000'
   });
 
@@ -63,6 +69,20 @@ export default function AnnouncementManagement() {
   const addAnnouncementMutation = useMutation({
     mutationFn: async (announcementData: any) => {
       const adminPassword = 'pickntrust2025';
+      
+      // Convert display values to actual values
+      const processedData = {
+        ...announcementData,
+        fontSize: announcementData.fontSize.includes('(') ? 
+          announcementData.fontSize.match(/\(([^)]+)\)/)[1] : announcementData.fontSize,
+        animationSpeed: announcementData.animationSpeed.includes('(') ? 
+          announcementData.animationSpeed.match(/\(([^)]+)\)/)[1].replace('s', '') : announcementData.animationSpeed,
+        textBorderWidth: announcementData.textBorderWidth.includes('(') ? 
+          announcementData.textBorderWidth.match(/\(([^)]+)\)/)[1] : announcementData.textBorderWidth,
+        bannerBorderWidth: announcementData.bannerBorderWidth.includes('(') ? 
+          announcementData.bannerBorderWidth.match(/\(([^)]+)\)/)[1] : announcementData.bannerBorderWidth,
+      };
+
       const response = await fetch('/api/admin/announcements', {
         method: 'POST',
         headers: {
@@ -70,7 +90,7 @@ export default function AnnouncementManagement() {
         },
         body: JSON.stringify({
           password: adminPassword,
-          ...announcementData
+          ...processedData
         }),
       });
 
@@ -87,16 +107,16 @@ export default function AnnouncementManagement() {
         message: '',
         textColor: '#ffffff',
         backgroundColor: '#3b82f6',
-        fontSize: '16px',
-        fontWeight: 'normal',
-        textDecoration: 'none',
-        fontStyle: 'normal',
-        animationSpeed: '30',
-        textBorderWidth: '0px',
-        textBorderStyle: 'solid',
+        fontSize: 'Medium (16px)',
+        fontWeight: 'Normal',
+        textDecoration: 'None',
+        fontStyle: 'Normal',
+        animationSpeed: 'Medium (30s)',
+        textBorderWidth: 'None (0px)',
+        textBorderStyle: 'Solid',
         textBorderColor: '#000000',
-        bannerBorderWidth: '0px',
-        bannerBorderStyle: 'solid',
+        bannerBorderWidth: 'None (0px)',
+        bannerBorderStyle: 'Solid',
         bannerBorderColor: '#000000'
       });
       setIsAddingAnnouncement(false);
@@ -168,9 +188,40 @@ export default function AnnouncementManagement() {
     }
   };
 
-  const presetColors = [
-    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-    '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6b7280'
+  // Font size options with more variety
+  const fontSizeOptions = [
+    'Extra Small (10px)', 'Small (12px)', 'Medium (16px)', 'Large (20px)', 
+    'Extra Large (24px)', 'Huge (28px)', 'Giant (32px)', 'Massive (40px)'
+  ];
+
+  // Font weight options
+  const fontWeightOptions = [
+    'Thin', 'Extra Light', 'Light', 'Normal', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black'
+  ];
+
+  // Font style options
+  const fontStyleOptions = [
+    'Normal', 'Italic', 'Oblique'
+  ];
+
+  // Text decoration options
+  const textDecorationOptions = [
+    'None', 'Underline', 'Overline', 'Line Through', 'Underline Overline'
+  ];
+
+  // Animation speed options
+  const animationSpeedOptions = [
+    'Lightning (5s)', 'Very Fast (10s)', 'Fast (20s)', 'Medium (30s)', 'Slow (40s)', 'Very Slow (60s)', 'Crawl (90s)'
+  ];
+
+  // Border width options
+  const borderWidthOptions = [
+    'None (0px)', 'Hair (0.5px)', 'Thin (1px)', 'Medium (2px)', 'Thick (3px)', 'Extra Thick (5px)', 'Ultra Thick (8px)'
+  ];
+
+  // Border style options
+  const borderStyleOptions = [
+    'Solid', 'Dashed', 'Dotted', 'Double', 'Groove', 'Ridge', 'Inset', 'Outset'
   ];
 
   if (error) {
@@ -187,236 +238,506 @@ export default function AnnouncementManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Add Announcement Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Announcement</CardTitle>
-          <CardDescription>
-            Create a new announcement banner for your website
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!isAddingAnnouncement ? (
-            <Button 
-              onClick={() => setIsAddingAnnouncement(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Create Announcement
-            </Button>
-          ) : (
-            <form onSubmit={handleAddAnnouncement} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Announcement Message</label>
-                <textarea
-                  value={newAnnouncement.message}
-                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
-                  placeholder="🎉 Special offer! Get 50% off on all products today!"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                  required
-                />
-              </div>
+    <div className="space-y-6 bg-gray-900 min-h-screen p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <ArrowLeft className="w-6 h-6 text-blue-400" />
+        <div>
+          <h2 className="text-2xl font-bold text-blue-400">Announcement Banner</h2>
+          <p className="text-gray-400">Manage the scrolling announcement banner shown on the homepage</p>
+        </div>
+      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Text Color</label>
-                  <div className="flex gap-2 mb-2">
-                    {presetColors.map(color => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setNewAnnouncement({ ...newAnnouncement, textColor: color })}
-                        className={`w-6 h-6 rounded border-2 ${
-                          newAnnouncement.textColor === color ? 'border-gray-800' : 'border-gray-300'
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
+      {/* Active Announcement Status */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-6">
+          <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
+            <p className="text-gray-400">
+              {announcements.length > 0 && announcements.some((a: Announcement) => a.isActive) 
+                ? `Active announcement: "${announcements.find((a: Announcement) => a.isActive)?.message}"`
+                : "No active announcement. Create one below."
+              }
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Create New Announcement */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-blue-400">Create New Announcement</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <form onSubmit={handleAddAnnouncement} className="space-y-6">
+            {/* Announcement Message */}
+            <div>
+              <Label className="text-white font-medium">Announcement Message</Label>
+              <Textarea
+                value={newAnnouncement.message}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
+                placeholder="Enter your announcement message (use emojis for more appeal! 🎉 ✨)"
+                className="bg-gray-900 border-gray-600 text-white mt-2"
+                rows={3}
+                required
+              />
+            </div>
+
+            {/* Text and Background Colors */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-white font-medium">Text Color</Label>
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded border border-gray-600"
+                      style={{ backgroundColor: newAnnouncement.textColor }}
+                    />
+                    <button
+                      type="button"
+                      className="text-gray-400 text-sm"
+                      onClick={() => document.getElementById('text-color-picker')?.click()}
+                    >
+                      ▼
+                    </button>
                   </div>
+                  <Input
+                    id="text-color-hex"
+                    value={newAnnouncement.textColor}
+                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textColor: e.target.value })}
+                    className="bg-gray-900 border-gray-600 text-white flex-1"
+                    placeholder="#ffffff"
+                  />
                   <input
+                    id="text-color-picker"
                     type="color"
                     value={newAnnouncement.textColor}
                     onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textColor: e.target.value })}
-                    className="w-full h-10 border border-gray-300 rounded-lg"
+                    className="hidden"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Background Color</label>
-                  <div className="flex gap-2 mb-2">
-                    {presetColors.map(color => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setNewAnnouncement({ ...newAnnouncement, backgroundColor: color })}
-                        className={`w-6 h-6 rounded border-2 ${
-                          newAnnouncement.backgroundColor === color ? 'border-gray-800' : 'border-gray-300'
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
+              </div>
+
+              <div>
+                <Label className="text-white font-medium">Background Color</Label>
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded border border-gray-600"
+                      style={{ backgroundColor: newAnnouncement.backgroundColor }}
+                    />
+                    <button
+                      type="button"
+                      className="text-gray-400 text-sm"
+                      onClick={() => document.getElementById('bg-color-picker')?.click()}
+                    >
+                      ▼
+                    </button>
                   </div>
+                  <Input
+                    value={newAnnouncement.backgroundColor}
+                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, backgroundColor: e.target.value })}
+                    className="bg-gray-900 border-gray-600 text-white flex-1"
+                    placeholder="#3b82f6"
+                  />
                   <input
+                    id="bg-color-picker"
                     type="color"
                     value={newAnnouncement.backgroundColor}
                     onChange={(e) => setNewAnnouncement({ ...newAnnouncement, backgroundColor: e.target.value })}
-                    className="w-full h-10 border border-gray-300 rounded-lg"
+                    className="hidden"
                   />
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Font Size</label>
-                  <select
-                    value={newAnnouncement.fontSize}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, fontSize: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="12px">12px</option>
-                    <option value="14px">14px</option>
-                    <option value="16px">16px</option>
-                    <option value="18px">18px</option>
-                    <option value="20px">20px</option>
-                    <option value="24px">24px</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Font Weight</label>
-                  <select
-                    value={newAnnouncement.fontWeight}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, fontWeight: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="normal">Normal</option>
-                    <option value="bold">Bold</option>
-                    <option value="lighter">Lighter</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Animation Speed</label>
-                  <select
-                    value={newAnnouncement.animationSpeed}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, animationSpeed: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="10">Very Fast</option>
-                    <option value="20">Fast</option>
-                    <option value="30">Normal</option>
-                    <option value="40">Slow</option>
-                    <option value="50">Very Slow</option>
-                  </select>
-                </div>
+            {/* Font Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-white font-medium">Font Size</Label>
+                <Select 
+                  value={newAnnouncement.fontSize}
+                  onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, fontSize: value })}
+                >
+                  <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-600">
+                    {fontSizeOptions.map(size => (
+                      <SelectItem key={size} value={size} className="text-white hover:bg-gray-700">
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Preview */}
-              <div className="border border-gray-300 rounded-lg p-4">
-                <label className="block text-sm font-medium mb-2">Preview</label>
-                <div 
-                  className="p-3 rounded text-center overflow-hidden whitespace-nowrap"
-                  style={{
-                    backgroundColor: newAnnouncement.backgroundColor,
-                    color: newAnnouncement.textColor,
-                    fontSize: newAnnouncement.fontSize,
-                    fontWeight: newAnnouncement.fontWeight,
-                    textDecoration: newAnnouncement.textDecoration,
-                    fontStyle: newAnnouncement.fontStyle
-                  }}
+              <div>
+                <Label className="text-white font-medium">Font Weight</Label>
+                <Select 
+                  value={newAnnouncement.fontWeight}
+                  onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, fontWeight: value })}
                 >
-                  <div className="animate-marquee">
-                    {newAnnouncement.message || 'Your announcement message will appear here...'}
+                  <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-600">
+                    {fontWeightOptions.map(weight => (
+                      <SelectItem key={weight} value={weight} className="text-white hover:bg-gray-700">
+                        {weight}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-white font-medium">Font Style</Label>
+                <Select 
+                  value={newAnnouncement.fontStyle}
+                  onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, fontStyle: value })}
+                >
+                  <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-600">
+                    {fontStyleOptions.map(style => (
+                      <SelectItem key={style} value={style} className="text-white hover:bg-gray-700">
+                        {style}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-white font-medium">Text Decoration</Label>
+                <Select 
+                  value={newAnnouncement.textDecoration}
+                  onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, textDecoration: value })}
+                >
+                  <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-600">
+                    {textDecorationOptions.map(decoration => (
+                      <SelectItem key={decoration} value={decoration} className="text-white hover:bg-gray-700">
+                        {decoration}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Animation Speed */}
+            <div>
+              <Label className="text-white font-medium">Animation Speed</Label>
+              <Select 
+                value={newAnnouncement.animationSpeed}
+                onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, animationSpeed: value })}
+              >
+                <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-600">
+                  {animationSpeedOptions.map(speed => (
+                    <SelectItem key={speed} value={speed} className="text-white hover:bg-gray-700">
+                      {speed}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Text Border Options */}
+            <Card className="bg-gray-900 border-blue-600">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-blue-400 text-lg flex items-center gap-2">
+                  <Type className="w-5 h-5" />
+                  Text Border Options
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-white font-medium">Border Width</Label>
+                    <Select 
+                      value={newAnnouncement.textBorderWidth}
+                      onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, textBorderWidth: value })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        {borderWidthOptions.map(width => (
+                          <SelectItem key={width} value={width} className="text-white hover:bg-gray-700">
+                            {width}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-white font-medium">Border Style</Label>
+                    <Select 
+                      value={newAnnouncement.textBorderStyle}
+                      onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, textBorderStyle: value })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        {borderStyleOptions.map(style => (
+                          <SelectItem key={style} value={style} className="text-white hover:bg-gray-700">
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-white font-medium">Border Color</Label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded border border-gray-600"
+                          style={{ backgroundColor: newAnnouncement.textBorderColor }}
+                        />
+                        <button
+                          type="button"
+                          className="text-gray-400 text-sm"
+                          onClick={() => document.getElementById('text-border-color-picker')?.click()}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                      <Input
+                        value={newAnnouncement.textBorderColor}
+                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textBorderColor: e.target.value })}
+                        className="bg-gray-800 border-gray-600 text-white flex-1"
+                        placeholder="#000000"
+                      />
+                      <input
+                        id="text-border-color-picker"
+                        type="color"
+                        value={newAnnouncement.textBorderColor}
+                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textBorderColor: e.target.value })}
+                        className="hidden"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="flex gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={addAnnouncementMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700"
+            {/* Banner Border Options */}
+            <Card className="bg-gray-900 border-green-600">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-green-400 text-lg flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Banner Border Options
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-white font-medium">Border Width</Label>
+                    <Select 
+                      value={newAnnouncement.bannerBorderWidth}
+                      onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, bannerBorderWidth: value })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        {borderWidthOptions.map(width => (
+                          <SelectItem key={width} value={width} className="text-white hover:bg-gray-700">
+                            {width}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-white font-medium">Border Style</Label>
+                    <Select 
+                      value={newAnnouncement.bannerBorderStyle}
+                      onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, bannerBorderStyle: value })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        {borderStyleOptions.map(style => (
+                          <SelectItem key={style} value={style} className="text-white hover:bg-gray-700">
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-white font-medium">Border Color</Label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded border border-gray-600"
+                          style={{ backgroundColor: newAnnouncement.bannerBorderColor }}
+                        />
+                        <button
+                          type="button"
+                          className="text-gray-400 text-sm"
+                          onClick={() => document.getElementById('banner-border-color-picker')?.click()}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                      <Input
+                        value={newAnnouncement.bannerBorderColor}
+                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, bannerBorderColor: e.target.value })}
+                        className="bg-gray-800 border-gray-600 text-white flex-1"
+                        placeholder="#000000"
+                      />
+                      <input
+                        id="banner-border-color-picker"
+                        type="color"
+                        value={newAnnouncement.bannerBorderColor}
+                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, bannerBorderColor: e.target.value })}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Preview */}
+            <div>
+              <Label className="text-white font-medium">Preview</Label>
+              <div className="mt-2 bg-blue-600 rounded-lg p-4 overflow-hidden">
+                <div 
+                  className="text-center whitespace-nowrap animate-marquee"
+                  style={{
+                    color: newAnnouncement.textColor,
+                    backgroundColor: newAnnouncement.backgroundColor,
+                    fontSize: newAnnouncement.fontSize.includes('(') ? 
+                      newAnnouncement.fontSize.match(/\(([^)]+)\)/)?.[1] : '16px',
+                    fontWeight: newAnnouncement.fontWeight.toLowerCase(),
+                    fontStyle: newAnnouncement.fontStyle.toLowerCase(),
+                    textDecoration: newAnnouncement.textDecoration.toLowerCase().replace(' ', '-'),
+                    padding: '12px',
+                    borderRadius: '4px'
+                  }}
                 >
-                  {addAnnouncementMutation.isPending ? 'Creating...' : 'Create Announcement'}
-                </Button>
+                  {newAnnouncement.message || 'Your announcement will appear here...'}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-4">
+              <Button 
+                type="button"
+                variant="outline"
+                className="text-blue-400 border-blue-400 hover:bg-blue-900"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Live Preview
+              </Button>
+
+              <div className="flex gap-3">
                 <Button 
-                  type="button" 
+                  type="button"
                   variant="outline"
                   onClick={() => setIsAddingAnnouncement(false)}
+                  className="text-gray-400 border-gray-600 hover:bg-gray-800"
                 >
                   Cancel
                 </Button>
+                <Button 
+                  type="submit"
+                  disabled={addAnnouncementMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {addAnnouncementMutation.isPending ? 'Saving...' : 'Save Announcement'}
+                </Button>
               </div>
-            </form>
-          )}
+            </div>
+          </form>
         </CardContent>
       </Card>
 
-      {/* Announcements List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Manage Announcements ({announcements.length})</CardTitle>
-          <CardDescription>
-            View and manage all announcements
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading announcements...</p>
-            </div>
-          ) : announcements.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">No announcements found. Create your first announcement above.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {announcements.map((announcement: Announcement) => (
-                <div
-                  key={announcement.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-gray-900">Announcement #{announcement.id}</h3>
-                        {announcement.isActive && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                            Active
-                          </span>
-                        )}
+      {/* Existing Announcements */}
+      {announcements.length > 0 && (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Manage Announcements ({announcements.length})</CardTitle>
+            <CardDescription className="text-gray-400">
+              View and manage all announcements
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-400">Loading announcements...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {announcements.map((announcement: Announcement) => (
+                  <div
+                    key={announcement.id}
+                    className="border border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-900"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-white">Announcement #{announcement.id}</h3>
+                          {announcement.isActive && (
+                            <Badge className="bg-green-600 text-white">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                        <div 
+                          className="p-3 rounded mb-2 text-center"
+                          style={{
+                            backgroundColor: announcement.backgroundColor,
+                            color: announcement.textColor,
+                            fontSize: announcement.fontSize,
+                            fontWeight: announcement.fontWeight
+                          }}
+                        >
+                          {announcement.message}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          <p>Animation Speed: {announcement.animationSpeed}s</p>
+                          <p>Created: {announcement.createdAt ? new Date(announcement.createdAt).toLocaleDateString() : 'Unknown'}</p>
+                        </div>
                       </div>
-                      <div 
-                        className="p-3 rounded mb-2 text-center"
-                        style={{
-                          backgroundColor: announcement.backgroundColor,
-                          color: announcement.textColor,
-                          fontSize: announcement.fontSize,
-                          fontWeight: announcement.fontWeight
-                        }}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                        disabled={deleteAnnouncementMutation.isPending}
+                        className="text-red-400 border-red-400 hover:bg-red-900/20"
                       >
-                        {announcement.message}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <p>Animation Speed: {announcement.animationSpeed}s</p>
-                        <p>Created: {announcement.createdAt ? new Date(announcement.createdAt).toLocaleDateString() : 'Unknown'}</p>
-                      </div>
+                        Delete
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteAnnouncement(announcement.id)}
-                      disabled={deleteAnnouncementMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
