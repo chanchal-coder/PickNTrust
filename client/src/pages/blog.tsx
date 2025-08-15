@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { useRef } from "react";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
 
 // Define BlogPost type locally to avoid schema conflicts
 interface BlogPost {
@@ -21,7 +23,7 @@ interface BlogPost {
   timerStartTime: Date | null;
 }
 
-// Fallback blog posts data (shown only if API returns empty)
+// Extended fallback blog posts for the full page
 const fallbackBlogPosts = [
   {
     id: 1,
@@ -70,27 +72,62 @@ const fallbackBlogPosts = [
     hasTimer: false,
     timerDuration: null,
     timerStartTime: null
+  },
+  {
+    id: 4,
+    title: "Best Black Friday Deals 2024",
+    excerpt: "Get ready for the biggest shopping event of the year. We've compiled the best Black Friday deals across all categories.",
+    content: "Full blog content here...",
+    category: "Deals",
+    tags: ["black-friday", "deals", "discounts", "shopping"],
+    imageUrl: "https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=400&q=80",
+    publishedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+    createdAt: new Date(),
+    readTime: "8 min read",
+    slug: "best-black-friday-deals-2024",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  },
+  {
+    id: 5,
+    title: "How to Spot Fake Products Online",
+    excerpt: "Protect yourself from counterfeit products with our comprehensive guide. Learn the warning signs and shopping tips.",
+    content: "Full blog content here...",
+    category: "Tips",
+    tags: ["safety", "fake-products", "online-shopping", "guide"],
+    imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&q=80",
+    publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    createdAt: new Date(),
+    readTime: "6 min read",
+    slug: "how-to-spot-fake-products-online",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  },
+  {
+    id: 6,
+    title: "Best Budget Laptops Under $500",
+    excerpt: "Find the perfect laptop without breaking the bank. Our expert reviews of the best budget-friendly laptops available.",
+    content: "Full blog content here...",
+    category: "Reviews",
+    tags: ["laptops", "budget", "reviews", "technology"],
+    imageUrl: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&q=80",
+    publishedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
+    createdAt: new Date(),
+    readTime: "9 min read",
+    slug: "best-budget-laptops-under-500",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
   }
 ];
 
-export default function BlogSection() {
-  // Try to fetch from API but don't show loading state - show fallback immediately
+export default function Blog() {
   const { data: blogPosts } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],
-    queryFn: async () => {
-      const response = await fetch('/api/blog');
-      if (!response.ok) {
-        throw new Error('Failed to fetch blog posts');
-      }
-      return response.json();
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-    // Don't show loading state, fail silently and use fallback
-    enabled: false, // Disable automatic fetching for now
+    enabled: false, // Use fallback data immediately
   });
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Always use fallback data for immediate display
   const displayPosts = fallbackBlogPosts;
@@ -104,73 +141,42 @@ export default function BlogSection() {
     });
   };
 
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -400, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 400, behavior: 'smooth' });
-    }
-  };
-
-  // Handle mouse wheel scrolling
-  const handleWheel = (e: React.WheelEvent) => {
-    if (scrollContainerRef.current) {
-      e.preventDefault();
-      scrollContainerRef.current.scrollBy({ left: e.deltaY, behavior: 'smooth' });
-    }
-  };
-
-  // Remove loading state completely - always show content immediately
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   return (
-    <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <div className="relative inline-block">
-            <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
-              Quick Tips & Trending
-              <div className="absolute -top-2 -right-6 text-xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
-            </h3>
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Main Header */}
+      <Header />
+      
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+              Quick Tips & Trending 📝
+            </h1>
+            <p className="text-lg md:text-xl text-white/90 mb-6">
+              Stay updated with the latest deals and shopping hacks
+            </p>
+            <Link 
+              href="/"
+              className="inline-flex items-center px-6 py-3 bg-white text-green-600 font-semibold rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <i className="fas fa-arrow-left mr-2"></i>
+              Back to Home
+            </Link>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
-            <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">🚀 Stay updated with the latest deals and shopping hacks 🚀</span>
-          </p>
         </div>
-        
-        {/* Horizontal Scrollable Container with Border */}
-        <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-white/50 dark:bg-gray-800/50">
-          {/* Left Arrow */}
-          <button
-            onClick={scrollLeft}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
-          >
-            <i className="fas fa-chevron-left text-lg"></i>
-          </button>
+      </div>
 
-          {/* Right Arrow */}
-          <button
-            onClick={scrollRight}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
-          >
-            <i className="fas fa-chevron-right text-lg"></i>
-          </button>
-
-          {/* Scrollable Blog Container - Single Row */}
-          <div 
-            ref={scrollContainerRef}
-            onWheel={handleWheel}
-            className="flex gap-6 overflow-x-auto pb-4 px-12 md:px-16"
-            style={{ 
-              scrollbarWidth: 'none', 
-              msOverflowStyle: 'none'
-            }}
-          >
+      {/* Blog Posts Grid */}
+      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {displayPosts.map((post: BlogPost, index: number) => (
-              <article key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:-translate-y-2 hover:scale-105 group flex-shrink-0 w-80">
+              <article key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:-translate-y-2 hover:scale-105 group">
                 <div className={`w-full h-48 relative p-2 dark:bg-gradient-to-br dark:from-green-900 dark:via-teal-900 dark:to-blue-900 ${
                   index % 3 === 0 ? 'bg-blue-400' : 
                   index % 3 === 1 ? 'bg-green-400' : 
@@ -241,18 +247,10 @@ export default function BlogSection() {
             ))}
           </div>
         </div>
-        
-        {/* More Button */}
-        <div className="flex justify-end mt-6">
-          <Link 
-            href="/blog"
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-          >
-            <span className="mr-2">More</span>
-            <i className="fas fa-arrow-right"></i>
-          </Link>
-        </div>
       </div>
-    </section>
+      
+      {/* Footer */}
+      <Footer />
+    </div>
   );
 }

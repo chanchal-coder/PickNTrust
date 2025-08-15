@@ -8,6 +8,7 @@ import Category from "@/pages/category";
 import Admin from "@/pages/admin";
 import EnhancedAdmin from "@/pages/admin-enhanced";
 import Wishlist from "@/pages/wishlist";
+import Blog from "@/pages/blog";
 import BlogPost from "@/pages/blog-post";
 import HowItWorks from "@/pages/how-it-works";
 import TermsOfService from "@/pages/terms-of-service";
@@ -29,6 +30,7 @@ function App() {
               <Route path="/admin" component={Admin} />
               <Route path="/admin-enhanced" component={EnhancedAdmin} />
               <Route path="/wishlist" component={Wishlist} />
+              <Route path="/blog" component={Blog} />
               <Route path="/blog/:slug" component={BlogPost} />
               <Route path="/how-it-works" component={HowItWorks} />
               <Route path="/terms-of-service" component={TermsOfService} />
