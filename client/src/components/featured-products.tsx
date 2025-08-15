@@ -288,11 +288,11 @@ export default function FeaturedProducts() {
             <i className="fas fa-chevron-right text-lg"></i>
           </button>
 
-          {/* Scrollable Products Container */}
+          {/* Scrollable Products Container - Double Row */}
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="flex gap-4 overflow-x-auto pb-4 px-12 md:px-16"
+            className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-4 px-12 md:px-16 h-[600px]"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -301,7 +301,7 @@ export default function FeaturedProducts() {
             {displayProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
-                className="flex-shrink-0 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+                className="w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
               >
                 <div className={`relative p-2 ${
                   index % 4 === 0 ? 'bg-blue-400' : 

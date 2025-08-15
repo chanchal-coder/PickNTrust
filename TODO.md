@@ -88,7 +88,26 @@
   - Improved visibility with white text and shadow-xl
   - Added hover scale effect (hover:scale-110)
   - Better positioning (left-2, right-2) with higher z-index (z-20)
+- **Double Row Layout**: 
+  - Changed from single horizontal row to double row layout
+  - Implemented using CSS Grid (grid-rows-2 grid-flow-col)
+  - Fixed height container (h-[600px]) for consistent display
+  - Maintains horizontal scrolling with 2 rows of products
 - **Improved Container**: Added padding and background styling for professional appearance
+
+### Categories Section Fixes
+- **Removed Duplicate Categories**: 
+  - Eliminated duplicate "Gaming" entries (merged into "Gaming & Entertainment")
+  - Consolidated "Courses & Training" into "Online Learning"
+  - Removed redundant categories to prevent confusion
+  - Reduced from 36 to 30 unique categories
+- **Consistent Mobile Card Sizes**:
+  - Fixed height for all category cards (h-32 sm:h-36)
+  - Consistent padding (p-4 sm:p-6) across all screen sizes
+  - Responsive gap spacing (gap-4 sm:gap-6)
+  - Centered content with flexbox layout
+  - Responsive text sizes (text-xs sm:text-sm for titles, text-[10px] sm:text-xs for descriptions)
+  - Line clamping to prevent text overflow
 
 ### Header Navigation Enhancement  
 - **Smaller Theme Button**: Reduced padding from p-1 sm:p-1.5 lg:p-2 to p-0.5 sm:p-1 for more compact appearance

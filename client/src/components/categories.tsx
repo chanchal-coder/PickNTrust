@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-// Fallback categories data in case API fails
+// Fallback categories data in case API fails - Cleaned up duplicates
 const fallbackCategoriesData = [
   {
     id: 1,
@@ -47,8 +47,8 @@ const fallbackCategoriesData = [
   },
   {
     id: 7,
-    name: 'Toys & Games',
-    description: 'Fun for all ages',
+    name: 'Gaming & Entertainment',
+    description: 'Gaming gear & fun',
     icon: 'fas fa-gamepad',
     color: '#06B6D4'
   },
@@ -131,125 +131,83 @@ const fallbackCategoriesData = [
   },
   {
     id: 19,
-    name: 'Gaming',
-    description: 'Gaming gear',
-    icon: 'fas fa-gamepad',
-    color: '#34D399'
-  },
-  {
-    id: 20,
     name: 'Tools & Hardware',
     description: 'DIY tools',
     icon: 'fas fa-tools',
     color: '#F87171'
   },
   {
-    id: 21,
+    id: 20,
     name: 'Collectibles',
     description: 'Rare collectibles',
     icon: 'fas fa-trophy',
     color: '#FBBF24'
   },
   {
-    id: 22,
+    id: 21,
     name: 'Software & Apps',
     description: 'Digital products',
     icon: 'fas fa-code',
     color: '#818CF8'
   },
   {
-    id: 23,
+    id: 22,
     name: 'Subscription Services',
     description: 'Monthly services',
     icon: 'fas fa-calendar',
     color: '#FB923C'
   },
   {
-    id: 24,
+    id: 23,
     name: 'Gift Cards',
     description: 'Digital gift cards',
     icon: 'fas fa-gift',
     color: '#F472B6'
   },
   {
-    id: 25,
-    name: 'Courses & Training',
-    description: 'Online learning',
+    id: 24,
+    name: 'Online Learning',
+    description: 'Courses & training',
     icon: 'fas fa-graduation-cap',
     color: '#A78BFA'
   },
   {
-    id: 26,
+    id: 25,
     name: 'Streaming Services',
     description: 'Entertainment',
     icon: 'fas fa-play',
     color: '#EF4444'
   },
   {
-    id: 27,
+    id: 26,
     name: 'Cloud Storage',
     description: 'Data storage',
     icon: 'fas fa-cloud',
     color: '#06B6D4'
   },
   {
-    id: 28,
+    id: 27,
     name: 'VPN & Security',
     description: 'Online security',
     icon: 'fas fa-shield-alt',
     color: '#10B981'
   },
   {
-    id: 29,
+    id: 28,
     name: 'Web Hosting',
     description: 'Website hosting',
     icon: 'fas fa-server',
     color: '#6B7280'
   },
   {
-    id: 30,
+    id: 29,
     name: 'Design Tools',
     description: 'Creative software',
     icon: 'fas fa-paint-brush',
     color: '#F59E0B'
   },
   {
-    id: 31,
-    name: 'Productivity Apps',
-    description: 'Work efficiency',
-    icon: 'fas fa-tasks',
-    color: '#8B5CF6'
-  },
-  {
-    id: 32,
-    name: 'Marketing Tools',
-    description: 'Business growth',
-    icon: 'fas fa-chart-line',
-    color: '#14B8A6'
-  },
-  {
-    id: 33,
-    name: 'E-commerce Platforms',
-    description: 'Online stores',
-    icon: 'fas fa-shopping-cart',
-    color: '#F97316'
-  },
-  {
-    id: 34,
-    name: 'Communication Tools',
-    description: 'Team collaboration',
-    icon: 'fas fa-comments',
-    color: '#84CC16'
-  },
-  {
-    id: 35,
-    name: 'Finance & Crypto',
-    description: 'Financial tools',
-    icon: 'fas fa-coins',
-    color: '#FBBF24'
-  },
-  {
-    id: 36,
+    id: 30,
     name: 'AI Apps & Services',
     description: 'AI-powered tools',
     icon: 'fas fa-robot',
@@ -289,7 +247,7 @@ export default function Categories() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
           {categoriesData.map((category) => (
             <Link 
               key={category.id}
@@ -298,7 +256,8 @@ export default function Categories() {
             >
               <div 
                 className={`
-                  relative overflow-hidden rounded-[20px] p-6 text-center
+                  relative overflow-hidden rounded-[20px] p-4 sm:p-6 text-center
+                  h-32 sm:h-36 flex flex-col justify-center
                   transform transition-all duration-300 ease-out
                   hover:scale-105 hover:shadow-2xl hover:shadow-black/20
                   shadow-lg shadow-black/10
@@ -322,14 +281,14 @@ export default function Categories() {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-[20px]"></div>
                 
                 {/* Content */}
-                <div className="relative z-10">
-                  <div className="mb-4">
-                    <i className={`${category.icon} text-3xl text-white drop-shadow-lg`}></i>
+                <div className="relative z-10 flex flex-col items-center justify-center h-full">
+                  <div className="mb-2 sm:mb-3">
+                    <i className={`${category.icon} text-2xl sm:text-3xl text-white drop-shadow-lg`}></i>
                   </div>
-                  <h3 className="font-bold text-white text-sm mb-2 leading-tight drop-shadow-sm">
+                  <h3 className="font-bold text-white text-xs sm:text-sm mb-1 sm:mb-2 leading-tight drop-shadow-sm line-clamp-2">
                     {category.name}
                   </h3>
-                  <p className="text-white/90 text-xs leading-relaxed drop-shadow-sm">
+                  <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-2">
                     {category.description}
                   </p>
                 </div>
