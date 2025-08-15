@@ -278,7 +278,7 @@ export default function Categories() {
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-slate-800">
+      <section id="categories" className="py-16 bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -303,7 +303,7 @@ export default function Categories() {
   }
 
   return (
-    <section className="py-16 bg-slate-800">
+    <section id="categories" className="py-16 bg-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
