@@ -160,7 +160,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle className="text-red-600">Error Loading Categories</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             Failed to load categories. Using fallback data.
           </CardDescription>
         </CardHeader>
@@ -180,7 +180,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Category</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             Create a new category for organizing products
           </CardDescription>
         </CardHeader>
@@ -287,7 +287,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Categories ({categories.length})</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             View and manage all categories
           </CardDescription>
         </CardHeader>

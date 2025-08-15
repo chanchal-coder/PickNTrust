@@ -185,7 +185,7 @@ export default function BlogManagement() {
       <Card>
         <CardHeader>
           <CardTitle className="text-red-600">Error Loading Blog Posts</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             Failed to load blog posts. Check your server connection.
           </CardDescription>
         </CardHeader>
@@ -511,7 +511,7 @@ export default function BlogManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Blog Posts ({blogPosts.length})</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             View and manage all blog posts
           </CardDescription>
         </CardHeader>

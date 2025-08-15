@@ -260,7 +260,7 @@ export default function ProductManagement() {
             <Sparkles className="w-5 h-5" />
             Smart Product Extractor
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             Paste any product URL to automatically extract details (Amazon, eBay, Flipkart, etc.)
           </CardDescription>
         </CardHeader>
@@ -308,7 +308,7 @@ export default function ProductManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Product</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             Add a new product manually or use the extractor above
           </CardDescription>
         </CardHeader>
@@ -485,7 +485,7 @@ export default function ProductManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Products ({products.length})</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-700">
             View and manage all products
           </CardDescription>
         </CardHeader>
