@@ -22,58 +22,6 @@ interface BlogPost {
   timerStartTime: Date | null;
 }
 
-// Fallback blog posts data (shown only if API returns empty)
-const fallbackBlogPosts = [
-  {
-    id: 1,
-    title: "Top 10 Best Deals This Week",
-    excerpt: "Discover the hottest deals and discounts available this week. From electronics to fashion, we've curated the best offers just for you.",
-    content: "Full blog content here...",
-    category: "Deals",
-    tags: ["deals", "discounts", "shopping", "weekly"],
-    imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&q=80",
-    publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-    createdAt: new Date(),
-    readTime: "5 min read",
-    slug: "top-10-best-deals-this-week",
-    hasTimer: false,
-    timerDuration: null,
-    timerStartTime: null
-  },
-  {
-    id: 2,
-    title: "Smart Shopping Tips for 2024",
-    excerpt: "Learn the best strategies to save money while shopping online. Expert tips and tricks to get the most value for your money.",
-    content: "Full blog content here...",
-    category: "Tips",
-    tags: ["shopping", "tips", "money-saving", "guide"],
-    imageUrl: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&q=80",
-    publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    createdAt: new Date(),
-    readTime: "7 min read",
-    slug: "smart-shopping-tips-2024",
-    hasTimer: false,
-    timerDuration: null,
-    timerStartTime: null
-  },
-  {
-    id: 3,
-    title: "iPhone 15 vs Samsung Galaxy S24: Which to Buy?",
-    excerpt: "Complete comparison of the latest flagship smartphones. We break down specs, features, and value to help you make the right choice.",
-    content: "Full blog content here...",
-    category: "Reviews",
-    tags: ["iphone", "samsung", "comparison", "smartphones"],
-    imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&q=80",
-    publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    createdAt: new Date(),
-    readTime: "10 min read",
-    slug: "iphone-15-vs-samsung-galaxy-s24",
-    hasTimer: false,
-    timerDuration: null,
-    timerStartTime: null
-  }
-];
-
 export default function BlogSection() {
   // Fetch from API and show real blog posts
   const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
@@ -117,8 +65,8 @@ export default function BlogSection() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Use API data if available, otherwise use fallback data
-  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : fallbackBlogPosts;
+  // Use API data if available, show empty state if no posts exist
+  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : [];
 
   // Delete blog post mutation
   const deleteBlogPostMutation = useMutation({
@@ -231,7 +179,46 @@ export default function BlogSection() {
     }
   };
 
-  // Remove loading state completely - always show content immediately
+  // Show empty state if no posts
+  if (displayPosts.length === 0) {
+    return (
+      <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="relative inline-block">
+              <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
+                Quick Tips & Trending
+                <div className="absolute -top-2 -right-6 text-xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
+              </h3>
+            </div>
+            <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
+              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">🚀 Stay updated with the latest deals and shopping hacks 🚀</span>
+            </p>
+          </div>
+          
+          {/* Empty State */}
+          <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-8 bg-white/50 dark:bg-gray-800/50">
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📝</div>
+              <h4 className="text-2xl font-bold text-gray-600 dark:text-gray-300 mb-2">No Blog Posts Yet</h4>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Check back soon for the latest deals and shopping tips!
+              </p>
+              {isAdmin && (
+                <Link 
+                  href="/admin"
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  Create First Post
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
@@ -283,31 +270,42 @@ export default function BlogSection() {
                   index % 3 === 1 ? 'bg-green-400' : 
                   'bg-orange-400'
                 }`}>
-                  {/* Always show image first, then overlay video if available */}
+                  {/* Always show image - force display with multiple fallback strategies */}
                   <img 
-                    src={
-                      (post.imageUrl && post.imageUrl.trim() !== '' && post.imageUrl !== 'undefined' && post.imageUrl !== 'null') 
-                        ? post.imageUrl 
-                        : `https://via.placeholder.com/400x200/${
-                            index % 3 === 0 ? '6366f1' : 
-                            index % 3 === 1 ? '10b981' : 
-                            'f59e0b'
-                          }/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`
-                    } 
+                    src={`https://picsum.photos/400/200?random=${post.id}&blur=1`}
                     alt={post.title} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
-                    onError={(e) => {
-                      // If image fails to load, show a placeholder
+                    onLoad={(e) => {
+                      // Once the placeholder loads, try to load the actual image
                       const imgElement = e.target as HTMLImageElement;
-                      const fallbackUrl = `https://via.placeholder.com/400x200/${
-                        index % 3 === 0 ? '6366f1' : 
-                        index % 3 === 1 ? '10b981' : 
-                        'f59e0b'
-                      }/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`;
-                      
-                      // Prevent infinite loop by checking if we're already showing fallback
-                      if (imgElement.src !== fallbackUrl) {
-                        imgElement.src = fallbackUrl;
+                      if (post.imageUrl && post.imageUrl.trim() !== '' && post.imageUrl !== 'undefined' && post.imageUrl !== 'null') {
+                        const testImg = new Image();
+                        testImg.onload = () => {
+                          imgElement.src = post.imageUrl;
+                        };
+                        testImg.onerror = () => {
+                          // Keep the placeholder if actual image fails
+                          console.log(`Failed to load image for post ${post.id}: ${post.imageUrl}`);
+                        };
+                        testImg.src = post.imageUrl;
+                      }
+                    }}
+                    onError={(e) => {
+                      // Final fallback - use a solid color placeholder
+                      const imgElement = e.target as HTMLImageElement;
+                      const canvas = document.createElement('canvas');
+                      canvas.width = 400;
+                      canvas.height = 200;
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                        const colors = ['#6366f1', '#10b981', '#f59e0b'];
+                        ctx.fillStyle = colors[index % 3];
+                        ctx.fillRect(0, 0, 400, 200);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '20px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(post.title.substring(0, 20), 200, 100);
+                        imgElement.src = canvas.toDataURL();
                       }
                     }}
                   />

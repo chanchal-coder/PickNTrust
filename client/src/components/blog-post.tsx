@@ -9,6 +9,7 @@ interface BlogPostProps {
   publishDate: string;
   readTime: string;
   featuredImage?: string;
+  videoUrl?: string;
   tags: string[];
   author?: string;
   slug: string;
@@ -20,6 +21,7 @@ export default function BlogPost({
   publishDate, 
   readTime, 
   featuredImage, 
+  videoUrl,
   tags, 
   author = "PickNTrust Team",
   slug 
@@ -50,6 +52,50 @@ export default function BlogPost({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Function to extract YouTube video ID from URL
+  const getYouTubeVideoId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  // Function to render video content
+  const renderVideoContent = () => {
+    if (!videoUrl || videoUrl.trim() === '') return null;
+
+    const youtubeId = getYouTubeVideoId(videoUrl);
+    
+    if (youtubeId) {
+      // YouTube video
+      return (
+        <div className="w-full aspect-video overflow-hidden rounded-xl">
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeId}`}
+            title={title}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    } else {
+      // Generic video
+      return (
+        <div className="w-full overflow-hidden rounded-xl">
+          <video
+            src={videoUrl}
+            controls
+            className="w-full h-auto"
+            preload="metadata"
+          >
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+    }
+  };
 
   // Parse Markdown content
   const parseMarkdown = (text: string) => {
@@ -197,7 +243,12 @@ export default function BlogPost({
 
       {/* Hero Section */}
       <header className="relative">
-        {featuredImage && (
+        {/* Video or Image Display */}
+        {videoUrl && videoUrl.trim() !== '' ? (
+          <div className="w-full mb-8">
+            {renderVideoContent()}
+          </div>
+        ) : featuredImage && (
           <div className="w-full h-[500px] overflow-hidden rounded-t-xl">
             <img 
               src={featuredImage} 

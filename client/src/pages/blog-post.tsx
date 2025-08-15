@@ -10,9 +10,16 @@ export default function BlogPostPage() {
   // Fetch blog post data from API based on slug
   const { data: blogPost, isLoading } = useQuery({
     queryKey: ['/api/blog', slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/blog/${slug}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog post');
+      }
+      return response.json();
+    },
     enabled: !!slug,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
-    cacheTime: 10 * 60 * 1000, // 10 minutes cache
+    gcTime: 10 * 60 * 1000, // 10 minutes cache (updated from cacheTime)
   });
 
   // Sample blog post data - fallback for demo
@@ -211,6 +218,7 @@ Each of these gadgets has been carefully selected based on:
           publishDate={postData?.publishedAt || postData?.publishDate || sampleBlogPost.publishDate}
           readTime={postData?.readTime || sampleBlogPost.readTime}
           featuredImage={postData?.imageUrl || postData?.featuredImage || sampleBlogPost.featuredImage}
+          videoUrl={postData?.videoUrl}
           tags={postData?.tags || []}
           author={postData?.author || "PickNTrust Team"}
           slug={slug || 'sample-post'}

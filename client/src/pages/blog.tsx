@@ -137,8 +137,8 @@ export default function Blog() {
     refetchOnWindowFocus: false,
   });
 
-  // Use API data if available, otherwise use fallback data
-  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : fallbackBlogPosts;
+  // Use API data if available, show empty state if no posts exist
+  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : [];
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -190,31 +190,42 @@ export default function Blog() {
                   index % 3 === 1 ? 'bg-green-400' : 
                   'bg-orange-400'
                 }`}>
-                  {/* Always show image first */}
+                  {/* Always show image - force display with multiple fallback strategies */}
                   <img 
-                    src={
-                      (post.imageUrl && post.imageUrl.trim() !== '' && post.imageUrl !== 'undefined' && post.imageUrl !== 'null') 
-                        ? post.imageUrl 
-                        : `https://via.placeholder.com/400x200/${
-                            index % 3 === 0 ? '6366f1' : 
-                            index % 3 === 1 ? '10b981' : 
-                            'f59e0b'
-                          }/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`
-                    } 
+                    src={`https://picsum.photos/400/200?random=${post.id}&blur=1`}
                     alt={post.title} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
-                    onError={(e) => {
-                      // If image fails to load, show a placeholder
+                    onLoad={(e) => {
+                      // Once the placeholder loads, try to load the actual image
                       const imgElement = e.target as HTMLImageElement;
-                      const fallbackUrl = `https://via.placeholder.com/400x200/${
-                        index % 3 === 0 ? '6366f1' : 
-                        index % 3 === 1 ? '10b981' : 
-                        'f59e0b'
-                      }/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`;
-                      
-                      // Prevent infinite loop by checking if we're already showing fallback
-                      if (imgElement.src !== fallbackUrl) {
-                        imgElement.src = fallbackUrl;
+                      if (post.imageUrl && post.imageUrl.trim() !== '' && post.imageUrl !== 'undefined' && post.imageUrl !== 'null') {
+                        const testImg = new Image();
+                        testImg.onload = () => {
+                          imgElement.src = post.imageUrl;
+                        };
+                        testImg.onerror = () => {
+                          // Keep the placeholder if actual image fails
+                          console.log(`Failed to load image for post ${post.id}: ${post.imageUrl}`);
+                        };
+                        testImg.src = post.imageUrl;
+                      }
+                    }}
+                    onError={(e) => {
+                      // Final fallback - use a solid color placeholder
+                      const imgElement = e.target as HTMLImageElement;
+                      const canvas = document.createElement('canvas');
+                      canvas.width = 400;
+                      canvas.height = 200;
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                        const colors = ['#6366f1', '#10b981', '#f59e0b'];
+                        ctx.fillStyle = colors[index % 3];
+                        ctx.fillRect(0, 0, 400, 200);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '20px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(post.title.substring(0, 20), 200, 100);
+                        imgElement.src = canvas.toDataURL();
                       }
                     }}
                   />
