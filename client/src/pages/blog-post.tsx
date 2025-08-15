@@ -188,23 +188,23 @@ Each of these gadgets has been carefully selected based on:
     slug: slug || "10-must-have-gadgets-under-999"
   };
 
-  // Error state with theme-aware background
+  // Error state with explicit background colors
   if (error) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center pt-20 pb-8">
           <div className="max-w-md mx-auto text-center p-8">
             <div className="text-6xl mb-4">😕</div>
-            <h1 className="text-2xl font-bold text-foreground mb-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Blog Post Not Found
             </h1>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               The blog post you're looking for doesn't exist or has been removed.
             </p>
             <a 
               href="/"
-              className="inline-flex items-center px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
             >
               ← Back to Home
             </a>
@@ -215,18 +215,18 @@ Each of these gadgets has been carefully selected based on:
     );
   }
 
-  // Loading state with theme-aware background
+  // Loading state with explicit background colors
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
         <Header />
         <div className="flex-1 pt-20 pb-8">
           <div className="max-w-4xl mx-auto p-8">
             <div className="animate-pulse">
-              <div className="h-8 bg-muted rounded mb-4"></div>
-              <div className="h-4 bg-muted rounded mb-2"></div>
-              <div className="h-4 bg-muted rounded mb-8"></div>
-              <div className="h-64 bg-muted rounded"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
+              <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
           </div>
         </div>
@@ -237,9 +237,9 @@ Each of these gadgets has been carefully selected based on:
 
   const postData = blogPost || sampleBlogPost;
 
-  // Main blog post page with theme-aware background
+  // Main blog post page with explicit background colors
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
       <Header />
       <div className="flex-1 pt-20 pb-8">
         <BlogPost 

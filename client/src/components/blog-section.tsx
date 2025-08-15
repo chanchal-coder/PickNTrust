@@ -339,7 +339,7 @@ export default function BlogSection() {
                     )}
                   </div>
                   <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1">{post.title}</h4>
+                    <h4 className="text-xl font-bold text-gray-900 dark:text-blue-400 flex-1">{post.title}</h4>
                   </div>
                   <div className="text-gray-600 dark:text-gray-300 mb-4">
                     <span>{post.excerpt.length > 120 ? `${post.excerpt.substring(0, 120)}...` : post.excerpt}</span>

@@ -441,13 +441,13 @@ export default function BlogPost({
   };
 
   return (
-    <article className="max-w-4xl mx-auto bg-background text-foreground transition-colors min-h-screen">
+    <article className="max-w-4xl mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors min-h-screen">
       {/* Sticky Title Bar */}
-      <div className={`fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm z-40 transition-all duration-300 ${
-        isSticky ? 'translate-y-0 shadow-lg border-b border-border' : '-translate-y-full'
+      <div className={`fixed top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-40 transition-all duration-300 ${
+        isSticky ? 'translate-y-0 shadow-lg border-b border-gray-200 dark:border-gray-700' : '-translate-y-full'
       }`}>
         <div className="max-w-4xl mx-auto px-4 py-3">
-          <h1 className="text-lg font-bold text-navy dark:text-blue-400 truncate">{title}</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-blue-400 truncate">{title}</h1>
         </div>
       </div>
 
@@ -479,7 +479,7 @@ export default function BlogPost({
             ))}
           </div>
           
-          <h1 className="text-4xl lg:text-5xl font-bold text-navy dark:text-white mb-6 leading-tight">
+          <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
             {title}
           </h1>
           
@@ -497,7 +497,7 @@ export default function BlogPost({
               <span>{readTime}</span>
             </div>
             <div className="text-sm">
-              By <span className="font-medium text-navy dark:text-blue-400">{author}</span>
+              By <span className="font-medium text-gray-900 dark:text-blue-400">{author}</span>
             </div>
           </div>
         </div>
