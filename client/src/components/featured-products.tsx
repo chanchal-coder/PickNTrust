@@ -169,15 +169,26 @@ const fallbackProducts = [
 export default function FeaturedProducts() {
   const { data: products } = useQuery<Product[]>({
     queryKey: ['/api/products/featured'],
-    enabled: false, // Use fallback data immediately
+    queryFn: async () => {
+      const response = await fetch('/api/products');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
+      // Filter only featured products
+      return (data.products || []).filter((product: Product) => product.isFeatured);
+    },
+    retry: 1
   });
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  // Always use fallback data for immediate display
-  const displayProducts = fallbackProducts;
+  // Use API data if available, otherwise use fallback data (only featured ones)
+  const displayProducts = products && products.length > 0 
+    ? products 
+    : fallbackProducts.filter(product => product.isFeatured);
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {

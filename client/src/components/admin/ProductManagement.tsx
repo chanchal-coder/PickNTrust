@@ -40,7 +40,9 @@ export default function ProductManagement() {
     rating: '4.5',
     reviewCount: '100',
     discount: '',
-    isFeatured: true
+    isFeatured: true,
+    hasTimer: false,
+    timerDuration: '24'
   });
 
   // Fetch products
@@ -97,7 +99,9 @@ export default function ProductManagement() {
         rating: '4.5',
         reviewCount: '100',
         discount: '',
-        isFeatured: true
+        isFeatured: true,
+        hasTimer: false,
+        timerDuration: '24'
       });
       setIsAddingProduct(false);
       toast({
@@ -145,7 +149,9 @@ export default function ProductManagement() {
           rating: extracted.rating || '4.5',
           reviewCount: extracted.reviewCount || '100',
           discount: extracted.discount || '',
-          isFeatured: true
+          isFeatured: true,
+          hasTimer: false,
+          timerDuration: '24'
         });
         setExtractUrl('');
         setIsAddingProduct(true);
@@ -449,15 +455,52 @@ export default function ProductManagement() {
                 </div>
               </div>
 
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  checked={newProduct.isFeatured}
-                  onChange={(e) => setNewProduct({ ...newProduct, isFeatured: e.target.checked })}
-                  className="mr-2"
-                />
-                <label htmlFor="featured" className="text-sm font-medium text-blue-300">Featured Product</label>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    checked={newProduct.isFeatured}
+                    onChange={(e) => setNewProduct({ ...newProduct, isFeatured: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <label htmlFor="featured" className="text-sm font-medium text-blue-300">Featured Product</label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="hasTimer"
+                    checked={newProduct.hasTimer}
+                    onChange={(e) => setNewProduct({ ...newProduct, hasTimer: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <label htmlFor="hasTimer" className="text-sm font-medium text-blue-300">Add Countdown Timer</label>
+                </div>
+
+                {newProduct.hasTimer && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-blue-300">Timer Duration (hours)</label>
+                    <select
+                      value={newProduct.timerDuration}
+                      onChange={(e) => setNewProduct({ ...newProduct, timerDuration: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
+                    >
+                      <option value="1">1 hour</option>
+                      <option value="2">2 hours</option>
+                      <option value="3">3 hours</option>
+                      <option value="6">6 hours</option>
+                      <option value="12">12 hours</option>
+                      <option value="24">24 hours (1 day)</option>
+                      <option value="48">48 hours (2 days)</option>
+                      <option value="72">72 hours (3 days)</option>
+                      <option value="168">1 week</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      ⚠️ Product will be automatically deleted when timer expires
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
