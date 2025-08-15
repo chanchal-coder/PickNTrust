@@ -237,13 +237,13 @@ export default function FeaturedProducts() {
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -280, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: -336, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 280, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: 336, behavior: 'smooth' });
     }
   };
 
@@ -292,7 +292,7 @@ export default function FeaturedProducts() {
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-4 px-12 md:px-16 h-[600px]"
+            className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-4 px-12 md:px-16 h-[700px]"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -301,7 +301,7 @@ export default function FeaturedProducts() {
             {displayProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
-                className="w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+                className="w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
               >
                 <div className={`relative p-2 ${
                   index % 4 === 0 ? 'bg-blue-400' : 

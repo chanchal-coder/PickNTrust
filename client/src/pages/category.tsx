@@ -87,11 +87,15 @@ export default function CategoryPage() {
     if (genderParam && ['Men', 'Women', 'Kids'].includes(genderParam)) {
       setCurrentGender(genderParam);
     }
+    
+    // Scroll to top when category changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [category]);
 
-  // Clear any previous state when category changes
+  // Clear any previous state when category changes and scroll to top
   useEffect(() => {
     setShowShareMenu({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [category]);
   
   const { data: products, isLoading, error } = useQuery<Product[]>({

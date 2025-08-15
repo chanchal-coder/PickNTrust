@@ -4,6 +4,8 @@ import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { ProductTimer } from "@/components/product-timer";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
 
 // Define Product type locally to avoid schema conflicts
 interface Product {
@@ -269,8 +271,11 @@ export default function TopPicks() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Main Header */}
+      <Header />
+      
+      {/* Page Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -292,89 +297,94 @@ export default function TopPicks() {
       </div>
 
       {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {displayProducts.map((product: Product, index: number) => (
-            <div 
-              key={product.id}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
-            >
-              <div className={`relative p-2 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 ${
-                index % 4 === 0 ? 'bg-blue-400' : 
-                index % 4 === 1 ? 'bg-green-400' : 
-                index % 4 === 2 ? 'bg-yellow-400' :
-                'bg-purple-400'
-              }`}>
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="w-full h-48 object-cover rounded-xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
-                />
-                
-                {/* Wishlist Heart Icon */}
-                <button
-                  onClick={() => handleWishlistToggle(product)}
-                  className={`absolute top-2 left-2 p-2 rounded-full shadow-md transition-colors ${
-                    isInWishlist(product.id) 
-                      ? 'bg-red-500 text-white hover:bg-red-600' 
-                      : 'bg-white text-gray-400 hover:text-red-500'
-                  }`}
-                  title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                >
-                  <i className="fas fa-heart text-sm"></i>
-                </button>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  {product.discount ? (
-                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      {product.discount}% OFF
-                    </span>
-                  ) : product.isNew ? (
-                    <span className="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      NEW
-                    </span>
-                  ) : (
-                    <div></div>
-                  )}
-                  <div className="flex items-center">
-                    {renderStars(product.rating)}
-                    <span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({product.reviewCount})</span>
-                  </div>
+      <div className="bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {displayProducts.map((product: Product, index: number) => (
+              <div 
+                key={product.id}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+              >
+                <div className={`relative p-2 dark:bg-gradient-to-br dark:from-purple-900 dark:via-pink-900 dark:to-orange-900 ${
+                  index % 4 === 0 ? 'bg-blue-400' : 
+                  index % 4 === 1 ? 'bg-green-400' : 
+                  index % 4 === 2 ? 'bg-yellow-400' :
+                  'bg-purple-400'
+                }`}>
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-48 object-cover rounded-xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
+                  />
+                  
+                  {/* Wishlist Heart Icon */}
+                  <button
+                    onClick={() => handleWishlistToggle(product)}
+                    className={`absolute top-2 left-2 p-2 rounded-full shadow-md transition-colors ${
+                      isInWishlist(product.id) 
+                        ? 'bg-red-500 text-white hover:bg-red-600' 
+                        : 'bg-white text-gray-400 hover:text-red-500'
+                    }`}
+                    title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                  >
+                    <i className="fas fa-heart text-sm"></i>
+                  </button>
                 </div>
                 
-                <h4 className="font-bold text-lg text-navy dark:text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">{product.description}</p>
-                
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <span className="text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-gray-400 dark:text-gray-500 line-through ml-2 text-base">₹{product.originalPrice}</span>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    {product.discount ? (
+                      <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {product.discount}% OFF
+                      </span>
+                    ) : product.isNew ? (
+                      <span className="bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        NEW
+                      </span>
+                    ) : (
+                      <div></div>
                     )}
+                    <div className="flex items-center">
+                      {renderStars(product.rating)}
+                      <span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({product.reviewCount})</span>
+                    </div>
                   </div>
+                  
+                  <h4 className="font-bold text-lg text-navy dark:text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">{product.description}</p>
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <span className="text-2xl font-bold text-navy dark:text-blue-400">₹{product.price}</span>
+                      {product.originalPrice && (
+                        <span className="text-gray-400 dark:text-gray-500 line-through ml-2 text-base">₹{product.originalPrice}</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Product Timer */}
+                  <div className="mb-4">
+                    <ProductTimer product={product} />
+                  </div>
+                  
+                  <button 
+                    onClick={() => handleAffiliateClick(product)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg transition-all transform hover:scale-105"
+                  >
+                    <i className="fas fa-shopping-bag mr-2"></i>Pick Now
+                  </button>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                    🔗 Affiliate Link - We earn from purchases
+                  </p>
                 </div>
-                
-                {/* Product Timer */}
-                <div className="mb-4">
-                  <ProductTimer product={product} />
-                </div>
-                
-                <button 
-                  onClick={() => handleAffiliateClick(product)}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                  <i className="fas fa-shopping-bag mr-2"></i>Pick Now
-                </button>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-                  🔗 Affiliate Link - We earn from purchases
-                </p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

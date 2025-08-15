@@ -506,9 +506,21 @@ export default function ProductManagement() {
                   key={product.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+                  <div className="relative">
+                    {/* Small delete button in top-right corner */}
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      disabled={deleteProductMutation.isPending}
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
+                      title="Delete product"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-gray-900 mb-1 pr-8">{product.name}</h3>
                       <p className="text-sm text-gray-600 mb-2">{product.category}</p>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-bold text-green-600">${product.price}</span>
@@ -531,15 +543,6 @@ export default function ProductManagement() {
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteProduct(product.id)}
-                      disabled={deleteProductMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
                   </div>
                   {product.imageUrl && (
                     <img 

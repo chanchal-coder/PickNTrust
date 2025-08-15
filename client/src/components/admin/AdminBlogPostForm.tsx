@@ -532,9 +532,21 @@ export default function BlogManagement() {
                   key={post.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">{post.title}</h3>
+                  <div className="relative">
+                    {/* Small delete button in top-right corner */}
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      disabled={deleteBlogPostMutation.isPending}
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
+                      title="Delete blog post"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-gray-900 mb-1 pr-8">{post.title}</h3>
                       <p className="text-sm text-gray-600 mb-2">{post.category}</p>
                       <p className="text-xs text-gray-500 mb-2 line-clamp-2">{post.excerpt}</p>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -552,15 +564,6 @@ export default function BlogManagement() {
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeletePost(post.id)}
-                      disabled={deleteBlogPostMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
                   </div>
                   {post.imageUrl && (
                     <img 
