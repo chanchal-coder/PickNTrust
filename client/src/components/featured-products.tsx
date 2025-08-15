@@ -292,7 +292,7 @@ export default function FeaturedProducts() {
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-4 px-12 md:px-16 h-[700px]"
+            className="grid grid-rows-2 grid-flow-col gap-0 overflow-x-auto pb-4 px-12 md:px-16 h-[700px]"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -301,7 +301,7 @@ export default function FeaturedProducts() {
             {displayProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
-                className="w-[480px] bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden"
+                className="w-[480px] bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden mr-0"
               >
                 <div className={`relative p-2 ${
                   index % 4 === 0 ? 'bg-blue-400' : 
@@ -329,8 +329,12 @@ export default function FeaturedProducts() {
                   </button>
                 </div>
                 
-                <div className="p-4">
+                <div className="p-4 bg-gray-800 text-white">
                   <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      {renderStars(product.rating)}
+                      <span className="text-gray-300 ml-1 text-xs">({product.reviewCount})</span>
+                    </div>
                     {product.discount ? (
                       <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                         {product.discount}% OFF
@@ -342,20 +346,16 @@ export default function FeaturedProducts() {
                     ) : (
                       <div></div>
                     )}
-                    <div className="flex items-center">
-                      {renderStars(product.rating)}
-                      <span className="text-gray-600 dark:text-gray-300 ml-1 text-xs">({product.reviewCount})</span>
-                    </div>
                   </div>
                   
-                  <h4 className="font-bold text-sm text-navy dark:text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
-                  <p className="text-gray-600 dark:text-gray-300 text-xs mb-3 line-clamp-2">{product.description}</p>
+                  <h4 className="font-bold text-sm text-blue-400 mb-2 line-clamp-2">{product.name}</h4>
+                  <p className="text-gray-300 text-xs mb-3 line-clamp-2">{product.description}</p>
                   
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <span className="text-lg font-bold text-navy dark:text-blue-400">₹{product.price}</span>
+                      <span className="text-lg font-bold text-blue-400">₹{product.price}</span>
                       {product.originalPrice && (
-                        <span className="text-gray-400 dark:text-gray-500 line-through ml-1 text-sm">₹{product.originalPrice}</span>
+                        <span className="text-gray-500 line-through ml-1 text-sm">₹{product.originalPrice}</span>
                       )}
                     </div>
                   </div>
@@ -371,7 +371,7 @@ export default function FeaturedProducts() {
                   >
                     <i className="fas fa-shopping-bag mr-1"></i>Pick Now
                   </button>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 text-center">
+                  <p className="text-[10px] text-gray-400 mt-1 text-center">
                     🔗 Affiliate Link - We earn from purchases
                   </p>
                 </div>
