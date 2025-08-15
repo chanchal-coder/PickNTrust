@@ -3,226 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import GenderSelectionModal from "./GenderSelectionModal";
 
-// Fallback categories data in case API fails - Cleaned up duplicates
-const fallbackCategoriesData = [
-  {
-    id: 1,
-    name: 'Electronics & Gadgets',
-    description: 'Latest tech & gadgets',
-    icon: 'fas fa-laptop',
-    color: '#6366F1'
-  },
-  {
-    id: 2,
-    name: 'Fashion & Clothing',
-    description: 'Trendy fashion items',
-    icon: 'fas fa-tshirt',
-    color: '#EC4899'
-  },
-  {
-    id: 3,
-    name: 'Home & Kitchen',
-    description: 'Home essentials',
-    icon: 'fas fa-home',
-    color: '#10B981'
-  },
-  {
-    id: 4,
-    name: 'Health & Beauty',
-    description: 'Beauty & wellness',
-    icon: 'fas fa-heart',
-    color: '#F59E0B'
-  },
-  {
-    id: 5,
-    name: 'Sports & Fitness',
-    description: 'Fitness equipment',
-    icon: 'fas fa-dumbbell',
-    color: '#EF4444'
-  },
-  {
-    id: 6,
-    name: 'Books & Education',
-    description: 'Learning resources',
-    icon: 'fas fa-book',
-    color: '#8B5CF6'
-  },
-  {
-    id: 7,
-    name: 'Gaming & Entertainment',
-    description: 'Gaming gear & fun',
-    icon: 'fas fa-gamepad',
-    color: '#06B6D4'
-  },
-  {
-    id: 8,
-    name: 'Automotive',
-    description: 'Car accessories',
-    icon: 'fas fa-car',
-    color: '#84CC16'
-  },
-  {
-    id: 9,
-    name: 'Travel & Luggage',
-    description: 'Travel essentials',
-    icon: 'fas fa-suitcase',
-    color: '#F97316'
-  },
-  {
-    id: 10,
-    name: 'Pet Supplies',
-    description: 'Pet care products',
-    icon: 'fas fa-paw',
-    color: '#14B8A6'
-  },
-  {
-    id: 11,
-    name: 'Office Supplies',
-    description: 'Work essentials',
-    icon: 'fas fa-briefcase',
-    color: '#6B7280'
-  },
-  {
-    id: 12,
-    name: 'Garden & Outdoor',
-    description: 'Outdoor living',
-    icon: 'fas fa-leaf',
-    color: '#22C55E'
-  },
-  {
-    id: 13,
-    name: 'Baby & Kids',
-    description: 'Child care items',
-    icon: 'fas fa-baby',
-    color: '#F472B6'
-  },
-  {
-    id: 14,
-    name: 'Music & Instruments',
-    description: 'Musical equipment',
-    icon: 'fas fa-music',
-    color: '#A855F7'
-  },
-  {
-    id: 15,
-    name: 'Art & Crafts',
-    description: 'Creative supplies',
-    icon: 'fas fa-palette',
-    color: '#FB7185'
-  },
-  {
-    id: 16,
-    name: 'Food & Beverages',
-    description: 'Gourmet foods',
-    icon: 'fas fa-utensils',
-    color: '#FBBF24'
-  },
-  {
-    id: 17,
-    name: 'Jewelry & Watches',
-    description: 'Luxury accessories',
-    icon: 'fas fa-gem',
-    color: '#C084FC'
-  },
-  {
-    id: 18,
-    name: 'Photography',
-    description: 'Camera equipment',
-    icon: 'fas fa-camera',
-    color: '#60A5FA'
-  },
-  {
-    id: 19,
-    name: 'Tools & Hardware',
-    description: 'DIY tools',
-    icon: 'fas fa-tools',
-    color: '#F87171'
-  },
-  {
-    id: 20,
-    name: 'Collectibles',
-    description: 'Rare collectibles',
-    icon: 'fas fa-trophy',
-    color: '#FBBF24'
-  },
-  {
-    id: 21,
-    name: 'Software & Apps',
-    description: 'Digital products',
-    icon: 'fas fa-code',
-    color: '#818CF8'
-  },
-  {
-    id: 22,
-    name: 'Subscriptions',
-    description: 'Monthly services',
-    icon: 'fas fa-calendar',
-    color: '#FB923C'
-  },
-  {
-    id: 23,
-    name: 'Gift Cards',
-    description: 'Digital gift cards',
-    icon: 'fas fa-gift',
-    color: '#F472B6'
-  },
-  {
-    id: 24,
-    name: 'Online Learning',
-    description: 'Courses & training',
-    icon: 'fas fa-graduation-cap',
-    color: '#A78BFA'
-  },
-  {
-    id: 25,
-    name: 'Streaming Services',
-    description: 'Entertainment',
-    icon: 'fas fa-play',
-    color: '#EF4444'
-  },
-  {
-    id: 26,
-    name: 'Cloud Storage',
-    description: 'Data storage',
-    icon: 'fas fa-cloud',
-    color: '#06B6D4'
-  },
-  {
-    id: 27,
-    name: 'VPN & Security',
-    description: 'Online security',
-    icon: 'fas fa-shield-alt',
-    color: '#10B981'
-  },
-  {
-    id: 28,
-    name: 'Web Hosting',
-    description: 'Website hosting',
-    icon: 'fas fa-server',
-    color: '#6B7280'
-  },
-  {
-    id: 29,
-    name: 'Design Tools',
-    description: 'Creative software',
-    icon: 'fas fa-paint-brush',
-    color: '#F59E0B'
-  },
-  {
-    id: 30,
-    name: 'AI Apps & Services',
-    description: 'AI-powered tools',
-    icon: 'fas fa-robot',
-    color: '#A855F7'
-  }
-];
-
 export default function Categories() {
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  // Don't show loading state - use fallback data immediately
-  const { data: apiCategories } = useQuery({
+  // Fetch categories from API
+  const { data: apiCategories, isLoading, error } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
       const response = await fetch('/api/categories');
@@ -231,12 +17,9 @@ export default function Categories() {
       }
       return response.json();
     },
-    retry: false,
-    enabled: false, // Disable automatic fetching for now
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
   });
-
-  // Always use fallback data for immediate display
-  const categoriesData = fallbackCategoriesData;
 
   // Categories that require gender selection
   const genderSpecificCategories = [
@@ -260,7 +43,66 @@ export default function Categories() {
     window.location.href = `/category/${encodeURIComponent(selectedCategory)}?gender=${gender}`;
   };
 
-  // Remove loading state completely - always show content immediately
+  if (isLoading) {
+    return (
+      <section id="categories" className="py-16 bg-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Browse Categories
+            </h2>
+            <p className="text-slate-300 text-lg">
+              Loading categories...
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="bg-slate-700 rounded-[20px] p-4 sm:p-6 h-40 sm:h-44 animate-pulse">
+                <div className="w-8 h-8 bg-slate-600 rounded mb-4 mx-auto"></div>
+                <div className="h-4 bg-slate-600 rounded mb-2"></div>
+                <div className="h-3 bg-slate-600 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !apiCategories || apiCategories.length === 0) {
+    return (
+      <section id="categories" className="py-16 bg-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Browse Categories
+            </h2>
+            <p className="text-slate-300 text-lg">
+              Discover amazing deals across all categories
+            </p>
+          </div>
+          <div className="text-center py-12">
+            <div className="mb-8">
+              <i className="fas fa-tags text-6xl text-slate-600 mb-4"></i>
+              <h3 className="text-2xl font-bold text-slate-400 mb-2">
+                No Categories Available
+              </h3>
+              <p className="text-slate-500 mb-6">
+                Categories are being set up. Please check back soon!
+              </p>
+              <Link 
+                href="/admin"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                Add Categories (Admin)
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="categories" className="py-16 bg-slate-800">
@@ -275,7 +117,7 @@ export default function Categories() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
-          {categoriesData.map((category) => (
+          {apiCategories.map((category: any, index: number) => (
             <Link 
               key={category.id}
               href={`/category/${encodeURIComponent(category.name)}`}
@@ -299,7 +141,9 @@ export default function Categories() {
                   }
                 `}
                 style={{ 
-                  background: `linear-gradient(135deg, ${category.color}CC, ${category.color}FF)`
+                  background: category.color 
+                    ? `linear-gradient(135deg, ${category.color}CC, ${category.color}FF)`
+                    : `linear-gradient(135deg, ${getDefaultColor(index)}CC, ${getDefaultColor(index)}FF)`
                 }}
               >
                 {/* Gender selection badge for specific categories */}
@@ -321,7 +165,7 @@ export default function Categories() {
                 {/* Content */}
                 <div className="relative z-10 flex flex-col items-center justify-center h-full">
                   <div className="mb-2 sm:mb-3">
-                    <i className={`${category.icon} text-2xl sm:text-3xl text-white drop-shadow-lg`}></i>
+                    <i className={`${category.icon || getDefaultIcon(index)} text-2xl sm:text-3xl text-white drop-shadow-lg`}></i>
                   </div>
                   <h3 className="font-bold text-white text-xs sm:text-sm mb-1 sm:mb-2 leading-tight drop-shadow-sm line-clamp-2">
                     {category.name}
@@ -348,4 +192,24 @@ export default function Categories() {
       />
     </section>
   );
+}
+
+// Helper function to get default colors if not provided by API
+function getDefaultColor(index: number): string {
+  const colors = [
+    '#6366F1', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+    '#06B6D4', '#84CC16', '#F97316', '#14B8A6', '#6B7280', '#22C55E',
+    '#F472B6', '#A855F7', '#FB7185', '#FBBF24', '#C084FC', '#60A5FA'
+  ];
+  return colors[index % colors.length];
+}
+
+// Helper function to get default icons if not provided by API
+function getDefaultIcon(index: number): string {
+  const icons = [
+    'fas fa-laptop', 'fas fa-tshirt', 'fas fa-home', 'fas fa-heart', 'fas fa-dumbbell', 'fas fa-book',
+    'fas fa-gamepad', 'fas fa-car', 'fas fa-suitcase', 'fas fa-paw', 'fas fa-briefcase', 'fas fa-leaf',
+    'fas fa-baby', 'fas fa-music', 'fas fa-palette', 'fas fa-utensils', 'fas fa-gem', 'fas fa-camera'
+  ];
+  return icons[index % icons.length];
 }
