@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Bot, Clock, Zap, RefreshCw, Database, Mail, Bell, 
   Calendar, TrendingUp, Shield, AlertTriangle, CheckCircle,
-  Play, Pause, Settings, Activity, Timer, Workflow
+  Play, Pause, Settings, Activity, Timer, Workflow, Plus
 } from 'lucide-react';
 
 interface AutomationTask {

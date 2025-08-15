@@ -25,6 +25,7 @@ import ProductManagement from '@/components/admin/ProductManagement';
 import CategoryManagement from '@/components/admin/CategoryManagement';
 import BlogManagement from '@/components/admin/AdminBlogPostForm';
 import AnnouncementManagement from '@/components/admin/AnnouncementManagement';
+import AutomationManagement from '@/components/admin/AutomationManagement';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -334,7 +335,7 @@ export default function AdminPage() {
 
           {/* Main Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-6 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-lg">
+            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-lg">
               <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 <BarChart3 className="w-4 h-4" />
                 <span className="hidden sm:inline">Dashboard</span>
@@ -354,6 +355,10 @@ export default function AdminPage() {
               <TabsTrigger value="announcements" className="flex items-center gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white">
                 <Megaphone className="w-4 h-4" />
                 <span className="hidden sm:inline">Announcements</span>
+              </TabsTrigger>
+              <TabsTrigger value="automation" className="flex items-center gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white">
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Automation</span>
               </TabsTrigger>
               <TabsTrigger value="tools" className="flex items-center gap-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white">
                 <Sparkles className="w-4 h-4" />
@@ -470,6 +475,11 @@ export default function AdminPage() {
             {/* Announcements Tab */}
             <TabsContent value="announcements">
               <AnnouncementManagement />
+            </TabsContent>
+
+            {/* Automation Tab */}
+            <TabsContent value="automation">
+              <AutomationManagement />
             </TabsContent>
 
             {/* Tools Tab */}
