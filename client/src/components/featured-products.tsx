@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -184,6 +184,31 @@ export default function FeaturedProducts() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const queryClient = useQueryClient();
+
+  // Admin state management
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+
+  // Check admin authentication
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('pickntrust-admin-session');
+    if (adminAuth === 'active') {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  // Listen for admin session changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        setIsAdmin(e.newValue === 'active');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Use API data if available, otherwise use fallback data (only featured ones)
   const displayProducts = products && products.length > 0 
@@ -221,6 +246,86 @@ export default function FeaturedProducts() {
         description: `${product.name} added to your wishlist`,
       });
     }
+  };
+
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const adminPassword = 'pickntrust2025';
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete product');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({
+        title: 'Success',
+        description: 'Product deleted successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete product',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleDelete = (productId: number) => {
+    if (confirm('Are you sure you want to delete this product?')) {
+      deleteProductMutation.mutate(productId);
+    }
+  };
+
+  const handleShare = (platform: string, product: Product) => {
+    const productUrl = `${window.location.origin}`;
+    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/profile.php?id=61578969445670`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/+m-O-S6SSpVU2NWU1`;
+        break;
+      case 'twitter':
+        shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        break;
+      case 'instagram':
+        const instagramText = `🛍️ Amazing Deal Alert! ${product.name} - Only ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}! 💰\n\n✨ Get the best deals at PickNTrust\n\n#PickNTrust #Deals #Shopping #BestPrice`;
+        navigator.clipboard.writeText(instagramText + '\n\n' + productUrl);
+        const instagramUrl = 'https://www.instagram.com/';
+        window.open(instagramUrl, '_blank');
+        toast({
+          title: 'Instagram Ready!',
+          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
+        });
+        return;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
+    setShowShareMenu(prev => ({...prev, [product.id]: false}));
   };
 
   const renderStars = (rating: string) => {
@@ -345,7 +450,68 @@ export default function FeaturedProducts() {
                 </div>
                 
                 {/* Product Content */}
-                <div className="p-4 bg-gray-800 text-white space-y-2">
+                <div className="p-4 bg-gray-800 text-white space-y-2 relative">
+                  {/* Share and Delete Buttons - Top Right */}
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    {/* Share Button - Always visible */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Share product"
+                      >
+                        <i className="fas fa-share text-xs"></i>
+                      </button>
+                      
+                      {/* Share Menu */}
+                      {showShareMenu[product.id] && (
+                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                          <button
+                            onClick={() => handleShare('facebook', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-facebook text-blue-600"></i>
+                            Facebook
+                          </button>
+                          <button
+                            onClick={() => handleShare('twitter', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
+                          >
+                            <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">𝕏</span>
+                            </div>
+                            X (Twitter)
+                          </button>
+                          <button
+                            onClick={() => handleShare('whatsapp', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-whatsapp text-green-600"></i>
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={() => handleShare('instagram', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-instagram text-purple-600"></i>
+                            Instagram
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Delete Button - Only for admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Delete product"
+                      >
+                        <i className="fas fa-trash text-xs"></i>
+                      </button>
+                    )}
+                  </div>
+
                   {/* Discount Badge */}
                   {product.discount && (
                     <div className="flex justify-start">
@@ -362,7 +528,7 @@ export default function FeaturedProducts() {
                   </div>
                   
                   {/* Product Name */}
-                  <h4 className="font-bold text-sm text-blue-400 leading-tight">{product.name}</h4>
+                  <h4 className="font-bold text-sm text-blue-400 leading-tight pr-16">{product.name}</h4>
                   
                   {/* Product Description */}
                   <p className="text-gray-300 text-xs leading-relaxed">{product.description}</p>

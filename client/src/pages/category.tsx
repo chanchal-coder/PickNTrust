@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { GenderSwitchTabs } from '@/components/gender-switch-tabs';
 import CategoryNavigation from '@/components/category-navigation';
+import { ProductTimer } from "@/components/product-timer";
 
 // Define Product type locally to avoid schema conflicts
 interface Product {
@@ -1115,6 +1116,12 @@ export default function CategoryPage() {
                           )}
                         </div>
                       </div>
+                      
+                      {/* Timer */}
+                      <div className="mb-4">
+                        <ProductTimer product={product} />
+                      </div>
+                      
                       <button 
                         onClick={() => handleAffiliateClick(product)}
                         className={`w-full text-white font-bold py-3 px-6 rounded-2xl hover:shadow-lg transition-all transform hover:scale-105 ${
