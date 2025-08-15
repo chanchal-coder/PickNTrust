@@ -169,6 +169,50 @@ export default function BlogManagement() {
     }
   };
 
+  const handleSharePost = (post: BlogPost) => {
+    const postText = `Check out this amazing blog post: ${post.title} at PickNTrust!`;
+    const postUrl = `${window.location.origin}/blog/${post.slug}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: post.title,
+        text: postText,
+        url: postUrl,
+      });
+    } else {
+      // Fallback to copying to clipboard
+      navigator.clipboard.writeText(`${postText}\n${postUrl}`);
+      toast({
+        title: 'Link Copied!',
+        description: 'Blog post link has been copied to clipboard.',
+      });
+    }
+  };
+
+  const handleEditPost = (post: BlogPost) => {
+    // Set the post data for editing
+    setNewPost({
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      category: post.category,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags).join(', ') : post.tags,
+      imageUrl: post.imageUrl,
+      videoUrl: post.videoUrl || '',
+      readTime: post.readTime,
+      slug: post.slug,
+      publishDate: new Date(post.publishedAt).toISOString().split('T')[0],
+      hasTimer: false,
+      timerDuration: ''
+    });
+    setIsAddingPost(true);
+    
+    toast({
+      title: 'Edit Mode',
+      description: 'Blog post loaded for editing. Make your changes and save.',
+    });
+  };
+
   const commonCategories = [
     'Technology', 'Lifestyle', 'Fashion', 'Health', 'Travel',
     'Food', 'Business', 'Entertainment', 'Sports', 'Education',
@@ -440,35 +484,40 @@ export default function BlogManagement() {
               </div>
 
               {/* Auto-Delete Timer */}
-              <div className="bg-orange-900 border border-orange-600 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="space-y-4">
+                <div className="flex items-center">
                   <input
                     type="checkbox"
-                    id="timer"
+                    id="hasTimer"
                     checked={newPost.hasTimer}
                     onChange={(e) => setNewPost({ ...newPost, hasTimer: e.target.checked })}
-                    className="rounded"
+                    className="mr-2"
                   />
-                  <Label htmlFor="timer" className="text-orange-400 font-medium">⚠️ Auto-Delete Timer</Label>
+                  <label htmlFor="hasTimer" className="text-sm font-medium text-blue-300">Add Auto-Delete Timer</label>
                 </div>
-                <div className="text-sm text-orange-200 mb-2">
-                  ☑️ Enable auto-delete timer (blog post will be automatically removed after expiry)
-                </div>
+
                 {newPost.hasTimer && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-orange-300 text-sm mb-1">Timer OFF: Blog post stays until you manually delete it</p>
-                      <p className="text-orange-300 text-sm">Timer ON: Blog post shows countdown and auto-deletes after expiry</p>
-                    </div>
-                    <div>
-                      <Input
-                        type="number"
-                        value={newPost.timerDuration}
-                        onChange={(e) => setNewPost({ ...newPost, timerDuration: e.target.value })}
-                        placeholder="Hours until auto-delete"
-                        className="bg-orange-800 border-orange-600 text-white"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-blue-300">Timer Duration (hours)</label>
+                    <select
+                      value={newPost.timerDuration}
+                      onChange={(e) => setNewPost({ ...newPost, timerDuration: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-gray-800 text-white"
+                    >
+                      <option value="">Select Duration</option>
+                      <option value="1">1 hour</option>
+                      <option value="2">2 hours</option>
+                      <option value="3">3 hours</option>
+                      <option value="6">6 hours</option>
+                      <option value="12">12 hours</option>
+                      <option value="24">24 hours (1 day)</option>
+                      <option value="48">48 hours (2 days)</option>
+                      <option value="72">72 hours (3 days)</option>
+                      <option value="168">1 week</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      ⚠️ Blog post will be automatically deleted when timer expires (no countdown shown to users)
+                    </p>
                   </div>
                 )}
               </div>
@@ -510,9 +559,9 @@ export default function BlogManagement() {
       {/* Blog Posts List */}
       <Card>
         <CardHeader>
-          <CardTitle>Manage Blog Posts ({blogPosts.length})</CardTitle>
-          <CardDescription className="text-gray-700">
-            View and manage all blog posts
+          <CardTitle>Current Blog Posts ({blogPosts.length})</CardTitle>
+          <CardDescription className="text-blue-200">
+            Manage all your blog posts with full control
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -526,38 +575,37 @@ export default function BlogManagement() {
               <p className="text-gray-600">No blog posts found. Add your first post above.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-4">
               {blogPosts.map((post: BlogPost) => (
                 <div
                   key={post.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
                 >
-                  <div className="relative">
-                    {/* Small delete button in top-right corner */}
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      disabled={deleteBlogPostMutation.isPending}
-                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
-                      title="Delete blog post"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                  {/* Blog Image */}
+                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                    <img 
+                      src={post.imageUrl || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400'} 
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400';
+                      }}
+                    />
+                  </div>
+
+                  {/* Blog Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-blue-400 mb-1 truncate">{post.title}</h3>
+                    <p className="text-gray-300 text-sm mb-2 line-clamp-1">{post.excerpt}</p>
                     
-                    <div className="mb-3">
-                      <h3 className="font-semibold text-gray-900 mb-1 pr-8">{post.title}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{post.category}</p>
-                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">{post.excerpt}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>{post.readTime}</span>
-                        <span>•</span>
-                        <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
-                      </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-gray-400">{post.category}</span>
+                      <span className="text-gray-400">{post.readTime}</span>
+                      <span className="text-gray-400">{new Date(post.publishedAt).toLocaleDateString()}</span>
                       {post.tags && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {(typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags).slice(0, 3).map((tag: string, index: number) => (
-                            <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                        <div className="flex gap-1">
+                          {(typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags).slice(0, 2).map((tag: string, index: number) => (
+                            <span key={index} className="bg-purple-600 text-white px-2 py-1 rounded text-xs">
                               {tag}
                             </span>
                           ))}
@@ -565,16 +613,39 @@ export default function BlogManagement() {
                       )}
                     </div>
                   </div>
-                  {post.imageUrl && (
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.title}
-                      className="w-full h-32 object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSharePost(post)}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      title="Share blog post"
+                    >
+                      <i className="fas fa-share text-gray-300"></i>
+                    </button>
+                    <button
+                      onClick={() => window.open(`/blog/${post.slug}`, '_blank')}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      title="View blog post"
+                    >
+                      <i className="fas fa-external-link-alt text-gray-300"></i>
+                    </button>
+                    <button
+                      onClick={() => handleEditPost(post)}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      title="Edit blog post"
+                    >
+                      <i className="fas fa-edit text-gray-300"></i>
+                    </button>
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      disabled={deleteBlogPostMutation.isPending}
+                      className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      title="Delete blog post"
+                    >
+                      <i className="fas fa-trash text-white"></i>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

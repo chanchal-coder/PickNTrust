@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useToast } from '@/hooks/use-toast';
@@ -173,7 +172,17 @@ export default function CategoryPage() {
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
-      return apiRequest('POST', '/api/affiliate/track', data);
+      const response = await fetch('/api/affiliate/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to track affiliate click');
+      }
+      return response.json();
     },
   });
 

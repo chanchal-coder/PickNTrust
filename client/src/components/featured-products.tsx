@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { ProductTimer } from "@/components/product-timer";
@@ -217,7 +216,17 @@ export default function FeaturedProducts() {
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
-      return apiRequest('POST', '/api/affiliate/track', data);
+      const response = await fetch('/api/affiliate/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to track affiliate click');
+      }
+      return response.json();
     },
   });
 
@@ -468,7 +477,7 @@ export default function FeaturedProducts() {
                       
                       {/* Share Menu - Fixed positioning to prevent cutoff */}
                       {showShareMenu[product.id] && (
-                        <div className="absolute right-0 bottom-full mb-2 bg-white border rounded-lg shadow-lg p-2 z-30 min-w-[140px]">
+                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-50 min-w-[160px] max-h-[300px] overflow-y-auto">
                           <button
                             onClick={() => handleShare('facebook', product)}
                             className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"

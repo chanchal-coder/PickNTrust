@@ -284,6 +284,54 @@ export default function ProductManagement() {
     }
   };
 
+  const handleShare = (product: Product) => {
+    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+    const productUrl = `${window.location.origin}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: productText,
+        url: productUrl,
+      });
+    } else {
+      // Fallback to copying to clipboard
+      navigator.clipboard.writeText(`${productText}\n${productUrl}`);
+      toast({
+        title: 'Link Copied!',
+        description: 'Product link has been copied to clipboard.',
+      });
+    }
+  };
+
+  const handleEditProduct = (product: Product) => {
+    // Set the product data for editing
+    setNewProduct({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      originalPrice: product.originalPrice?.toString() || '',
+      imageUrl: product.imageUrl,
+      affiliateUrl: product.affiliateUrl,
+      category: product.category,
+      gender: '',
+      rating: product.rating.toString(),
+      reviewCount: product.reviewCount.toString(),
+      discount: product.discount?.toString() || '',
+      isFeatured: product.isFeatured,
+      hasTimer: false,
+      timerDuration: '24',
+      customFields: {}
+    });
+    setCustomFields([]);
+    setIsAddingProduct(true);
+    
+    toast({
+      title: 'Edit Mode',
+      description: 'Product loaded for editing. Make your changes and save.',
+    });
+  };
+
   const commonCategories = [
     'Electronics & Gadgets', 'Fashion & Clothing', 'Home & Kitchen', 'Health & Beauty',
     'Sports & Fitness', 'Books & Education', 'Toys & Games', 'Automotive',
@@ -653,9 +701,9 @@ export default function ProductManagement() {
       {/* Products List */}
       <Card>
         <CardHeader>
-          <CardTitle>Manage Products ({products.length})</CardTitle>
+          <CardTitle>Current Products ({products.length})</CardTitle>
           <CardDescription className="text-blue-200">
-            View and manage all products
+            Manage all your products with full control
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -669,60 +717,78 @@ export default function ProductManagement() {
               <p className="text-gray-600">No products found. Add your first product above.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-4">
               {products.map((product: Product) => (
                 <div
                   key={product.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
                 >
-                  <div className="relative">
-                    {/* Small delete button in top-right corner */}
-                    <button
-                      onClick={() => handleDeleteProduct(product.id)}
-                      disabled={deleteProductMutation.isPending}
-                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
-                      title="Delete product"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                    
-                    <div className="mb-3">
-                      <h3 className="font-semibold text-gray-900 mb-1 pr-8">{product.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{product.category}</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-bold text-green-600">${product.price}</span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
-                        )}
-                        {product.discount && (
-                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                            -{product.discount}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>⭐ {product.rating}</span>
-                        <span>({product.reviewCount} reviews)</span>
-                        {product.isFeatured && (
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {product.imageUrl && (
+                  {/* Product Image */}
+                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                     <img 
                       src={product.imageUrl} 
                       alt={product.name}
-                      className="w-full h-32 object-cover rounded"
+                      className="w-full h-full object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
                       }}
                     />
-                  )}
+                  </div>
+
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-blue-400 mb-1 truncate">{product.name}</h3>
+                    <p className="text-gray-300 text-sm mb-2 line-clamp-1">{product.description}</p>
+                    
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-green-400 font-bold">₹{product.price}</span>
+                      {product.originalPrice && (
+                        <span className="text-gray-500 line-through">₹{product.originalPrice}</span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <span className="text-yellow-400">⭐</span>
+                        <span className="text-white">{product.rating}</span>
+                        <span className="text-gray-400">({product.reviewCount})</span>
+                      </div>
+                      <span className="text-gray-400">{product.category}</span>
+                      {product.isFeatured && (
+                        <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">FEATURED</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleShare(product)}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      title="Share product"
+                    >
+                      <i className="fas fa-share text-gray-300"></i>
+                    </button>
+                    <button
+                      onClick={() => window.open(product.affiliateUrl, '_blank')}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      title="Open affiliate link"
+                    >
+                      <i className="fas fa-external-link-alt text-gray-300"></i>
+                    </button>
+                    <button
+                      onClick={() => handleEditProduct(product)}
+                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      title="Edit product"
+                    >
+                      <i className="fas fa-edit text-gray-300"></i>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      disabled={deleteProductMutation.isPending}
+                      className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      title="Delete product"
+                    >
+                      <i className="fas fa-trash text-white"></i>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
