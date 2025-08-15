@@ -43,7 +43,7 @@ export default function SimplifiedBlogForm() {
     timerDuration: '24'
   });
 
-  // Handle image upload - Enhanced to support all image formats with 50MB limit
+  // Handle image upload - Optimized to prevent server errors
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -64,11 +64,11 @@ export default function SimplifiedBlogForm() {
       return;
     }
 
-    // Check file size (limit to 50MB for high-quality images)
-    if (file.size > 50 * 1024 * 1024) {
+    // Check file size (limit to 10MB - server now supports up to 50MB)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: 'File Too Large',
-        description: 'Please upload an image smaller than 50MB for optimal performance.',
+        description: 'Please upload an image smaller than 10MB. For larger images, use an image URL instead.',
         variant: 'destructive',
       });
       return;
@@ -106,7 +106,7 @@ export default function SimplifiedBlogForm() {
       setUploadingImage(false);
       toast({
         title: 'Error',
-        description: 'Failed to upload image',
+        description: 'Failed to upload image. Try using a smaller image or an image URL instead.',
         variant: 'destructive',
       });
     }
@@ -116,11 +116,24 @@ export default function SimplifiedBlogForm() {
   const { data: blogPosts = [], isLoading, error } = useQuery({
     queryKey: ['/api/blog'],
     queryFn: async () => {
-      const response = await fetch('/api/blog');
-      if (!response.ok) {
-        throw new Error('Failed to fetch blog posts');
+      try {
+        const response = await fetch('/api/blog');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Server returned non-JSON response. Check server logs.');
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error('Blog fetch error:', error);
+        throw error;
       }
-      return response.json();
     },
     retry: 1
   });
@@ -128,15 +141,11 @@ export default function SimplifiedBlogForm() {
   // Add blog post mutation
   const addBlogPostMutation = useMutation({
     mutationFn: async (postData: any) => {
-      const adminPassword = 'pickntrust2025';
-      const tagsArray = postData.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
-      
-      const response = await fetch('/api/admin/blog', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      try {
+        const adminPassword = 'pickntrust2025';
+        const tagsArray = postData.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+        
+        const payload = {
           password: adminPassword,
           ...postData,
           tags: JSON.stringify(tagsArray),
@@ -144,15 +153,40 @@ export default function SimplifiedBlogForm() {
           slug: postData.slug || postData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
           hasTimer: postData.hasTimer,
           timerDuration: postData.hasTimer ? postData.timerDuration : null
-        }),
-      });
+        };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add blog post');
+        console.log('Sending blog post payload:', payload);
+        
+        const response = await fetch('/api/admin/blog', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        if (!response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+          } else {
+            const errorText = await response.text();
+            console.error('Non-JSON error response:', errorText);
+            throw new Error(`Server error: ${response.status} ${response.statusText}. Check server logs.`);
+          }
+        }
+
+        const result = await response.json();
+        console.log('Blog post created successfully:', result);
+        return result;
+      } catch (error) {
+        console.error('Blog post creation error:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
@@ -284,7 +318,7 @@ export default function SimplifiedBlogForm() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📝 Image Blog Management</h2>
-          <p className="text-gray-600 dark:text-gray-300">Create engaging blog posts with high-quality images up to 50MB</p>
+          <p className="text-gray-600 dark:text-gray-300">Create engaging blog posts with high-quality images up to 10MB</p>
         </div>
         <Button 
           onClick={() => setIsAddingPost(true)}
@@ -303,7 +337,7 @@ export default function SimplifiedBlogForm() {
               Create New Blog Post
             </CardTitle>
             <CardDescription className="text-gray-300">
-              Add engaging content with high-quality image support (up to 50MB) and optional auto-delete timer
+              Add engaging content with high-quality image support (up to 10MB) and optional auto-delete timer
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -374,7 +408,7 @@ export default function SimplifiedBlogForm() {
                 </div>
               </div>
 
-              {/* Image Section - Enhanced with 50MB support */}
+              {/* Image Section - Enhanced with 10MB support */}
               <div>
                 <Label className="text-white font-medium">Blog Image</Label>
                 <Input
@@ -402,7 +436,7 @@ export default function SimplifiedBlogForm() {
                     <Upload className="w-3 h-3 mr-1" />
                     {uploadingImage ? 'Uploading...' : 'Upload from Device'}
                   </Button>
-                  <p className="text-xs text-blue-400 mt-1">📁 Supports: JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF, HEIC (max 50MB)</p>
+                  <p className="text-xs text-blue-400 mt-1">📁 Supports: JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF, HEIC (max 10MB)</p>
                 </div>
                 
                 {newPost.imageUrl && (
@@ -422,44 +456,47 @@ export default function SimplifiedBlogForm() {
                 )}
               </div>
 
-              {/* Auto-Delete Timer Section */}
-              <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-5 h-5 text-yellow-400" />
-                  <Label className="text-white font-medium">Auto-Delete Timer</Label>
+              {/* Auto-Delete Timer Section - Exact match to product form */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="hasTimer"
+                    checked={newPost.hasTimer}
+                    onChange={(e) => setNewPost({ ...newPost, hasTimer: e.target.checked })}
+                    className="rounded border-gray-600 bg-gray-700"
+                  />
+                  <Label htmlFor="hasTimer" className="text-white text-sm">
+                    ✅ Add Countdown Timer
+                  </Label>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="hasTimer"
-                      checked={newPost.hasTimer}
-                      onChange={(e) => setNewPost({ ...newPost, hasTimer: e.target.checked })}
-                      className="rounded border-gray-600 bg-gray-700"
-                    />
-                    <Label htmlFor="hasTimer" className="text-white text-sm">
-                      Enable auto-delete after specified hours
-                    </Label>
-                  </div>
-                  {newPost.hasTimer && (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={newPost.timerDuration}
-                        onChange={(e) => setNewPost({ ...newPost, timerDuration: e.target.value })}
-                        placeholder="24"
-                        className="bg-gray-700 border-gray-600 text-white w-20"
-                        min="1"
-                        max="168"
-                      />
-                      <span className="text-gray-300 text-sm">hours</span>
-                    </div>
-                  )}
-                </div>
+
                 {newPost.hasTimer && (
-                  <p className="text-yellow-400 text-xs mt-2">
-                    ⏰ This blog post will be automatically deleted after {newPost.timerDuration} hours
-                  </p>
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Timer Duration (hours)</Label>
+                    <Select 
+                      value={newPost.timerDuration}
+                      onValueChange={(value) => setNewPost({ ...newPost, timerDuration: value })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        <SelectItem value="1" className="text-white hover:bg-gray-700">1 hour</SelectItem>
+                        <SelectItem value="2" className="text-white hover:bg-gray-700">2 hours</SelectItem>
+                        <SelectItem value="3" className="text-white hover:bg-gray-700">3 hours</SelectItem>
+                        <SelectItem value="6" className="text-white hover:bg-gray-700">6 hours</SelectItem>
+                        <SelectItem value="12" className="text-white hover:bg-gray-700">12 hours</SelectItem>
+                        <SelectItem value="24" className="text-white hover:bg-gray-700">24 hours (1 day)</SelectItem>
+                        <SelectItem value="48" className="text-white hover:bg-gray-700">48 hours (2 days)</SelectItem>
+                        <SelectItem value="72" className="text-white hover:bg-gray-700">72 hours (3 days)</SelectItem>
+                        <SelectItem value="168" className="text-white hover:bg-gray-700">168 hours (1 week)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-yellow-400 text-xs">
+                      ⚠️ Blog post will be automatically deleted when timer expires
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -535,7 +572,7 @@ export default function SimplifiedBlogForm() {
             Current Blog Posts ({blogPosts.length})
           </CardTitle>
           <CardDescription className="text-blue-200">
-            Manage all your high-quality image-based blog posts (up to 50MB each)
+            Manage all your high-quality image-based blog posts (up to 10MB each)
           </CardDescription>
         </CardHeader>
         <CardContent>
