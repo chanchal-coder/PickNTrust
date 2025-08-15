@@ -50,7 +50,11 @@ export default function GenderSelectionModal({ isOpen, onClose, onSelect, catego
               className={`w-full h-16 text-lg font-semibold bg-gradient-to-r ${option.color} hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl text-white border-0`}
             >
               <span className="text-2xl mr-3">{option.icon}</span>
-              {option.label} {category}
+              {/* For baby categories, show only the label. For others, show label + category */}
+              {category.toLowerCase().includes('baby') || category.toLowerCase().includes('kids') || category.toLowerCase().includes('children') 
+                ? option.label 
+                : `${option.label} ${category}`
+              }
             </Button>
           ))}
           

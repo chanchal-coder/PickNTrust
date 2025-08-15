@@ -93,8 +93,13 @@ export default function CategoryPage() {
     if (genderParam) {
       if (isBabyCategory && ['boys', 'girls'].includes(genderParam)) {
         setCurrentGender(genderParam);
-      } else if (!isBabyCategory && ['men', 'women', 'kids'].includes(genderParam)) {
-        setCurrentGender(genderParam);
+      } else if (!isBabyCategory && ['men', 'women', 'kids', 'boys', 'girls'].includes(genderParam)) {
+        // If kids is selected, automatically switch to boys
+        if (genderParam === 'kids') {
+          setCurrentGender('boys');
+        } else {
+          setCurrentGender(genderParam);
+        }
       }
     } else {
       // Set default gender based on category type

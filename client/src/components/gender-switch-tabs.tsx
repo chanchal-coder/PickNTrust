@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface GenderSwitchTabsProps {
@@ -8,27 +7,33 @@ interface GenderSwitchTabsProps {
 }
 
 export function GenderSwitchTabs({ currentGender, onGenderChange, categoryName }: GenderSwitchTabsProps) {
-  // Check if this is a baby category
+  // Check if this is a baby category OR if current gender is 'kids'
   const isBabyCategory = categoryName.toLowerCase().includes('baby') || categoryName.toLowerCase().includes('kids');
+  const isKidsSelected = currentGender === 'kids' || currentGender === 'boys' || currentGender === 'girls';
   
-  if (isBabyCategory) {
+  // If it's a baby category OR kids is selected, show boy/girl options
+  if (isBabyCategory || isKidsSelected) {
     return (
       <div className="flex justify-center mb-6">
-        <Tabs value={currentGender} onValueChange={onGenderChange} className="w-full max-w-md">
+        <Tabs 
+          value={currentGender === 'kids' ? 'boys' : currentGender} 
+          onValueChange={onGenderChange} 
+          className="w-full max-w-md"
+        >
           <TabsList className="grid w-full grid-cols-2 h-12">
             <TabsTrigger 
               value="boys" 
               className="text-sm font-medium data-[state=active]:bg-blue-500 data-[state=active]:text-white"
             >
               <i className="fas fa-male mr-2"></i>
-              Baby Boy
+              {isBabyCategory ? 'Baby Boy' : 'Boy'}
             </TabsTrigger>
             <TabsTrigger 
               value="girls"
               className="text-sm font-medium data-[state=active]:bg-pink-500 data-[state=active]:text-white"
             >
               <i className="fas fa-female mr-2"></i>
-              Baby Girl
+              {isBabyCategory ? 'Baby Girl' : 'Girl'}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -36,6 +41,7 @@ export function GenderSwitchTabs({ currentGender, onGenderChange, categoryName }
     );
   }
 
+  // Default: show men/women/kids options
   return (
     <div className="flex justify-center mb-6">
       <Tabs value={currentGender} onValueChange={onGenderChange} className="w-full max-w-md">
