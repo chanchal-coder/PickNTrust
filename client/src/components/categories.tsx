@@ -257,7 +257,7 @@ export default function Categories() {
               <div 
                 className={`
                   relative overflow-hidden rounded-[20px] p-4 sm:p-6 text-center
-                  h-32 sm:h-36 flex flex-col justify-center
+                  h-40 sm:h-44 flex flex-col justify-center
                   transform transition-all duration-300 ease-out
                   hover:scale-105 hover:shadow-2xl hover:shadow-black/20
                   shadow-lg shadow-black/10
