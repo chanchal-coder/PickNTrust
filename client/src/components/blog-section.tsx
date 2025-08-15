@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useToast } from '@/hooks/use-toast';
 
 // Define BlogPost type locally to avoid schema conflicts
 interface BlogPost {
@@ -91,9 +92,114 @@ export default function BlogSection() {
   });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Admin state management
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+
+  // Check admin authentication
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('pickntrust-admin-session');
+    if (adminAuth === 'active') {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  // Listen for admin session changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        setIsAdmin(e.newValue === 'active');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Always use fallback data for immediate display
   const displayPosts = fallbackBlogPosts;
+
+  // Delete blog post mutation
+  const deleteBlogPostMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      const adminPassword = 'pickntrust2025';
+      const response = await fetch(`/api/admin/blog/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete blog post');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      toast({
+        title: 'Success',
+        description: 'Blog post deleted successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete blog post',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleDelete = (postId: number) => {
+    if (confirm('Are you sure you want to delete this blog post?')) {
+      deleteBlogPostMutation.mutate(postId);
+    }
+  };
+
+  const handleShare = (platform: string, post: BlogPost) => {
+    const postUrl = `${window.location.origin}/blog/${post.slug}`;
+    const postText = `Check out this article: ${post.title} - ${post.excerpt.substring(0, 100)}... at PickNTrust!`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/profile.php?id=61578969445670`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/+m-O-S6SSpVU2NWU1`;
+        break;
+      case 'twitter':
+        shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(postText)}&url=${encodeURIComponent(postUrl)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        break;
+      case 'instagram':
+        const instagramText = `📝 New Article Alert! ${post.title}\n\n${post.excerpt.substring(0, 100)}...\n\n✨ Read more at PickNTrust\n\n#PickNTrust #Blog #${post.category} #Shopping`;
+        navigator.clipboard.writeText(instagramText + '\n\n' + postUrl);
+        const instagramUrl = 'https://www.instagram.com/';
+        window.open(instagramUrl, '_blank');
+        toast({
+          title: 'Instagram Ready!',
+          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
+        });
+        return;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
+    setShowShareMenu(prev => ({...prev, [post.id]: false}));
+  };
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -182,11 +288,72 @@ export default function BlogSection() {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
                   />
                 </div>
-                <div className={`p-6 ${
+                <div className={`p-6 relative ${
                   index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
                   index % 3 === 1 ? 'bg-green-50 dark:bg-gray-800' : 
                   'bg-orange-50 dark:bg-gray-800'
                 }`}>
+                  {/* Share and Delete Buttons - Top Right */}
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    {/* Share Button - Always visible */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowShareMenu(prev => ({...prev, [post.id]: !prev[post.id]}))}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Share blog post"
+                      >
+                        <i className="fas fa-share text-xs"></i>
+                      </button>
+                      
+                      {/* Share Menu */}
+                      {showShareMenu[post.id] && (
+                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                          <button
+                            onClick={() => handleShare('facebook', post)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-facebook text-blue-600"></i>
+                            Facebook
+                          </button>
+                          <button
+                            onClick={() => handleShare('twitter', post)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
+                          >
+                            <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">𝕏</span>
+                            </div>
+                            X (Twitter)
+                          </button>
+                          <button
+                            onClick={() => handleShare('whatsapp', post)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-whatsapp text-green-600"></i>
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={() => handleShare('instagram', post)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-instagram text-purple-600"></i>
+                            Instagram
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Delete Button - Only for admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Delete blog post"
+                      >
+                        <i className="fas fa-trash text-xs"></i>
+                      </button>
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                       <i className="far fa-calendar mr-2 text-blue-500 dark:text-blue-400"></i>
@@ -202,7 +369,7 @@ export default function BlogSection() {
                     )}
                   </div>
                   <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1">{post.title}</h4>
+                    <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1 pr-16">{post.title}</h4>
                   </div>
                   <div className="text-gray-600 dark:text-gray-300 mb-4">
                     <span>{post.excerpt.length > 120 ? `${post.excerpt.substring(0, 120)}...` : post.excerpt}</span>
