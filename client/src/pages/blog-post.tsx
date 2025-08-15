@@ -8,7 +8,7 @@ export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
 
   // Fetch blog post data from API based on slug
-  const { data: blogPost, isLoading } = useQuery({
+  const { data: blogPost, isLoading, error } = useQuery({
     queryKey: ['/api/blog', slug],
     queryFn: async () => {
       const response = await fetch(`/api/blog/${slug}`);
@@ -20,6 +20,7 @@ export default function BlogPostPage() {
     enabled: !!slug,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     gcTime: 10 * 60 * 1000, // 10 minutes cache (updated from cacheTime)
+    retry: 1,
   });
 
   // Sample blog post data - fallback for demo
@@ -187,11 +188,39 @@ Each of these gadgets has been carefully selected based on:
     slug: slug || "10-must-have-gadgets-under-999"
   };
 
+  // Error state with white background
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center pt-20 pb-8">
+          <div className="max-w-md mx-auto text-center p-8">
+            <div className="text-6xl mb-4">😕</div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Blog Post Not Found
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              The blog post you're looking for doesn't exist or has been removed.
+            </p>
+            <a 
+              href="/"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              ← Back to Home
+            </a>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Loading state with white background
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
         <Header />
-        <div className="pt-20 pb-8">
+        <div className="flex-1 pt-20 pb-8">
           <div className="max-w-4xl mx-auto p-8">
             <div className="animate-pulse">
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
@@ -208,21 +237,24 @@ Each of these gadgets has been carefully selected based on:
 
   const postData = blogPost || sampleBlogPost;
 
+  // Main blog post page with guaranteed white background
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Header />
-      <div className="pt-20 pb-8">
-        <BlogPost 
-          title={postData?.title || sampleBlogPost.title}
-          content={postData?.content || sampleBlogPost.content}
-          publishDate={postData?.publishedAt || postData?.publishDate || sampleBlogPost.publishDate}
-          readTime={postData?.readTime || sampleBlogPost.readTime}
-          featuredImage={postData?.imageUrl || postData?.featuredImage || sampleBlogPost.featuredImage}
-          videoUrl={postData?.videoUrl}
-          tags={postData?.tags || []}
-          author={postData?.author || "PickNTrust Team"}
-          slug={slug || 'sample-post'}
-        />
+      <div className="flex-1 pt-20 pb-8 bg-white dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-900">
+          <BlogPost 
+            title={postData?.title || sampleBlogPost.title}
+            content={postData?.content || sampleBlogPost.content}
+            publishDate={postData?.publishedAt || postData?.publishDate || sampleBlogPost.publishDate}
+            readTime={postData?.readTime || sampleBlogPost.readTime}
+            featuredImage={postData?.imageUrl || postData?.featuredImage || sampleBlogPost.featuredImage}
+            videoUrl={postData?.videoUrl}
+            tags={postData?.tags || sampleBlogPost.tags}
+            author={postData?.author || "PickNTrust Team"}
+            slug={slug || 'sample-post'}
+          />
+        </div>
       </div>
       <Footer />
     </div>

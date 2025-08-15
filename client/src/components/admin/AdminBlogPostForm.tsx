@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Upload, Eye, Clock } from 'lucide-react';
+import { Plus, Upload, Eye, Clock, Video } from 'lucide-react';
 
 interface BlogPost {
   id: number;
@@ -32,6 +32,7 @@ export default function BlogManagement() {
   const queryClient = useQueryClient();
   const [isAddingPost, setIsAddingPost] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [newPost, setNewPost] = useState({
     title: '',
     excerpt: '',
@@ -87,6 +88,17 @@ export default function BlogManagement() {
       };
     }
 
+    // Check if it's a direct video file (base64 or file URL)
+    if (url.startsWith('data:video/') || url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
+      return {
+        platform: 'Video File',
+        id: null,
+        thumbnail: null,
+        embedUrl: url,
+        icon: '🎥'
+      };
+    }
+
     return {
       platform: 'Video',
       id: null,
@@ -105,10 +117,28 @@ export default function BlogManagement() {
       <div className="bg-gray-800 p-3 rounded">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{videoInfo.icon}</span>
-          <span className="text-sm text-green-400 font-medium">{videoInfo.platform} Video Detected</span>
+          <span className="text-sm text-green-400 font-medium">{videoInfo.platform} Detected</span>
         </div>
         
-        {videoInfo.thumbnail ? (
+        {videoInfo.platform === 'Video File' ? (
+          <div className="relative">
+            <video 
+              src={url} 
+              className="w-full h-24 object-cover rounded"
+              controls={false}
+              muted
+              preload="metadata"
+              onError={(e) => {
+                (e.target as HTMLVideoElement).style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded">
+              <div className="bg-white/90 rounded-full p-2">
+                <i className="fas fa-play text-gray-800"></i>
+              </div>
+            </div>
+          </div>
+        ) : videoInfo.thumbnail ? (
           <div className="relative">
             <img 
               src={videoInfo.thumbnail} 
@@ -133,46 +163,143 @@ export default function BlogManagement() {
           </div>
         )}
         
-        <p className="text-xs text-gray-400 mt-2 truncate">{url}</p>
+        <p className="text-xs text-gray-400 mt-2 truncate">{url.length > 50 ? url.substring(0, 50) + '...' : url}</p>
       </div>
     );
   };
 
-  // Handle image upload - Fixed to prevent entity too large error
+  // Handle image upload - Enhanced to support all image formats
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    toast({
-      title: 'Info',
-      description: 'For best results, please paste image URLs directly to avoid server errors.',
-      variant: 'default',
-    });
+    // Validate file type - support all common image formats
+    const supportedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 
+      'image/bmp', 'image/svg+xml', 'image/tiff', 'image/tif', 'image/ico',
+      'image/avif', 'image/heic', 'image/heif'
+    ];
+    
+    if (!supportedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload a valid image file (JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF, HEIC)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check file size (limit to 5MB for better performance)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please upload an image smaller than 5MB for optimal performance.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setUploadingImage(true);
     
     try {
-      // Use high-quality stock image URLs to prevent entity too large
-      const stockImageUrls = [
-        'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&h=600&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&h=600&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=600&fit=crop&auto=format'
-      ];
-      const randomImage = stockImageUrls[Math.floor(Math.random() * stockImageUrls.length)];
+      // Convert file to base64 for storage
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setNewPost({ ...newPost, imageUrl: result });
+        setUploadingImage(false);
+        
+        // Get file extension for success message
+        const fileExtension = file.type.split('/')[1].toUpperCase();
+        toast({
+          title: 'Success',
+          description: `${fileExtension} image uploaded successfully! (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
+        });
+      };
       
-      setNewPost({ ...newPost, imageUrl: randomImage });
-      setUploadingImage(false);
-      toast({
-        title: 'Success',
-        description: 'High-quality stock image set! (Using optimized URLs to prevent server errors)',
-      });
+      reader.onerror = () => {
+        setUploadingImage(false);
+        toast({
+          title: 'Upload Error',
+          description: 'Failed to read the image file. Please try again.',
+          variant: 'destructive',
+        });
+      };
+      
+      reader.readAsDataURL(file);
     } catch (error) {
       setUploadingImage(false);
       toast({
         title: 'Error',
-        description: 'Failed to set image',
+        description: 'Failed to upload image',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle video upload - NEW FEATURE
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type - support common video formats
+    const supportedVideoTypes = [
+      'video/mp4', 'video/webm', 'video/ogg', 'video/mov', 'video/avi', 
+      'video/wmv', 'video/flv', 'video/mkv', 'video/m4v', 'video/3gp'
+    ];
+    
+    if (!supportedVideoTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid Video Format',
+        description: 'Please upload a valid video file (MP4, WebM, OGG, MOV, AVI, WMV, FLV, MKV, M4V, 3GP)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check file size (limit to 50MB for videos)
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: 'Video File Too Large',
+        description: 'Please upload a video smaller than 50MB for optimal performance.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingVideo(true);
+    
+    try {
+      // Convert file to base64 for storage
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setNewPost({ ...newPost, videoUrl: result });
+        setUploadingVideo(false);
+        
+        // Get file extension for success message
+        const fileExtension = file.type.split('/')[1].toUpperCase();
+        toast({
+          title: 'Success',
+          description: `${fileExtension} video uploaded successfully! (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
+        });
+      };
+      
+      reader.onerror = () => {
+        setUploadingVideo(false);
+        toast({
+          title: 'Upload Error',
+          description: 'Failed to read the video file. Please try again.',
+          variant: 'destructive',
+        });
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      setUploadingVideo(false);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload video',
         variant: 'destructive',
       });
     }
@@ -352,7 +479,7 @@ export default function BlogManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Blog Management</h2>
-          <p className="text-gray-600 dark:text-gray-300">Add engaging content with video support and auto-delete timers</p>
+          <p className="text-gray-600 dark:text-gray-300">Add engaging content with image & video upload support and auto-delete timers</p>
         </div>
         <Button 
           onClick={() => setIsAddingPost(true)}
@@ -371,7 +498,7 @@ export default function BlogManagement() {
               Create New Blog Post
             </CardTitle>
             <CardDescription className="text-gray-300">
-              Add engaging content with video support and optional auto-delete timer
+              Add engaging content with image & video upload support and optional auto-delete timer
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -448,13 +575,13 @@ export default function BlogManagement() {
                   <Input
                     value={newPost.imageUrl}
                     onChange={(e) => setNewPost({ ...newPost, imageUrl: e.target.value })}
-                    placeholder="Paste image URL here (recommended)"
+                    placeholder="Paste image URL here or upload from device"
                     className="bg-gray-800 border-gray-600 text-white mt-2"
                   />
                   <div className="mt-2">
                     <input 
                       type="file" 
-                      accept="image/*" 
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/tiff,image/ico,image/avif,image/heic" 
                       className="hidden" 
                       id="image-upload"
                       onChange={handleImageUpload}
@@ -468,9 +595,9 @@ export default function BlogManagement() {
                       disabled={uploadingImage}
                     >
                       <Upload className="w-3 h-3 mr-1" />
-                      {uploadingImage ? 'Setting...' : 'Use Stock Image'}
+                      {uploadingImage ? 'Uploading...' : 'Upload from Device'}
                     </Button>
-                    <p className="text-xs text-yellow-400 mt-1">💡 For best results, paste image URLs to avoid server errors</p>
+                    <p className="text-xs text-blue-400 mt-1">📁 Supports: JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, AVIF, HEIC (max 5MB)</p>
                   </div>
                   
                   {newPost.imageUrl && (
@@ -491,13 +618,34 @@ export default function BlogManagement() {
                 </div>
 
                 <div>
-                  <Label className="text-white font-medium">Video URL (Auto-Preview)</Label>
+                  <Label className="text-white font-medium">Video Content</Label>
                   <Input
                     value={newPost.videoUrl}
                     onChange={(e) => setNewPost({ ...newPost, videoUrl: e.target.value })}
-                    placeholder="YouTube, Instagram, TikTok video URL"
+                    placeholder="YouTube, Instagram, TikTok URL or upload video file"
                     className="bg-gray-800 border-gray-600 text-white mt-2"
                   />
+                  <div className="mt-2">
+                    <input 
+                      type="file" 
+                      accept="video/mp4,video/webm,video/ogg,video/mov,video/avi,video/wmv,video/flv,video/mkv,video/m4v,video/3gp" 
+                      className="hidden" 
+                      id="video-upload"
+                      onChange={handleVideoUpload}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('video-upload')?.click()}
+                      className="text-xs"
+                      disabled={uploadingVideo}
+                    >
+                      <Video className="w-3 h-3 mr-1" />
+                      {uploadingVideo ? 'Uploading...' : 'Upload Video File'}
+                    </Button>
+                    <p className="text-xs text-purple-400 mt-1">🎥 Supports: MP4, WebM, OGG, MOV, AVI, WMV, FLV, MKV, M4V, 3GP (max 50MB)</p>
+                  </div>
                   
                   {newPost.videoUrl && (
                     <div className="mt-3 border border-gray-600 rounded-lg overflow-hidden">
@@ -506,18 +654,18 @@ export default function BlogManagement() {
                   )}
                   
                   <div className="mt-2 text-xs text-gray-400">
-                    <p>Supported platforms:</p>
+                    <p>Supported platforms & formats:</p>
                     <div className="grid grid-cols-2 gap-1 mt-1">
                       <span className="text-red-500">🎬 YouTube</span>
                       <span className="text-purple-500">📷 Instagram</span>
                       <span className="text-black">🎵 TikTok</span>
-                      <span className="text-blue-600">📘 Facebook</span>
+                      <span className="text-blue-600">🎥 Video Files</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Auto-Delete Timer Section - RESTORED */}
+              {/* Auto-Delete Timer Section */}
               <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="w-5 h-5 text-yellow-400" />
@@ -626,82 +774,167 @@ export default function BlogManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Current Blog Posts ({blogPosts.length})</CardTitle>
-          <CardDescription className="text-blue-200">
-            Manage all your blog posts with full control
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading blog posts...</p>
-            </div>
-          ) : blogPosts.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">No blog posts found. Add your first post above.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {blogPosts.map((post: BlogPost) => (
-                <div
-                  key={post.id}
-                  className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
-                >
-                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <img 
-                      src={post.imageUrl || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400'} 
-                      alt={post.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400';
-                      }}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-blue-400 mb-1 truncate">{post.title}</h3>
-                    <p className="text-gray-300 text-sm mb-2 line-clamp-1">{post.excerpt}</p>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-gray-400">{post.category}</span>
-                      <span className="text-gray-400">{post.readTime}</span>
-                      <span className="text-gray-400">{new Date(post.publishedAt).toLocaleDateString()}</span>
-                      {post.hasTimer && (
-                        <span className="text-yellow-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {post.timerDuration}h timer
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => window.open(`/blog/${post.slug}`, '_blank')}
-                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      title="View blog post"
-                    >
-                      <i className="fas fa-external-link-alt text-gray-300"></i>
-                    </button>
-                    <button
-                      onClick={() => handleEditPost(post)}
-                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Edit blog post"
-                    >
-                      <i className="fas fa-edit text-gray-300"></i>
-                    </button>
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      disabled={deleteBlogPostMutation.isPending}
-                      className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                      title="Delete blog post"
-                    >
-                      <i className="fas fa-trash text-white"></i>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+                    < C a r d D e s c r i p t i o n   c l a s s N a m e = \  
+ t e x t - b l u e - 2 0 0 \ > 
+                         M a n a g e   a l l   y o u r   b l o g   p o s t s   w i t h   f u l l   c o n t r o l 
+                     < / C a r d D e s c r i p t i o n > 
+                 < / C a r d H e a d e r > 
+                 < C a r d C o n t e n t > 
+                     { i s L o a d i n g   ?   ( 
+                         < d i v   c l a s s N a m e = \ t e x t - c e n t e r  
+ p y - 8 \ > 
+                             < d i v   c l a s s N a m e = \ a n i m a t e - s p i n  
+ r o u n d e d - f u l l  
+ h - 8  
+ w - 8  
+ b o r d e r - b - 2  
+ b o r d e r - b l u e - 6 0 0  
+ m x - a u t o \ > < / d i v > 
+                             < p   c l a s s N a m e = \ m t - 2  
+ t e x t - g r a y - 6 0 0 \ > L o a d i n g   b l o g   p o s t s . . . < / p > 
+                         < / d i v > 
+                     )   :   b l o g P o s t s . l e n g t h   = = =   0   ?   ( 
+                         < d i v   c l a s s N a m e = \ t e x t - c e n t e r  
+ p y - 8 \ > 
+                             < p   c l a s s N a m e = \ t e x t - g r a y - 6 0 0 \ > N o   b l o g   p o s t s   f o u n d .   A d d   y o u r   f i r s t   p o s t   a b o v e . < / p > 
+                         < / d i v > 
+                     )   :   ( 
+                         < d i v   c l a s s N a m e = \ s p a c e - y - 4 \ > 
+                             { b l o g P o s t s . m a p ( ( p o s t :   B l o g P o s t )   = >   ( 
+                                 < d i v 
+                                     k e y = { p o s t . i d } 
+                                     c l a s s N a m e = \ f l e x  
+ i t e m s - c e n t e r  
+ g a p - 4  
+ p - 4  
+ b g - g r a y - 8 0 0  
+ r o u n d e d - l g  
+ h o v e r : b g - g r a y - 7 5 0  
+ t r a n s i t i o n - c o l o r s \ 
+                                 > 
+                                     < d i v   c l a s s N a m e = \ w - 2 0  
+ h - 2 0  
+ r o u n d e d - l g  
+ o v e r f l o w - h i d d e n  
+ f l e x - s h r i n k - 0 \ > 
+                                         < i m g   
+                                             s r c = { p o s t . i m a g e U r l   | |   ' h t t p s : / / i m a g e s . u n s p l a s h . c o m / p h o t o - 1 4 8 6 3 1 2 3 3 8 2 1 9 - c e 6 8 d 2 c 6 f 4 4 d ? w = 4 0 0 ' }   
+                                             a l t = { p o s t . t i t l e } 
+                                             c l a s s N a m e = \ w - f u l l  
+ h - f u l l  
+ o b j e c t - c o v e r \ 
+                                             o n E r r o r = { ( e )   = >   { 
+                                                 ( e . t a r g e t   a s   H T M L I m a g e E l e m e n t ) . s r c   =   ' h t t p s : / / i m a g e s . u n s p l a s h . c o m / p h o t o - 1 4 8 6 3 1 2 3 3 8 2 1 9 - c e 6 8 d 2 c 6 f 4 4 d ? w = 4 0 0 ' ; 
+                                             } } 
+                                         / > 
+                                     < / d i v > 
+                                     < d i v   c l a s s N a m e = \ f l e x - 1  
+ m i n - w - 0 \ > 
+                                         < h 3   c l a s s N a m e = \ t e x t - l g  
+ f o n t - s e m i b o l d  
+ t e x t - b l u e - 4 0 0  
+ m b - 1  
+ t r u n c a t e \ > { p o s t . t i t l e } < / h 3 > 
+                                         < p   c l a s s N a m e = \ t e x t - g r a y - 3 0 0  
+ t e x t - s m  
+ m b - 2  
+ l i n e - c l a m p - 1 \ > { p o s t . e x c e r p t } < / p > 
+                                         < d i v   c l a s s N a m e = \ f l e x  
+ i t e m s - c e n t e r  
+ g a p - 4  
+ t e x t - s m \ > 
+                                             < s p a n   c l a s s N a m e = \ t e x t - g r a y - 4 0 0 \ > { p o s t . c a t e g o r y } < / s p a n > 
+                                             < s p a n   c l a s s N a m e = \ t e x t - g r a y - 4 0 0 \ > { p o s t . r e a d T i m e } < / s p a n > 
+                                             < s p a n   c l a s s N a m e = \ t e x t - g r a y - 4 0 0 \ > { n e w   D a t e ( p o s t . p u b l i s h e d A t ) . t o L o c a l e D a t e S t r i n g ( ) } < / s p a n > 
+                                             { p o s t . h a s T i m e r   & &   ( 
+                                                 < s p a n   c l a s s N a m e = \ b g - y e l l o w - 6 0 0  
+ t e x t - w h i t e  
+ p x - 2  
+ p y - 1  
+ r o u n d e d  
+ t e x t - x s  
+ f l e x  
+ i t e m s - c e n t e r  
+ g a p - 1 \ > 
+                                                     < C l o c k   c l a s s N a m e = \ w - 3  
+ h - 3 \   / > 
+                                                     { p o s t . t i m e r D u r a t i o n } h   t i m e r 
+                                                 < / s p a n > 
+                                             ) } 
+                                             { p o s t . v i d e o U r l   & &   ( 
+                                                 < s p a n   c l a s s N a m e = \ b g - p u r p l e - 6 0 0  
+ t e x t - w h i t e  
+ p x - 2  
+ p y - 1  
+ r o u n d e d  
+ t e x t - x s  
+ f l e x  
+ i t e m s - c e n t e r  
+ g a p - 1 \ > 
+                                                     < V i d e o   c l a s s N a m e = \ w - 3  
+ h - 3 \   / > 
+                                                     V i d e o 
+                                                 < / s p a n > 
+                                             ) } 
+                                         < / d i v > 
+                                     < / d i v > 
+                                     < d i v   c l a s s N a m e = \ f l e x  
+ i t e m s - c e n t e r  
+ g a p - 2 \ > 
+                                         < b u t t o n 
+                                             o n C l i c k = { ( )   = >   w i n d o w . o p e n ( \ / b l o g / \ \ ,   ' _ b l a n k ' ) } 
+                                             c l a s s N a m e = \ p - 2  
+ b g - g r a y - 7 0 0  
+ h o v e r : b g - g r a y - 6 0 0  
+ r o u n d e d - l g  
+ t r a n s i t i o n - c o l o r s \ 
+                                             t i t l e = \ V i e w  
+ b l o g  
+ p o s t \ 
+                                         > 
+                                             < i   c l a s s N a m e = \ f a s  
+ f a - e x t e r n a l - l i n k - a l t  
+ t e x t - g r a y - 3 0 0 \ > < / i > 
+                                         < / b u t t o n > 
+                                         < b u t t o n 
+                                             o n C l i c k = { ( )   = >   h a n d l e E d i t P o s t ( p o s t ) } 
+                                             c l a s s N a m e = \ p - 2  
+ b g - g r a y - 7 0 0  
+ h o v e r : b g - g r a y - 6 0 0  
+ r o u n d e d - l g  
+ t r a n s i t i o n - c o l o r s \ 
+                                             t i t l e = \ E d i t  
+ b l o g  
+ p o s t \ 
+                                         > 
+                                             < i   c l a s s N a m e = \ f a s  
+ f a - e d i t  
+ t e x t - g r a y - 3 0 0 \ > < / i > 
+                                         < / b u t t o n > 
+                                         < b u t t o n 
+                                             o n C l i c k = { ( )   = >   h a n d l e D e l e t e P o s t ( p o s t . i d ) } 
+                                             d i s a b l e d = { d e l e t e B l o g P o s t M u t a t i o n . i s P e n d i n g } 
+                                             c l a s s N a m e = \ p - 2  
+ b g - r e d - 6 0 0  
+ h o v e r : b g - r e d - 7 0 0  
+ r o u n d e d - l g  
+ t r a n s i t i o n - c o l o r s \ 
+                                             t i t l e = \ D e l e t e  
+ b l o g  
+ p o s t \ 
+                                         > 
+                                             < i   c l a s s N a m e = \ f a s  
+ f a - t r a s h  
+ t e x t - w h i t e \ > < / i > 
+                                         < / b u t t o n > 
+                                     < / d i v > 
+                                 < / d i v > 
+                             ) ) } 
+                         < / d i v > 
+                     ) } 
+                 < / C a r d C o n t e n t > 
+             < / C a r d > 
+         < / d i v > 
+     ) ; 
+ }  
+ 
