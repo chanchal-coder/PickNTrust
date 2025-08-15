@@ -17,13 +17,14 @@ import Header from '@/components/header';
 import { 
   Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, 
   Star, DollarSign, Trophy, Package, Globe, FileText, Eye, Plus, Megaphone,
-  Settings, Users, BarChart3, Link, Sparkles, BookOpen, Tags, Palette, Loader2
+  Settings, Users, BarChart3, Link, Sparkles, BookOpen, Tags, Palette, Loader2, Video
 } from 'lucide-react';
 
 // Import existing admin components
 import ProductManagement from '@/components/admin/ProductManagement';
 import CategoryManagement from '@/components/admin/CategoryManagement';
-import BlogManagement from '@/components/admin/AdminBlogPostForm';
+import SimplifiedBlogForm from '@/components/admin/SimplifiedBlogForm';
+import VideoContentManager from '@/components/admin/VideoContentManager';
 import AnnouncementManagement from '@/components/admin/AnnouncementManagement';
 import AutomationManagement from '@/components/admin/AutomationManagement';
 
@@ -96,6 +97,17 @@ export default function AdminPage() {
     }
   });
 
+  const { data: videoContent = [] } = useQuery({
+    queryKey: ['/api/video-content'],
+    queryFn: async () => {
+      const response = await fetch('/api/video-content');
+      if (!response.ok) {
+        throw new Error('Failed to fetch video content');
+      }
+      return response.json();
+    }
+  });
+
   // URL extraction mutation
   const extractProductMutation = useMutation({
     mutationFn: async (url: string) => {
@@ -119,8 +131,6 @@ export default function AdminPage() {
           title: 'Product Extracted!',
           description: 'Product details have been extracted. You can now edit and save.',
         });
-        // Here you would populate the form with extracted data
-        // This would require form state management
       }
     },
     onError: () => {
@@ -318,7 +328,7 @@ export default function AdminPage() {
                 PickNTrust Admin Panel
               </h1>
               <p className="text-gray-700 dark:text-gray-300 text-lg">
-                Complete management dashboard for your affiliate platform
+                Complete management dashboard with enhanced video content support
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -335,7 +345,7 @@ export default function AdminPage() {
 
           {/* Main Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-lg">
+            <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:grid-cols-8 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-lg">
               <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 <BarChart3 className="w-4 h-4" />
                 <span className="hidden sm:inline">Dashboard</span>
@@ -351,6 +361,10 @@ export default function AdminPage() {
               <TabsTrigger value="blog" className="flex items-center gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                 <BookOpen className="w-4 h-4" />
                 <span className="hidden sm:inline">Blog</span>
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="flex items-center gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white">
+                <Video className="w-4 h-4" />
+                <span className="hidden sm:inline">Videos</span>
               </TabsTrigger>
               <TabsTrigger value="announcements" className="flex items-center gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white">
                 <Megaphone className="w-4 h-4" />
@@ -368,7 +382,7 @@ export default function AdminPage() {
 
             {/* Dashboard Tab */}
             <TabsContent value="dashboard" className="space-y-6">
-              <div className="grid md:grid-cols-4 gap-6">
+              <div className="grid md:grid-cols-5 gap-6">
                 <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -416,6 +430,18 @@ export default function AdminPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-pink-100 text-sm font-medium">Video Content</p>
+                        <p className="text-3xl font-bold">{Array.isArray(videoContent) ? videoContent.length : 0}</p>
+                      </div>
+                      <Video className="w-10 h-10 text-pink-200" />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Quick Actions */}
@@ -430,7 +456,7 @@ export default function AdminPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-4 gap-4">
                     <Button 
                       onClick={() => setActiveTab('products')}
                       className="h-16 bg-green-600 hover:bg-green-700 flex flex-col gap-1"
@@ -452,6 +478,13 @@ export default function AdminPage() {
                       <BookOpen className="w-5 h-5" />
                       Write Blog Post
                     </Button>
+                    <Button 
+                      onClick={() => setActiveTab('videos')}
+                      className="h-16 bg-pink-600 hover:bg-pink-700 flex flex-col gap-1"
+                    >
+                      <Video className="w-5 h-5" />
+                      Add Video Content
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -467,9 +500,14 @@ export default function AdminPage() {
               <CategoryManagement />
             </TabsContent>
 
-            {/* Blog Tab */}
+            {/* Blog Tab - Simplified Image-Only Blog */}
             <TabsContent value="blog">
-              <BlogManagement />
+              <SimplifiedBlogForm />
+            </TabsContent>
+
+            {/* Videos Tab - NEW Enhanced Video Content Manager */}
+            <TabsContent value="videos">
+              <VideoContentManager />
             </TabsContent>
 
             {/* Announcements Tab */}
