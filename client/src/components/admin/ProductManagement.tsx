@@ -290,8 +290,8 @@ export default function ProductManagement() {
               )}
             </Button>
           </div>
-          <div className="text-sm text-gray-600">
-            <p className="font-medium mb-2">Supported platforms:</p>
+          <div className="text-sm text-gray-700">
+            <p className="font-medium mb-2 text-gray-800">Supported platforms:</p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="bg-white">Amazon</Badge>
               <Badge variant="outline" className="bg-white">eBay</Badge>
@@ -326,22 +326,22 @@ export default function ProductManagement() {
             <form onSubmit={handleAddProduct} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Product Name</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Product Name</label>
                   <input
                     type="text"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                     placeholder="e.g., Wireless Headphones"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Category</label>
                   <select
                     value={newProduct.category}
                     onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900"
                     required
                   >
                     <option value="">Select Category</option>
@@ -353,12 +353,12 @@ export default function ProductManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
+                <label className="block text-sm font-medium mb-2 text-gray-800">Description</label>
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                   placeholder="Product description..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                   rows={3}
                   required
                 />
@@ -366,60 +366,60 @@ export default function ProductManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Price ($)</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Price ($)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={newProduct.price}
                     onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
                     placeholder="29.99"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Original Price ($)</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Original Price ($)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={newProduct.originalPrice}
                     onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
                     placeholder="39.99"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Discount (%)</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Discount (%)</label>
                   <input
                     type="number"
                     value={newProduct.discount}
                     onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
                     placeholder="25"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Image URL</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Image URL</label>
                   <input
                     type="url"
                     value={newProduct.imageUrl}
                     onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
                     placeholder="https://example.com/image.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Affiliate URL</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Affiliate URL</label>
                   <input
                     type="url"
                     value={newProduct.affiliateUrl}
                     onChange={(e) => setNewProduct({ ...newProduct, affiliateUrl: e.target.value })}
                     placeholder="https://affiliate-link.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                     required
                   />
                 </div>
@@ -427,7 +427,7 @@ export default function ProductManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Rating (1-5)</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Rating (1-5)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -435,16 +435,16 @@ export default function ProductManagement() {
                     max="5"
                     value={newProduct.rating}
                     onChange={(e) => setNewProduct({ ...newProduct, rating: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Review Count</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-800">Review Count</label>
                   <input
                     type="number"
                     value={newProduct.reviewCount}
                     onChange={(e) => setNewProduct({ ...newProduct, reviewCount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 placeholder-gray-600"
                   />
                 </div>
               </div>
@@ -457,7 +457,7 @@ export default function ProductManagement() {
                   onChange={(e) => setNewProduct({ ...newProduct, isFeatured: e.target.checked })}
                   className="mr-2"
                 />
-                <label htmlFor="featured" className="text-sm font-medium">Featured Product</label>
+                <label htmlFor="featured" className="text-sm font-medium text-gray-800">Featured Product</label>
               </div>
 
               <div className="flex gap-2">

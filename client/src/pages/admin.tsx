@@ -316,7 +316,7 @@ export default function AdminPage() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 PickNTrust Admin Panel
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 text-lg">
+              <p className="text-gray-700 dark:text-gray-300 text-lg">
                 Complete management dashboard for your affiliate platform
               </p>
             </div>
@@ -420,7 +420,7 @@ export default function AdminPage() {
                     <Sparkles className="w-5 h-5" />
                     Quick Actions
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-gray-700">
                     Frequently used admin actions
                   </CardDescription>
                 </CardHeader>
@@ -481,7 +481,7 @@ export default function AdminPage() {
                     <Link className="w-5 h-5" />
                     Product URL Extractor
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-gray-700">
                     Extract product details automatically from URLs (Amazon, eBay, etc.)
                   </CardDescription>
                 </CardHeader>
@@ -511,8 +511,8 @@ export default function AdminPage() {
                       )}
                     </Button>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    <p className="font-medium mb-2">Supported platforms:</p>
+                  <div className="text-sm text-gray-700">
+                    <p className="font-medium mb-2 text-gray-800">Supported platforms:</p>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline">Amazon</Badge>
                       <Badge variant="outline">eBay</Badge>
@@ -534,7 +534,7 @@ export default function AdminPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 mb-4">View detailed analytics and performance metrics.</p>
+                    <p className="text-gray-700 mb-4">View detailed analytics and performance metrics.</p>
                     <Button variant="outline" className="w-full">
                       View Analytics
                     </Button>
@@ -549,7 +549,7 @@ export default function AdminPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 mb-4">Configure system settings and preferences.</p>
+                    <p className="text-gray-700 mb-4">Configure system settings and preferences.</p>
                     <Button variant="outline" className="w-full">
                       Open Settings
                     </Button>
