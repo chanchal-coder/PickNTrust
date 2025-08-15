@@ -262,53 +262,6 @@ export default function VideoContentManager() {
     }
   };
 
-  // Add custom field
-  const addCustomField = () => {
-    if (!newCustomField.name.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Field name is required',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setCustomFields([...customFields, { ...newCustomField }]);
-    setNewCustomField({ name: '', type: 'text', required: false });
-    setShowCustomFieldForm(false);
-    
-    toast({
-      title: 'Success',
-      description: `Custom field "${newCustomField.name}" added successfully!`,
-    });
-  };
-
-  // Remove custom field
-  const removeCustomField = (index: number) => {
-    const fieldName = customFields[index].name;
-    setCustomFields(customFields.filter((_, i) => i !== index));
-    
-    const newCustomFields = { ...videoData.customFields };
-    delete newCustomFields[fieldName];
-    setVideoData({ ...videoData, customFields: newCustomFields });
-    
-    toast({
-      title: 'Success',
-      description: `Custom field "${fieldName}" removed successfully!`,
-    });
-  };
-
-  // Update custom field value
-  const updateCustomField = (fieldName: string, value: string) => {
-    setVideoData({
-      ...videoData,
-      customFields: {
-        ...videoData.customFields,
-        [fieldName]: value
-      }
-    });
-  };
-
   // Get video preview info
   const getVideoPreview = (url: string, platform: string) => {
     if (!url) return null;
@@ -439,17 +392,6 @@ export default function VideoContentManager() {
       return;
     }
 
-    for (const field of customFields) {
-      if (field.required && !videoData.customFields[field.name]?.trim()) {
-        toast({
-          title: 'Error',
-          description: `${field.name} is required`,
-          variant: 'destructive',
-        });
-        return;
-      }
-    }
-
     addVideoMutation.mutate({ ...videoData, platform: activeTab });
   };
 
@@ -464,7 +406,7 @@ export default function VideoContentManager() {
             📹 Video Content Manager
           </CardTitle>
           <CardDescription className="text-purple-200">
-            Upload video files or add videos from any platform with auto-generated thumbnails, custom fields, and advanced management
+            Upload video files or add videos from any platform with auto-generated thumbnails
           </CardDescription>
         </CardHeader>
       </Card>
@@ -800,4 +742,114 @@ export default function VideoContentManager() {
                       <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-40">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        <SelectItem value="1" className="text-white hover:bg-gray-700">1 hour</SelectItem>
+                        <SelectItem value="6" className="text-white hover:bg-gray-700">6 hours</SelectItem>
+                        <SelectItem value="12" className="text-white hover:bg-gray-700">12 hours</SelectItem>
+                        <SelectItem value="24" className="text-white hover:bg-gray-700">24 hours (1 day)</SelectItem>
+                        <SelectItem value="48" className="text-white hover:bg-gray-700">48 hours (2 days)</SelectItem>
+                        <SelectItem value="72" className="text-white hover:bg-gray-700">72 hours (3 days)</SelectItem>
+                        <SelectItem value="168" className="text-white hover:bg-gray-700">168 hours (1 week)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              {videoData.hasTimer && (
+                <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg">
+                  <div className="flex items-center gap-2 text-yellow-400">
+                    <i className="fas fa-exclamation-triangle"></i>
+                    <span className="text-sm font-medium">Auto-Delete Warning</span>
+                  </div>
+                  <p className="text-yellow-300 text-xs mt-1">
+                    This video will be automatically deleted after {videoData.timerDuration} hours. The countdown is hidden from frontend users.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button 
+                type="submit"
+                disabled={addVideoMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white px-8"
+              >
+                {addVideoMutation.isPending ? 'Adding Video...' : 'Add Video Content'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Video Library */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Video Library ({videoContent.length})</CardTitle>
+          <CardDescription>
+            Manage all your video content with editing, timer status, and organization tools
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading video content...</p>
+            </div>
+          ) : videoContent.length === 0 ? (
+            <div className="text-center py-8">
+              <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No video content found. Add your first video above.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {videoContent.map((video: VideoContent) => (
+                <div key={video.id} className="bg-gray-800 rounded-lg overflow-hidden">
+                  <div className="relative">
+                    {getVideoPreview(video.videoUrl, video.platform)}
+                    <Badge className={`absolute top-2 right-2 ${
+                      platforms.find(p => p.id === video.platform)?.color || 'bg-gray-600'
+                    }`}>
+                      {platforms.find(p => p.id === video.platform)?.name || video.platform}
+                    </Badge>
+                    {video.hasTimer && (
+                      <Badge className="absolute top-2 left-2 bg-yellow-600 text-white">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {video.timerDuration}h
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-white mb-2 line-clamp-2">{video.title}</h3>
+                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{video.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {video.category}
+                        </Badge>
+                        {video.duration && (
+                          <span className="text-xs text-gray-400">{video.duration}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
