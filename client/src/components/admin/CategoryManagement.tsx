@@ -264,9 +264,11 @@ export default function CategoryManagement() {
       {/* Add Category Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Add New Category</CardTitle>
+          <CardTitle>
+            {editingCategory ? `Edit Category: ${editingCategory.name}` : 'Add New Category'}
+          </CardTitle>
           <CardDescription className="text-blue-200">
-            Create a new category for organizing products
+            {editingCategory ? 'Update the category details below' : 'Create a new category for organizing products'}
           </CardDescription>
         </CardHeader>
         <CardContent>

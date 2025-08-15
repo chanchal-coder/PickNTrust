@@ -285,7 +285,11 @@ export default function BlogSection() {
                 }`}>
                   {/* Always show image first, then overlay video if available */}
                   <img 
-                    src={post.imageUrl} 
+                    src={post.imageUrl || `https://via.placeholder.com/400x200/${
+                      index % 3 === 0 ? '6366f1' : 
+                      index % 3 === 1 ? '10b981' : 
+                      'f59e0b'
+                    }/ffffff?text=${encodeURIComponent(post.title.substring(0, 20))}`} 
                     alt={post.title} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg"
                     onError={(e) => {
