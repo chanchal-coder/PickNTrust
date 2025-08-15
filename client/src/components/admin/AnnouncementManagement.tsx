@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Megaphone, Palette, Type, Settings, Eye } from 'lucide-react';
 
@@ -284,70 +285,17 @@ export default function AnnouncementManagement() {
 
             {/* Text and Background Colors */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-white font-medium">Text Color</Label>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-8 h-8 rounded border border-gray-600"
-                      style={{ backgroundColor: newAnnouncement.textColor }}
-                    />
-                    <button
-                      type="button"
-                      className="text-gray-400 text-sm"
-                      onClick={() => document.getElementById('text-color-picker')?.click()}
-                    >
-                      ▼
-                    </button>
-                  </div>
-                  <Input
-                    id="text-color-hex"
-                    value={newAnnouncement.textColor}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textColor: e.target.value })}
-                    className="bg-gray-900 border-gray-600 text-white flex-1"
-                    placeholder="#ffffff"
-                  />
-                  <input
-                    id="text-color-picker"
-                    type="color"
-                    value={newAnnouncement.textColor}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textColor: e.target.value })}
-                    className="hidden"
-                  />
-                </div>
-              </div>
+              <ColorPicker
+                label="Text Color"
+                value={newAnnouncement.textColor}
+                onChange={(color) => setNewAnnouncement({ ...newAnnouncement, textColor: color })}
+              />
 
-              <div>
-                <Label className="text-white font-medium">Background Color</Label>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-8 h-8 rounded border border-gray-600"
-                      style={{ backgroundColor: newAnnouncement.backgroundColor }}
-                    />
-                    <button
-                      type="button"
-                      className="text-gray-400 text-sm"
-                      onClick={() => document.getElementById('bg-color-picker')?.click()}
-                    >
-                      ▼
-                    </button>
-                  </div>
-                  <Input
-                    value={newAnnouncement.backgroundColor}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, backgroundColor: e.target.value })}
-                    className="bg-gray-900 border-gray-600 text-white flex-1"
-                    placeholder="#3b82f6"
-                  />
-                  <input
-                    id="bg-color-picker"
-                    type="color"
-                    value={newAnnouncement.backgroundColor}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, backgroundColor: e.target.value })}
-                    className="hidden"
-                  />
-                </div>
-              </div>
+              <ColorPicker
+                label="Background Color"
+                value={newAnnouncement.backgroundColor}
+                onChange={(color) => setNewAnnouncement({ ...newAnnouncement, backgroundColor: color })}
+              />
             </div>
 
             {/* Font Settings */}
@@ -499,37 +447,11 @@ export default function AnnouncementManagement() {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label className="text-white font-medium">Border Color</Label>
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-8 h-8 rounded border border-gray-600"
-                          style={{ backgroundColor: newAnnouncement.textBorderColor }}
-                        />
-                        <button
-                          type="button"
-                          className="text-gray-400 text-sm"
-                          onClick={() => document.getElementById('text-border-color-picker')?.click()}
-                        >
-                          ▼
-                        </button>
-                      </div>
-                      <Input
-                        value={newAnnouncement.textBorderColor}
-                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textBorderColor: e.target.value })}
-                        className="bg-gray-800 border-gray-600 text-white flex-1"
-                        placeholder="#000000"
-                      />
-                      <input
-                        id="text-border-color-picker"
-                        type="color"
-                        value={newAnnouncement.textBorderColor}
-                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, textBorderColor: e.target.value })}
-                        className="hidden"
-                      />
-                    </div>
-                  </div>
+                  <ColorPicker
+                    label="Border Color"
+                    value={newAnnouncement.textBorderColor}
+                    onChange={(color) => setNewAnnouncement({ ...newAnnouncement, textBorderColor: color })}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -582,37 +504,11 @@ export default function AnnouncementManagement() {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label className="text-white font-medium">Border Color</Label>
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-8 h-8 rounded border border-gray-600"
-                          style={{ backgroundColor: newAnnouncement.bannerBorderColor }}
-                        />
-                        <button
-                          type="button"
-                          className="text-gray-400 text-sm"
-                          onClick={() => document.getElementById('banner-border-color-picker')?.click()}
-                        >
-                          ▼
-                        </button>
-                      </div>
-                      <Input
-                        value={newAnnouncement.bannerBorderColor}
-                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, bannerBorderColor: e.target.value })}
-                        className="bg-gray-800 border-gray-600 text-white flex-1"
-                        placeholder="#000000"
-                      />
-                      <input
-                        id="banner-border-color-picker"
-                        type="color"
-                        value={newAnnouncement.bannerBorderColor}
-                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, bannerBorderColor: e.target.value })}
-                        className="hidden"
-                      />
-                    </div>
-                  </div>
+                  <ColorPicker
+                    label="Border Color"
+                    value={newAnnouncement.bannerBorderColor}
+                    onChange={(color) => setNewAnnouncement({ ...newAnnouncement, bannerBorderColor: color })}
+                  />
                 </div>
               </CardContent>
             </Card>
