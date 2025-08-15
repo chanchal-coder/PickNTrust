@@ -30,15 +30,24 @@ export default function BlogPost({
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const titleHeight = 200;
-      const contentHeight = document.documentElement.scrollHeight - window.innerHeight;
-      
-      setIsSticky(scrollTop > titleHeight);
-      setShareSticky(scrollTop > contentHeight * 0.3);
+      try {
+        const scrollTop = window.scrollY || 0;
+        const titleHeight = 200;
+        const documentHeight = document.documentElement?.scrollHeight || 0;
+        const windowHeight = window.innerHeight || 0;
+        const contentHeight = Math.max(0, documentHeight - windowHeight);
+        
+        setIsSticky(scrollTop > titleHeight);
+        setShareSticky(scrollTop > contentHeight * 0.3);
+      } catch (error) {
+        console.warn('Scroll handler error:', error);
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    // Initial call to set correct state
+    handleScroll();
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -169,155 +178,176 @@ export default function BlogPost({
 
   // Function to render video content
   const renderVideoContent = () => {
-    if (!videoUrl || videoUrl.trim() === '') return null;
+    try {
+      if (!videoUrl || videoUrl.trim() === '') return null;
 
-    const videoInfo = getVideoInfo(videoUrl);
-    if (!videoInfo) return null;
+      const videoInfo = getVideoInfo(videoUrl);
+      if (!videoInfo) return null;
 
-    const commonIframeProps = {
-      className: "w-full h-full border-0",
-      allowFullScreen: true,
-      loading: "lazy" as const
-    };
+      const commonIframeProps = {
+        className: "w-full h-full border-0",
+        allowFullScreen: true,
+        loading: "lazy" as const
+      };
 
-    switch (videoInfo.platform) {
-      case 'youtube':
-        return (
-          <div className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              {...commonIframeProps}
-            />
-          </div>
-        );
-
-      case 'instagram':
-        return (
-          <div className="w-full max-w-lg mx-auto overflow-hidden rounded-xl bg-white shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              className="w-full h-[600px] border-0"
-              allowFullScreen
-              loading="lazy"
-            />
-          </div>
-        );
-
-      case 'tiktok':
-        return (
-          <div className="w-full max-w-sm mx-auto overflow-hidden rounded-xl bg-black shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              className="w-full h-[700px] border-0"
-              allowFullScreen
-              loading="lazy"
-            />
-          </div>
-        );
-
-      case 'facebook':
-        return (
-          <div className="w-full aspect-video overflow-hidden rounded-xl bg-blue-50 shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              {...commonIframeProps}
-            />
-          </div>
-        );
-
-      case 'vimeo':
-        return (
-          <div className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              allow="autoplay; fullscreen; picture-in-picture"
-              {...commonIframeProps}
-            />
-          </div>
-        );
-
-      case 'dailymotion':
-        return (
-          <div className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              allow="autoplay; fullscreen"
-              {...commonIframeProps}
-            />
-          </div>
-        );
-
-      case 'twitch':
-        return (
-          <div className="w-full aspect-video overflow-hidden rounded-xl bg-purple-900 shadow-2xl">
-            <iframe
-              src={videoInfo.embedUrl}
-              title={title}
-              allow="autoplay; fullscreen"
-              {...commonIframeProps}
-            />
-          </div>
-        );
-
-      case 'twitter':
-        return (
-          <div className="w-full max-w-lg mx-auto p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg">
-            <div className="text-center">
-              <i className="fab fa-twitter text-4xl text-blue-400 mb-4"></i>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">View this video on Twitter/X</p>
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
-              >
-                <i className="fab fa-twitter mr-2"></i>
-                Open on X
-              </a>
+      switch (videoInfo.platform) {
+        case 'youtube':
+          return (
+            <div className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                {...commonIframeProps}
+              />
             </div>
-          </div>
-        );
+          );
 
-      case 'generic':
-        return (
-          <div className="w-full overflow-hidden rounded-xl bg-black shadow-2xl">
-            <video
-              src={videoUrl}
-              controls
-              className="w-full h-auto"
-              preload="metadata"
-              poster={videoInfo.thumbnailUrl}
+        case 'instagram':
+          return (
+            <div className="w-full max-w-lg mx-auto overflow-hidden rounded-xl bg-white shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                className="w-full h-[600px] border-0"
+                allowFullScreen
+                loading="lazy"
+              />
+            </div>
+          );
+
+        case 'tiktok':
+          return (
+            <div className="w-full max-w-sm mx-auto overflow-hidden rounded-xl bg-black shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                className="w-full h-[700px] border-0"
+                allowFullScreen
+                loading="lazy"
+              />
+            </div>
+          );
+
+        case 'facebook':
+          return (
+            <div className="w-full aspect-video overflow-hidden rounded-xl bg-blue-50 shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                {...commonIframeProps}
+              />
+            </div>
+          );
+
+        case 'vimeo':
+          return (
+            <div className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                allow="autoplay; fullscreen; picture-in-picture"
+                {...commonIframeProps}
+              />
+            </div>
+          );
+
+        case 'dailymotion':
+          return (
+            <div className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                allow="autoplay; fullscreen"
+                {...commonIframeProps}
+              />
+            </div>
+          );
+
+        case 'twitch':
+          return (
+            <div className="w-full aspect-video overflow-hidden rounded-xl bg-purple-900 shadow-2xl">
+              <iframe
+                src={videoInfo.embedUrl}
+                title={title}
+                allow="autoplay; fullscreen"
+                {...commonIframeProps}
+              />
+            </div>
+          );
+
+        case 'twitter':
+          return (
+            <div className="w-full max-w-lg mx-auto p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg">
+              <div className="text-center">
+                <i className="fab fa-twitter text-4xl text-blue-400 mb-4"></i>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">View this video on Twitter/X</p>
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+                >
+                  <i className="fab fa-twitter mr-2"></i>
+                  Open on X
+                </a>
+              </div>
+            </div>
+          );
+
+        case 'generic':
+          return (
+            <div className="w-full overflow-hidden rounded-xl bg-black shadow-2xl">
+              <video
+                src={videoUrl}
+                controls
+                className="w-full h-auto"
+                preload="metadata"
+                poster={videoInfo.thumbnailUrl}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          );
+
+        default:
+          return (
+            <div className="w-full p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg">
+              <div className="text-center">
+                <i className="fas fa-video text-4xl text-gray-400 mb-4"></i>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Video content available</p>
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+                >
+                  <i className="fas fa-external-link-alt mr-2"></i>
+                  Watch Video
+                </a>
+              </div>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.warn('Video rendering error:', error);
+      return (
+        <div className="w-full p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg">
+          <div className="text-center">
+            <i className="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">Unable to load video content</p>
+            <a
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
             >
-              Your browser does not support the video tag.
-            </video>
+              <i className="fas fa-external-link-alt mr-2"></i>
+              Watch Video
+            </a>
           </div>
-        );
-
-      default:
-        return (
-          <div className="w-full p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg">
-            <div className="text-center">
-              <i className="fas fa-video text-4xl text-gray-400 mb-4"></i>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">Video content available</p>
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
-              >
-                <i className="fas fa-external-link-alt mr-2"></i>
-                Watch Video
-              </a>
-            </div>
-          </div>
-        );
+        </div>
+      );
     }
   };
 
@@ -337,21 +367,21 @@ export default function BlogPost({
           listItems = [];
           inOrderedList = false;
         }
-        html += `<h3 class="text-xl font-semibold text-navy dark:text-blue-400 mt-8 mb-4">${line.substring(4)}</h3>`;
+        html += `<h3 class="text-xl font-semibold text-gray-900 dark:text-blue-400 mt-8 mb-4">${line.substring(4)}</h3>`;
       } else if (line.startsWith('## ')) {
         if (inOrderedList) {
           html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
           listItems = [];
           inOrderedList = false;
         }
-        html += `<h2 class="text-2xl font-bold text-navy dark:text-blue-400 mt-10 mb-6">${line.substring(3)}</h2>`;
+        html += `<h2 class="text-2xl font-bold text-gray-900 dark:text-blue-400 mt-10 mb-6">${line.substring(3)}</h2>`;
       } else if (line.startsWith('# ')) {
         if (inOrderedList) {
           html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
           listItems = [];
           inOrderedList = false;
         }
-        html += `<h1 class="text-3xl font-bold text-navy dark:text-blue-400 mt-12 mb-8">${line.substring(2)}</h1>`;
+        html += `<h1 class="text-3xl font-bold text-gray-900 dark:text-blue-400 mt-12 mb-8">${line.substring(2)}</h1>`;
       } else if (line.match(/^\d+\.\s+/)) {
         const content = line.replace(/^\d+\.\s+/, '');
         if (!inOrderedList) {
@@ -414,7 +444,7 @@ export default function BlogPost({
     html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<div class="my-8"><img src="$2" alt="$1" class="w-full rounded-lg shadow-lg" loading="lazy" /></div>');
     
     // Convert bold text
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-navy dark:text-blue-400">$1</strong>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900 dark:text-blue-400">$1</strong>');
     
     return html;
   };
