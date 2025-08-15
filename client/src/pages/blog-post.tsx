@@ -189,9 +189,9 @@ Each of these gadgets has been carefully selected based on:
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-white dark:bg-gray-900">
         <Header />
-        <div className="header-spacing">
+        <div className="pt-20 pb-8">
           <div className="max-w-4xl mx-auto p-8">
             <div className="animate-pulse">
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
@@ -209,9 +209,9 @@ Each of these gadgets has been carefully selected based on:
   const postData = blogPost || sampleBlogPost;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <Header />
-      <div className="header-spacing">
+      <div className="pt-20 pb-8">
         <BlogPost 
           title={postData?.title || sampleBlogPost.title}
           content={postData?.content || sampleBlogPost.content}
