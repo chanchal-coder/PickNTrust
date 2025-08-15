@@ -58,6 +58,9 @@ export default function Footer() {
                 <a href="https://www.youtube.com/@PickNTrust" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors">
                   <i className="fab fa-youtube text-white"></i>
                 </a>
+                <a href="https://www.pinterest.com/PickNTrust/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+                  <i className="fab fa-pinterest text-white"></i>
+                </a>
               </div>
             </div>
           </div>

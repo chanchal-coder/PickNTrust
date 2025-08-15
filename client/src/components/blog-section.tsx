@@ -192,6 +192,9 @@ export default function BlogSection() {
           description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
         });
         return;
+      case 'pinterest':
+        shareUrl = `https://www.pinterest.com/PickNTrust/`;
+        break;
     }
     
     if (shareUrl) {
@@ -288,72 +291,11 @@ export default function BlogSection() {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl border-2 border-white/50 dark:border-gray-700/50 shadow-lg" 
                   />
                 </div>
-                <div className={`p-6 relative ${
+                <div className={`p-6 ${
                   index % 3 === 0 ? 'bg-blue-50 dark:bg-gray-800' : 
                   index % 3 === 1 ? 'bg-green-50 dark:bg-gray-800' : 
                   'bg-orange-50 dark:bg-gray-800'
                 }`}>
-                  {/* Share and Delete Buttons - Top Right */}
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    {/* Share Button - Always visible */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowShareMenu(prev => ({...prev, [post.id]: !prev[post.id]}))}
-                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors"
-                        title="Share blog post"
-                      >
-                        <i className="fas fa-share text-xs"></i>
-                      </button>
-                      
-                      {/* Share Menu */}
-                      {showShareMenu[post.id] && (
-                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
-                          <button
-                            onClick={() => handleShare('facebook', post)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
-                          >
-                            <i className="fab fa-facebook text-blue-600"></i>
-                            Facebook
-                          </button>
-                          <button
-                            onClick={() => handleShare('twitter', post)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
-                          >
-                            <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">𝕏</span>
-                            </div>
-                            X (Twitter)
-                          </button>
-                          <button
-                            onClick={() => handleShare('whatsapp', post)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
-                          >
-                            <i className="fab fa-whatsapp text-green-600"></i>
-                            WhatsApp
-                          </button>
-                          <button
-                            onClick={() => handleShare('instagram', post)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
-                          >
-                            <i className="fab fa-instagram text-purple-600"></i>
-                            Instagram
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Delete Button - Only for admin */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDelete(post.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
-                        title="Delete blog post"
-                      >
-                        <i className="fas fa-trash text-xs"></i>
-                      </button>
-                    )}
-                  </div>
-
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                       <i className="far fa-calendar mr-2 text-blue-500 dark:text-blue-400"></i>
@@ -369,20 +311,93 @@ export default function BlogSection() {
                     )}
                   </div>
                   <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1 pr-16">{post.title}</h4>
+                    <h4 className="text-xl font-bold text-navy dark:text-blue-400 flex-1">{post.title}</h4>
                   </div>
                   <div className="text-gray-600 dark:text-gray-300 mb-4">
                     <span>{post.excerpt.length > 120 ? `${post.excerpt.substring(0, 120)}...` : post.excerpt}</span>
                     <br />
-                    <Link 
-                      href={`/blog/${post.slug}`} 
-                      className="text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2 transition-colors hover:underline cursor-pointer"
-                      onClick={() => {
-                        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                      }}
-                    >
-                      Read More <span>→</span>
-                    </Link>
+                    <div className="flex items-center justify-between mt-2">
+                      <Link 
+                        href={`/blog/${post.slug}`} 
+                        className="text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 transition-colors hover:underline cursor-pointer"
+                        onClick={() => {
+                          setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+                        }}
+                      >
+                        Read More <span>→</span>
+                      </Link>
+                      
+                      {/* Share and Delete Buttons - Right side of Read More */}
+                      <div className="flex gap-2">
+                        {/* Share Button - Always visible */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowShareMenu(prev => ({...prev, [post.id]: !prev[post.id]}))}
+                            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors"
+                            title="Share blog post"
+                          >
+                            <i className="fas fa-share text-xs"></i>
+                          </button>
+                          
+                          {/* Share Menu */}
+                          {showShareMenu[post.id] && (
+                            <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                              <button
+                                onClick={() => handleShare('facebook', post)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                              >
+                                <i className="fab fa-facebook text-blue-600"></i>
+                                Facebook
+                              </button>
+                              <button
+                                onClick={() => handleShare('twitter', post)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
+                              >
+                                <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">𝕏</span>
+                                </div>
+                                X (Twitter)
+                              </button>
+                              <button
+                                onClick={() => handleShare('whatsapp', post)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
+                              >
+                                <i className="fab fa-whatsapp text-green-600"></i>
+                                WhatsApp
+                              </button>
+                              <button
+                                onClick={() => handleShare('instagram', post)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
+                              >
+                                <i className="fab fa-instagram text-purple-600"></i>
+                                Instagram
+                              </button>
+                              {/* Pinterest - Only for admin */}
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleShare('pinterest', post)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 rounded w-full text-left text-gray-700"
+                                >
+                                  <i className="fab fa-pinterest text-red-600"></i>
+                                  Pinterest
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Delete Button - Only for admin */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
+                            title="Delete blog post"
+                          >
+                            <i className="fas fa-trash text-xs"></i>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Tags */}

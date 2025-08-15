@@ -319,6 +319,9 @@ export default function FeaturedProducts() {
           description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
         });
         return;
+      case 'pinterest':
+        shareUrl = `https://www.pinterest.com/PickNTrust/`;
+        break;
     }
     
     if (shareUrl) {
@@ -450,68 +453,7 @@ export default function FeaturedProducts() {
                 </div>
                 
                 {/* Product Content */}
-                <div className="p-4 bg-gray-800 text-white space-y-2 relative">
-                  {/* Share and Delete Buttons - Top Right */}
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    {/* Share Button - Always visible */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
-                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors"
-                        title="Share product"
-                      >
-                        <i className="fas fa-share text-xs"></i>
-                      </button>
-                      
-                      {/* Share Menu */}
-                      {showShareMenu[product.id] && (
-                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
-                          <button
-                            onClick={() => handleShare('facebook', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
-                          >
-                            <i className="fab fa-facebook text-blue-600"></i>
-                            Facebook
-                          </button>
-                          <button
-                            onClick={() => handleShare('twitter', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
-                          >
-                            <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">𝕏</span>
-                            </div>
-                            X (Twitter)
-                          </button>
-                          <button
-                            onClick={() => handleShare('whatsapp', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
-                          >
-                            <i className="fab fa-whatsapp text-green-600"></i>
-                            WhatsApp
-                          </button>
-                          <button
-                            onClick={() => handleShare('instagram', product)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
-                          >
-                            <i className="fab fa-instagram text-purple-600"></i>
-                            Instagram
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Delete Button - Only for admin */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
-                        title="Delete product"
-                      >
-                        <i className="fas fa-trash text-xs"></i>
-                      </button>
-                    )}
-                  </div>
-
+                <div className="p-4 bg-gray-800 text-white space-y-2">
                   {/* Discount Badge */}
                   {product.discount && (
                     <div className="flex justify-start">
@@ -528,7 +470,7 @@ export default function FeaturedProducts() {
                   </div>
                   
                   {/* Product Name */}
-                  <h4 className="font-bold text-sm text-blue-400 leading-tight pr-16">{product.name}</h4>
+                  <h4 className="font-bold text-sm text-blue-400 leading-tight">{product.name}</h4>
                   
                   {/* Product Description */}
                   <p className="text-gray-300 text-xs leading-relaxed">{product.description}</p>
@@ -546,13 +488,86 @@ export default function FeaturedProducts() {
                     <ProductTimer product={product} />
                   </div>
                   
-                  {/* Pick Now Button */}
-                  <button 
-                    onClick={() => handleAffiliateClick(product)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-sm"
-                  >
-                    <i className="fas fa-shopping-bag mr-2"></i>Pick Now
-                  </button>
+                  {/* Pick Now Button with Share and Delete buttons */}
+                  <div className="flex items-center justify-between">
+                    <button 
+                      onClick={() => handleAffiliateClick(product)}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-sm mr-2"
+                    >
+                      <i className="fas fa-shopping-bag mr-2"></i>Pick Now
+                    </button>
+                    
+                    {/* Share and Delete Buttons - Right side of Pick Now */}
+                    <div className="flex gap-2">
+                      {/* Share Button - Always visible */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
+                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors"
+                          title="Share product"
+                        >
+                          <i className="fas fa-share text-xs"></i>
+                        </button>
+                        
+                        {/* Share Menu */}
+                        {showShareMenu[product.id] && (
+                          <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-10 min-w-[140px]">
+                            <button
+                              onClick={() => handleShare('facebook', product)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                            >
+                              <i className="fab fa-facebook text-blue-600"></i>
+                              Facebook
+                            </button>
+                            <button
+                              onClick={() => handleShare('twitter', product)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
+                            >
+                              <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">𝕏</span>
+                              </div>
+                              X (Twitter)
+                            </button>
+                            <button
+                              onClick={() => handleShare('whatsapp', product)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
+                            >
+                              <i className="fab fa-whatsapp text-green-600"></i>
+                              WhatsApp
+                            </button>
+                            <button
+                              onClick={() => handleShare('instagram', product)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
+                            >
+                              <i className="fab fa-instagram text-purple-600"></i>
+                              Instagram
+                            </button>
+                            {/* Pinterest - Only for admin */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleShare('pinterest', product)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 rounded w-full text-left text-gray-700"
+                              >
+                                <i className="fab fa-pinterest text-red-600"></i>
+                                Pinterest
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Delete Button - Only for admin */}
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
+                          title="Delete product"
+                        >
+                          <i className="fas fa-trash text-xs"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   
                   {/* Affiliate Link Text */}
                   <p className="text-[10px] text-gray-400 text-center mt-1">
