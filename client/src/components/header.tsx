@@ -309,6 +309,9 @@ export default function Header() {
             href="/wishlist" 
             className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
             title="Wishlist"
+            onClick={() => {
+              setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+            }}
           >
             <i className="fas fa-heart group-hover:scale-125 transition-transform text-pink-100"></i>
             <span className="font-semibold hidden xs:inline">Wishlist</span>
