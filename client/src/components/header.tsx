@@ -347,8 +347,8 @@ export default function Header() {
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
-          {/* Theme Toggle */}
-          <div className="relative bg-gradient-to-r from-indigo-500 to-slate-600 hover:from-indigo-600 hover:to-slate-700 rounded-full p-1 sm:p-1.5 lg:p-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex-shrink-0">
+          {/* Theme Toggle - Smaller Size */}
+          <div className="relative bg-gradient-to-r from-indigo-500 to-slate-600 hover:from-indigo-600 hover:to-slate-700 rounded-full p-0.5 sm:p-1 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex-shrink-0">
             <ThemeToggle />
           </div>
         </div>

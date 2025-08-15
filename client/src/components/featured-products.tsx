@@ -270,29 +270,29 @@ export default function FeaturedProducts() {
           </p>
         </div>
         
-        {/* Horizontal Scrollable Container */}
-        <div className="relative">
+        {/* Horizontal Scrollable Container with Border */}
+        <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-white/50 dark:bg-gray-800/50">
           {/* Left Arrow */}
           <button
             onClick={scrollLeft}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:block"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
           >
-            <i className="fas fa-chevron-left text-gray-600 dark:text-gray-300"></i>
+            <i className="fas fa-chevron-left text-lg"></i>
           </button>
 
           {/* Right Arrow */}
           <button
             onClick={scrollRight}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:block"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
           >
-            <i className="fas fa-chevron-right text-gray-600 dark:text-gray-300"></i>
+            <i className="fas fa-chevron-right text-lg"></i>
           </button>
 
           {/* Scrollable Products Container */}
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="flex gap-4 overflow-x-auto pb-4 px-8 md:px-12"
+            className="flex gap-4 overflow-x-auto pb-4 px-12 md:px-16"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
