@@ -27,6 +27,7 @@ export default function ProductManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const [extractUrl, setExtractUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -284,24 +285,55 @@ export default function ProductManagement() {
     }
   };
 
-  const handleShare = (product: Product) => {
-    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+  const handleShare = (platform: string, product: Product) => {
     const productUrl = `${window.location.origin}`;
+    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
     
-    if (navigator.share) {
-      navigator.share({
-        title: product.name,
-        text: productText,
-        url: productUrl,
-      });
-    } else {
-      // Fallback to copying to clipboard
-      navigator.clipboard.writeText(`${productText}\n${productUrl}`);
-      toast({
-        title: 'Link Copied!',
-        description: 'Product link has been copied to clipboard.',
-      });
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/profile.php?id=61578969445670`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/+m-O-S6SSpVU2NWU1`;
+        break;
+      case 'twitter':
+        shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(productText)}&url=${encodeURIComponent(productUrl)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        break;
+      case 'instagram':
+        const instagramText = `🛍️ Amazing Deal Alert! ${product.name}\n\n💰 Price: ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''}\n\n✨ Shop now at PickNTrust\n\n#PickNTrust #Deals #${product.category.replace(/\s+/g, '')} #Shopping`;
+        navigator.clipboard.writeText(instagramText + '\n\n' + productUrl);
+        const instagramUrl = 'https://www.instagram.com/';
+        window.open(instagramUrl, '_blank');
+        toast({
+          title: 'Instagram Ready!',
+          description: 'Content copied to clipboard and Instagram opened. Paste to create your post!',
+        });
+        setShowShareMenu(prev => ({...prev, [product.id]: false}));
+        return;
+      case 'youtube':
+        shareUrl = `https://www.youtube.com/@PickNTrust`;
+        break;
+      case 'pinterest':
+        shareUrl = `https://www.pinterest.com/PickNTrust/`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(productUrl)}`;
+        break;
+      case 'reddit':
+        shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(productUrl)}&title=${encodeURIComponent(product.name)}`;
+        break;
     }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
+    setShowShareMenu(prev => ({...prev, [product.id]: false}));
   };
 
   const handleEditProduct = (product: Product) => {
@@ -759,13 +791,86 @@ export default function ProductManagement() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleShare(product)}
-                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Share product"
-                    >
-                      <i className="fas fa-share text-gray-300"></i>
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
+                        className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                        title="Share product"
+                      >
+                        <i className="fas fa-share text-gray-300"></i>
+                      </button>
+                      
+                      {/* Share Menu */}
+                      {showShareMenu[product.id] && (
+                        <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg p-2 z-50 min-w-[160px] max-h-[300px] overflow-y-auto">
+                          <button
+                            onClick={() => handleShare('facebook', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-facebook text-blue-600"></i>
+                            Facebook
+                          </button>
+                          <button
+                            onClick={() => handleShare('twitter', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 rounded w-full text-left text-gray-700"
+                          >
+                            <div className="w-4 h-4 bg-black rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">𝕏</span>
+                            </div>
+                            X (Twitter)
+                          </button>
+                          <button
+                            onClick={() => handleShare('whatsapp', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-green-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-whatsapp text-green-600"></i>
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={() => handleShare('instagram', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-purple-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-instagram text-purple-600"></i>
+                            Instagram
+                          </button>
+                          <button
+                            onClick={() => handleShare('youtube', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-youtube text-red-600"></i>
+                            YouTube
+                          </button>
+                          <button
+                            onClick={() => handleShare('telegram', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-telegram text-blue-500"></i>
+                            Telegram
+                          </button>
+                          <button
+                            onClick={() => handleShare('pinterest', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-red-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-pinterest text-red-600"></i>
+                            Pinterest
+                          </button>
+                          <button
+                            onClick={() => handleShare('linkedin', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-linkedin text-blue-700"></i>
+                            LinkedIn
+                          </button>
+                          <button
+                            onClick={() => handleShare('reddit', product)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-orange-50 rounded w-full text-left text-gray-700"
+                          >
+                            <i className="fab fa-reddit text-orange-600"></i>
+                            Reddit
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={() => window.open(product.affiliateUrl, '_blank')}
                       className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
