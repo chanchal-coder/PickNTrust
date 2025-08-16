@@ -89,24 +89,45 @@ export default function ProductManagement() {
   };
 
   // Fetch products
-  const { data: products = [], isLoading, error } = useQuery({
+  const { data: products = [], isLoading, error } = useQuery<Product[]>({
     queryKey: ['/api/products'],
-    queryFn: async () => {
-      const response = await fetch('/api/products');
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      const data = await response.json();
-      // Handle both array and object responses
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data.products && Array.isArray(data.products)) {
-        return data.products;
-      } else {
-        return [];
+    queryFn: async (): Promise<Product[]> => {
+      try {
+        console.log('Fetching products from /api/products...');
+        const response = await fetch('/api/products');
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', response.status, errorText);
+          throw new Error(`Failed to fetch products: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('API Response data:', data);
+        
+        // Handle both array and object responses
+        if (Array.isArray(data)) {
+          console.log('Data is array, returning:', data.length, 'products');
+          return data as Product[];
+        } else if (data && data.products && Array.isArray(data.products)) {
+          console.log('Data has products array, returning:', data.products.length, 'products');
+          return data.products as Product[];
+        } else if (data && typeof data === 'object') {
+          console.log('Data is object but no products array, returning empty array');
+          return [];
+        } else {
+          console.log('Unexpected data format, returning empty array');
+          return [];
+        }
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
       }
     },
-    retry: 2
+    retry: 1,
+    retryDelay: 1000,
+    staleTime: 30000 // 30 seconds
   });
 
   // Add product mutation
@@ -417,9 +438,36 @@ export default function ProductManagement() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-red-600">Error Loading Products</CardTitle>
-          <CardDescription>
-            Failed to load products. Check your server connection.
+          <CardTitle className="text-red-600">Connection Error</CardTitle>
+          <CardDescription className="space-y-2">
+            <p>Unable to connect to the server. This could be because:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>The server is not running (try starting it with <code className="bg-gray-200 px-1 rounded">npm run dev</code>)</li>
+              <li>The server is running on a different port</li>
+              <li>There's a network connectivity issue</li>
+            </ul>
+            <div className="mt-4">
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                className="mr-2"
+              >
+                Retry Connection
+              </Button>
+              <Button 
+                onClick={() => {
+                  setIsAddingProduct(true);
+                  setNewProduct({
+                    ...newProduct,
+                    isService: activeTab === 'services',
+                    category: ''
+                  });
+                }}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Add Product Anyway
+              </Button>
+            </div>
           </CardDescription>
         </CardHeader>
       </Card>
