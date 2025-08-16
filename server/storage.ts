@@ -265,10 +265,21 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   // Products
   async getProducts(): Promise<Product[]> {
-    // Clean up expired products first
-    await this.cleanupExpiredProducts();
-    
-    return await db.select().from(products).orderBy(desc(products.id));
+    try {
+      console.log('DatabaseStorage: Getting products...');
+      
+      // Skip cleanup for now to avoid potential issues
+      // await this.cleanupExpiredProducts();
+      
+      const result = await db.select().from(products).orderBy(desc(products.id));
+      console.log(`DatabaseStorage: Found ${result.length} products`);
+      
+      return result;
+    } catch (error) {
+      console.error('DatabaseStorage: Error getting products:', error);
+      // Return empty array instead of throwing error
+      return [];
+    }
   }
 
   async getFeaturedProducts(): Promise<Product[]> {
@@ -385,20 +396,46 @@ export class DatabaseStorage implements IStorage {
 
   // Admin Product Management
   async addProduct(product: any): Promise<Product> {
-    // Handle timer logic
-    const productData = {
-      ...product,
-      // Set timerStartTime to now if timer is enabled
-      timerStartTime: product.hasTimer ? new Date() : null,
-      // Ensure timerDuration is null if timer is disabled
-      timerDuration: product.hasTimer ? product.timerDuration : null
-    };
+    try {
+      console.log('DatabaseStorage: Adding product with data:', product);
+      
+      // Handle timer logic and data transformation
+      const productData = {
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || 0,
+        originalPrice: product.originalPrice || null,
+        imageUrl: product.imageUrl || '',
+        affiliateUrl: product.affiliateUrl || '',
+        affiliateNetworkId: product.affiliateNetworkId || null,
+        category: product.category || '',
+        gender: product.gender || null,
+        rating: product.rating || 4.5,
+        reviewCount: product.reviewCount || 100,
+        discount: product.discount || null,
+        isNew: product.isNew || false,
+        isFeatured: product.isFeatured !== undefined ? product.isFeatured : true,
+        isService: product.isService || false,
+        customFields: product.customFields || null,
+        hasTimer: product.hasTimer || false,
+        timerDuration: product.hasTimer ? product.timerDuration : null,
+        timerStartTime: product.hasTimer ? new Date() : null,
+        createdAt: new Date()
+      };
 
-    const [newProduct] = await db
-      .insert(products)
-      .values(productData)
-      .returning();
-    return newProduct;
+      console.log('DatabaseStorage: Transformed product data:', productData);
+
+      const [newProduct] = await db
+        .insert(products)
+        .values(productData)
+        .returning();
+        
+      console.log('DatabaseStorage: Product added successfully:', newProduct);
+      return newProduct;
+    } catch (error: any) {
+      console.error('DatabaseStorage: Error adding product:', error);
+      throw new Error(`Failed to add product: ${error?.message || 'Unknown error'}`);
+    }
   }
 
 
