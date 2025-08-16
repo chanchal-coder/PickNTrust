@@ -209,10 +209,13 @@ export default function FeaturedProducts() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Use API data if available, otherwise use fallback data (only featured ones)
-  const displayProducts = products && products.length > 0 
-    ? products 
-    : fallbackProducts.filter(product => product.isFeatured);
+  // Only show real products from API, no fallback data
+  const displayProducts = products && products.length > 0 ? products : [];
+
+  // Don't render the section if there are no products
+  if (!displayProducts || displayProducts.length === 0) {
+    return null;
+  }
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {

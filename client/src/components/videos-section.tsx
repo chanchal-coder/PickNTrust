@@ -114,7 +114,7 @@ export default function VideosSection() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Fetch videos from API (fallback to sample data)
+  // Fetch videos from API (no fallback data)
   const { data: videos } = useQuery<VideoContent[]>({
     queryKey: ['/api/video-content'],
     queryFn: async () => {
@@ -122,9 +122,9 @@ export default function VideosSection() {
         const response = await fetch('/api/video-content');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        return data.length > 0 ? data : sampleVideos;
+        return Array.isArray(data) ? data : [];
       } catch {
-        return sampleVideos;
+        return [];
       }
     },
     retry: 1
@@ -157,7 +157,13 @@ export default function VideosSection() {
     },
   });
 
-  const displayVideos = videos || sampleVideos;
+  // Only show real videos from API, no fallback data
+  const displayVideos = videos && videos.length > 0 ? videos : [];
+
+  // Don't render the section if there are no videos
+  if (!displayVideos || displayVideos.length === 0) {
+    return null;
+  }
 
   const handleDeleteVideo = async (video: VideoContent) => {
     if (window.confirm(`Are you sure you want to delete "${video.title}"?`)) {
