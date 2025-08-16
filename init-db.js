@@ -48,10 +48,61 @@ db.exec(`
     discount INTEGER,
     is_new INTEGER DEFAULT 0,
     is_featured INTEGER DEFAULT 0,
+    is_service INTEGER DEFAULT 0,
+    custom_fields TEXT,
     has_timer INTEGER DEFAULT 0,
     timer_duration INTEGER,
-    timer_start_time TEXT,
+    timer_start_time INTEGER,
     created_at TEXT DEFAULT (datetime('now'))
+  );
+  
+  CREATE TABLE IF NOT EXISTS video_content (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    video_url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    platform TEXT NOT NULL DEFAULT 'YouTube',
+    category TEXT,
+    tags TEXT,
+    duration INTEGER,
+    view_count INTEGER DEFAULT 0,
+    is_featured INTEGER DEFAULT 0,
+    has_timer INTEGER DEFAULT 0,
+    timer_duration INTEGER,
+    timer_start_time INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
+  
+  CREATE TABLE IF NOT EXISTS affiliate_networks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    commission_rate NUMERIC NOT NULL,
+    tracking_params TEXT,
+    logo_url TEXT,
+    is_active INTEGER DEFAULT 1,
+    join_url TEXT
+  );
+  
+  CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    subscribed_at INTEGER DEFAULT (strftime('%s', 'now'))
+  );
+  
+  CREATE TABLE IF NOT EXISTS admin_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    reset_token TEXT,
+    reset_token_expiry INTEGER,
+    last_login INTEGER,
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    is_active INTEGER DEFAULT 1
   );
   
   CREATE TABLE IF NOT EXISTS announcements (
@@ -71,7 +122,7 @@ db.exec(`
     banner_border_width TEXT DEFAULT '0px',
     banner_border_style TEXT DEFAULT 'solid',
     banner_border_color TEXT DEFAULT '#000000',
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at INTEGER DEFAULT (strftime('%s', 'now'))
   );
 `);
 
