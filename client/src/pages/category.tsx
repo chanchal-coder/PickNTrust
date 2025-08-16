@@ -122,7 +122,7 @@ export default function CategoryPage() {
   
   const { data: products, isLoading, error } = useQuery<Product[]>({
     queryKey: ['/api/products/category', category, currentGender],
-    queryFn: async () => {
+    queryFn: async (): Promise<Product[]> => {
       if (!category) throw new Error('No category specified');
       let url = `/api/products/category/${encodeURIComponent(category)}`;
       if (isGenderSpecific) {
@@ -138,9 +138,15 @@ export default function CategoryPage() {
   });
 
   // Fetch all categories for navigation
-  const { data: allCategories = [] } = useQuery({
+  const { data: allCategories = [] } = useQuery<string[]>({
     queryKey: ['/api/categories'],
-    queryFn: () => fetch('/api/categories').then(res => res.json()),
+    queryFn: async (): Promise<string[]> => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      return response.json();
+    },
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Check admin authentication from main admin panel login

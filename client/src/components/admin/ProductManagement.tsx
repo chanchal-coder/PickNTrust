@@ -215,7 +215,7 @@ export default function ProductManagement() {
         description: 'Product added successfully!',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to add product',
@@ -306,7 +306,7 @@ export default function ProductManagement() {
         description: 'Product deleted successfully!',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete product',
