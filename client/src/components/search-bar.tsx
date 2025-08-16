@@ -10,11 +10,25 @@ export default function SearchBar() {
   // Fetch products and categories for search
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products/featured'],
+    queryFn: async () => {
+      const response = await fetch('/api/products/featured');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      return response.json();
+    },
     select: (data) => data || []
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['/api/categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+      return response.json();
+    },
     select: (data) => data || []
   });
 

@@ -169,13 +169,13 @@ export default function FeaturedProducts() {
   const { data: products } = useQuery<Product[]>({
     queryKey: ['/api/products/featured'],
     queryFn: async () => {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/products/featured');
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        throw new Error('Failed to fetch featured products');
       }
       const data = await response.json();
-      // Filter only featured products
-      return (data.products || []).filter((product: Product) => product.isFeatured);
+      // Return the featured products directly from the API
+      return Array.isArray(data) ? data : [];
     },
     retry: 1
   });
