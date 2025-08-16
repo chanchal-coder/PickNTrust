@@ -1,11 +1,36 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import BlogPost from "@/components/blog-post";
+import { useState, useEffect } from "react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { Share2, Calendar, Clock, Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface BlogPostData {
+  id: number;
+  title: string;
+  content: string;
+  excerpt: string;
+  category: string;
+  tags: string[];
+  imageUrl: string;
+  videoUrl?: string;
+  publishedAt: string;
+  readTime: string;
+  slug: string;
+  author?: string;
+}
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [shareUrl, setShareUrl] = useState('');
+
+  // Initialize client-side values after mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareUrl(`${window.location.origin}/blog/${slug}`);
+    }
+  }, [slug]);
 
   // Fetch blog post data from API based on slug
   const { data: blogPost, isLoading, error } = useQuery({
@@ -18,16 +43,14 @@ export default function BlogPostPage() {
       return response.json();
     },
     enabled: !!slug,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes cache (updated from cacheTime)
     retry: 1,
   });
 
   // Sample blog post data - fallback for demo
-  const sampleBlogPost = {
+  const sampleBlogPost: BlogPostData = {
+    id: 1,
     title: "10 Must-Have Gadgets Under ₹999 You Can Buy Today",
-    content: `
-# 10 Must-Have Gadgets Under ₹999 You Can Buy Today
+    content: `# 10 Must-Have Gadgets Under ₹999 You Can Buy Today
 
 Shopping for amazing gadgets doesn't have to break the bank! We've curated a fantastic list of 10 incredible gadgets that you can buy for under ₹999 today. Each of these products offers exceptional value and functionality that will enhance your daily life.
 
@@ -41,9 +64,7 @@ Shopping for amazing gadgets doesn't have to break the bank! We've curated a fan
 - Touch controls for music and calls
 - Quick 10-minute charge gives 2 hours playback
 
-[🛒 Buy Wireless Bluetooth Earbuds - ₹899](https://amzn.to/wireless-earbuds-deal)
-
-![Wireless Bluetooth Earbuds](https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=600&h=400&fit=crop)
+[🛒 Buy Wireless Bluetooth Earbuds - ₹899](https://amazon.in/dp/wireless-earbuds)
 
 ## 2. Portable Power Bank 10000mAh
 
@@ -55,7 +76,7 @@ Shopping for amazing gadgets doesn't have to break the bank! We've curated a fan
 - Ultra-slim design fits in your pocket
 - Built-in safety protection
 
-[🔋 Get Power Bank - ₹799](https://amzn.to/power-bank-10000mah)
+[🔋 Get Power Bank - ₹799](https://amazon.in/dp/power-bank)
 
 ## 3. Smart Fitness Tracker
 
@@ -67,9 +88,7 @@ Shopping for amazing gadgets doesn't have to break the bank! We've curated a fan
 - Step counter and calorie tracker
 - Water reminder notifications
 
-[⌚ Buy Fitness Tracker - ₹949](https://amzn.to/smart-fitness-tracker)
-
-![Smart Fitness Tracker](https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=600&h=400&fit=crop)
+[⌚ Buy Fitness Tracker - ₹949](https://amazon.in/dp/fitness-tracker)
 
 ## 4. USB LED Strip Lights (5 Meters)
 
@@ -81,7 +100,7 @@ Shopping for amazing gadgets doesn't have to break the bank! We've curated a fan
 - Timer function and DIY mode
 - Easy installation with adhesive backing
 
-[💡 Order LED Strip Lights - ₹599](https://amzn.to/usb-led-strip-lights)
+[💡 Order LED Strip Lights - ₹599](https://amazon.in/dp/led-strips)
 
 ## 5. Mini Bluetooth Speaker
 
@@ -93,73 +112,9 @@ Shopping for amazing gadgets doesn't have to break the bank! We've curated a fan
 - Built-in microphone for hands-free calls
 - Supports TF card and AUX input
 
-[🔊 Get Mini Speaker - ₹799](https://amzn.to/mini-bluetooth-speaker)
+[🔊 Get Mini Speaker - ₹799](https://amazon.in/dp/bluetooth-speaker)
 
-## 6. Phone Camera Lens Kit
-
-**Upgrade your smartphone photography** with this professional lens kit that includes wide-angle, macro, and fisheye lenses.
-
-**Photography Enhancement:**
-- 0.6X wide-angle lens for landscape shots
-- 15X macro lens for close-up details
-- 198° fisheye lens for creative effects
-- Universal clip design fits all phones
-
-[📸 Buy Camera Lens Kit - ₹899](https://amzn.to/phone-camera-lens-kit)
-
-![Phone Camera Lens Kit](https://images.unsplash.com/photo-1512790182412-b6ed862d8b1e?w=600&h=400&fit=crop)
-
-## 7. Wireless Charging Pad
-
-**Say goodbye to cables** with this sleek wireless charging pad that works with all Qi-enabled devices.
-
-**Charging Benefits:**
-- Fast 10W wireless charging
-- LED indicator shows charging status
-- Anti-slip design keeps phone secure
-- Over-charge protection for safety
-
-[⚡ Order Wireless Charger - ₹699](https://amzn.to/wireless-charging-pad)
-
-## 8. Smart Digital Weighing Scale
-
-**Track your fitness journey accurately** with this smart scale that connects to your smartphone for detailed analytics.
-
-**Smart Features:**
-- Measures weight, BMI, body fat percentage
-- Connects to fitness apps via Bluetooth
-- Supports multiple user profiles
-- Tempered glass surface with LCD display
-
-[⚖️ Get Smart Scale - ₹899](https://amzn.to/smart-digital-scale)
-
-## 9. Car Phone Mount with Wireless Charging
-
-**Drive safely while staying connected** with this innovative car mount that charges your phone wirelessly while driving.
-
-**Safety Features:**
-- One-hand operation for easy phone placement
-- Auto-clamping arms secure your device
-- 360-degree rotation for perfect viewing angle
-- Compatible with air vents and dashboard
-
-[🚗 Buy Car Mount Charger - ₹999](https://amzn.to/car-phone-mount-wireless)
-
-![Car Phone Mount](https://images.unsplash.com/photo-1549317336-206569e8475c?w=600&h=400&fit=crop)
-
-## 10. Multi-Port USB Hub
-
-**Expand your connectivity options** with this compact USB hub that adds multiple ports to your laptop or desktop.
-
-**Connectivity Options:**
-- 4 USB 3.0 ports for high-speed data transfer
-- Plug-and-play compatibility
-- Compact aluminum design
-- LED indicators for each port
-
-[🔌 Order USB Hub - ₹599](https://amzn.to/multi-port-usb-hub)
-
-## **Why Choose These Gadgets?**
+## Why Choose These Gadgets?
 
 Each of these gadgets has been carefully selected based on:
 - **Exceptional value for money**
@@ -168,7 +123,7 @@ Each of these gadgets has been carefully selected based on:
 - **Reliable brand reputation**
 - **Fast delivery and warranty support**
 
-## **Shopping Tips**
+## Shopping Tips
 
 1. **Check for lightning deals** - Prices can drop further during flash sales
 2. **Read customer reviews** - Real user experiences help make better decisions  
@@ -178,20 +133,96 @@ Each of these gadgets has been carefully selected based on:
 
 **Happy Shopping!** 🛍️
 
-*Disclosure: This post contains affiliate links. When you buy through these links, we earn a small commission at no extra cost to you. This helps us continue providing great content and recommendations.*
-    `,
-    publishDate: "2025-01-25",
-    readTime: "8 min read",
-    featuredImage: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=800&h=600&fit=crop",
+*Disclosure: This post contains affiliate links. When you buy through these links, we earn a small commission at no extra cost to you.*`,
+    excerpt: "Discover amazing tech gadgets that won't break the bank. From wireless earbuds to smart fitness trackers, we've curated the best budget-friendly gadgets for 2024.",
+    category: "Tech",
     tags: ["Gadgets", "Shopping", "Tech", "Budget", "Deals"],
-    author: "PickNTrust Team",
-    slug: slug || "10-must-have-gadgets-under-999"
+    imageUrl: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=800&h=600&fit=crop",
+    publishedAt: "2025-01-25",
+    readTime: "8 min read",
+    slug: slug || "10-must-have-gadgets-under-999",
+    author: "PickNTrust Team"
   };
 
-  // Error state with explicit background colors
+  // Parse Markdown content
+  const parseMarkdown = (text: string) => {
+    let html = text;
+    
+    // Convert headers
+    html = html.replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold text-gray-900 dark:text-blue-400 mt-8 mb-4">$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold text-gray-900 dark:text-blue-400 mt-10 mb-6">$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold text-gray-900 dark:text-blue-400 mt-12 mb-8">$1</h1>');
+    
+    // Convert bold text
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900 dark:text-blue-400">$1</strong>');
+    
+    // Convert links
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 font-semibold underline">$1 🔗</a>');
+    
+    // Convert line breaks to paragraphs
+    const paragraphs = html.split('\n\n');
+    html = paragraphs.map(p => {
+      if (p.trim() === '') return '';
+      if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<ol')) return p;
+      return `<p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('\n');
+    
+    return html;
+  };
+
+  const handleShare = (platform: string) => {
+    if (!shareUrl) return;
+    
+    const postData = blogPost || sampleBlogPost;
+    const shareText = `Check out this amazing article: ${postData.title} - PickNTrust`;
+    
+    let url = '';
+    switch (platform) {
+      case 'whatsapp':
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          url = `whatsapp://send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+        } else {
+          url = `https://web.whatsapp.com/send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+        }
+        break;
+      case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        break;
+      case 'twitter':
+        url = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+        break;
+    }
+    
+    if (url) {
+      window.open(url, '_blank', 'width=600,height=400');
+    }
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+        <Header />
+        <div className="flex-1 pt-20 pb-8">
+          <div className="max-w-4xl mx-auto p-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
+              <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center pt-20 pb-8">
           <div className="max-w-md mx-auto text-center p-8">
@@ -215,45 +246,119 @@ Each of these gadgets has been carefully selected based on:
     );
   }
 
-  // Loading state with explicit background colors
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
-        <Header />
-        <div className="flex-1 pt-20 pb-8">
-          <div className="max-w-4xl mx-auto p-8">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
-              <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
   const postData = blogPost || sampleBlogPost;
 
-  // Main blog post page with explicit background colors
+  // Main blog post page
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Header />
-      <div className="flex-1 pt-20 pb-8">
-        <BlogPost 
-          title={postData?.title || sampleBlogPost.title}
-          content={postData?.content || sampleBlogPost.content}
-          publishDate={postData?.publishedAt || postData?.publishDate || sampleBlogPost.publishDate}
-          readTime={postData?.readTime || sampleBlogPost.readTime}
-          featuredImage={postData?.imageUrl || postData?.featuredImage || sampleBlogPost.featuredImage}
-          videoUrl={postData?.videoUrl}
-          tags={postData?.tags || sampleBlogPost.tags}
-          author={postData?.author || "PickNTrust Team"}
-          slug={slug || 'sample-post'}
-        />
-      </div>
+      
+      <main className="flex-1 pt-20 pb-8">
+        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Hero Section */}
+          <header className="mb-8">
+            {/* Featured Image */}
+            {postData.imageUrl && (
+              <div className="w-full h-[400px] overflow-hidden rounded-xl mb-8">
+                <img 
+                  src={postData.imageUrl} 
+                  alt={postData.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=800&h=600&fit=crop';
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {postData.tags.map((tag: string, index: number) => (
+                <span key={index} className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
+                  <Tag className="w-3 h-3" />
+                  {tag}
+                </span>
+              ))}
+            </div>
+            
+            {/* Title */}
+            <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+              {postData.title}
+            </h1>
+            
+            {/* Meta Information */}
+            <div className="flex flex-wrap items-center gap-6 text-gray-600 dark:text-gray-400 mb-8">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>{new Date(postData.publishedAt).toLocaleDateString('en-IN', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                <span>{postData.readTime}</span>
+              </div>
+              <div className="text-sm">
+                By <span className="font-medium text-gray-900 dark:text-blue-400">{postData.author || "PickNTrust Team"}</span>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="prose prose-lg max-w-none">
+            <div 
+              className="text-gray-700 dark:text-gray-300 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: parseMarkdown(postData.content) }}
+            />
+          </div>
+
+          {/* Share Section */}
+          <footer className="border-t border-gray-200 dark:border-gray-700 mt-12 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <Share2 className="w-5 h-5" />
+                <span className="font-medium">Share this article:</span>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleShare('whatsapp')}
+                  className="hover:bg-green-50 dark:hover:bg-green-900/20"
+                >
+                  <i className="fab fa-whatsapp mr-2"></i>
+                  WhatsApp
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleShare('facebook')}
+                  className="hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                >
+                  <i className="fab fa-facebook mr-2"></i>
+                  Facebook
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleShare('twitter')}
+                  className="hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                >
+                  <i className="fab fa-twitter mr-2"></i>
+                  Twitter
+                </Button>
+              </div>
+            </div>
+          </footer>
+        </article>
+      </main>
+      
       <Footer />
     </div>
   );
