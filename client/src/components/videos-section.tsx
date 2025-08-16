@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 
@@ -95,7 +95,24 @@ const sampleVideos: VideoContent[] = [
 
 export default function VideosSection() {
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Check admin status
+  useEffect(() => {
+    const adminSession = localStorage.getItem('pickntrust-admin-session');
+    setIsAdmin(adminSession === 'active');
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pickntrust-admin-session') {
+        setIsAdmin(e.newValue === 'active');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Fetch videos from API (fallback to sample data)
   const { data: videos } = useQuery<VideoContent[]>({
@@ -113,7 +130,40 @@ export default function VideosSection() {
     retry: 1
   });
 
+  // Delete video mutation
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: number) => {
+      const response = await fetch(`/api/video-content/${videoId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete video');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/video-content'] });
+      toast({
+        title: 'Video Deleted',
+        description: 'Video has been successfully deleted.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete video. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const displayVideos = videos || sampleVideos;
+
+  const handleDeleteVideo = async (video: VideoContent) => {
+    if (window.confirm(`Are you sure you want to delete "${video.title}"?`)) {
+      deleteVideoMutation.mutate(video.id);
+    }
+  };
 
   const handleVideoClick = (video: VideoContent) => {
     window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
@@ -363,20 +413,35 @@ export default function VideosSection() {
                     </div>
                   )}
                   
-                  {/* Date and Watch Button */}
+                  {/* Date and Action Buttons */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {formatDate(video.createdAt)}
                     </span>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleVideoClick(video);
-                      }}
-                      className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-xs"
-                    >
-                      <i className="fas fa-play mr-1"></i>Watch Now
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Admin Delete Button */}
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteVideo(video);
+                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
+                          title="Delete video"
+                        >
+                          <i className="fas fa-trash text-xs"></i>
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVideoClick(video);
+                        }}
+                        className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-xs"
+                      >
+                        <i className="fas fa-play mr-1"></i>Watch Now
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

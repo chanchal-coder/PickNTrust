@@ -113,24 +113,55 @@ export default function ProductManagement() {
   const addProductMutation = useMutation({
     mutationFn: async (productData: any) => {
       const adminPassword = 'pickntrust2025';
+      
+      // Clean and parse price values
+      const cleanPrice = productData.price.toString().replace(/,/g, '');
+      const cleanOriginalPrice = productData.originalPrice ? productData.originalPrice.toString().replace(/,/g, '') : null;
+      
+      // Prepare customFields - convert object to JSON string for storage
+      const customFieldsJson = Object.keys(productData.customFields || {}).length > 0 
+        ? JSON.stringify(productData.customFields) 
+        : null;
+      
+      const payload = {
+        password: adminPassword,
+        name: productData.name,
+        description: productData.description,
+        price: parseFloat(cleanPrice) || 0,
+        originalPrice: cleanOriginalPrice ? parseFloat(cleanOriginalPrice) : null,
+        imageUrl: productData.imageUrl,
+        affiliateUrl: productData.affiliateUrl,
+        category: productData.category,
+        gender: productData.gender || null,
+        rating: parseFloat(productData.rating) || 4.5,
+        reviewCount: parseInt(productData.reviewCount) || 100,
+        discount: productData.discount ? parseInt(productData.discount) : null,
+        isFeatured: Boolean(productData.isFeatured),
+        isNew: false,
+        hasTimer: Boolean(productData.hasTimer),
+        timerDuration: productData.hasTimer ? parseInt(productData.timerDuration) : null,
+        customFields: customFieldsJson
+      };
+
+      console.log('Sending product data:', payload);
+
       const response = await fetch('/api/admin/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          password: adminPassword,
-          ...productData,
-          price: parseFloat(productData.price),
-          originalPrice: productData.originalPrice ? parseFloat(productData.originalPrice) : null,
-          reviewCount: parseInt(productData.reviewCount),
-          rating: parseFloat(productData.rating),
-          discount: productData.discount ? parseInt(productData.discount) : null
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        console.error('Server response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || 'Failed to add product' };
+        }
         throw new Error(errorData.message || 'Failed to add product');
       }
 
@@ -396,7 +427,7 @@ export default function ProductManagement() {
   }
 
   // Filter products based on active tab
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = products.filter((product: Product) => {
     if (activeTab === 'services') {
       // Show only service products
       return product.category === 'Cards, Apps & Services' || 
