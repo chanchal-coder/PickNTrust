@@ -43,6 +43,7 @@ export default function ProductManagement() {
     reviewCount: '100',
     discount: '',
     isFeatured: true,
+    isService: false,
     hasTimer: false,
     timerDuration: '24',
     customFields: {} as Record<string, string>
@@ -142,6 +143,7 @@ export default function ProductManagement() {
         reviewCount: '100',
         discount: '',
         isFeatured: true,
+        isService: false,
         hasTimer: false,
         timerDuration: '24',
         customFields: {}
@@ -195,6 +197,7 @@ export default function ProductManagement() {
           reviewCount: extracted.reviewCount || '100',
           discount: extracted.discount || '',
           isFeatured: true,
+          isService: false,
           hasTimer: false,
           timerDuration: '24',
           customFields: {}
@@ -351,6 +354,7 @@ export default function ProductManagement() {
       reviewCount: product.reviewCount.toString(),
       discount: product.discount?.toString() || '',
       isFeatured: product.isFeatured,
+      isService: false,
       hasTimer: false,
       timerDuration: '24',
       customFields: {}
@@ -609,6 +613,17 @@ export default function ProductManagement() {
                     className="mr-2"
                   />
                   <label htmlFor="featured" className="text-sm font-medium text-blue-300">Featured Product</label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isService"
+                    checked={newProduct.isService}
+                    onChange={(e) => setNewProduct({ ...newProduct, isService: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <label htmlFor="isService" className="text-sm font-medium text-blue-300">💳 Service Product (Cards, Apps & Services)</label>
                 </div>
 
                 <div className="flex items-center">

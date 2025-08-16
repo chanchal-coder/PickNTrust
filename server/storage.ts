@@ -31,6 +31,7 @@ export interface IStorage {
   // Products
   getProducts(): Promise<Product[]>;
   getFeaturedProducts(): Promise<Product[]>;
+  getServiceProducts(): Promise<Product[]>;
   getProductsByCategory(category: string): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   
@@ -98,6 +99,10 @@ export class MemStorage implements IStorage {
   }
 
   async getFeaturedProducts(): Promise<Product[]> {
+    return [];
+  }
+
+  async getServiceProducts(): Promise<Product[]> {
     return [];
   }
 
@@ -271,6 +276,13 @@ export class DatabaseStorage implements IStorage {
     await this.cleanupExpiredProducts();
     
     return await db.select().from(products).where(eq(products.isFeatured, true)).orderBy(desc(products.id));
+  }
+
+  async getServiceProducts(): Promise<Product[]> {
+    // Clean up expired products first
+    await this.cleanupExpiredProducts();
+    
+    return await db.select().from(products).where(eq(products.isService, true)).orderBy(desc(products.id));
   }
 
   async getProductsByCategory(category: string): Promise<Product[]> {

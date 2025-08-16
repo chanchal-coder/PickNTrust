@@ -210,6 +210,34 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // Get service products (filter by timer expiry)
+  app.get("/api/products/services", async (req, res) => {
+    try {
+      const products = await storage.getServiceProducts();
+      
+      // Filter out expired products based on their individual timers
+      const now = new Date();
+      
+      const activeProducts = products.filter(product => {
+        // If product doesn't have timer enabled, keep it
+        if (!product.hasTimer || !product.timerDuration || !product.createdAt) {
+          return true;
+        }
+        
+        // Calculate expiry time based on product's timer duration
+        const productCreatedAt = new Date(product.createdAt);
+        const expiryTime = new Date(productCreatedAt.getTime() + (product.timerDuration * 60 * 60 * 1000));
+        
+        // Keep product if it hasn't expired yet
+        return now < expiryTime;
+      });
+      
+      res.json(activeProducts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch service products" });
+    }
+  });
+
   // Get products by category
   app.get("/api/products/category/:category", async (req, res) => {
     try {

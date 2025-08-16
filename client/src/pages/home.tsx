@@ -1,8 +1,10 @@
 import Header from "@/components/header";
 import Categories from "@/components/categories";
 import FeaturedProducts from "@/components/featured-products";
+import CardsAppsServices from "@/components/cards-apps-services";
 import WhyTrustUs from "@/components/why-trust-us";
 import BlogSection from "@/components/blog-section";
+import VideosSection from "@/components/videos-section";
 import Newsletter from "@/components/newsletter";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
@@ -22,8 +24,10 @@ export default function Home() {
         <HeroBannerSlider />
         <SearchBar />
         <FeaturedProducts />
+        <CardsAppsServices />
         <Categories />
         <BlogSection />
+        <VideosSection />
         <WhyTrustUs />
         <Newsletter />
       </div>

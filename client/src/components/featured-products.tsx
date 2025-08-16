@@ -416,11 +416,11 @@ export default function FeaturedProducts() {
             <i className="fas fa-chevron-right text-lg"></i>
           </button>
 
-          {/* Scrollable Products Container - Single Row */}
+          {/* Desktop: Scrollable Products Container - Single Row */}
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="flex gap-4 overflow-x-auto pb-6 px-12 md:px-16"
+            className="hidden md:flex gap-4 overflow-x-auto pb-6 px-12 md:px-16"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none'
@@ -590,6 +590,137 @@ export default function FeaturedProducts() {
                   <p className="text-[10px] text-gray-400 text-center mt-1">
                     🔗 Affiliate Link - We earn from purchases
                   </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile: Vertical Grid Layout */}
+          <div className="md:hidden grid grid-cols-1 gap-4">
+            {displayProducts.slice(0, 6).map((product: Product, index: number) => (
+              <div 
+                key={product.id}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700"
+              >
+                <div className="flex">
+                  {/* Product Image */}
+                  <div className="w-24 h-24 flex-shrink-0 relative">
+                    <img 
+                      src={product.imageUrl} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover rounded-l-xl" 
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400';
+                      }}
+                    />
+                    {/* Discount Badge */}
+                    {product.discount && (
+                      <div className="absolute top-1 left-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-xs font-bold">
+                        -{product.discount}%
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product Content */}
+                  <div className="flex-1 p-3 flex flex-col justify-between">
+                    <div>
+                      {/* Product Name */}
+                      <h4 className="font-bold text-sm text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">
+                        {product.name}
+                      </h4>
+                      
+                      {/* Price */}
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-lg font-bold text-purple-600 dark:text-purple-400">₹{product.price}</span>
+                        {product.originalPrice && (
+                          <span className="text-gray-500 line-through text-sm">₹{product.originalPrice}</span>
+                        )}
+                      </div>
+
+                      {/* Timer Message (if hasTimer) */}
+                      {product.hasTimer && product.timerDuration && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-2 mb-2">
+                          <p className="text-red-600 dark:text-red-400 text-xs font-medium">
+                            ⏰ Limited Time: {product.timerDuration}h left!
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pick Now Button */}
+                    <button 
+                      onClick={() => handleAffiliateClick(product)}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-3 rounded-lg transition-all duration-300 text-xs"
+                    >
+                      Pick Now
+                    </button>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col justify-start items-center p-2 space-y-2">
+                    {/* Wishlist Button */}
+                    <button
+                      onClick={() => handleWishlistToggle(product)}
+                      className={`p-1.5 rounded-full shadow-sm transition-colors ${
+                        isInWishlist(product.id) 
+                          ? 'bg-red-500 text-white hover:bg-red-600' 
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-red-500'
+                      }`}
+                      title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                    >
+                      <i className="fas fa-heart text-xs"></i>
+                    </button>
+
+                    {/* Share Button */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
+                        className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full shadow-sm transition-colors"
+                        title="Share product"
+                      >
+                        <i className="fas fa-share text-xs"></i>
+                      </button>
+                      
+                      {/* Share Menu */}
+                      {showShareMenu[product.id] && (
+                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-1 z-50 min-w-[140px]">
+                          <button
+                            onClick={() => handleShare('facebook', product)}
+                            className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded w-full text-left text-gray-700 dark:text-gray-300"
+                          >
+                            <i className="fab fa-facebook text-blue-600"></i>
+                            Facebook
+                          </button>
+                          <button
+                            onClick={() => handleShare('whatsapp', product)}
+                            className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-green-50 dark:hover:bg-green-900/20 rounded w-full text-left text-gray-700 dark:text-gray-300"
+                          >
+                            <i className="fab fa-whatsapp text-green-600"></i>
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={() => handleShare('instagram', product)}
+                            className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded w-full text-left text-gray-700 dark:text-gray-300"
+                          >
+                            <i className="fab fa-instagram text-purple-600"></i>
+                            Instagram
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Delete Button - Only for admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-sm transition-colors"
+                        title="Delete product"
+                      >
+                        <i className="fas fa-trash text-xs"></i>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

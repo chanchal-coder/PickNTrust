@@ -30,6 +30,7 @@ export const products = sqliteTable("products", {
   discount: integer("discount"), // percentage
   isNew: integer("is_new", { mode: 'boolean' }).default(false),
   isFeatured: integer("is_featured", { mode: 'boolean' }).default(false),
+  isService: integer("is_service", { mode: 'boolean' }).default(false), // Whether to show in Cards, Apps & Services section
   hasTimer: integer("has_timer", { mode: 'boolean' }).default(false), // Whether to show timer
   timerDuration: integer("timer_duration"), // Duration in hours (null = no timer)
   timerStartTime: integer("timer_start_time", { mode: 'timestamp' }), // When the timer started (null = no timer)

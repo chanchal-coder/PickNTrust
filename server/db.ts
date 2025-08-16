@@ -80,6 +80,7 @@ try {
           discount INTEGER,
           is_new INTEGER DEFAULT 0,
           is_featured INTEGER DEFAULT 0,
+          is_service INTEGER DEFAULT 0,
           has_timer INTEGER DEFAULT 0,
           timer_duration INTEGER,
           timer_start_time INTEGER,
