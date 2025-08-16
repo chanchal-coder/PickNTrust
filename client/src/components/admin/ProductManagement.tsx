@@ -133,11 +133,9 @@ export default function ProductManagement() {
   // Add product mutation
   const addProductMutation = useMutation({
     mutationFn: async (productData: any) => {
-      const adminPassword = 'pickntrust2025';
-      
-      // Clean and parse price values
-      const cleanPrice = productData.price.toString().replace(/,/g, '');
-      const cleanOriginalPrice = productData.originalPrice ? productData.originalPrice.toString().replace(/,/g, '') : null;
+      // Clean and parse price values safely
+      const cleanPrice = productData.price ? productData.price.toString().replace(/[^\d.]/g, '') : '0';
+      const cleanOriginalPrice = productData.originalPrice ? productData.originalPrice.toString().replace(/[^\d.]/g, '') : null;
       
       // Prepare customFields - convert object to JSON string for storage
       const customFieldsJson = Object.keys(productData.customFields || {}).length > 0 
@@ -145,19 +143,20 @@ export default function ProductManagement() {
         : null;
       
       const payload = {
-        password: adminPassword,
-        name: productData.name,
-        description: productData.description,
+        password: 'pickntrust2025',
+        name: productData.name.trim(),
+        description: productData.description.trim(),
         price: parseFloat(cleanPrice) || 0,
         originalPrice: cleanOriginalPrice ? parseFloat(cleanOriginalPrice) : null,
-        imageUrl: productData.imageUrl,
-        affiliateUrl: productData.affiliateUrl,
+        imageUrl: productData.imageUrl.trim(),
+        affiliateUrl: productData.affiliateUrl.trim(),
         category: productData.category,
         gender: productData.gender || null,
         rating: parseFloat(productData.rating) || 4.5,
         reviewCount: parseInt(productData.reviewCount) || 100,
         discount: productData.discount ? parseInt(productData.discount) : null,
         isFeatured: Boolean(productData.isFeatured),
+        isService: Boolean(productData.isService),
         isNew: false,
         hasTimer: Boolean(productData.hasTimer),
         timerDuration: productData.hasTimer ? parseInt(productData.timerDuration) : null,

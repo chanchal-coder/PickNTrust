@@ -15,7 +15,7 @@ interface VideoContent {
   title: string;
   description?: string;
   category?: string;
-  tags?: string;
+  tags?: string[];
   videoUrl: string;
   thumbnailUrl?: string;
   platform: string;
@@ -24,7 +24,7 @@ interface VideoContent {
   createdAt: string;
   customFields?: Record<string, string>;
   hasTimer?: boolean;
-  timerDuration?: string;
+  timerDuration?: number | null;
 }
 
 interface CustomField {
@@ -106,6 +106,13 @@ export default function VideoContentManager() {
       icon: <div className="w-5 h-5 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">f</div>,
       color: 'bg-blue-600',
       placeholder: 'https://www.facebook.com/watch/?v=...'
+    },
+    {
+      id: 'file-upload',
+      name: 'File Upload',
+      icon: <Upload className="w-5 h-5" />,
+      color: 'bg-green-600',
+      placeholder: 'Upload video file from device'
     }
   ];
 
@@ -329,23 +336,47 @@ export default function VideoContentManager() {
   // Add video content mutation
   const addVideoMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Process tags safely
+      let processedTags = [];
+      if (data.tags && typeof data.tags === 'string') {
+        processedTags = data.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+      } else if (Array.isArray(data.tags)) {
+        processedTags = data.tags;
+      }
+
+      const payload = {
+        password: 'pickntrust2025',
+        title: data.title,
+        description: data.description || '',
+        category: data.category || '',
+        tags: processedTags,
+        videoUrl: data.videoUrl,
+        thumbnailUrl: data.thumbnailUrl || '',
+        platform: data.platform,
+        duration: data.duration || '',
+        hasTimer: Boolean(data.hasTimer),
+        timerDuration: data.hasTimer ? parseInt(data.timerDuration) : null
+      };
+
+      console.log('Sending video data:', payload);
+
       const response = await fetch('/api/admin/video-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          password: 'pickntrust2025',
-          ...data,
-          tags: data.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0),
-          createdAt: new Date().toISOString(),
-          hasTimer: data.hasTimer,
-          timerDuration: data.hasTimer ? data.timerDuration : null
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        console.error('Server response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || 'Failed to add video content' };
+        }
         throw new Error(errorData.message || 'Failed to add video content');
       }
 
@@ -434,7 +465,7 @@ export default function VideoContentManager() {
       duration: video.duration || '',
       customFields: video.customFields || {},
       hasTimer: video.hasTimer || false,
-      timerDuration: video.timerDuration || '24'
+      timerDuration: video.timerDuration ? video.timerDuration.toString() : '24'
     });
     
     // Set the active tab to match the video's platform

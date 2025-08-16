@@ -25,7 +25,29 @@ import {
   type InsertVideoContent
 } from "../shared/sqlite-schema.js";
 import { db } from "./db.js";
-import { eq, desc, ne, sql } from "drizzle-orm";
+import { eq, desc, ne, and, lt } from "drizzle-orm";
+
+// Utility functions for consistent timestamp handling
+const toUnixTimestamp = (date: Date): number => Math.floor(date.getTime() / 1000);
+const fromUnixTimestamp = (timestamp: number): Date => new Date(timestamp * 1000);
+
+// Validation helpers
+const validateProduct = (product: any): void => {
+  if (!product.name?.trim()) throw new Error('Product name is required');
+  if (typeof product.price !== 'number' || product.price < 0) throw new Error('Valid price is required');
+  if (product.rating && (product.rating < 1 || product.rating > 5)) throw new Error('Rating must be between 1 and 5');
+};
+
+const validateVideoContent = (video: any): void => {
+  if (!video.title?.trim()) throw new Error('Video title is required');
+  if (!video.videoUrl?.trim()) throw new Error('Video URL is required');
+  if (!video.platform?.trim()) throw new Error('Platform is required');
+};
+
+const validateBlogPost = (blog: any): void => {
+  if (!blog.title?.trim()) throw new Error('Blog title is required');
+  if (!blog.content?.trim()) throw new Error('Blog content is required');
+};
 
 export interface IStorage {
   // Products
@@ -399,28 +421,39 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('DatabaseStorage: Adding product with data:', product);
       
+      // Validate input data
+      validateProduct(product);
+      
+      // Normalize numeric values
+      const price = typeof product.price === 'string' ? parseFloat(product.price.replace(/[^\d.]/g, '')) : product.price;
+      const originalPrice = product.originalPrice ? 
+        (typeof product.originalPrice === 'string' ? parseFloat(product.originalPrice.replace(/[^\d.]/g, '')) : product.originalPrice) : null;
+      const rating = typeof product.rating === 'string' ? parseFloat(product.rating) : product.rating;
+      const reviewCount = typeof product.reviewCount === 'string' ? parseInt(product.reviewCount) : product.reviewCount;
+      
       // Handle timer logic and data transformation
+      const now = new Date();
       const productData = {
-        name: product.name || '',
-        description: product.description || '',
-        price: product.price || 0,
-        originalPrice: product.originalPrice || null,
-        imageUrl: product.imageUrl || '',
-        affiliateUrl: product.affiliateUrl || '',
+        name: product.name.trim(),
+        description: product.description?.trim() || '',
+        price: price || 0,
+        originalPrice: originalPrice,
+        imageUrl: product.imageUrl?.trim() || '',
+        affiliateUrl: product.affiliateUrl?.trim() || '',
         affiliateNetworkId: product.affiliateNetworkId || null,
         category: product.category || '',
         gender: product.gender || null,
-        rating: product.rating || 4.5,
-        reviewCount: product.reviewCount || 100,
-        discount: product.discount || null,
-        isNew: product.isNew || false,
-        isFeatured: product.isFeatured !== undefined ? product.isFeatured : true,
-        isService: product.isService || false,
-        customFields: product.customFields || null,
-        hasTimer: product.hasTimer || false,
-        timerDuration: product.hasTimer ? product.timerDuration : null,
-        timerStartTime: product.hasTimer ? new Date() : null,
-        createdAt: new Date()
+        rating: rating || 4.5,
+        reviewCount: reviewCount || 100,
+        discount: product.discount ? parseInt(product.discount.toString()) : null,
+        isNew: Boolean(product.isNew),
+        isFeatured: product.isFeatured !== undefined ? Boolean(product.isFeatured) : true,
+        isService: Boolean(product.isService),
+        customFields: typeof product.customFields === 'object' ? JSON.stringify(product.customFields) : product.customFields,
+        hasTimer: Boolean(product.hasTimer),
+        timerDuration: product.hasTimer ? parseInt(product.timerDuration?.toString() || '24') : null, // Keep in hours for now
+        timerStartTime: product.hasTimer ? now : null,
+        createdAt: now
       };
 
       console.log('DatabaseStorage: Transformed product data:', productData);

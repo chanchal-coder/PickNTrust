@@ -2,6 +2,40 @@ import { useState, useEffect } from 'react';
 import { Share2, Calendar, Clock, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Simple HTML sanitizer to prevent XSS
+const sanitizeHtml = (html: string): string => {
+  // Create a temporary div to parse HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  
+  // Remove script tags and event handlers
+  const scripts = temp.querySelectorAll('script');
+  scripts.forEach(script => script.remove());
+  
+  // Remove dangerous attributes
+  const allElements = temp.querySelectorAll('*');
+  allElements.forEach(element => {
+    // Remove event handler attributes
+    Array.from(element.attributes).forEach(attr => {
+      if (attr.name.startsWith('on') || attr.name === 'javascript:') {
+        element.removeAttribute(attr.name);
+      }
+    });
+    
+    // Only allow safe attributes for links
+    if (element.tagName === 'A') {
+      const allowedAttrs = ['href', 'target', 'rel', 'style', 'class'];
+      Array.from(element.attributes).forEach(attr => {
+        if (!allowedAttrs.includes(attr.name)) {
+          element.removeAttribute(attr.name);
+        }
+      });
+    }
+  });
+  
+  return temp.innerHTML;
+};
+
 interface BlogPostProps {
   title: string;
   content: string;
@@ -27,6 +61,16 @@ export default function BlogPost({
 }: BlogPostProps) {
   const [isSticky, setIsSticky] = useState(false);
   const [shareSticky, setShareSticky] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [currentHostname, setCurrentHostname] = useState('');
+
+  // Initialize client-side values after mount to avoid SSR issues
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareUrl(`${window.location.origin}/blog/${slug}`);
+      setCurrentHostname(window.location.hostname);
+    }
+  }, [slug]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -150,14 +194,14 @@ export default function BlogPost({
         return {
           platform: 'twitch',
           id: videoId,
-          embedUrl: `https://player.twitch.tv/?video=${videoId}&parent=${window.location.hostname}`,
+          embedUrl: `https://player.twitch.tv/?video=${videoId}&parent=${currentHostname || 'localhost'}`,
           thumbnailUrl: undefined
         };
       } else if (clipId) {
         return {
           platform: 'twitch',
           id: clipId,
-          embedUrl: `https://clips.twitch.tv/embed?clip=${clipId}&parent=${window.location.hostname}`,
+          embedUrl: `https://clips.twitch.tv/embed?clip=${clipId}&parent=${currentHostname || 'localhost'}`,
           thumbnailUrl: undefined
         };
       }
@@ -303,7 +347,7 @@ export default function BlogPost({
                 controls
                 className="w-full h-auto"
                 preload="metadata"
-                poster={videoInfo.thumbnailUrl}
+                {...(videoInfo.thumbnailUrl && { poster: videoInfo.thumbnailUrl })}
               >
                 Your browser does not support the video tag.
               </video>
@@ -351,92 +395,97 @@ export default function BlogPost({
     }
   };
 
-  // Parse Markdown content
+  // Parse Markdown content with proper list handling
   const parseMarkdown = (text: string) => {
     const lines = text.split('\n');
     let html = '';
     let inOrderedList = false;
-    let listItems: string[] = [];
+    let inUnorderedList = false;
+    let orderedListItems: string[] = [];
+    let unorderedListItems: string[] = [];
+    
+    const flushLists = () => {
+      if (inOrderedList) {
+        html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${orderedListItems.join('')}</ol>`;
+        orderedListItems = [];
+        inOrderedList = false;
+      }
+      if (inUnorderedList) {
+        html += `<ul class="list-disc list-inside space-y-2 mb-6 ml-4 text-gray-700 dark:text-gray-300">${unorderedListItems.join('')}</ul>`;
+        unorderedListItems = [];
+        inUnorderedList = false;
+      }
+    };
     
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i].trim();
       
       if (line.startsWith('### ')) {
-        if (inOrderedList) {
-          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-          listItems = [];
-          inOrderedList = false;
-        }
+        flushLists();
         html += `<h3 class="text-xl font-semibold text-gray-900 dark:text-blue-400 mt-8 mb-4">${line.substring(4)}</h3>`;
       } else if (line.startsWith('## ')) {
-        if (inOrderedList) {
-          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-          listItems = [];
-          inOrderedList = false;
-        }
+        flushLists();
         html += `<h2 class="text-2xl font-bold text-gray-900 dark:text-blue-400 mt-10 mb-6">${line.substring(3)}</h2>`;
       } else if (line.startsWith('# ')) {
-        if (inOrderedList) {
-          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-          listItems = [];
-          inOrderedList = false;
-        }
+        flushLists();
         html += `<h1 class="text-3xl font-bold text-gray-900 dark:text-blue-400 mt-12 mb-8">${line.substring(2)}</h1>`;
       } else if (line.match(/^\d+\.\s+/)) {
+        if (inUnorderedList) {
+          html += `<ul class="list-disc list-inside space-y-2 mb-6 ml-4 text-gray-700 dark:text-gray-300">${unorderedListItems.join('')}</ul>`;
+          unorderedListItems = [];
+          inUnorderedList = false;
+        }
         const content = line.replace(/^\d+\.\s+/, '');
         if (!inOrderedList) {
           inOrderedList = true;
         }
-        listItems.push(`<li class="mb-3 pl-2 text-gray-700 dark:text-gray-300">${content}</li>`);
+        orderedListItems.push(`<li class="mb-3 pl-2 text-gray-700 dark:text-gray-300">${content}</li>`);
       } else if (line.startsWith('- ')) {
         if (inOrderedList) {
-          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-          listItems = [];
+          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${orderedListItems.join('')}</ol>`;
+          orderedListItems = [];
           inOrderedList = false;
         }
-        html += `<li class="mb-2 ml-4 text-gray-700 dark:text-gray-300">${line.substring(2)}</li>`;
+        const content = line.substring(2);
+        if (!inUnorderedList) {
+          inUnorderedList = true;
+        }
+        unorderedListItems.push(`<li class="mb-2 pl-2 text-gray-700 dark:text-gray-300">${content}</li>`);
       } else if (line === '') {
-        if (inOrderedList) {
-          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-          listItems = [];
-          inOrderedList = false;
-        }
+        flushLists();
         html += '<br>';
       } else if (line.length > 0) {
-        if (inOrderedList) {
-          html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-          listItems = [];
-          inOrderedList = false;
-        }
+        flushLists();
         html += `<p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">${line}</p>`;
       }
     }
     
-    if (inOrderedList) {
-      html += `<ol class="list-decimal list-inside space-y-3 mb-6 ml-4 text-gray-700 dark:text-gray-300">${listItems.join('')}</ol>`;
-    }
+    // Flush any remaining lists
+    flushLists();
     
-    // Process markdown-style links
+    // Process markdown-style links with proper rel attributes
     html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, linkText, url) => {
       const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly') || url.includes('affiliate');
       const baseStyle = 'color: #2563eb; text-decoration: underline; cursor: pointer; display: inline; pointer-events: auto;';
+      const relAttr = isAffiliate ? 'noopener noreferrer nofollow sponsored' : 'noopener noreferrer';
       
       if (isAffiliate) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600; margin: 2px;">${linkText} 🔗</a>`;
+        return `<a href="${url}" target="_blank" rel="${relAttr}" style="${baseStyle} background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600; margin: 2px;">${linkText} 🔗</a>`;
       } else {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} font-weight: 500;">${linkText}</a>`;
+        return `<a href="${url}" target="_blank" rel="${relAttr}" style="${baseStyle} font-weight: 500;">${linkText}</a>`;
       }
     });
     
-    // Process plain URLs
+    // Process plain URLs with proper rel attributes
     html = html.replace(/(^|[^"'>])(https?:\/\/[^\s<>&"']+)/g, (match, prefix, url) => {
       const isAffiliate = url.includes('amazon') || url.includes('flipkart') || url.includes('amzn.to') || url.includes('bit.ly') || url.includes('affiliate');
       const baseStyle = 'color: #2563eb; text-decoration: underline; cursor: pointer; display: inline; pointer-events: auto; word-break: break-all;';
+      const relAttr = isAffiliate ? 'noopener noreferrer nofollow sponsored' : 'noopener noreferrer';
       
       if (isAffiliate) {
-        return `${prefix}<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600; margin: 2px;">${url} 🔗</a>`;
+        return `${prefix}<a href="${url}" target="_blank" rel="${relAttr}" style="${baseStyle} background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #dbeafe; font-weight: 600; margin: 2px;">${url} 🔗</a>`;
       } else {
-        return `${prefix}<a href="${url}" target="_blank" rel="noopener noreferrer" style="${baseStyle} font-weight: 500;">${url}</a>`;
+        return `${prefix}<a href="${url}" target="_blank" rel="${relAttr}" style="${baseStyle} font-weight: 500;">${url}</a>`;
       }
     });
     
@@ -449,14 +498,21 @@ export default function BlogPost({
     return html;
   };
 
-  const shareUrl = `${window.location.origin}/blog/${slug}`;
   const shareText = `Check out this amazing article: ${title} - PickNTrust`;
 
   const handleShare = (platform: string) => {
+    if (!shareUrl) return; // Don't share if URL isn't ready
+    
     let url = '';
     switch (platform) {
       case 'whatsapp':
-        url = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
+        // Use proper WhatsApp share URL
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          url = `whatsapp://send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+        } else {
+          url = `https://web.whatsapp.com/send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+        }
         break;
       case 'facebook':
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
@@ -464,9 +520,32 @@ export default function BlogPost({
       case 'twitter':
         url = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
         break;
+      case 'instagram':
+        // Instagram doesn't support web sharing, copy to clipboard
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(`${shareText} ${shareUrl}`).then(() => {
+              alert('Content copied to clipboard! You can now paste it on Instagram.');
+            }).catch(() => {
+              alert(`Please copy this text to share on Instagram:\n\n${shareText} ${shareUrl}`);
+            });
+          } else {
+            alert(`Please copy this text to share on Instagram:\n\n${shareText} ${shareUrl}`);
+          }
+        } catch (error) {
+          alert(`Please copy this text to share on Instagram:\n\n${shareText} ${shareUrl}`);
+        }
+        return;
     }
+    
     if (url) {
-      window.open(url, '_blank', 'width=600,height=400');
+      try {
+        window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
+      } catch (error) {
+        console.warn('Failed to open share window:', error);
+        // Fallback: try to navigate directly
+        window.open(url, '_blank');
+      }
     }
   };
 
@@ -538,7 +617,7 @@ export default function BlogPost({
       <main className="px-8 lg:px-12 pb-12">
         <div 
           className="blog-content max-w-none text-base leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(parseMarkdown(content)) }}
         />
       </main>
 
@@ -553,8 +632,9 @@ export default function BlogPost({
             onClick={() => handleShare('whatsapp')}
             className="w-10 h-10 rounded-full p-0 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600"
             title="Share on WhatsApp"
+            aria-label="Share article on WhatsApp"
           >
-            <i className="fab fa-whatsapp text-lg"></i>
+            <i className="fab fa-whatsapp text-lg" aria-hidden="true"></i>
           </Button>
           
           <Button
@@ -563,8 +643,9 @@ export default function BlogPost({
             onClick={() => handleShare('facebook')}
             className="w-10 h-10 rounded-full p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
             title="Share on Facebook"
+            aria-label="Share article on Facebook"
           >
-            <i className="fab fa-facebook text-lg"></i>
+            <i className="fab fa-facebook text-lg" aria-hidden="true"></i>
           </Button>
           
           <Button
@@ -573,9 +654,10 @@ export default function BlogPost({
             onClick={() => handleShare('twitter')}
             className="w-10 h-10 rounded-full p-0 hover:bg-gray-50 dark:hover:bg-gray-800 text-black dark:text-white"
             title="Share on X (Twitter)"
+            aria-label="Share article on X (formerly Twitter)"
           >
             <div className="w-5 h-5 bg-black dark:bg-white rounded-sm flex items-center justify-center">
-              <span className="text-white dark:text-black text-sm font-bold">𝕏</span>
+              <span className="text-white dark:text-black text-sm font-bold" aria-hidden="true">𝕏</span>
             </div>
           </Button>
         </div>
@@ -595,8 +677,9 @@ export default function BlogPost({
               size="sm"
               onClick={() => handleShare('whatsapp')}
               className="hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-400"
+              aria-label="Share article on WhatsApp"
             >
-              <i className="fab fa-whatsapp mr-2"></i>
+              <i className="fab fa-whatsapp mr-2" aria-hidden="true"></i>
               WhatsApp
             </Button>
             
@@ -605,8 +688,9 @@ export default function BlogPost({
               size="sm"
               onClick={() => handleShare('facebook')}
               className="hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-400"
+              aria-label="Share article on Facebook"
             >
-              <i className="fab fa-facebook mr-2"></i>
+              <i className="fab fa-facebook mr-2" aria-hidden="true"></i>
               Facebook
             </Button>
             
@@ -615,8 +699,9 @@ export default function BlogPost({
               size="sm"
               onClick={() => handleShare('twitter')}
               className="hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-500 dark:hover:text-blue-400"
+              aria-label="Share article on X (formerly Twitter)"
             >
-              <i className="fab fa-twitter mr-2"></i>
+              <i className="fab fa-twitter mr-2" aria-hidden="true"></i>
               Twitter
             </Button>
           </div>
