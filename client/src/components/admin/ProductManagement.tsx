@@ -317,14 +317,63 @@ export default function ProductManagement() {
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name.trim() || !newProduct.price) {
+    
+    // Enhanced validation with detailed error messages
+    if (!newProduct.name.trim()) {
       toast({
-        title: 'Error',
-        description: 'Product name and price are required',
+        title: 'Validation Error',
+        description: 'Product name is required',
         variant: 'destructive',
       });
       return;
     }
+    
+    if (!newProduct.price) {
+      toast({
+        title: 'Validation Error',
+        description: 'Product price is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!newProduct.category) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a category',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!newProduct.description.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Product description is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!newProduct.imageUrl.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Product image URL is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!newProduct.affiliateUrl.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Affiliate URL is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    console.log('Form validation passed. Submitting product:', newProduct);
     addProductMutation.mutate(newProduct);
   };
 
