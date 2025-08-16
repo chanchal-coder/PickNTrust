@@ -500,9 +500,16 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
+      // Handle customFields - convert object to JSON string for storage
+      let customFieldsJson = null;
+      if (productData.customFields && typeof productData.customFields === 'object') {
+        customFieldsJson = JSON.stringify(productData.customFields);
+      }
+
       // Ensure products are visible by default with all necessary flags
       const enhancedProductData = {
         ...productData,
+        customFields: customFieldsJson,
         isFeatured: productData.isFeatured !== undefined ? productData.isFeatured : true,
         isApproved: productData.isApproved !== undefined ? productData.isApproved : true,
         status: productData.status || 'active',

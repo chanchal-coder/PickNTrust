@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
@@ -215,6 +215,12 @@ export default function CardsAppsServices() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Check if user is admin (simple check - in production use proper auth)
+  const isAdmin = window.location.pathname.includes('/admin') || 
+                  localStorage.getItem('isAdmin') === 'true' ||
+                  window.location.search.includes('admin=true');
 
   // Fetch cards/apps/services from API (fallback to sample data)
   const { data: services } = useQuery<Product[]>({
@@ -291,6 +297,47 @@ export default function CardsAppsServices() {
         title: "Added to wishlist",
         description: `${service.name} added to your wishlist`,
       });
+    }
+  };
+
+  // Delete service mutation
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (serviceId: number) => {
+      const adminPassword = 'pickntrust2025';
+      const response = await fetch(`/api/admin/products/${serviceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete service');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products/services'] });
+      toast({
+        title: 'Success',
+        description: 'Service deleted successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete service',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleDeleteService = (serviceId: number) => {
+    if (confirm('Are you sure you want to delete this service?')) {
+      deleteServiceMutation.mutate(serviceId);
     }
   };
 
@@ -443,8 +490,8 @@ export default function CardsAppsServices() {
                 
                 {/* Service Content */}
                 <div className="p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white space-y-2 relative">
-                  {/* Share Button - Top Right */}
-                  <div className="absolute top-2 right-2">
+                  {/* Action Buttons - Top Right */}
+                  <div className="absolute top-2 right-2 flex gap-1">
                     <div className="relative">
                       <button
                         onClick={() => setShowShareMenu(prev => ({...prev, [service.id]: !prev[service.id]}))}
@@ -490,6 +537,17 @@ export default function CardsAppsServices() {
                         </div>
                       )}
                     </div>
+
+                    {/* Delete Button - Only for admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteService(service.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Delete service"
+                      >
+                        <i className="fas fa-trash text-xs"></i>
+                      </button>
+                    )}
                   </div>
 
                   {/* Discount Badge */}
@@ -551,102 +609,97 @@ export default function CardsAppsServices() {
             ))}
           </div>
 
-          {/* Mobile: Vertical Grid Layout */}
-          <div className="md:hidden grid grid-cols-1 gap-4">
-            {displayServices.slice(0, 6).map((service: Product, index: number) => (
+          {/* Mobile: Horizontal Scrolling with Smaller Cards */}
+          <div className="md:hidden flex gap-3 overflow-x-auto pb-4 px-2">
+            {displayServices.map((service: Product, index: number) => (
               <div 
                 key={service.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700"
+                className="flex-shrink-0 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700"
               >
-                <div className="flex">
-                  {/* Service Image */}
-                  <div className="w-24 h-24 flex-shrink-0 relative">
-                    <img 
-                      src={service.imageUrl} 
-                      alt={service.name} 
-                      className="w-full h-full object-cover rounded-l-xl" 
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&q=80`;
-                      }}
-                    />
-                    {/* Discount Badge */}
-                    {service.discount && (
-                      <div className="absolute top-1 left-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-xs font-bold">
-                        -{service.discount}%
-                      </div>
+                {/* Service Image */}
+                <div className="relative">
+                  <img 
+                    src={service.imageUrl} 
+                    alt={service.name} 
+                    className="w-full h-32 object-cover" 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&q=80`;
+                    }}
+                  />
+                  {/* Discount Badge */}
+                  {service.discount && (
+                    <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                      -{service.discount}%
+                    </div>
+                  )}
+                  {/* Wishlist Button */}
+                  <button
+                    onClick={() => handleWishlistToggle(service)}
+                    className={`absolute top-2 right-2 p-1.5 rounded-full shadow-sm transition-colors ${
+                      isInWishlist(service.id) 
+                        ? 'bg-red-500 text-white hover:bg-red-600' 
+                        : 'bg-white text-gray-400 hover:text-red-500'
+                    }`}
+                    title={isInWishlist(service.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                  >
+                    <i className="fas fa-heart text-xs"></i>
+                  </button>
+                </div>
+
+                {/* Service Content */}
+                <div className="p-3">
+                  {/* Service Name */}
+                  <h4 className="font-bold text-sm text-gray-900 dark:text-white leading-tight mb-2 line-clamp-2">
+                    {service.name}
+                  </h4>
+                  
+                  {/* Price */}
+                  <div className="flex items-center space-x-2 mb-3">
+                    {service.price === '0' ? (
+                      <span className="text-lg font-bold text-green-600 dark:text-green-400">FREE</span>
+                    ) : (
+                      <>
+                        <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">₹{service.price}</span>
+                        {service.originalPrice && (
+                          <span className="text-gray-500 line-through text-sm">₹{service.originalPrice}</span>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  {/* Service Content */}
-                  <div className="flex-1 p-3 flex flex-col justify-between">
-                    <div>
-                      {/* Service Name */}
-                      <h4 className="font-bold text-sm text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">
-                        {service.name}
-                      </h4>
-                      
-                      {/* Price */}
-                      <div className="flex items-center space-x-2 mb-2">
-                        {service.price === '0' ? (
-                          <span className="text-lg font-bold text-green-600 dark:text-green-400">FREE</span>
-                        ) : (
-                          <>
-                            <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">₹{service.price}</span>
-                            {service.originalPrice && (
-                              <span className="text-gray-500 line-through text-sm">₹{service.originalPrice}</span>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {/* Timer Message (if hasTimer) */}
-                      {service.hasTimer && service.timerDuration && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-2 mb-2">
-                          <p className="text-red-600 dark:text-red-400 text-xs font-medium">
-                            ⏰ Limited Time: {service.timerDuration}h left!
-                          </p>
-                        </div>
-                      )}
+                  {/* Timer Message (if hasTimer) */}
+                  {service.hasTimer && service.timerDuration && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-2 mb-3">
+                      <p className="text-red-600 dark:text-red-400 text-xs font-medium">
+                        ⏰ {service.timerDuration}h left!
+                      </p>
                     </div>
+                  )}
 
-                    {/* Pick Now Button */}
-                    <button 
-                      onClick={() => handleAffiliateClick(service)}
-                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2 px-3 rounded-lg transition-all duration-300 text-xs"
-                    >
-                      Pick Now
-                    </button>
-                  </div>
+                  {/* Pick Now Button */}
+                  <button 
+                    onClick={() => handleAffiliateClick(service)}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2 px-3 rounded-lg transition-all duration-300 text-sm mb-2"
+                  >
+                    Pick Now
+                  </button>
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col justify-start items-center p-2 space-y-2">
-                    {/* Wishlist Button */}
-                    <button
-                      onClick={() => handleWishlistToggle(service)}
-                      className={`p-1.5 rounded-full shadow-sm transition-colors ${
-                        isInWishlist(service.id) 
-                          ? 'bg-red-500 text-white hover:bg-red-600' 
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-red-500'
-                      }`}
-                      title={isInWishlist(service.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                    >
-                      <i className="fas fa-heart text-xs"></i>
-                    </button>
-
+                  {/* Action Buttons Row */}
+                  <div className="flex gap-2">
                     {/* Share Button */}
-                    <div className="relative">
+                    <div className="relative flex-1">
                       <button
                         onClick={() => setShowShareMenu(prev => ({...prev, [service.id]: !prev[service.id]}))}
-                        className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full shadow-sm transition-colors"
+                        className="w-full p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors text-xs"
                         title="Share service"
                       >
-                        <i className="fas fa-share text-xs"></i>
+                        <i className="fas fa-share mr-1"></i>Share
                       </button>
                       
                       {/* Share Menu */}
                       {showShareMenu[service.id] && (
-                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-1 z-50 min-w-[140px]">
+                        <div className="absolute bottom-full left-0 mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-1 z-50 min-w-full">
                           <button
                             onClick={() => handleShare('facebook', service)}
                             className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded w-full text-left text-gray-700 dark:text-gray-300"
@@ -671,6 +724,17 @@ export default function CardsAppsServices() {
                         </div>
                       )}
                     </div>
+
+                    {/* Delete Button - Only for admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteService(service.id)}
+                        className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs"
+                        title="Delete service"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

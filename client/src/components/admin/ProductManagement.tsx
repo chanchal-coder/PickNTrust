@@ -26,6 +26,7 @@ interface Product {
 export default function ProductManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const [extractUrl, setExtractUrl] = useState('');
@@ -96,9 +97,16 @@ export default function ProductManagement() {
         throw new Error('Failed to fetch products');
       }
       const data = await response.json();
-      return data.products || [];
+      // Handle both array and object responses
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data.products && Array.isArray(data.products)) {
+        return data.products;
+      } else {
+        return [];
+      }
     },
-    retry: 1
+    retry: 2
   });
 
   // Add product mutation
@@ -387,23 +395,109 @@ export default function ProductManagement() {
     );
   }
 
+  // Filter products based on active tab
+  const filteredProducts = products.filter(product => {
+    if (activeTab === 'services') {
+      // Show only service products
+      return product.category === 'Cards, Apps & Services' || 
+             (product as any).isService === true ||
+             ['Credit Cards', 'Banking Services', 'Streaming Services', 'Software & Apps', 'Insurance', 'Investment'].includes(product.category);
+    } else {
+      // Show only regular products (exclude services)
+      return product.category !== 'Cards, Apps & Services' && 
+             (product as any).isService !== true &&
+             !['Credit Cards', 'Banking Services', 'Streaming Services', 'Software & Apps', 'Insurance', 'Investment'].includes(product.category);
+    }
+  });
+
+  // Service categories for the services tab
+  const serviceCategories = [
+    'Credit Cards', 'Banking Services', 'Streaming Services', 'Software & Apps', 
+    'Insurance', 'Investment', 'Mobile Apps', 'Subscription Services', 'Financial Services'
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Tab Navigation */}
+      <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="flex items-center gap-2">
+              {activeTab === 'products' ? (
+                <i className="fas fa-box text-blue-400"></i>
+              ) : (
+                <i className="fas fa-credit-card text-purple-400"></i>
+              )}
+              Product & Service Management
+            </div>
+          </CardTitle>
+          <CardDescription className="text-blue-200">
+            Manage your products and services with comprehensive admin controls
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Button
+              variant={activeTab === 'products' ? 'default' : 'outline'}
+              onClick={() => {
+                setActiveTab('products');
+                setIsAddingProduct(false);
+                setNewProduct({
+                  ...newProduct,
+                  isService: false,
+                  category: '',
+                  customFields: {}
+                });
+              }}
+              className={`flex items-center gap-2 ${
+                activeTab === 'products' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'border-blue-600 text-blue-300 hover:bg-blue-800'
+              }`}
+            >
+              <i className="fas fa-box"></i>
+              Products Management
+            </Button>
+            <Button
+              variant={activeTab === 'services' ? 'default' : 'outline'}
+              onClick={() => {
+                setActiveTab('services');
+                setIsAddingProduct(false);
+                setNewProduct({
+                  ...newProduct,
+                  isService: true,
+                  category: '',
+                  customFields: {}
+                });
+              }}
+              className={`flex items-center gap-2 ${
+                activeTab === 'services' 
+                  ? 'bg-purple-600 text-white' 
+                  : 'border-purple-600 text-purple-300 hover:bg-purple-800'
+              }`}
+            >
+              <i className="fas fa-credit-card"></i>
+              Cards, Apps & Services
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* URL Product Extractor */}
       <Card className="border-2 border-dashed border-purple-400 bg-gradient-to-r from-purple-900/20 to-blue-900/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-purple-300">
             <Sparkles className="w-5 h-5" />
-            Smart Product Extractor
+            Smart {activeTab === 'services' ? 'Service' : 'Product'} Extractor
           </CardTitle>
           <CardDescription className="text-blue-200">
-            Paste any product URL to automatically extract details (Amazon, eBay, Flipkart, etc.)
+            Paste any {activeTab === 'services' ? 'service' : 'product'} URL to automatically extract details (Amazon, eBay, Flipkart, etc.)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4">
             <Input
-              placeholder="Paste product URL here (e.g., https://amazon.com/product/...)"
+              placeholder={`Paste ${activeTab === 'services' ? 'service' : 'product'} URL here (e.g., https://amazon.com/product/...)`}
               value={extractUrl}
               onChange={(e) => setExtractUrl(e.target.value)}
               className="flex-1 bg-slate-800 border-slate-600 text-white placeholder-slate-400"
@@ -443,31 +537,50 @@ export default function ProductManagement() {
       {/* Add Product Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Add New Product</CardTitle>
+          <CardTitle>Add New {activeTab === 'services' ? 'Service' : 'Product'}</CardTitle>
           <CardDescription className="text-blue-200">
-            Add a new product manually or use the extractor above
+            Add a new {activeTab === 'services' ? 'service' : 'product'} manually or use the extractor above
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!isAddingProduct ? (
             <div className="flex gap-4">
               <Button 
-                onClick={() => setIsAddingProduct(true)}
-                className="bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  setIsAddingProduct(true);
+                  setNewProduct({
+                    ...newProduct,
+                    isService: activeTab === 'services',
+                    category: ''
+                  });
+                }}
+                className={`${activeTab === 'services' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'}`}
               >
-                Add Product Manually
+                {activeTab === 'services' ? (
+                  <>
+                    <i className="fas fa-credit-card mr-2"></i>
+                    Add Service Manually
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-box mr-2"></i>
+                    Add Product Manually
+                  </>
+                )}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleAddProduct} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-blue-300">Product Name</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">
+                    {activeTab === 'services' ? 'Service' : 'Product'} Name
+                  </label>
                   <input
                     type="text"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    placeholder="e.g., Wireless Headphones"
+                    placeholder={activeTab === 'services' ? 'e.g., HDFC Credit Card' : 'e.g., Wireless Headphones'}
                     className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
@@ -481,7 +594,7 @@ export default function ProductManagement() {
                     required
                   >
                     <option value="">Select Category</option>
-                    {commonCategories.map(cat => (
+                    {(activeTab === 'services' ? serviceCategories : commonCategories).map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
@@ -520,27 +633,35 @@ export default function ProductManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-blue-300">Price ($)</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Price (₹)</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={newProduct.price}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                    placeholder="29.99"
+                    onChange={(e) => {
+                      // Allow numbers and commas
+                      const value = e.target.value.replace(/[^\d,]/g, '');
+                      setNewProduct({ ...newProduct, price: value });
+                    }}
+                    placeholder="2,999"
                     className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
+                  <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 2,999)</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-blue-300">Original Price ($)</label>
+                  <label className="block text-sm font-medium mb-2 text-blue-300">Original Price (₹)</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={newProduct.originalPrice}
-                    onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
-                    placeholder="39.99"
+                    onChange={(e) => {
+                      // Allow numbers and commas
+                      const value = e.target.value.replace(/[^\d,]/g, '');
+                      setNewProduct({ ...newProduct, originalPrice: value });
+                    }}
+                    placeholder="3,999"
                     className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 3,999)</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-blue-300">Discount (%)</label>
@@ -662,6 +783,172 @@ export default function ProductManagement() {
                 )}
               </div>
 
+              {/* Service-Specific Fields */}
+              {newProduct.isService && (
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="text-lg font-semibold text-purple-300 mb-4">
+                    💳 Service Product Fields
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Service Type</label>
+                      <select
+                        value={newProduct.customFields?.serviceType || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, serviceType: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
+                      >
+                        <option value="">Select Service Type</option>
+                        <option value="subscription">📱 Subscription Service</option>
+                        <option value="credit-card">💳 Credit Card</option>
+                        <option value="banking">🏦 Banking Service</option>
+                        <option value="insurance">🛡️ Insurance</option>
+                        <option value="investment">📈 Investment</option>
+                        <option value="loan">💰 Loan Service</option>
+                        <option value="app">📲 Mobile App</option>
+                        <option value="software">💻 Software</option>
+                        <option value="streaming">🎬 Streaming Service</option>
+                        <option value="other">🔧 Other Service</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Monthly/Annual Price</label>
+                      <select
+                        value={newProduct.customFields?.pricingType || 'monthly'}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, pricingType: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
+                      >
+                        <option value="monthly">💰 Monthly Pricing</option>
+                        <option value="annual">📅 Annual Pricing</option>
+                        <option value="one-time">⚡ One-time Payment</option>
+                        <option value="free">🆓 Free Service</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Provider/Company</label>
+                      <input
+                        type="text"
+                        value={newProduct.customFields?.provider || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, provider: e.target.value }
+                        })}
+                        placeholder="e.g., Netflix, HDFC Bank, Amazon"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Service Features</label>
+                      <input
+                        type="text"
+                        value={newProduct.customFields?.features || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, features: e.target.value }
+                        })}
+                        placeholder="e.g., 4K Streaming, Cashback, Premium Support"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Eligibility Criteria</label>
+                      <textarea
+                        value={newProduct.customFields?.eligibility || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, eligibility: e.target.value }
+                        })}
+                        placeholder="e.g., Age 18+, Minimum income ₹25,000, Good credit score"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Terms & Conditions</label>
+                      <textarea
+                        value={newProduct.customFields?.terms || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, terms: e.target.value }
+                        })}
+                        placeholder="e.g., No hidden charges, Cancel anytime, 30-day free trial"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Processing Time</label>
+                      <input
+                        type="text"
+                        value={newProduct.customFields?.processingTime || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, processingTime: e.target.value }
+                        })}
+                        placeholder="e.g., Instant, 2-3 days, 1 week"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Customer Support</label>
+                      <input
+                        type="text"
+                        value={newProduct.customFields?.support || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, support: e.target.value }
+                        })}
+                        placeholder="e.g., 24/7 Chat, Phone, Email"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Reward/Cashback Rate</label>
+                      <input
+                        type="text"
+                        value={newProduct.customFields?.rewards || ''}
+                        onChange={(e) => setNewProduct({ 
+                          ...newProduct, 
+                          customFields: { ...newProduct.customFields, rewards: e.target.value }
+                        })}
+                        placeholder="e.g., 1.5% cashback, 5X points"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-purple-900/30 border border-purple-600/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-purple-300 mb-2">
+                      <i className="fas fa-info-circle"></i>
+                      <span className="text-sm font-medium">Service Product Information</span>
+                    </div>
+                    <p className="text-purple-200 text-xs">
+                      These fields are specifically for Cards, Apps & Services section. Fill in relevant information to help users make informed decisions about financial products and services.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Custom Fields Section */}
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between mb-4">
@@ -748,27 +1035,45 @@ export default function ProductManagement() {
       {/* Products List */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Products ({products.length})</CardTitle>
+          <CardTitle>
+            Current {activeTab === 'services' ? 'Services' : 'Products'} ({filteredProducts.length})
+          </CardTitle>
           <CardDescription className="text-blue-200">
-            Manage all your products with full control
+            Manage all your {activeTab === 'services' ? 'services' : 'products'} with full control
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading products...</p>
+              <p className="mt-2 text-gray-600">Loading {activeTab === 'services' ? 'services' : 'products'}...</p>
             </div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-600">No products found. Add your first product above.</p>
+              <div className="mb-4">
+                {activeTab === 'services' ? (
+                  <i className="fas fa-credit-card text-6xl text-purple-400 mb-4"></i>
+                ) : (
+                  <i className="fas fa-box text-6xl text-blue-400 mb-4"></i>
+                )}
+              </div>
+              <p className="text-gray-600 mb-2">
+                No {activeTab === 'services' ? 'services' : 'products'} found in this category.
+              </p>
+              <p className="text-gray-500 text-sm">
+                Add your first {activeTab === 'services' ? 'service' : 'product'} using the form above.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {products.map((product: Product) => (
+              {filteredProducts.map((product: Product) => (
                 <div
                   key={product.id}
-                  className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
+                  className={`flex items-center gap-4 p-4 rounded-lg hover:bg-gray-750 transition-colors ${
+                    activeTab === 'services' 
+                      ? 'bg-purple-900/20 border border-purple-600/30' 
+                      : 'bg-gray-800'
+                  }`}
                 >
                   {/* Product Image */}
                   <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
@@ -784,7 +1089,12 @@ export default function ProductManagement() {
 
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-blue-400 mb-1 truncate">{product.name}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-semibold text-blue-400 truncate">{product.name}</h3>
+                      {activeTab === 'services' && (
+                        <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">SERVICE</span>
+                      )}
+                    </div>
                     <p className="text-gray-300 text-sm mb-2 line-clamp-1">{product.description}</p>
                     
                     <div className="flex items-center gap-4 text-sm">
@@ -810,7 +1120,7 @@ export default function ProductManagement() {
                       <button
                         onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
                         className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                        title="Share product"
+                        title={`Share ${activeTab === 'services' ? 'service' : 'product'}`}
                       >
                         <i className="fas fa-share text-gray-300"></i>
                       </button>
@@ -896,7 +1206,7 @@ export default function ProductManagement() {
                     <button
                       onClick={() => handleEditProduct(product)}
                       className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Edit product"
+                      title={`Edit ${activeTab === 'services' ? 'service' : 'product'}`}
                     >
                       <i className="fas fa-edit text-gray-300"></i>
                     </button>
@@ -904,7 +1214,7 @@ export default function ProductManagement() {
                       onClick={() => handleDeleteProduct(product.id)}
                       disabled={deleteProductMutation.isPending}
                       className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                      title="Delete product"
+                      title={`Delete ${activeTab === 'services' ? 'service' : 'product'}`}
                     >
                       <i className="fas fa-trash text-white"></i>
                     </button>

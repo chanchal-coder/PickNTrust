@@ -381,6 +381,82 @@ export default function VideoContentManager() {
     }
   });
 
+  // Delete video content mutation
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: number) => {
+      const response = await fetch(`/api/admin/video-content/${videoId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: 'pickntrust2025' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete video content');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/video-content'] });
+      toast({
+        title: 'Success',
+        description: 'Video content deleted successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete video content',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleDeleteVideo = (videoId: number) => {
+    if (confirm('Are you sure you want to delete this video content?')) {
+      deleteVideoMutation.mutate(videoId);
+    }
+  };
+
+  const handleEditVideo = (video: VideoContent) => {
+    // Set the video data for editing
+    setVideoData({
+      title: video.title,
+      description: video.description || '',
+      category: video.category || '',
+      tags: Array.isArray(video.tags) ? video.tags.join(', ') : (video.tags || ''),
+      videoUrl: video.videoUrl,
+      thumbnailUrl: video.thumbnailUrl || '',
+      platform: video.platform,
+      duration: video.duration || '',
+      customFields: video.customFields || {},
+      hasTimer: video.hasTimer || false,
+      timerDuration: video.timerDuration || '24'
+    });
+    
+    // Set the active tab to match the video's platform
+    setActiveTab(video.platform);
+    
+    // Set thumbnail mode based on the thumbnail URL
+    if (video.thumbnailUrl) {
+      if (video.thumbnailUrl.includes('youtube.com') || video.thumbnailUrl.includes('vimeo.com')) {
+        setThumbnailMode('auto');
+      } else if (video.thumbnailUrl.startsWith('data:image/')) {
+        setThumbnailMode('upload');
+      } else {
+        setThumbnailMode('manual');
+      }
+    }
+    
+    toast({
+      title: 'Edit Mode',
+      description: 'Video content loaded for editing. Make your changes and save.',
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!videoData.title.trim() || !videoData.videoUrl.trim()) {
@@ -832,13 +908,32 @@ export default function VideoContentManager() {
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-gray-400 hover:text-white"
+                          onClick={() => window.open(video.videoUrl, '_blank')}
+                          title="View video"
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-gray-400 hover:text-white"
+                          onClick={() => handleEditVideo(video)}
+                          title="Edit video"
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-400 hover:text-red-300"
+                          onClick={() => handleDeleteVideo(video.id)}
+                          disabled={deleteVideoMutation.isPending}
+                          title="Delete video"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
