@@ -34,8 +34,14 @@ const fromUnixTimestamp = (timestamp: number): Date => new Date(timestamp * 1000
 // Validation helpers
 const validateProduct = (product: any): void => {
   if (!product.name?.trim()) throw new Error('Product name is required');
-  if (typeof product.price !== 'number' || product.price < 0) throw new Error('Valid price is required');
-  if (product.rating && (product.rating < 1 || product.rating > 5)) throw new Error('Rating must be between 1 and 5');
+  // Don't validate price type here since it comes as string from forms - validate after parsing
+  const parsedPrice = typeof product.price === 'string' ? parseFloat(product.price.replace(/[^\d.]/g, '')) : product.price;
+  if (isNaN(parsedPrice) || parsedPrice < 0) throw new Error('Valid price is required');
+  
+  if (product.rating) {
+    const parsedRating = typeof product.rating === 'string' ? parseFloat(product.rating) : product.rating;
+    if (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) throw new Error('Rating must be between 1 and 5');
+  }
 };
 
 const validateVideoContent = (video: any): void => {
