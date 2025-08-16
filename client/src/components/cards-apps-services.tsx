@@ -222,7 +222,7 @@ export default function CardsAppsServices() {
                   localStorage.getItem('isAdmin') === 'true' ||
                   window.location.search.includes('admin=true');
 
-  // Fetch cards/apps/services from API (no fallback data)
+  // Fetch cards/apps/services from API (fallback to sample data)
   const { data: services } = useQuery<Product[]>({
     queryKey: ['/api/products/services'],
     queryFn: async () => {
@@ -230,21 +230,15 @@ export default function CardsAppsServices() {
         const response = await fetch('/api/products/services');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        return data.length > 0 ? data : sampleCardsAppsServices;
       } catch {
-        return [];
+        return sampleCardsAppsServices;
       }
     },
     retry: 1
   });
 
-  // Only show real services from API, no fallback data
-  const displayServices = services && services.length > 0 ? services : [];
-
-  // Don't render the section if there are no services
-  if (!displayServices || displayServices.length === 0) {
-    return null;
-  }
+  const displayServices = services || sampleCardsAppsServices;
 
   const checkScrollButtons = () => {
     if (scrollContainerRef.current) {
