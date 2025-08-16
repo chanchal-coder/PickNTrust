@@ -22,16 +22,74 @@ interface BlogPost {
   timerStartTime: Date | null;
 }
 
+// Sample blog posts for fallback
+const sampleBlogPosts: BlogPost[] = [
+  {
+    id: 1,
+    title: "10 Must-Have Gadgets Under ₹999 You Can Buy Today",
+    excerpt: "Discover amazing tech gadgets that won't break the bank. From wireless earbuds to smart fitness trackers, we've curated the best budget-friendly gadgets for 2024.",
+    content: "# 10 Must-Have Gadgets Under ₹999 You Can Buy Today\n\nShopping for amazing gadgets doesn't have to break the bank! We've curated a fantastic list of 10 incredible gadgets...",
+    category: "Tech",
+    tags: ["gadgets", "budget", "tech", "shopping"],
+    imageUrl: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=800&h=600&fit=crop",
+    publishedAt: new Date().toISOString(),
+    createdAt: new Date(),
+    readTime: "8 min read",
+    slug: "10-must-have-gadgets-under-999",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  },
+  {
+    id: 2,
+    title: "Best Credit Cards for Cashback in India 2024",
+    excerpt: "Complete guide to choosing the right credit card for maximum cashback and rewards. Compare features, benefits, and eligibility criteria.",
+    content: "# Best Credit Cards for Cashback in India 2024\n\nChoosing the right credit card can significantly boost your savings through cashback and rewards...",
+    category: "Finance",
+    tags: ["credit cards", "cashback", "finance", "india"],
+    imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop",
+    publishedAt: new Date(Date.now() - 86400000).toISOString(),
+    createdAt: new Date(Date.now() - 86400000),
+    readTime: "6 min read",
+    slug: "best-credit-cards-cashback-india-2024",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  },
+  {
+    id: 3,
+    title: "Smart Home Setup on Budget - Complete Guide",
+    excerpt: "Transform your home into a smart home without breaking the bank. Step-by-step tutorial with affordable smart devices and automation tips.",
+    content: "# Smart Home Setup on Budget - Complete Guide\n\nTransform your home into a smart home without breaking the bank...",
+    category: "Smart Home",
+    tags: ["smart home", "budget", "diy", "automation"],
+    imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop",
+    publishedAt: new Date(Date.now() - 172800000).toISOString(),
+    createdAt: new Date(Date.now() - 172800000),
+    readTime: "12 min read",
+    slug: "smart-home-setup-budget-guide",
+    hasTimer: false,
+    timerDuration: null,
+    timerStartTime: null
+  }
+];
+
 export default function BlogSection() {
-  // Fetch from API and show real blog posts
+  // Fetch from API with fallback to sample posts
   const { data: blogPosts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],
     queryFn: async () => {
-      const response = await fetch('/api/blog');
-      if (!response.ok) {
-        throw new Error('Failed to fetch blog posts');
+      try {
+        const response = await fetch('/api/blog');
+        if (!response.ok) {
+          throw new Error('Failed to fetch blog posts');
+        }
+        const data = await response.json();
+        return Array.isArray(data) && data.length > 0 ? data : sampleBlogPosts;
+      } catch (error) {
+        console.warn('Failed to fetch blog posts, using fallback data:', error);
+        return sampleBlogPosts;
       }
-      return response.json();
     },
     retry: 1,
     refetchOnWindowFocus: false,
@@ -65,8 +123,8 @@ export default function BlogSection() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Use API data if available, show empty state if no posts exist
-  const displayPosts = blogPosts && blogPosts.length > 0 ? blogPosts : [];
+  // Use API data if available, otherwise use sample posts
+  const displayPosts = blogPosts || sampleBlogPosts;
 
   // Delete blog post mutation
   const deleteBlogPostMutation = useMutation({
@@ -178,47 +236,6 @@ export default function BlogSection() {
       scrollContainerRef.current.scrollBy({ left: e.deltaY, behavior: 'smooth' });
     }
   };
-
-  // Show empty state if no posts
-  if (displayPosts.length === 0) {
-    return (
-      <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <div className="relative inline-block">
-              <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 bg-clip-text text-transparent mb-4 relative">
-                Quick Tips & Trending
-                <div className="absolute -top-2 -right-6 text-xl animate-spin" style={{animationDuration: '3s'}}>📝</div>
-              </h3>
-            </div>
-            <p className="text-xl text-gray-600 dark:text-gray-300 font-medium mt-6">
-              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">🚀 Stay updated with the latest deals and shopping hacks 🚀</span>
-            </p>
-          </div>
-          
-          {/* Empty State */}
-          <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-8 bg-white/50 dark:bg-gray-800/50">
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📝</div>
-              <h4 className="text-2xl font-bold text-gray-600 dark:text-gray-300 mb-2">No Blog Posts Yet</h4>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">
-                Check back soon for the latest deals and shopping tips!
-              </p>
-              {isAdmin && (
-                <Link 
-                  href="/admin"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Create First Post
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
