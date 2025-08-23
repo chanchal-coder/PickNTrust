@@ -17,6 +17,7 @@ import PrivacyPolicy from "@/pages/privacy-policy";
 import Search from "@/pages/search";
 import TopPicks from "@/pages/top-picks";
 import Services from "@/pages/services";
+import AffiliateDisclosurePage from "@/pages/affiliate-disclosure";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ function App() {
               <Route path="/search" component={Search} />
               <Route path="/top-picks" component={TopPicks} />
               <Route path="/services" component={Services} />
+              <Route path="/affiliate-disclosure" component={AffiliateDisclosurePage} />
               <Route>404 - Page Not Found</Route>
             </Switch>
             <Toaster />

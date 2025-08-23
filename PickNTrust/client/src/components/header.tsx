@@ -1,4 +1,4 @@
- import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -314,6 +314,17 @@ export default function Header() {
           >
             <i className="fas fa-th-large group-hover:rotate-12 transition-transform"></i>
             <span className="font-semibold hidden xs:inline">Categories</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+          </button>
+
+          {/* Deals Hub */}
+          <button
+            onClick={() => window.open('https://dealhub.pickntrust.com/', '_blank')}
+            className="group relative bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            title="Best Deals & Offers"
+          >
+            <i className="fas fa-fire group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden xs:inline">Deals Hub</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
