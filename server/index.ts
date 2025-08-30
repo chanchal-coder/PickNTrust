@@ -10,28 +10,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Allow localhost on any port for development
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-      return callback(null, true);
-    }
-
-    // Allow your domain and www subdomain
-    if (origin && (origin.includes('pickntrust.com') || origin.includes('www.pickntrust.com'))) {
-      return callback(null, true);
-    }
-
-    // Reject other origins
-    return callback(new Error('Not allowed by CORS'));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+// Define CORS options
+const corsOptions = {
+  // Allow specific origins
+  origin: [
+    'http://51.20.82.161',        // Production IP (port 80)
+    'http://51.20.82.161:5173',   // Development port
+    'http://www.pickntrust.com',  // WWW domain
+    'http://pickntrust.com',      // Main domain
+    'https://www.pickntrust.com', // HTTPS WWW
+    'https://pickntrust.com',     // HTTPS main
+    'http://localhost:5173',      // Local development
+    'http://localhost:3000',      // Alternative local
+    'http://127.0.0.1:5173',      // Local IP development
+    ...(process.env.CORS_ORIGIN === '*' ? ['*'] : []) // Environment override
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
-}));
+};
+
+// Use CORS middleware
+app.use(cors(corsOptions));
 // Increase request size limits to handle image uploads (50MB limit)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
