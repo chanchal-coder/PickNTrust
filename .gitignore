@@ -1,0 +1,40 @@
+# Node / build
+node_modules/
+dist/
+.build/
+.cache/
+coverage/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.pem.txt
+google-credentials.json
+
+# Databases / uploads
+sqlite.db
+database.sqlite
+uploads/
+
+# OS / tool junk
+.DS_Store
+Thumbs.db
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.csv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
