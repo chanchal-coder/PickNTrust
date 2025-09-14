@@ -1,0 +1,32 @@
+{
+  "music": [
+    {
+      "id": "audio_1",
+      "filename": "Aylex - Last Summer (freetouse.com).mp3",
+      "format": "mp3",
+      "characteristics": {
+        "genre": "chill",
+        "mood": "neutral",
+        "tempo": "medium",
+        "energy": "medium"
+      },
+      "duration": 30,
+      "compatibility": {
+        "electronics": 0.8,
+        "fashion": 0.9,
+        "food": 0.6,
+        "travel": 0.8,
+        "general": 0.7
+      },
+      "performance": {
+        "usage_count": 0,
+        "avg_engagement": 0,
+        "last_used": null
+      },
+      "created_at": 1757515703099
+    }
+  ],
+  "usage_history": [],
+  "last_updated": 1757515703099,
+  "version": "1.0.0"
+}

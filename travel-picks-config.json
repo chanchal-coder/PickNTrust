@@ -1,0 +1,79 @@
+{
+  "botToken": "7998139680:AAGVKECApmHNi4LMp2wR3UdVFfYgkT1HwZo",
+  "botUsername": "travelpicks_bot",
+  "channelId": "-1003047967930",
+  "channelName": "Travel Picks",
+  "description": "Hybrid travel deals bot with Telegram monitoring, website scraping, and manual curation",
+  "features": {
+    "telegramMonitoring": true,
+    "websiteScraping": true,
+    "manualCuration": true,
+    "aiDetection": true,
+    "affiliateOptimization": true,
+    "subcategoryDetection": true
+  },
+  "sources": {
+    "telegramChannels": [
+      "@TravelDealsIndia",
+      "@FlightOffers",
+      "@HotelDeals",
+      "@BusTrainDeals",
+      "@PackageDeals"
+    ],
+    "websites": [
+      "makemytrip.com",
+      "booking.com",
+      "redbus.in",
+      "irctc.co.in",
+      "goibibo.com",
+      "cleartrip.com",
+      "yatra.com"
+    ]
+  },
+  "affiliatePartners": {
+    "makemytrip": {
+      "name": "MakeMyTrip",
+      "commission": "2-4%",
+      "categories": ["flights", "hotels", "packages"]
+    },
+    "booking": {
+      "name": "Booking.com",
+      "commission": "4-6%",
+      "categories": ["hotels"]
+    },
+    "redbus": {
+      "name": "RedBus",
+      "commission": "3-5%",
+      "categories": ["bus"]
+    },
+    "irctc": {
+      "name": "IRCTC",
+      "commission": "2-3%",
+      "categories": ["train"]
+    },
+    "goibibo": {
+      "name": "Goibibo",
+      "commission": "2-4%",
+      "categories": ["flights", "hotels", "bus"]
+    },
+    "cleartrip": {
+      "name": "Cleartrip",
+      "commission": "3-5%",
+      "categories": ["flights", "hotels", "train"]
+    },
+    "yatra": {
+      "name": "Yatra",
+      "commission": "2-4%",
+      "categories": ["flights", "hotels", "packages"]
+    }
+  },
+  "settings": {
+    "autoMode": true,
+    "minCommission": 3,
+    "maxDealsPerDay": 50,
+    "qualityThreshold": 0.7,
+    "duplicateCheckWindow": 24,
+    "scrapingInterval": 120,
+    "postingDelay": 300
+  }
+}

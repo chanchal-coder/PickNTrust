@@ -1,0 +1,23 @@
+{
+  "telegram": {
+    "botToken": "8410927469:AAGaK37z0bhnGGzQUWzF9Q75JGfVZRJSb9w",
+    "botUsername": "pntclickpicks_bot",
+    "botName": "pntclickpicks",
+    "channelUrl": "https://t.me/pntclickpicks",
+    "channelId": "@pntclickpicks",
+    "enabled": true,
+    "page": "click-picks",
+    "description": "Click Picks Telegram Bot - Posts trending and most clicked products"
+  },
+  "features": {
+    "autoPosting": true,
+    "productDetection": true,
+    "contentTypeSupport": true,
+    "mixedContent": true
+  },
+  "settings": {
+    "postingInterval": 300000,
+    "maxProductsPerPost": 5,
+    "enableNotifications": true
+  }
+}
