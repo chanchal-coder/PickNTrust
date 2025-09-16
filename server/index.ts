@@ -151,10 +151,15 @@ app.use((req, res, next) => {
     }));
   }
   
-  // SPA fallback route - serve React app for all non-API routes (must be last)
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
-    // Skip API routes and webhooks
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path.startsWith('/health')) {
+  // SPA fallback middleware - serve React app for all non-API routes (must be last)
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Skip API routes, webhooks, and static files
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path.startsWith('/health') || req.method !== 'GET') {
+      return next();
+    }
+    
+    // Check if it's a static file request
+    if (req.path.includes('.')) {
       return next();
     }
     
