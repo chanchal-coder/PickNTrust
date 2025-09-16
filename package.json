@@ -9,8 +9,13 @@
     "build:client": "vite build",
     "build:server": "esbuild server/index.ts --platform=node --bundle --format=esm --outdir=dist --outbase=. --packages=external --minify --target=node18",
     "start": "NODE_ENV=production node dist/server/index.js",
+    "start:pm2": "pm2 start dist/server/index.js --name pickntrust",
+    "deploy:local": "bash deploy-cross-platform.sh",
+    "deploy:ec2": "bash deploy-ec2-linux.sh",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "clean": "rm -rf dist/ node_modules/.cache/",
+    "verify": "node -e \"console.log('Node.js:', process.version); console.log('Platform:', process.platform);\""
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
