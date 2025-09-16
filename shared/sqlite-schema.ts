@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { sqliteTable, text, integer, real, numeric } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, numeric, sql } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -54,8 +54,8 @@ export const products = sqliteTable("products", {
   expiresAt: integer("expires_at", { mode: 'timestamp' }), // When the product expires
   affiliateLink: text("affiliate_link"), // Processed affiliate link with tags
   
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   
   // Display pages selection - JSON array of pages where this product should appear
   displayPages: text("display_pages").default('["home"]'), // JSON array: ["home", "prime-picks", "top-picks", etc.]
@@ -71,7 +71,7 @@ export const blogPosts = sqliteTable("blog_posts", {
   imageUrl: text("image_url").notNull(),
   videoUrl: text("video_url"),
   publishedAt: integer("published_at", { mode: 'timestamp' }).notNull(),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   readTime: text("read_time").notNull(),
   slug: text("slug").notNull(),
   hasTimer: integer("has_timer", { mode: 'boolean' }).default(false),
@@ -82,7 +82,7 @@ export const blogPosts = sqliteTable("blog_posts", {
 export const newsletterSubscribers = sqliteTable("newsletter_subscribers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
-  subscribedAt: integer("subscribed_at", { mode: 'timestamp' }).default(new Date()),
+  subscribedAt: integer("subscribed_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const categories = sqliteTable("categories", {
@@ -106,7 +106,7 @@ export const adminUsers = sqliteTable("admin_users", {
   resetToken: text("reset_token"),
   resetTokenExpiry: integer("reset_token_expiry", { mode: 'timestamp' }),
   lastLogin: integer("last_login", { mode: 'timestamp' }),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   isActive: integer("is_active", { mode: 'boolean' }).default(true),
 });
 
@@ -132,7 +132,7 @@ export const announcements = sqliteTable("announcements", {
   // Page targeting properties
   page: text("page"), // Target page for page-specific announcements
   isGlobal: integer("is_global", { mode: 'boolean' }).default(true), // Global announcement for all pages
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const videoContent = sqliteTable("video_content", {
@@ -152,7 +152,7 @@ export const videoContent = sqliteTable("video_content", {
   showOnHomepage: integer("show_on_homepage", { mode: 'boolean' }).default(true),
   ctaText: text("cta_text"), // CTA button text
   ctaUrl: text("cta_url"), // CTA button URL
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
@@ -201,8 +201,8 @@ export const canvaSettings = sqliteTable("canva_settings", {
   platforms: text("platforms").default('[]'), // JSON array of enabled platforms
   scheduleType: text("schedule_type").default('immediate'), // 'immediate' or 'scheduled'
   scheduleDelayMinutes: integer("schedule_delay_minutes").default(0),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const canvaPosts = sqliteTable("canva_posts", {
@@ -219,8 +219,8 @@ export const canvaPosts = sqliteTable("canva_posts", {
   scheduledAt: integer("scheduled_at", { mode: 'timestamp' }),
   postedAt: integer("posted_at", { mode: 'timestamp' }),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const canvaTemplates = sqliteTable("canva_templates", {
@@ -231,7 +231,7 @@ export const canvaTemplates = sqliteTable("canva_templates", {
   category: text("category"), // 'product', 'service', 'blog', 'video'
   thumbnailUrl: text("thumbnail_url"),
   isActive: integer("is_active", { mode: 'boolean' }).default(true),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const currencySettings = sqliteTable("currency_settings", {
@@ -240,8 +240,8 @@ export const currencySettings = sqliteTable("currency_settings", {
   enabledCurrencies: text("enabled_currencies").default('["INR","USD","EUR","GBP","JPY","CAD","AUD","SGD","CNY","KRW"]'), // JSON array
   autoUpdateRates: integer("auto_update_rates", { mode: 'boolean' }).default(true),
   lastRateUpdate: integer("last_rate_update", { mode: 'timestamp' }),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const exchangeRates = sqliteTable("exchange_rates", {
@@ -249,7 +249,7 @@ export const exchangeRates = sqliteTable("exchange_rates", {
   fromCurrency: text("from_currency").notNull(),
   toCurrency: text("to_currency").notNull(),
   rate: numeric("rate").notNull(),
-  lastUpdated: integer("last_updated", { mode: 'timestamp' }).default(new Date()),
+  lastUpdated: integer("last_updated", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const topPicksProducts = sqliteTable("top_picks_products", {
@@ -341,8 +341,8 @@ export const topPicksProducts = sqliteTable("top_picks_products", {
   shareCountTotal: integer("share_count_total").default(0),
   
   // Timestamps
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
   lastTrendingCheck: integer("last_trending_check"),
   
@@ -442,8 +442,8 @@ export const appsProducts = sqliteTable("apps_products", {
   downloadCount: integer("download_count").default(0),
   
   // Timestamps
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
   
   // Display control
@@ -520,8 +520,8 @@ export const lootBoxProducts = sqliteTable("loot_box_products", {
   viewCount: integer("view_count").default(0),
   
   // Timestamps
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
   
   // Display control
@@ -592,8 +592,8 @@ export const dealsHubProducts = sqliteTable("deals_hub_products", {
   viewCount: integer("view_count").default(0),
   
   // Timestamps
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
   
   // Display control
@@ -625,8 +625,8 @@ export const amazonProducts = sqliteTable("amazon_products", {
   expiresAt: integer("expires_at"),
   affiliateLink: text("affiliate_link"),
   displayPages: text("display_pages").default('["prime-picks"]'),
-  createdAt: integer("created_at").default(new Date()),
-  updatedAt: integer("updated_at").default(new Date()),
+  createdAt: integer("created_at").default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at").default(sql`(strftime('%s', 'now'))`),
   hasLimitedOffer: integer("has_limited_offer").default(0),
   limitedOfferText: text("limited_offer_text"),
   messageGroupId: text("message_group_id"),
@@ -688,8 +688,8 @@ export const globalPicksProducts = sqliteTable("global_picks_products", {
   conversionCount: integer("conversion_count").default(0),
   
   // Timestamps
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
   
   // Display control
@@ -742,8 +742,8 @@ export const featuredProducts = sqliteTable("featured_products", {
   viewCount: integer("view_count").default(0),
   
   // Timestamps
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   expiresAt: integer("expires_at", { mode: 'timestamp' }),
   
   // Metadata
@@ -880,8 +880,8 @@ export const widgets = sqliteTable("widgets", {
   customCss: text("custom_css"), // Additional CSS for styling
   showOnMobile: integer("show_on_mobile", { mode: 'boolean' }).default(true),
   showOnDesktop: integer("show_on_desktop", { mode: 'boolean' }).default(true),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(new Date()),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(new Date()),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
 
 export const insertWidgetSchema = createInsertSchema(widgets).omit({
