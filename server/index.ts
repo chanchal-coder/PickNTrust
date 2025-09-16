@@ -151,15 +151,20 @@ app.use((req, res, next) => {
     }));
   }
   
+  // Health check endpoint
+  app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+  
   // SPA fallback middleware - serve React app for all non-API routes (must be last)
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Skip API routes, webhooks, and static files
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path.startsWith('/health') || req.method !== 'GET') {
+    // Skip API routes and webhooks
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.method !== 'GET') {
       return next();
     }
     
-    // Check if it's a static file request
-    if (req.path.includes('.')) {
+    // Skip static file requests (files with extensions)
+    if (req.path.includes('.') && !req.path.endsWith('/')) {
       return next();
     }
     

@@ -93,35 +93,42 @@ export default function FeaturedProducts() {
   };
 
   const { data: products } = useQuery<Product[]>({
-    queryKey: ['/api/products/page/top-picks', getDailyRotationOffset()],
+    queryKey: ['/api/products/featured', getDailyRotationOffset()],
     queryFn: async () => {
       try {
-        // Fetch from Top Picks page (same source as /top-picks page)
-        const response = await fetch('/api/products/page/top-picks');
-        if (!response.ok) {
-          console.log('Top Picks API failed, showing coming soon message');
-          return [];
-        }
-        const data = await response.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          // Apply daily rotation - show different products each day
-          const rotationOffset = getDailyRotationOffset() % data.length; // Ensure offset doesn't exceed data length
-          const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
-          // Return first 6 products for home page preview, or all available if less than 6
-          const previewData = rotatedData.slice(0, 6);
-          
-          // CRITICAL: If we have ANY real data, return it instead of fallback
-          if (previewData.length > 0) {
-            console.log(`Top Picks: Showing ${previewData.length} real products (total available: ${data.length})`);
+        // First try featured products API
+        const response = await fetch('/api/products/featured');
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            // Apply daily rotation - show different products each day
+            const rotationOffset = getDailyRotationOffset() % data.length;
+            const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
+            const previewData = rotatedData.slice(0, 6);
+            console.log(`Featured Products: Showing ${previewData.length} featured products`);
             return previewData;
           }
         }
         
-        console.log('Top Picks: No real data available, showing coming soon message');
+        // Fallback to all products if featured products are empty
+        console.log('Featured products empty, falling back to all products');
+        const allProductsResponse = await fetch('/api/products');
+        if (allProductsResponse.ok) {
+          const allData = await allProductsResponse.json();
+          if (allData.products && Array.isArray(allData.products) && allData.products.length > 0) {
+            // Apply daily rotation
+            const rotationOffset = getDailyRotationOffset() % allData.products.length;
+            const rotatedData = [...allData.products.slice(rotationOffset), ...allData.products.slice(0, rotationOffset)];
+            const previewData = rotatedData.slice(0, 6);
+            console.log(`All Products Fallback: Showing ${previewData.length} products (total: ${allData.products.length})`);
+            return previewData;
+          }
+        }
+        
+        console.log('No products available from any endpoint');
         return [];
       } catch (error) {
-        console.log('Top Picks API error, showing coming soon message:', error);
+        console.log('Products API error:', error);
         return [];
       }
     },
