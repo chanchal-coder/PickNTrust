@@ -721,13 +721,14 @@ if (BOT_TOKEN && CHANNEL_ID) {
 }
 
 // Add start method for compatibility with existing code
-interface TravelPicksBotWithStart extends EnhancedTravelPicksBot {
-  start(): Promise<EnhancedTravelPicksBot>;
+// Add start method to the class
+class EnhancedTravelPicksBotWithStart extends EnhancedTravelPicksBot {
+  async start(): Promise<EnhancedTravelPicksBot> {
+    await this.initialize();
+    return this;
+  }
 }
 
-(travelPicksBot as any).start = async () => {
-  await travelPicksBot.initialize();
-  return travelPicksBot;
-};
+const travelPicksBotInstance = new EnhancedTravelPicksBotWithStart();
 
-export { travelPicksBot as travelPicksBot };
+export { travelPicksBotInstance as travelPicksBot };

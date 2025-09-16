@@ -1,6 +1,6 @@
 #!/bin/bash
-# EC2 Linux Deployment Script for PickNTrust
-# Optimized for Amazon Linux 2023 / Ubuntu
+# Ubuntu EC2 Deployment Script for PickNTrust
+# Optimized for Ubuntu 20.04/22.04
 
 set -e
 
@@ -18,8 +18,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🚀 PickNTrust EC2 Linux Deployment${NC}"
-echo -e "${BLUE}Deploying to Amazon Linux 2023...${NC}"
+echo -e "${BLUE}🚀 PickNTrust Ubuntu EC2 Deployment${NC}"
+echo -e "${BLUE}Deploying to Ubuntu Server...${NC}"
 
 # Test SSH connection
 echo -e "${YELLOW}🔐 Testing SSH connection...${NC}"
@@ -32,7 +32,7 @@ else
 fi
 
 # Deploy to EC2
-echo -e "${YELLOW}📦 Deploying to EC2...${NC}"
+echo -e "${YELLOW}📦 Deploying to Ubuntu EC2...${NC}"
 
 ssh -i "$KEY_PATH" "$EC2_USER@$EC2_IP" bash -s << 'REMOTE_SCRIPT'
 set -e
@@ -44,24 +44,25 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🔧 Setting up EC2 environment...${NC}"
+echo -e "${BLUE}🔧 Setting up Ubuntu environment...${NC}"
 
 # Update system
 echo -e "${YELLOW}📦 Updating system packages...${NC}"
-sudo dnf update -y
+sudo apt update -y
+sudo apt upgrade -y
 
 # Install Node.js 18 (LTS)
 echo -e "${YELLOW}📦 Installing Node.js 18...${NC}"
 if ! command -v node >/dev/null 2>&1; then
-    curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-    sudo dnf install -y nodejs
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
 else
     echo -e "${GREEN}✅ Node.js already installed: $(node --version)${NC}"
 fi
 
 # Install additional dependencies
 echo -e "${YELLOW}📦 Installing system dependencies...${NC}"
-sudo dnf install -y git nginx
+sudo apt install -y git nginx build-essential
 
 # Install PM2 globally
 echo -e "${YELLOW}📦 Installing PM2...${NC}"
@@ -96,7 +97,7 @@ fi
 # Install dependencies with clean cache
 echo -e "${YELLOW}📦 Installing npm dependencies...${NC}"
 npm cache clean --force
-npm ci --production=false
+npm install
 
 # Build application using cross-platform commands
 echo -e "${YELLOW}🔨 Building application...${NC}"
@@ -171,7 +172,7 @@ pm2 startup systemd -u ubuntu --hp /home/ubuntu | grep 'sudo' | bash || true
 
 # Configure Nginx
 echo -e "${YELLOW}🌐 Configuring Nginx...${NC}"
-sudo tee /etc/nginx/conf.d/pickntrust.conf > /dev/null << 'NGINXFILE'
+sudo tee /etc/nginx/sites-available/pickntrust > /dev/null << 'NGINXFILE'
 server {
     listen 80;
     server_name 51.21.253.229;
@@ -220,9 +221,9 @@ server {
 }
 NGINXFILE
 
-# Remove default nginx config
-sudo rm -f /etc/nginx/conf.d/default.conf
-sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+# Enable the site
+sudo ln -sf /etc/nginx/sites-available/pickntrust /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
 
 # Test and start nginx
 echo -e "${YELLOW}🔧 Starting Nginx...${NC}"
@@ -259,7 +260,7 @@ else
     pm2 logs pickntrust --lines 20
 fi
 
-echo -e "${GREEN}🎉 Deployment completed successfully!${NC}"
+echo -e "${GREEN}🎉 Ubuntu deployment completed successfully!${NC}"
 echo -e "${BLUE}📊 Deployment Summary:${NC}"
 echo -e "${BLUE}   • Repository: Updated from GitHub${NC}"
 echo -e "${BLUE}   • Dependencies: Installed with npm ci${NC}"
@@ -273,6 +274,6 @@ echo -e "${GREEN}📱 Credentials: admin / pickntrust2025${NC}"
 
 REMOTE_SCRIPT
 
-echo -e "${GREEN}🎉 EC2 deployment completed successfully!${NC}"
+echo -e "${GREEN}🎉 Ubuntu EC2 deployment completed successfully!${NC}"
 echo -e "${BLUE}🌐 Visit: http://51.21.253.229${NC}"
 echo -e "${BLUE}🔧 Admin: http://51.21.253.229/admin (admin/pickntrust2025)${NC}"

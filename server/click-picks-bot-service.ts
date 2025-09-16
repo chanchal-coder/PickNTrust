@@ -44,20 +44,7 @@ class ClickPicksBotService {
 
   private async initializeBot() {
     this.bot = new TelegramBot(this.botToken, {
-      polling: {
-        interval: 2000,
-        autoStart: false,
-        params: {
-          timeout: 10,
-          allowed_updates: ['channel_post', 'message']
-        }
-      },
-      request: {
-        agentOptions: {
-          keepAlive: true,
-          family: 4
-        }
-      }
+      polling: true
     });
 
     // Set up error handling
@@ -122,7 +109,7 @@ class ClickPicksBotService {
   }
 
   private extractUrls(text: string): string[] {
-    const urlRegex = /(https?://[^s]+)/g;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.match(urlRegex) || [];
   }
 

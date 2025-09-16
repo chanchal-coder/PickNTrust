@@ -1,6 +1,11 @@
 
 // Bot Instance Manager - Prevents multiple bot conflicts
 class BotInstanceManager {
+  private activeBots: Map<string, any>;
+  private botLocks: Map<string, any>;
+  private recoveryAttempts: Map<string, number>;
+  private maxRecoveryAttempts: number;
+
   constructor() {
     this.activeBots = new Map();
     this.botLocks = new Map();
@@ -8,7 +13,7 @@ class BotInstanceManager {
     this.maxRecoveryAttempts = 3;
   }
 
-  async acquireBotLock(botName, botToken) {
+  async acquireBotLock(botName: string, botToken: string): Promise<boolean> {
     const lockKey = `${botName}_${botToken.slice(-10)}`;
     
     if (this.botLocks.has(lockKey)) {
@@ -26,13 +31,13 @@ class BotInstanceManager {
     return true;
   }
 
-  releaseBotLock(botName, botToken) {
+  releaseBotLock(botName: string, botToken: string): void {
     const lockKey = `${botName}_${botToken.slice(-10)}`;
     this.botLocks.delete(lockKey);
-    console.log(`Unlock Released lock for bot ${botName}`);
+    console.log(`🔓 Released lock for bot ${botName}`);
   }
 
-  async handleBotConflict(botName, error) {
+  async handleBotConflict(botName: string, error: any): Promise<boolean> {
     console.log(`Alert Bot conflict detected for ${botName}: ${error.message}`);
     
     const attempts = this.recoveryAttempts.get(botName) || 0;
@@ -52,10 +57,10 @@ class BotInstanceManager {
     return true;
   }
 
-  resetRecoveryAttempts(botName) {
+  resetRecoveryAttempts(botName: string): void {
     this.recoveryAttempts.delete(botName);
     console.log(`Success Reset recovery attempts for ${botName}`);
   }
 }
 
-module.exports = { BotInstanceManager };
+export { BotInstanceManager };
