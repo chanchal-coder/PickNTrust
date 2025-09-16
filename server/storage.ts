@@ -199,16 +199,16 @@ export class DatabaseStorage implements IStorage {
       });
       
       // Fallback: try direct SQLite query if Drizzle fails
-      try {
-        console.log('🔄 Attempting fallback direct query...');
-        const { sqliteDb } = await import('./db.js');
-        const directResult = sqliteDb.prepare('SELECT * FROM products ORDER BY id DESC').all();
-        console.log(`🔧 Fallback query found ${directResult.length} products`);
-        return directResult as Product[];
-      } catch (fallbackError) {
-        console.error('❌ Fallback query also failed:', fallbackError);
-        return [];
-      }
+       try {
+         console.log('🔄 Attempting fallback direct query...');
+         const dbModule = await import('./db.js');
+         const directResult = dbModule.sqliteDb.prepare('SELECT * FROM products ORDER BY id DESC').all();
+         console.log(`🔧 Fallback query found ${directResult.length} products`);
+         return directResult as Product[];
+       } catch (fallbackError) {
+         console.error('❌ Fallback query also failed:', fallbackError);
+         return [];
+       }
     }
   }
 

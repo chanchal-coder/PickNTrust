@@ -140,8 +140,9 @@ app.use((req, res, next) => {
   // }, 5 * 60 * 1000); // 5 minutes
   
   // Serve static files first
+  const fs = await import('fs');
   const publicPath = path.resolve(__dirname, '../public');
-  if (require('fs').existsSync(publicPath)) {
+  if (fs.existsSync(publicPath)) {
     console.log(`📁 Setting up static file serving from: ${publicPath}`);
     app.use(express.static(publicPath, {
       maxAge: '1d',
@@ -160,7 +161,7 @@ app.use((req, res, next) => {
     // Serve React app for client-side routes
     const indexPath = path.join(publicPath, 'index.html');
     
-    if (require('fs').existsSync(indexPath)) {
+    if (fs.existsSync(indexPath)) {
       console.log(`🎯 SPA fallback: serving React app for ${req.path}`);
       res.sendFile(indexPath);
     } else {
