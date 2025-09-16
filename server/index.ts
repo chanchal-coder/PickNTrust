@@ -55,6 +55,11 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow EC2 IP address
+    if (origin && origin.includes('51.21.253.229')) {
+      return callback(null, true);
+    }
+
     // Reject other origins
     return callback(new Error('Not allowed by CORS'));
   },
