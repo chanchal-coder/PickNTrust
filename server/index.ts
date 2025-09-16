@@ -139,15 +139,25 @@ app.use((req, res, next) => {
   //   }
   // }, 5 * 60 * 1000); // 5 minutes
   
-  // SPA fallback route - serve React app for all non-API routes
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  // Serve static files first
+  const publicPath = path.resolve(__dirname, '../public');
+  if (require('fs').existsSync(publicPath)) {
+    console.log(`📁 Setting up static file serving from: ${publicPath}`);
+    app.use(express.static(publicPath, {
+      maxAge: '1d',
+      etag: false,
+      lastModified: false
+    }));
+  }
+  
+  // SPA fallback route - serve React app for all non-API routes (must be last)
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
     // Skip API routes and webhooks
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.method !== 'GET') {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path.startsWith('/health')) {
       return next();
     }
     
     // Serve React app for client-side routes
-    const publicPath = path.resolve(__dirname, '../public');
     const indexPath = path.join(publicPath, 'index.html');
     
     if (require('fs').existsSync(indexPath)) {
@@ -155,7 +165,7 @@ app.use((req, res, next) => {
       res.sendFile(indexPath);
     } else {
       console.log(`❌ SPA fallback: index.html not found at ${indexPath}`);
-      next();
+      res.status(404).send('Frontend files not found');
     }
   });
   

@@ -178,55 +178,37 @@ export class DatabaseStorage implements IStorage {
       console.log('🔍 DatabaseStorage: Getting products...');
       console.log('📊 Database connection status:', db ? 'Connected' : 'Not connected');
       
-      // Try a simple query first
-      const countResult = await db.select().from(products).limit(1);
-      console.log('✅ Simple query test successful, sample result:', countResult.length > 0 ? 'Has data' : 'No data');
-      
-      const result = await db.select({
-        id: products.id,
-        name: products.name,
-        description: products.description,
-        price: products.price,
-        originalPrice: products.originalPrice,
-        currency: products.currency,
-        imageUrl: products.imageUrl,
-        affiliateUrl: products.affiliateUrl,
-        affiliateNetworkId: products.affiliateNetworkId,
-        category: products.category,
-        subcategory: products.subcategory,
-        gender: products.gender,
-        rating: products.rating,
-        reviewCount: products.reviewCount,
-        discount: products.discount,
-        isNew: products.isNew,
-        isFeatured: products.isFeatured,
-        isService: products.isService,
-        isAIApp: products.isAIApp,
-        customFields: products.customFields,
-        pricingType: products.pricingType,
-        monthlyPrice: products.monthlyPrice,
-        yearlyPrice: products.yearlyPrice,
-        isFree: products.isFree,
-        priceDescription: products.priceDescription,
-        hasTimer: products.hasTimer,
-        timerDuration: products.timerDuration,
-        timerStartTime: products.timerStartTime,
-        createdAt: products.createdAt,
-        displayPages: products.displayPages
-      }).from(products).orderBy(desc(products.id));
+      // Use a simpler query approach to avoid complex field mapping issues
+      console.log('🔄 Attempting simplified query...');
+      const result = await db.select().from(products).orderBy(desc(products.id));
       console.log(`✅ DatabaseStorage: Found ${result.length} products`);
+      
       if (result.length > 0) {
-        console.log('📝 Sample product:', { id: result[0].id, name: result[0].name });
+        console.log('📝 Sample product:', { id: result[0].id, name: result[0].name, price: result[0].price });
+        console.log('🔍 All fields present:', Object.keys(result[0]).length > 10 ? 'Yes' : 'No');
       }
+      
       return result;
     } catch (error) {
       console.error('❌ DatabaseStorage: Error getting products:', error);
       console.error('🔍 Error details:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+        message: error?.message || 'Unknown error',
+        code: error?.code || 'No code',
+        name: error?.name || 'Unknown',
+        stack: error?.stack?.split('\n').slice(0, 3).join('\n') || 'No stack'
       });
-      return [];
+      
+      // Fallback: try direct SQLite query if Drizzle fails
+      try {
+        console.log('🔄 Attempting fallback direct query...');
+        const { sqliteDb } = await import('./db.js');
+        const directResult = sqliteDb.prepare('SELECT * FROM products ORDER BY id DESC').all();
+        console.log(`🔧 Fallback query found ${directResult.length} products`);
+        return directResult as Product[];
+      } catch (fallbackError) {
+        console.error('❌ Fallback query also failed:', fallbackError);
+        return [];
+      }
     }
   }
 
