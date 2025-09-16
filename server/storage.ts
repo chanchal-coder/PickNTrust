@@ -175,7 +175,13 @@ export class DatabaseStorage implements IStorage {
   // Products
   async getProducts(): Promise<Product[]> {
     try {
-      console.log('DatabaseStorage: Getting products...');
+      console.log('🔍 DatabaseStorage: Getting products...');
+      console.log('📊 Database connection status:', db ? 'Connected' : 'Not connected');
+      
+      // Try a simple query first
+      const countResult = await db.select().from(products).limit(1);
+      console.log('✅ Simple query test successful, sample result:', countResult.length > 0 ? 'Has data' : 'No data');
+      
       const result = await db.select({
         id: products.id,
         name: products.name,
@@ -208,10 +214,18 @@ export class DatabaseStorage implements IStorage {
         createdAt: products.createdAt,
         displayPages: products.displayPages
       }).from(products).orderBy(desc(products.id));
-      console.log(`DatabaseStorage: Found ${result.length} products`);
+      console.log(`✅ DatabaseStorage: Found ${result.length} products`);
+      if (result.length > 0) {
+        console.log('📝 Sample product:', { id: result[0].id, name: result[0].name });
+      }
       return result;
     } catch (error) {
-      console.error('DatabaseStorage: Error getting products:', error);
+      console.error('❌ DatabaseStorage: Error getting products:', error);
+      console.error('🔍 Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
       return [];
     }
   }
