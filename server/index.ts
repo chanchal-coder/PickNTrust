@@ -139,6 +139,26 @@ app.use((req, res, next) => {
   //   }
   // }, 5 * 60 * 1000); // 5 minutes
   
+  // SPA fallback route - serve React app for all non-API routes
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/')) {
+      return next();
+    }
+    
+    // Serve React app for client-side routes
+    const publicPath = path.resolve(__dirname, '../public');
+    const indexPath = path.join(publicPath, 'index.html');
+    
+    if (require('fs').existsSync(indexPath)) {
+      console.log(`🎯 SPA fallback: serving React app for ${req.path}`);
+      res.sendFile(indexPath);
+    } else {
+      console.log(`❌ SPA fallback: index.html not found at ${indexPath}`);
+      next();
+    }
+  });
+  
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
