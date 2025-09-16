@@ -157,7 +157,7 @@ app.use((req, res, next) => {
   });
   
   // SPA fallback middleware - serve React app for all non-API routes (must be last)
-  app.use('*', (req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`🔍 SPA middleware triggered for: ${req.path} (method: ${req.method})`);
     
     // Skip API routes and webhooks
