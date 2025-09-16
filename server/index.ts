@@ -140,9 +140,9 @@ app.use((req, res, next) => {
   // }, 5 * 60 * 1000); // 5 minutes
   
   // SPA fallback route - serve React app for all non-API routes
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
-    // Skip API routes
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/')) {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Skip API routes and webhooks
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.method !== 'GET') {
       return next();
     }
     
