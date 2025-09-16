@@ -317,11 +317,17 @@ app.get('/api/bots/health', async (req, res) => {
     // In production, server is in dist/server and static files are in dist/public
     const publicPath = path.resolve(__dirname, '../public');
     
-    console.log(`Looking for frontend files at: ${publicPath}`);
-    console.log(`Server __dirname: ${__dirname}`);
-    console.log(`Resolved public path: ${publicPath}`);
+    console.log(`🔍 Looking for frontend files at: ${publicPath}`);
+    console.log(`📁 Server __dirname: ${__dirname}`);
+    console.log(`📂 Resolved public path: ${publicPath}`);
     
-    if (fs.existsSync(publicPath) && fs.existsSync(path.join(publicPath, 'index.html'))) {
+    // Check paths explicitly
+    const publicExists = fs.existsSync(publicPath);
+    const indexExists = fs.existsSync(path.join(publicPath, 'index.html'));
+    console.log(`📋 Public path exists: ${publicExists}`);
+    console.log(`📄 Index.html exists: ${indexExists}`);
+    
+    if (publicExists && indexExists) {
       console.log(`Success Found frontend files at: ${publicPath}`);
       
       // Serve static files with proper headers
