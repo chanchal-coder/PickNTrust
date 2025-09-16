@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { sqliteTable, text, integer, real, numeric, sql } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, numeric } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
