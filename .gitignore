@@ -48,6 +48,11 @@ telegram-errors.log
 
 # Database files (if containing sensitive data)
 *.sqlite
+
+# Backup files (large files that exceed GitHub limits)
+*.zip
+*_backup_*.zip
+pnt_backup_*.zip
 *.db
 database.sqlite
 sqlite.db
