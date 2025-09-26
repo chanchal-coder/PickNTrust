@@ -1,116 +1,124 @@
-// Debug Webhook Processing
-// This script tests webhook processing and checks database results
+/**
+ * Debug Webhook Processing Flow
+ * Check if webhook messages are properly processed into unified_content
+ */
 
-const axios = require('axios');
 const Database = require('better-sqlite3');
 
-console.log('🔍 DEBUGGING WEBHOOK PROCESSING');
-console.log('=' .repeat(50));
+console.log('🔍 DEBUGGING WEBHOOK PROCESSING FLOW');
+console.log('='.repeat(60));
 
 async function debugWebhookProcessing() {
   try {
     const db = new Database('./database.sqlite');
     
-    // Get initial product count
-    const initialCount = db.prepare('SELECT COUNT(*) as count FROM prime_picks_products').get();
-    console.log(`📊 Initial products in prime_picks_products: ${initialCount.count}`);
+    console.log('\n1️⃣ Recent Channel Posts Analysis...');
     
-    // Send webhook message
-    console.log('\n📱 Sending webhook message...');
+    // Get the most recent channel posts
+    const recentPosts = db.prepare(`
+      SELECT 
+        id, channel_name, website_page, message_id,
+        is_processed, is_posted, processing_error,
+        datetime(created_at, 'unixepoch') as readable_time,
+        substr(original_text, 1, 100) as text_preview
+      FROM channel_posts 
+      ORDER BY created_at DESC
+      LIMIT 10
+    `).all();
     
-    const webhookPayload = {
-      message: {
-        text: 'Debug test: https://amazon.in/dp/B08N5WRWNW Amazing product!',
-        chat: {
-          id: -1002955338551,
-          type: 'channel'
-        },
-        message_id: 1005,
-        from: {
-          id: 123456,
-          first_name: 'Debug'
-        },
-        date: Math.floor(Date.now() / 1000)
-      }
-    };
+    console.log(`   📊 Total recent posts: ${recentPosts.length}`);
     
-    const response = await axios.post('https://wild-cooks-read.loca.lt/webhook/prime-picks', webhookPayload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Telegram-Bot-Api-Secret-Token': 'pickntrust_webhook_secret_2025'
-      }
-    });
-    
-    console.log(`✅ Webhook response: ${response.status} ${response.statusText}`);
-    console.log(`📄 Response body:`, response.data);
-    
-    // Wait a moment for processing
-    console.log('\n⏳ Waiting 5 seconds for processing...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    // Check database again
-    const finalCount = db.prepare('SELECT COUNT(*) as count FROM prime_picks_products').get();
-    console.log(`\n📊 Final products in prime_picks_products: ${finalCount.count}`);
-    
-    const newProducts = finalCount.count - initialCount.count;
-    console.log(`📈 New products created: ${newProducts}`);
-    
-    if (newProducts > 0) {
-      console.log('\n✅ SUCCESS: Products were created!');
-      
-      // Show recent products
-      const recentProducts = db.prepare(`
-        SELECT name, price, affiliate_url, created_at 
-        FROM prime_picks_products 
-        ORDER BY created_at DESC 
-        LIMIT 3
-      `).all();
-      
-      recentProducts.forEach((product, index) => {
-        console.log(`  ${index + 1}. ${product.name}`);
-        console.log(`     Price: ${product.price}`);
-        console.log(`     URL: ${product.affiliate_url}`);
-        console.log(`     Created: ${new Date(product.created_at * 1000).toLocaleString()}`);
+    if (recentPosts.length > 0) {
+      console.log('   📋 Recent posts status:');
+      recentPosts.forEach((post, index) => {
+        console.log(`      ${index + 1}. ${post.channel_name} → ${post.website_page}`);
+        console.log(`         ID: ${post.id} | Message: ${post.message_id} | Time: ${post.readable_time}`);
+        console.log(`         Processed: ${post.is_processed} | Posted: ${post.is_posted}`);
+        if (post.processing_error) {
+          console.log(`         ❌ Error: ${post.processing_error}`);
+        }
+        console.log(`         Text: "${post.text_preview}..."`);
+        console.log('');
       });
-      
-    } else {
-      console.log('\n❌ ISSUE: No new products were created');
-      
-      // Debug: Check table structure
-      console.log('\n🔍 Debugging table structure...');
-      const tableInfo = db.pragma('table_info(prime_picks_products)');
-      console.log('📋 Table columns:');
-      tableInfo.forEach(col => {
-        console.log(`  - ${col.name} (${col.type})`);
+    }
+    
+    console.log('\n2️⃣ Unified Content Creation Check...');
+    
+    // Check if recent channel_posts have corresponding unified_content
+    if (recentPosts.length > 0) {
+      recentPosts.forEach((post, index) => {
+        // Look for unified_content with matching source_id
+        const unifiedMatch = db.prepare(`
+          SELECT id, title, display_pages, processing_status, created_at
+          FROM unified_content 
+          WHERE source_id = ? OR source_id = ?
+        `).all(post.id.toString(), post.message_id.toString());
+        
+        console.log(`   ${index + 1}. Channel Post ID ${post.id}:`);
+        if (unifiedMatch.length > 0) {
+          console.log(`      ✅ Found ${unifiedMatch.length} unified_content entries`);
+          unifiedMatch.forEach(match => {
+            console.log(`         - "${match.title}" (${match.processing_status})`);
+            console.log(`         - Pages: ${match.display_pages}`);
+            console.log(`         - Created: ${new Date(match.created_at * 1000).toLocaleString()}`);
+          });
+        } else {
+          console.log(`      ❌ No unified_content found for this channel post`);
+          console.log(`      💡 This indicates the processing pipeline is broken`);
+        }
       });
-      
-      // Check if there are any products at all
-      const allProducts = db.prepare('SELECT COUNT(*) as count FROM prime_picks_products').get();
-      console.log(`\n📊 Total products in table: ${allProducts.count}`);
-      
-      if (allProducts.count > 0) {
-        const sampleProducts = db.prepare('SELECT name, created_at FROM prime_picks_products ORDER BY created_at DESC LIMIT 3').all();
-        console.log('📋 Sample existing products:');
-        sampleProducts.forEach((product, index) => {
-          console.log(`  ${index + 1}. ${product.name} (${new Date(product.created_at * 1000).toLocaleString()})`);
-        });
-      }
+    }
+    
+    console.log('\n3️⃣ Processing Pipeline Status...');
+    
+    // Check processing statistics
+    const processingStats = db.prepare(`
+      SELECT 
+        COUNT(*) as total_posts,
+        COUNT(CASE WHEN is_processed = 1 THEN 1 END) as processed_posts,
+        COUNT(CASE WHEN is_posted = 1 THEN 1 END) as posted_posts,
+        COUNT(CASE WHEN processing_error IS NOT NULL THEN 1 END) as error_posts
+      FROM channel_posts
+    `).get();
+    
+    console.log('   📊 Processing Statistics:');
+    console.log(`      Total Posts: ${processingStats.total_posts}`);
+    console.log(`      Processed: ${processingStats.processed_posts}`);
+    console.log(`      Posted: ${processingStats.posted_posts}`);
+    console.log(`      Errors: ${processingStats.error_posts}`);
+    
+    const processingRate = processingStats.total_posts > 0 ? 
+      (processingStats.processed_posts / processingStats.total_posts * 100).toFixed(1) : 0;
+    
+    console.log(`      Processing Rate: ${processingRate}%`);
+    
+    if (processingStats.processed_posts === 0 && processingStats.total_posts > 0) {
+      console.log('      ❌ CRITICAL: No posts are being processed!');
     }
     
     db.close();
     
-  } catch (error) {
-    console.error('❌ Debug test failed:', error.message);
-    if (error.response) {
-      console.error('📄 Response status:', error.response.status);
-      console.error('📄 Response data:', error.response.data);
+    console.log('\n📋 DIAGNOSIS SUMMARY:');
+    console.log('='.repeat(30));
+    
+    if (processingStats.total_posts > 0 && processingStats.processed_posts === 0) {
+      console.log('❌ CRITICAL ISSUE: Messages are being received but not processed');
+      console.log('   💡 The webhook is working, but processMessage() is not being called');
+      console.log('   💡 Check if the webhook handler is properly routing to telegram-bot.ts');
+      console.log('   💡 Verify that TelegramBotManager.processChannelPost() is working');
     }
+    
+    console.log('\n🔧 RECOMMENDED ACTIONS:');
+    console.log('1. Check webhook handler in routes.ts');
+    console.log('2. Verify TelegramBotManager.processChannelPost() is being called');
+    console.log('3. Test saveProductToDatabase() function manually');
+    console.log('4. Check server logs for any processing errors');
+    
+  } catch (error) {
+    console.error('❌ Error debugging webhook processing:', error.message);
+    console.error('Stack trace:', error.stack);
   }
 }
 
-// Run the debug test
-debugWebhookProcessing().then(() => {
-  console.log('\n🏁 Webhook processing debug completed');
-}).catch(error => {
-  console.error('❌ Debug error:', error);
-});
+// Run the debug
+debugWebhookProcessing();

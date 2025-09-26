@@ -478,7 +478,7 @@ export default function WidgetManagement() {
     ...staticPages,
     ...productPages,
     ...travelSubcategories,
-    ...navTabs.map((tab: any) => ({
+    ...(Array.isArray(navTabs) ? navTabs : []).map((tab: any) => ({
       value: tab.slug,
       label: tab.name
     }))

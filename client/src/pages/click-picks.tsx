@@ -97,7 +97,7 @@ export default function ClickPicks() {
   // Check admin status
   useEffect(() => {
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost');
+    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost' || window.location.hostname === 'pickntrust.com');
   }, []);
 
   const handleBulkDelete = async (deleteAll = false) => {
@@ -390,9 +390,8 @@ export default function ClickPicks() {
         title="Click Picks Videos"
       />
       
-      <Footer />
       <ScrollNavigation />
-    </div>
+      </div>
     </UniversalPageLayout>
   );
 }

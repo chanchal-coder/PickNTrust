@@ -34,7 +34,7 @@ import {
   type CanvaTemplate,
   type InsertCanvaTemplate
 } from "../shared/sqlite-schema.js";
-import { db } from "./db.js";
+import { db, sqliteDb } from "./db.js";
 import { eq, desc, ne, and, lt } from "drizzle-orm";
 import fs from 'fs';
 
@@ -172,6 +172,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private sqliteDb: any;
+
+  constructor() {
+    this.sqliteDb = sqliteDb;
+  }
+
   // Products
   async getProducts(): Promise<Product[]> {
     try {
@@ -201,8 +207,11 @@ export class DatabaseStorage implements IStorage {
       // Fallback: try direct SQLite query if Drizzle fails
        try {
          console.log('🔄 Attempting fallback direct query...');
-         const dbModule = await import('./db.js');
-         const directResult = dbModule.sqliteDb.prepare('SELECT * FROM products ORDER BY id DESC').all();
+         const Database = (await import('better-sqlite3')).default;
+         const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+         const rawDb = new Database(dbFile);
+         const directResult = rawDb.prepare('SELECT * FROM products ORDER BY id DESC').all();
+         rawDb.close();
          console.log(`🔧 Fallback query found ${directResult.length} products`);
          return directResult as Product[];
        } catch (fallbackError) {
@@ -220,8 +229,8 @@ export class DatabaseStorage implements IStorage {
       try {
         // Use raw SQL with proper column mapping
         const Database = (await import('better-sqlite3')).default;
-        const dbFile = fs.existsSync('database.sqlite') ? 'database.sqlite' : 'sqlite.db';
-        const rawDb = new Database(dbFile);
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      const rawDb = new Database(dbFile);
         
         const result = rawDb.prepare(`
           SELECT id, name, description, price, 
@@ -350,7 +359,7 @@ export class DatabaseStorage implements IStorage {
       console.log('DatabaseStorage: Products by category query failed, trying raw SQL fallback...');
       try {
         const Database = (await import('better-sqlite3')).default;
-        const dbFile = fs.existsSync('database.sqlite') ? 'database.sqlite' : 'sqlite.db';
+        const dbFile = 'database.sqlite';
         const rawDb = new Database(dbFile);
         
         const result = rawDb.prepare(`
@@ -404,7 +413,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // EMERGENCY FIX: Direct database access to restore categories immediately
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       const result = rawDb.prepare(`
@@ -436,7 +445,7 @@ export class DatabaseStorage implements IStorage {
   async getCategoriesByPage(page: string): Promise<string[]> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       const result = rawDb.prepare(`
@@ -499,7 +508,7 @@ export class DatabaseStorage implements IStorage {
   async getCategoriesWithSubcategories(): Promise<Category[]> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       const result = rawDb.prepare(`
@@ -524,7 +533,7 @@ export class DatabaseStorage implements IStorage {
   async getMainCategories(): Promise<Category[]> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       const result = rawDb.prepare(`
@@ -551,7 +560,7 @@ export class DatabaseStorage implements IStorage {
   async getSubcategories(parentId: number): Promise<Category[]> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       const result = rawDb.prepare(`
@@ -587,7 +596,7 @@ export class DatabaseStorage implements IStorage {
       try {
         // Use raw SQL with proper column handling
         const Database = (await import('better-sqlite3')).default;
-        const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+        const dbFile = 'database.sqlite';
         const rawDb = new Database(dbFile);
         
         // Insert with proper column mapping and defaults
@@ -630,7 +639,7 @@ export class DatabaseStorage implements IStorage {
       
       // Use raw SQL for reliable updates
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       // First check if category exists
@@ -860,15 +869,19 @@ export class DatabaseStorage implements IStorage {
         conditionResult: Boolean(product.isService || product.isAIApp)
       });
       
-      if (product.isService || product.isAIApp) {
+      // Ensure proper boolean conversion for service/AI app flags
+      const isServiceProduct = Boolean(product.isService);
+      const isAIAppProduct = Boolean(product.isAIApp);
+      
+      if (isServiceProduct || isAIAppProduct) {
         // For services and AI Apps, handle pricing based on type and available fields
         pricingType = product.pricingType || 'one-time';
         monthlyPrice = product.monthlyPrice?.toString().trim() || null;
         yearlyPrice = product.yearlyPrice?.toString().trim() || null;
         
         console.log('Service/AI App pricing debug:', {
-          isService: product.isService,
-          isAIApp: product.isAIApp,
+          isService: isServiceProduct,
+          isAIApp: isAIAppProduct,
           isFree,
           pricingType,
           monthlyPrice,
@@ -944,8 +957,8 @@ export class DatabaseStorage implements IStorage {
         discount: product.discount ? parseInt(product.discount.toString()) : null,
         isNew: Boolean(product.isNew),
         isFeatured: product.isFeatured !== undefined ? Boolean(product.isFeatured) : true,
-        isService: Boolean(product.isService),
-        isAIApp: Boolean(product.isAIApp),
+        isService: Boolean(isServiceProduct),
+        isAIApp: Boolean(isAIAppProduct),
         customFields: typeof product.customFields === 'object' ? JSON.stringify(product.customFields) : product.customFields,
         
         // Enhanced pricing fields for services and AI Apps
@@ -969,10 +982,194 @@ export class DatabaseStorage implements IStorage {
       console.log('DatabaseStorage: Transformed product data with normalized gender:', productData);
       console.log(`Gender normalization: "${product.gender}" -> "${normalizedGender}"`);
 
-      const [newProduct] = await db
-        .insert(products)
-        .values(productData)
-        .returning();
+      // Insert into unified_content table instead of products table
+      const unifiedContentData = {
+        title: product.name.trim(),
+        description: product.description?.trim() || '',
+        content: product.description?.trim() || '',
+        content_type: 'product',
+        source_platform: 'admin',
+        source_id: null,
+        media_urls: product.imageUrl?.trim() ? JSON.stringify([product.imageUrl.trim()]) : null,
+        affiliate_urls: product.affiliateUrl?.trim() ? JSON.stringify([product.affiliateUrl.trim()]) : null,
+        original_urls: null,
+        tags: product.category ? JSON.stringify([product.category]) : null,
+        category: product.category || '',
+        engagement_metrics: JSON.stringify({
+          rating: (rating || 4.5),
+          reviewCount: reviewCount || 100,
+          discount: product.discount ? parseInt(product.discount.toString()) : null
+        }),
+        seo_title: product.name.trim(),
+        seo_description: product.description?.trim() || '',
+        seo_keywords: product.category || '',
+        image_url: product.imageUrl?.trim() || '',
+        status: 'published',
+        visibility: 'public',
+        scheduled_at: null,
+        published_at: Math.floor(now.getTime() / 1000),
+        expires_at: product.hasTimer ? Math.floor((now.getTime() + (parseInt(product.timerDuration?.toString() || '24') * 60 * 60 * 1000)) / 1000) : null,
+        created_at: Math.floor(now.getTime() / 1000),
+        updated_at: Math.floor(now.getTime() / 1000),
+        metadata: JSON.stringify({
+          price: (price || 0).toString(),
+          originalPrice: originalPrice ? originalPrice.toString() : null,
+          currency: product.currency || 'INR',
+          gender: normalizedGender,
+          isNew: Boolean(product.isNew),
+          isFeatured: product.isFeatured !== undefined ? Boolean(product.isFeatured) : true,
+          isService: Boolean(isServiceProduct),
+          isAIApp: Boolean(isAIAppProduct),
+          customFields: typeof product.customFields === 'object' ? product.customFields : (product.customFields || {}),
+          pricingType: pricingType,
+          monthlyPrice: monthlyPrice,
+          yearlyPrice: yearlyPrice,
+          isFree: isFree,
+          priceDescription: product.priceDescription?.trim() || null,
+          hasTimer: Boolean(product.hasTimer),
+          timerDuration: product.hasTimer ? parseInt(product.timerDuration?.toString() || '24') : null,
+          timerStartTime: product.hasTimer ? now.toISOString() : null,
+          affiliateNetworkId: product.affiliateNetworkId || null
+        }),
+        processing_status: 'active',
+        ai_generated: 0,
+        display_pages: product.displayPages ? JSON.stringify(product.displayPages) : JSON.stringify([])
+      };
+
+      console.log('DatabaseStorage: Final unifiedContentData object:', unifiedContentData);
+
+      // Use raw SQL to insert into unified_content table - using actual column names
+      const result = this.sqliteDb.prepare(`
+        INSERT INTO unified_content (
+          title, description, content, content_type, source_platform, source_id,
+          affiliate_url, category, status, visibility, page_type, source_type,
+          created_at, updated_at, processing_status, display_pages,
+          price, original_price, image_url, affiliate_urls, is_featured, is_service, is_ai_app
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        unifiedContentData.title,
+        unifiedContentData.description,
+        unifiedContentData.content,
+        unifiedContentData.content_type,
+        unifiedContentData.source_platform,
+        unifiedContentData.source_id,
+        unifiedContentData.affiliate_urls ? JSON.parse(unifiedContentData.affiliate_urls)[0] : null,
+        unifiedContentData.category,
+        unifiedContentData.status,
+        unifiedContentData.visibility,
+        'product', // page_type is required
+        'admin', // source_type is required
+        unifiedContentData.created_at,
+        unifiedContentData.updated_at,
+        unifiedContentData.processing_status,
+        unifiedContentData.display_pages,
+        JSON.parse(unifiedContentData.metadata).price,
+        JSON.parse(unifiedContentData.metadata).originalPrice,
+        unifiedContentData.image_url,
+        unifiedContentData.affiliate_urls,
+        product.isFeatured !== undefined ? (product.isFeatured ? 1 : 0) : 0,
+        isServiceProduct ? 1 : 0,
+        isAIAppProduct ? 1 : 0
+      );
+
+      // Create a product-like object to return
+      const newProduct = {
+        id: result.lastInsertRowid,
+        name: product.name.trim(),
+        description: product.description?.trim() || '',
+        price: (price || 0).toString(),
+        originalPrice: originalPrice ? originalPrice.toString() : null,
+        currency: product.currency || 'INR',
+        imageUrl: product.imageUrl?.trim() || '',
+        affiliateUrl: product.affiliateUrl?.trim() || '',
+        category: product.category || '',
+        rating: (rating || 4.5).toString(),
+        reviewCount: reviewCount || 100,
+        discount: product.discount ? parseInt(product.discount.toString()) : null,
+        isNew: Boolean(product.isNew),
+        isFeatured: product.isFeatured !== undefined ? Boolean(product.isFeatured) : true,
+        isService: Boolean(isServiceProduct),
+        isAIApp: Boolean(isAIAppProduct),
+        createdAt: now
+      };
+
+      // If product is marked as featured, also add it to the featured_products table
+      if (newProduct.isFeatured) {
+        try {
+          console.log('⭐ Adding featured product to featured_products table...');
+          
+          // Calculate discount percentage if both prices are available
+          let discountPercentage = null;
+          if (originalPrice && price && originalPrice > price) {
+            discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
+          }
+          
+          const featuredProductData = {
+            name: newProduct.name,
+            description: newProduct.description,
+            price: newProduct.price,
+            original_price: newProduct.originalPrice,
+            currency: newProduct.currency,
+            image_url: newProduct.imageUrl,
+            affiliate_url: newProduct.affiliateUrl,
+            category: newProduct.category,
+            rating: newProduct.rating,
+            review_count: newProduct.reviewCount,
+            discount: discountPercentage,
+            is_featured: 1,
+            is_new: newProduct.isNew ? 1 : 0,
+            is_active: 1,
+            display_order: 0,
+            has_timer: product.hasTimer ? 1 : 0,
+            timer_duration: product.hasTimer ? parseInt(product.timerDuration?.toString() || '24') : null,
+            timer_start_time: product.hasTimer ? Math.floor(now.getTime() / 1000) : null,
+            affiliate_network: 'Manual',
+            source: 'admin',
+            content_type: isServiceProduct ? 'service' : (isAIAppProduct ? 'aiapp' : 'product'),
+            created_at: Math.floor(now.getTime() / 1000),
+            updated_at: Math.floor(now.getTime() / 1000)
+          };
+
+          // Insert into featured_products table
+          const featuredInsertResult = this.sqliteDb.prepare(`
+            INSERT INTO featured_products (
+              name, description, price, original_price, currency, image_url, affiliate_url,
+              category, rating, review_count, discount, is_featured, is_new, is_active,
+              display_order, has_timer, timer_duration, timer_start_time, affiliate_network,
+              source, content_type, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            featuredProductData.name,
+            featuredProductData.description,
+            featuredProductData.price,
+            featuredProductData.original_price,
+            featuredProductData.currency,
+            featuredProductData.image_url,
+            featuredProductData.affiliate_url,
+            featuredProductData.category,
+            featuredProductData.rating,
+            featuredProductData.review_count,
+            featuredProductData.discount,
+            featuredProductData.is_featured,
+            featuredProductData.is_new,
+            featuredProductData.is_active,
+            featuredProductData.display_order,
+            featuredProductData.has_timer,
+            featuredProductData.timer_duration,
+            featuredProductData.timer_start_time,
+            featuredProductData.affiliate_network,
+            featuredProductData.source,
+            featuredProductData.content_type,
+            featuredProductData.created_at,
+            featuredProductData.updated_at
+          );
+
+          console.log(`✅ Featured product added to featured_products table with ID: ${featuredInsertResult.lastInsertRowid}`);
+        } catch (featuredError) {
+          console.error('❌ Error adding to featured_products table:', featuredError);
+          // Don't throw error here - the main product was still added successfully
+        }
+      }
         
       console.log('DatabaseStorage: Product added successfully:', newProduct);
       return newProduct;
@@ -1254,7 +1451,7 @@ export class DatabaseStorage implements IStorage {
   public async ensureCanvaTablesExist(): Promise<void> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = fs.existsSync('database.sqlite') ? 'database.sqlite' : 'sqlite.db';
+      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
 
       // Create canva_settings table if it doesn't exist - matching Drizzle schema exactly

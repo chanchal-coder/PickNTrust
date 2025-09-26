@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: path.resolve(__dirname, "../dist/public"),
+    emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
@@ -20,7 +22,33 @@ export default defineConfig({
           query: ['@tanstack/react-query'],
           radix: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
           utils: ['date-fns', 'clsx', 'class-variance-authority'],
-          icons: ['lucide-react']
+          icons: ['lucide-react'],
+          // Split page components into separate chunks
+          'pages-main': [
+            './src/pages/home.tsx',
+            './src/pages/category.tsx',
+            './src/pages/search.tsx'
+          ],
+          'pages-picks': [
+            './src/pages/top-picks.tsx',
+            './src/pages/prime-picks.tsx',
+            './src/pages/value-picks.tsx',
+            './src/pages/cue-picks.tsx',
+            './src/pages/click-picks.tsx',
+            './src/pages/global-picks.tsx'
+          ],
+          'pages-travel': [
+            './src/pages/travel-picks.tsx',
+            './src/pages/flights.tsx',
+            './src/pages/hotels.tsx'
+          ],
+          'pages-other': [
+            './src/pages/deals-hub.tsx',
+            './src/pages/loot-box.tsx',
+            './src/pages/apps.tsx',
+            './src/pages/services.tsx',
+            './src/pages/videos.tsx'
+          ]
         }
       }
     }

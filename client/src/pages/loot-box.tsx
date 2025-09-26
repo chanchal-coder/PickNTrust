@@ -98,7 +98,7 @@ export default function LootBox() {
   // Check admin status
   useEffect(() => {
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost');
+    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost' || window.location.hostname === 'pickntrust.com');
   }, []);
 
   const handleBulkDelete = async (deleteAll = false) => {
@@ -404,9 +404,8 @@ export default function LootBox() {
         title="Loot Box Videos"
       />
       
-      <Footer />
       <ScrollNavigation />
-          </div>
+      </div>
     </UniversalPageLayout>
   );
 }

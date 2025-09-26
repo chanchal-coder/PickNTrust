@@ -238,7 +238,7 @@ export default function Flights() {
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
-    mutationFn: deleteProduct,
+    mutationFn: (productId: string | number) => deleteProduct(productId, undefined, 'pickntrust2025'),
     onSuccess: () => {
       invalidateAllProductQueries(queryClient);
       toast({
@@ -817,7 +817,6 @@ export default function Flights() {
         title="Flight Travel Videos"
       />
 
-      <Footer />
       <ScrollNavigation />
     </div>
   );

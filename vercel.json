@@ -29,12 +29,7 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production",
-    "DATABASE_URL": "postgresql://postgres.byhevspaetryxpmnkyxd:cvpmaa123pnt@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres",
-    "SUPABASE_URL": "https://byhevspaetryxpmnkyxd.supabase.co",
-    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5aGV2c3BhZXRyeXhwbW5reXhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMzQ2NzMsImV4cCI6MjA2OTcxMDY3M30.77OtZdtskXkvdNIrRKjb53EBWeL1kmQJcbcsNueXxBU",
-    "JWT_SECRET": "X9f3!aK2lLp#2025_TrustSecureKey",
-    "ADMIN_PASSWORD": "pickntrust2025"
+    "NODE_ENV": "production"
   },
   "functions": {
     "server/index.ts": {

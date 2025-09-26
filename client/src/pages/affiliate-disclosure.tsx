@@ -1,5 +1,4 @@
 import Header from "@/components/header";
-import Footer from "@/components/footer";
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 export default function AffiliateDisclosurePage() {
@@ -93,8 +92,6 @@ export default function AffiliateDisclosurePage() {
                 </div>
               </div>
             </div>
-      
-            <Footer />
           </div>
     </UniversalPageLayout>
   );

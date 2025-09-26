@@ -366,7 +366,6 @@ export default function ValuePicks() {
         title="Value Picks Videos"
       />
       
-        <Footer />
         <ScrollNavigation />
       </div>
     </UniversalPageLayout>

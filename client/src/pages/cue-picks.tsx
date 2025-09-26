@@ -99,7 +99,7 @@ export default function CuePicks() {
   // Check admin status
   useEffect(() => {
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost');
+    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost' || window.location.hostname === 'pickntrust.com');
   }, []);
 
   const handleBulkDelete = async (deleteAll = false) => {
@@ -367,7 +367,6 @@ export default function CuePicks() {
         title="Cue Picks Videos"
       />
       
-        <Footer />
         <ScrollNavigation />
       </div>
     </UniversalPageLayout>

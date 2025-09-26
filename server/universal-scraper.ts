@@ -1,179 +1,173 @@
-/**
- * Universal Enterprise-Grade Web Scraper
- * BUSINESS CRITICAL: Never-fail scraping system for affiliate links
- * Supports 50+ e-commerce platforms with bulletproof error handling
- */
-
-import axios from 'axios';
 import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
+import axios from 'axios';
 
-export interface UniversalScrapedData {
-  title: string;
+interface UniversalScrapedData {
+  name: string;
+  title?: string;
+  description?: string;
   price: string;
   originalPrice?: string;
+  currency: string;
   imageUrl: string;
+  category?: string;
   rating?: string;
   reviewCount?: number;
-  description?: string;
-  category?: string;
-  availability?: string;
-  brand?: string;
   discount?: number;
-  features?: string[];
+  brand?: string;
+  availability?: string;
+  platform: string;
+  success: boolean;
+  error?: string;
   hasLimitedOffer?: boolean;
-  limitedOfferText?: string;
+  media_urls?: string[];
+  affiliate_url?: string;
+  timeout?: number;
 }
 
-export class UniversalScraper {
-  private readonly maxRetries = 5;
-  private readonly retryDelay = 2000;
-  private readonly timeout = 20000;
-  private readonly userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+class UniversalScraper {
+  private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+  private userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
   ];
+  private timeout = 30000;
 
   /**
-   * MAIN SCRAPING METHOD - NEVER FAILS
-   * Uses multiple strategies and fallbacks to ensure 99.9% success rate
+   * Main scraping method
    */
   async scrapeProduct(url: string): Promise<UniversalScrapedData | null> {
-    console.log(`Launch ENTERPRISE SCRAPING: ${url}`);
-    
-    // Step 1: Resolve redirects first
-    const finalUrl = await this.resolveRedirects(url);
-    console.log(`Target Final URL: ${finalUrl}`);
-    
-    // Step 2: Detect platform for optimized scraping
-    const platform = this.detectPlatform(finalUrl);
-    console.log(`🏪 Platform detected: ${platform}`);
-    
-    // Step 3: Use platform-specific scraper with universal fallback
-    let scrapedData = await this.scrapeWithRetries(finalUrl, platform);
-    
-    // Step 4: If platform-specific fails, use universal scraper
-    if (!scrapedData || !this.validateEssentialData(scrapedData)) {
-      console.log(`Warning Platform scraper failed, using universal fallback`);
-      scrapedData = await this.universalScrape(finalUrl);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // Detect platform and scrape accordingly
+      if (url.includes('amazon.')) {
+        return await this.scrapeAmazon($, url);
+      } else {
+        return await this.scrapeGeneric($, url);
+      }
+    } catch (error) {
+      console.error('Scraping error:', error);
+      return null;
     }
-    
-    // Step 5: If still no data, use emergency fallback
-    if (!scrapedData || !this.validateEssentialData(scrapedData)) {
-      console.log(`🆘 All scrapers failed, using emergency fallback`);
-      scrapedData = await this.emergencyFallback(finalUrl);
-    }
-    
-    // Step 6: Final validation and enhancement
-    if (scrapedData) {
-      scrapedData = this.enhanceScrapedData(scrapedData, finalUrl);
-      console.log(`Success SCRAPING SUCCESS: ${scrapedData.title}`);
-    } else {
-      console.error(`Error CRITICAL: All scraping methods failed for ${url}`);
-    }
-    
-    return scrapedData;
   }
 
   /**
-   * Resolve redirects with multiple attempts
+   * Extract text with fallback selectors
    */
-  private async resolveRedirects(url: string): Promise<string> {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const response = await axios.get(url, {
-          headers: { 'User-Agent': this.getRandomUserAgent() },
-          timeout: this.timeout,
-          maxRedirects: 10,
-          validateStatus: () => true
-        });
-        
-        return response.request.res.responseUrl || response.config.url || url;
-      } catch (error) {
-        console.log(`Refresh Redirect attempt ${attempt} failed: ${error.message}`);
-        if (attempt === 3) return url;
-        await this.sleep(1000 * attempt);
+  private extractWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const text = element.text().trim();
+        if (text) return text;
       }
     }
-    return url;
+    return '';
   }
 
   /**
-   * Platform detection for optimized scraping
+   * Extract price with fallback selectors
    */
-  private detectPlatform(url: string): string {
-    const domain = url.toLowerCase();
-    
-    if (domain.includes('amazon.')) return 'amazon';
-    if (domain.includes('flipkart.')) return 'flipkart';
-    if (domain.includes('myntra.')) return 'myntra';
-    if (domain.includes('nykaa.')) return 'nykaa';
-    if (domain.includes('ajio.')) return 'ajio';
-    if (domain.includes('meesho.')) return 'meesho';
-    if (domain.includes('snapdeal.')) return 'snapdeal';
-    if (domain.includes('paytmmall.')) return 'paytm';
-    if (domain.includes('shopclues.')) return 'shopclues';
-    if (domain.includes('tatacliq.')) return 'tatacliq';
-    
-    return 'universal';
-  }
-
-  /**
-   * Scrape with retry logic and platform-specific optimization
-   */
-  private async scrapeWithRetries(url: string, platform: string): Promise<UniversalScrapedData | null> {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        console.log(`Refresh Scraping attempt ${attempt}/${this.maxRetries} for ${platform}`);
-        
-        const $ = await this.fetchPage(url, attempt);
-        let data: UniversalScrapedData | null = null;
-        
-        // Use platform-specific scraper
-        switch (platform) {
-          case 'amazon':
-            data = await this.scrapeAmazon($, url);
-            break;
-          case 'flipkart':
-            data = await this.scrapeFlipkart($, url);
-            break;
-          case 'myntra':
-            data = await this.scrapeMyntra($, url);
-            break;
-          default:
-            data = await this.universalScrapeFromCheerio($, url);
-        }
-        
-        if (data && this.validateEssentialData(data)) {
-          console.log(`Success Platform scraping successful on attempt ${attempt}`);
-          return data;
-        }
-        
-        throw new Error('Essential data validation failed');
-        
-      } catch (error) {
-        console.log(`Error Attempt ${attempt} failed: ${error.message}`);
-        
-        if (attempt === this.maxRetries) {
-          console.error(`💥 All ${this.maxRetries} attempts failed for ${platform}`);
-          return null;
-        }
-        
-        // Exponential backoff with jitter
-        const delay = this.retryDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
-        await this.sleep(delay);
+  private extractPriceWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const text = element.text().trim();
+        if (text && /[\d,.]/.test(text)) return text;
       }
     }
-    
-    return null;
+    return '';
   }
 
   /**
-   * Enhanced Amazon scraper with 50+ selectors
+   * Extract image with fallback selectors
+   */
+  private extractImageWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const src = element.attr('src') || element.attr('data-src') || element.attr('data-lazy-src');
+        if (src && this.isValidImageUrl(src)) {
+          return src;
+        }
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Extract rating with fallback selectors
+   */
+  private extractRatingWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const text = element.text().trim();
+        const ratingMatch = text.match(/([0-9](?:\.[0-9])?)/);
+        if (ratingMatch) {
+          return ratingMatch[1];
+        }
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Extract review count with fallback selectors
+   */
+  private extractReviewCountWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): number {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const text = element.text().trim();
+        const countMatch = text.match(/(\d+(?:,\d+)*)/);
+        if (countMatch) {
+          return parseInt(countMatch[1].replace(/,/g, ''));
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Extract description with fallback selectors
+   */
+  private extractDescriptionWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const text = element.text().trim();
+        if (text && text.length > 10) {
+          return text.substring(0, 500);
+        }
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Enhanced Amazon scraper with improved selectors
    */
   private async scrapeAmazon($: cheerio.CheerioAPI, url: string): Promise<UniversalScrapedData | null> {
-    // Title extraction with 15+ selectors
+    // Enhanced title extraction
     const title = this.extractWithFallbacks($, [
       '#productTitle',
       '.product-title',
@@ -182,108 +176,149 @@ export class UniversalScraper {
       '.a-size-large.product-title-word-break',
       'h1.a-size-base-plus',
       '.a-size-extra-large',
-      '#feature-bullets h1',
-      '.a-spacing-none.a-color-base',
-      'h1.a-size-medium',
-      '[data-feature-name="title"] h1',
-      '.celwidget h1',
-      'h1'
+      '.product-title-word-break',
+      'span#productTitle'
     ]);
 
-    // Price extraction with 20+ selectors
+    // Enhanced price extraction
     const price = this.extractPriceWithFallbacks($, [
       '.a-price-current .a-offscreen',
       '.a-price .a-offscreen',
-      '.a-price-range .a-offscreen',
-      '#priceblock_dealprice',
-      '#priceblock_ourprice',
-      '.a-price-whole',
-      '.a-price-symbol + .a-price-whole',
-      '[data-a-price] .a-offscreen',
-      '.a-price-display .a-offscreen',
-      '#apex_desktop .a-price .a-offscreen',
-      '.a-section .a-price .a-offscreen',
-      '.a-price.a-text-price.a-size-medium.apexPriceToPay',
-      '.a-offscreen[aria-hidden="true"]',
       '.a-price-current',
-      '.a-price-display',
-      '#corePrice_feature_div .a-price .a-offscreen',
-      '.a-price-basis .a-offscreen',
-      '#apex_desktop_newAccordionRow .a-price .a-offscreen',
-      '.a-spacing-none .a-price .a-offscreen'
+      '.a-price',
+      '.pricePerUnit',
+      '.a-price-range .a-offscreen',
+      'span.a-price-symbol + span.a-price-whole',
+      '.a-price-whole'
     ]);
 
-    // Original price for discount calculation
+    // Original price extraction
     const originalPrice = this.extractPriceWithFallbacks($, [
       '.a-price.a-text-price .a-offscreen',
-      '.a-price-was .a-offscreen',
       '.a-text-strike .a-offscreen',
-      '.a-price-basis .a-offscreen',
-      '.a-text-price.a-size-base.a-color-secondary .a-offscreen',
-      '.a-price-old .a-offscreen',
-      '[data-a-strike="true"] .a-offscreen'
+      '.a-price-was .a-offscreen',
+      'span[data-a-strike="true"]',
+      '.a-text-strike'
     ]);
 
-    // Image extraction with 15+ selectors
     const imageUrl = this.extractImageWithFallbacks($, [
       '#landingImage',
       '#imgBlkFront',
       '.a-dynamic-image',
-      '#main-image',
-      '.a-spacing-small img',
-      '#altImages img',
-      '.image.item img',
-      '[data-a-dynamic-image]',
-      '#imageBlock img',
-      '.a-button-thumbnail img',
-      '#imageBlockThumbs img',
-      '.a-spacing-base img'
+      '.item-image img',
+      '.product-image img',
+      'img[data-old-hires]',
+      'img[data-a-dynamic-image]'
     ]);
 
-    // Rating extraction
-    const rating = this.extractRatingWithFallbacks($, [
-      '.a-icon-alt',
-      '.a-star-rating .a-icon-alt',
-      '[data-hook="average-star-rating"] .a-icon-alt',
-      '.cr-original-review-text .a-icon-alt',
-      '.a-declarative .a-icon-alt',
-      '.a-popover-trigger .a-icon-alt'
-    ]);
-
-    // Review count extraction
-    const reviewCount = this.extractReviewCountWithFallbacks($, [
-      '#acrCustomerReviewText',
-      '[data-hook="total-review-count"]',
-      '.a-link-normal .a-size-base',
-      '#reviewsMedley .a-link-normal',
-      '.cr-original-review-text',
-      '[data-hook="rating-count"]'
-    ]);
-
-    // Description extraction
     const description = this.extractDescriptionWithFallbacks($, [
       '#feature-bullets ul',
-      '.a-unordered-list.a-vertical.a-spacing-mini',
+      '.a-unordered-list.a-vertical',
       '#productDescription',
-      '.product-description',
-      '#aplus_feature_div',
-      '.a-expander-content'
+      '.product-description'
     ]);
 
-    // Detect limited offers from Amazon page
-    const limitedOfferData = this.detectLimitedOffer($);
+    const rating = this.extractRatingWithFallbacks($, [
+      '.a-icon-alt',
+      '[data-testid="reviews-block"] .a-icon-alt',
+      '.a-star-medium .a-icon-alt'
+    ]);
+
+    const reviewCount = this.extractReviewCountWithFallbacks($, [
+      '#acrCustomerReviewText',
+      '[data-testid="reviews-block"] a',
+      '.a-link-normal'
+    ]);
+
+    if (!title && !price) {
+      console.log('Warning: Amazon scraping failed - possible bot detection');
+      return null;
+    }
 
     return {
-      title: title || '',
-      price: price || '',
-      originalPrice: originalPrice || undefined,
-      imageUrl: imageUrl || '',
+      name: title || 'Amazon Product',
+      title: title || 'Amazon Product',
+      description: description || '',
+      price: this.cleanPrice(price) || 'Price not available',
+      originalPrice: originalPrice ? this.cleanPrice(originalPrice) : undefined,
+      currency: 'INR',
+      imageUrl: this.cleanImageUrl(imageUrl, url),
       rating: rating || undefined,
-      reviewCount: reviewCount || undefined,
-      description: description || undefined,
-      category: 'Electronics & Gadgets',
-      hasLimitedOffer: limitedOfferData.hasLimitedOffer,
-      limitedOfferText: limitedOfferData.limitedOfferText
+      reviewCount: reviewCount || 0,
+      platform: 'Amazon',
+      success: true,
+      hasLimitedOffer: this.detectLimitedOffer($).hasLimitedOffer
+    };
+  }
+
+  /**
+   * Generic scraper for other platforms
+   */
+  private async scrapeGeneric($: cheerio.CheerioAPI, url: string): Promise<UniversalScrapedData | null> {
+    const title = this.extractWithFallbacks($, [
+      'h1',
+      '.product-title',
+      '.product-name',
+      '[data-testid="product-title"]',
+      '.title',
+      'title'
+    ]);
+
+    const price = this.extractPriceWithFallbacks($, [
+      '.price',
+      '.product-price',
+      '[data-testid="price"]',
+      '.cost',
+      '.amount'
+    ]);
+
+    const originalPrice = this.extractPriceWithFallbacks($, [
+      '.original-price',
+      '.was-price',
+      '.strike-price',
+      '.old-price'
+    ]);
+
+    const imageUrl = this.extractImageWithFallbacks($, [
+      '.product-image img',
+      '.main-image img',
+      '.hero-image img',
+      'img[alt*="product"]',
+      'img[alt*="Product"]'
+    ]);
+
+    const rating = this.extractRatingWithFallbacks($, [
+      '.rating',
+      '.stars',
+      '[data-testid="rating"]'
+    ]);
+
+    const description = this.extractDescriptionWithFallbacks($, [
+      '.product-description',
+      '.description',
+      '.product-details',
+      '[data-testid="description"]'
+    ]);
+
+    const reviewCount = this.extractReviewCountWithFallbacks($, [
+      '.review-count',
+      '.reviews',
+      '.rating-count'
+    ]);
+
+    return {
+      name: title || 'Product',
+      title: title || 'Product',
+      description: description || '',
+      price: this.cleanPrice(price) || 'Price not available',
+      originalPrice: originalPrice ? this.cleanPrice(originalPrice) : undefined,
+      currency: 'INR',
+      imageUrl: this.cleanImageUrl(imageUrl, url),
+      rating: rating || undefined,
+      reviewCount: reviewCount || 0,
+      platform: this.extractDomain(url),
+      success: true,
+      hasLimitedOffer: this.detectLimitedOffer($).hasLimitedOffer
     };
   }
 
@@ -293,301 +328,78 @@ export class UniversalScraper {
   private async scrapeFlipkart($: cheerio.CheerioAPI, url: string): Promise<UniversalScrapedData | null> {
     const title = this.extractWithFallbacks($, [
       '.B_NuCI',
-      'h1.yhB1nd',
-      '.G6XhBx',
-      'h1._35KyD6',
-      '._35KyD6.col-6-12',
-      'h1'
+      '._35KyD6',
+      'h1 span',
+      '.x2Jnpn'
     ]);
 
     const price = this.extractPriceWithFallbacks($, [
       '._30jeq3._16Jk6d',
       '._1_WHN1',
-      '._3I9_wc._2p6lqe',
-      '._1vC4OE._3qQ9m1',
-      '._16Jk6d'
+      '._3I9_wc._2p6lqe'
     ]);
 
     const originalPrice = this.extractPriceWithFallbacks($, [
       '._3I9_wc._27UcVY',
-      '._1vC4OE._1HlWo2',
-      '.CEmiEU .srp-landing-page-price'
+      '._14999d'
     ]);
 
     const imageUrl = this.extractImageWithFallbacks($, [
-      '._396cs4._2amPTt._3qGmMb',
-      '._2r_T1I._396cs4',
-      '.CXW8mj img',
-      '._1BweB8 img'
+      '._396cs4 img',
+      '._2r_T1I img',
+      '.CXW8mj img'
     ]);
-
-    const rating = this.extractRatingWithFallbacks($, [
-      '._3LWZlK',
-      '._1BLPMq',
-      '.hGSR34 div'
-    ]);
-
-    // Detect limited offers from Flipkart page
-    const limitedOfferData = this.detectLimitedOffer($);
 
     return {
-      title: title || '',
-      price: price || '',
-      originalPrice: originalPrice || undefined,
-      imageUrl: imageUrl || '',
-      rating: rating || undefined,
-      category: 'General',
-      hasLimitedOffer: limitedOfferData.hasLimitedOffer,
-      limitedOfferText: limitedOfferData.limitedOfferText
+      name: title,
+      title: title,
+      price: this.cleanPrice(price) || 'Price not available',
+      originalPrice: originalPrice ? this.cleanPrice(originalPrice) : undefined,
+      currency: 'INR',
+      imageUrl: this.cleanImageUrl(imageUrl, url),
+      platform: 'Flipkart',
+      success: true,
+      category: 'Fashion',
+      hasLimitedOffer: this.detectLimitedOffer($).hasLimitedOffer
     };
   }
 
   /**
-   * Universal scraper for unknown platforms
+   * Load page with enhanced error handling
    */
-  private async universalScrape(url: string): Promise<UniversalScrapedData | null> {
-    try {
-      const $ = await this.fetchPage(url, 1);
-      return await this.universalScrapeFromCheerio($, url);
-    } catch (error) {
-      console.log(`Error Universal scrape failed for ${url}:`, error);
-      return null;
-    }
-  }
-
-  private async universalScrapeFromCheerio($: cheerio.CheerioAPI, url: string): Promise<UniversalScrapedData | null> {
-    // Universal title selectors
-    const title = this.extractWithFallbacks($, [
-      'h1',
-      '.product-title',
-      '.title',
-      '[class*="title"]',
-      '[class*="name"]',
-      '[class*="product"][class*="name"]',
-      'title'
-    ]);
-
-    // Universal price selectors
-    const price = this.extractPriceWithFallbacks($, [
-      '[class*="price"]',
-      '[class*="cost"]',
-      '[class*="amount"]',
-      '[data-price]',
-      '.price',
-      '.cost'
-    ]);
-
-    // Universal image selectors
-    const imageUrl = this.extractImageWithFallbacks($, [
-      '[class*="product"] img',
-      '[class*="main"] img',
-      '[class*="hero"] img',
-      '.product-image img',
-      'img[alt*="product"]',
-      'img'
-    ]);
-
-    // Detect limited offers from page content
-    const limitedOfferData = this.detectLimitedOffer($);
-
-    return {
-      title: title || '',
-      price: price || '',
-      imageUrl: imageUrl || '',
-      category: 'General',
-      hasLimitedOffer: limitedOfferData.hasLimitedOffer,
-      limitedOfferText: limitedOfferData.limitedOfferText
-    };
-  }
-
-  /**
-   * Emergency fallback - extracts basic info from any page
-   */
-  private async emergencyFallback(url: string): Promise<UniversalScrapedData | null> {
-    try {
-      const $ = await this.fetchPage(url, 1);
-      
-      // Extract any text that looks like a title
-      const title = $('h1').first().text().trim() || 
-                   $('title').text().trim() || 
-                   'Product from ' + this.extractDomain(url);
-      
-      // Extract any text that looks like a price
-      const priceText = $.html().match(/[₹$£€¥]\s*[\d,]+(?:\.\d{2})?/g);
-      const price = priceText ? priceText[0].replace(/[^\d.]/g, '') : '999';
-      
-      // Extract first image
-      const imageUrl = $('img').first().attr('src') || '';
-      
-      return {
-        title: title.substring(0, 100),
-        price: price,
-        imageUrl: imageUrl,
-        category: 'General'
-      };
-    } catch (error) {
-      console.error('Error Emergency fallback failed:', error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Helper methods for robust extraction
-   */
-  private extractWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
-    for (const selector of selectors) {
-      try {
-        const text = $(selector).first().text().trim();
-        if (text && text.length > 3 && !text.toLowerCase().includes('error')) {
-          return text;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return '';
-  }
-
-  private extractPriceWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
-    for (const selector of selectors) {
-      try {
-        const priceText = $(selector).first().text().trim();
-        if (priceText && (priceText.includes('₹') || priceText.includes('Rs') || priceText.includes('$'))) {
-          const cleanPrice = priceText.replace(/[^\d,\.]/g, '').replace(/,/g, '');
-          if (cleanPrice && parseFloat(cleanPrice) > 0) {
-            return cleanPrice;
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return '';
-  }
-
-  private extractImageWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
-    for (const selector of selectors) {
-      try {
-        const element = $(selector).first();
-        let imgSrc = element.attr('src') || element.attr('data-src') || element.attr('data-lazy');
-        
-        if (!imgSrc && element.attr('data-a-dynamic-image')) {
-          try {
-            const dynamicData = JSON.parse(element.attr('data-a-dynamic-image') || '{}');
-            const imageKeys = Object.keys(dynamicData);
-            if (imageKeys.length > 0) {
-              imgSrc = imageKeys[0];
-            }
-          } catch (e) {
-            // Ignore JSON parse errors
-          }
-        }
-        
-        if (imgSrc && (imgSrc.startsWith('http') || imgSrc.startsWith('//'))) {
-          return imgSrc.startsWith('//') ? 'https:' + imgSrc : imgSrc;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return '';
-  }
-
-  private extractRatingWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
-    for (const selector of selectors) {
-      try {
-        const ratingText = $(selector).first().text().trim();
-        if (ratingText) {
-          const ratingMatch = ratingText.match(/([\d.]+)/);
-          if (ratingMatch && parseFloat(ratingMatch[1]) >= 1 && parseFloat(ratingMatch[1]) <= 5) {
-            return ratingMatch[1];
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return '';
-  }
-
-  private extractReviewCountWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): number {
-    for (const selector of selectors) {
-      try {
-        const reviewText = $(selector).first().text().trim();
-        if (reviewText) {
-          const reviewMatch = reviewText.match(/([\d,]+)/);
-          if (reviewMatch) {
-            const count = parseInt(reviewMatch[1].replace(/,/g, ''));
-            if (count > 0) {
-              return count;
-            }
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return 0;
-  }
-
-  private extractDescriptionWithFallbacks($: cheerio.CheerioAPI, selectors: string[]): string {
-    for (const selector of selectors) {
-      try {
-        const element = $(selector).first();
-        if (element.length > 0) {
-          let description = '';
-          if (selector.includes('ul')) {
-            element.find('li').each((i, li) => {
-              const text = $(li).text().trim();
-              if (text && i < 5) {
-                description += `• ${text}\n`;
-              }
-            });
-          } else {
-            description = element.text().trim();
-          }
-          
-          if (description && description.length > 10) {
-            return description.substring(0, 500);
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return '';
-  }
-
-  /**
-   * Utility methods
-   */
-  private async fetchPage(url: string, attempt: number): Promise<cheerio.CheerioAPI> {
+  private async loadPage(url: string): Promise<cheerio.CheerioAPI> {
     const headers = {
       'User-Agent': this.getRandomUserAgent(),
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+      'Accept-Encoding': 'gzip, deflate',
       'Connection': 'keep-alive',
       'Upgrade-Insecure-Requests': '1',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
     };
-
+    
     const response = await axios.get(url, {
       headers,
-      timeout: this.timeout + (attempt * 5000), // Increase timeout with attempts
-      maxRedirects: 5
+      timeout: this.timeout,
+      maxRedirects: 10,
+      validateStatus: (status) => status < 500 // Accept redirects and client errors
     });
-
-    return cheerio.load(response.data) as cheerio.CheerioAPI;
+    
+    if (response.status >= 400) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return cheerio.load(response.data);
   }
 
+  /**
+   * Get random user agent
+   */
   private getRandomUserAgent(): string {
     return this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
   }
 
   private validateEssentialData(data: UniversalScrapedData): boolean {
-    return !!(data.title && data.title.length > 3 && data.price && parseFloat(data.price) > 0);
+    return !!(data.name && data.name.length > 3 && data.price && parseFloat(data.price) > 0);
   }
 
   private enhanceScrapedData(data: UniversalScrapedData, url: string): UniversalScrapedData {
@@ -665,53 +477,63 @@ export class UniversalScraper {
             }
           }
         });
-        
-        if (foundOffer) {
-          return {
-            hasLimitedOffer: true,
-            limitedOfferText: offerText
-          };
-        }
-      } catch (e) {
-        continue;
-      }
-    }
 
-    // Check entire page content for keywords
-    const pageText = $('body').text().toLowerCase();
-    for (const keyword of limitedOfferKeywords) {
-      if (pageText.includes(keyword)) {
-        return {
-          hasLimitedOffer: true,
-          limitedOfferText: `Limited time offer detected`
-        };
+        if (foundOffer) {
+          return { hasLimitedOffer: true, limitedOfferText: offerText };
+        }
+      } catch (error) {
+        // Continue to next selector
       }
     }
 
     return { hasLimitedOffer: false };
   }
 
-  // Additional platform scrapers can be added here
-  private async scrapeMyntra($: cheerio.CheerioAPI, url: string): Promise<UniversalScrapedData | null> {
-    // Myntra-specific selectors
-    const title = this.extractWithFallbacks($, [
-      '.pdp-product-name',
-      '.pdp-name',
-      'h1.pdp-title'
-    ]);
+  /**
+   * Clean price text
+   */
+  private cleanPrice(priceText?: string): string | undefined {
+    if (!priceText) return undefined;
+    
+    const cleaned = priceText.replace(/[^\d.,₹$]/g, '').replace(/,/g, '');
+    if (cleaned && cleaned.length > 0) {
+      return priceText.includes('₹') ? priceText : '₹' + cleaned;
+    }
+    return undefined;
+  }
 
-    const price = this.extractPriceWithFallbacks($, [
-      '.pdp-price strong',
-      '.pdp-price .pdp-price-info',
-      '.price-current'
-    ]);
+  /**
+   * Clean and validate image URL
+   */
+  private cleanImageUrl(imageUrl?: string, baseUrl?: string): string {
+    if (!imageUrl) {
+      return 'https://via.placeholder.com/400x400?text=Product+Image';
+    }
+    
+    // Handle relative URLs
+    if (imageUrl.startsWith('//')) {
+      return 'https:' + imageUrl;
+    }
+    
+    if (imageUrl.startsWith('/') && baseUrl) {
+      const domain = new URL(baseUrl).origin;
+      return domain + imageUrl;
+    }
+    
+    return imageUrl;
+  }
 
-    return {
-      title: title || '',
-      price: price || '',
-      imageUrl: '',
-      category: 'Fashion'
-    };
+  /**
+   * Validate image URL
+   */
+  private isValidImageUrl(url: string): boolean {
+    if (!url) return false;
+    return url.includes('http') && (
+      url.includes('.jpg') || url.includes('.jpeg') || 
+      url.includes('.png') || url.includes('.webp') ||
+      url.includes('images-') || url.includes('img.') ||
+      url.includes('media-amazon') || url.includes('m.media-amazon')
+    );
   }
 }
 

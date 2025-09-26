@@ -108,7 +108,7 @@ export default function DynamicPage() {
       // Try direct backend call first, fallback to proxy
       let response;
       try {
-        response = await fetch('http://localhost:5000/api/nav-tabs', {
+        response = await fetch('/api/nav-tabs', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

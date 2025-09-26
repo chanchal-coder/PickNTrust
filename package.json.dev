@@ -1,0 +1,19 @@
+{
+  "name": "pickntrust-dev",
+  "version": "1.0.0",
+  "description": "Development configuration for PickNTrust",
+  "scripts": {
+    "dev:frontend": "cd client && npm run dev",
+    "dev:backend": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "npm run dev:backend",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "tsc -p server/tsconfig.json",
+    "start": "node dist/server/index.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

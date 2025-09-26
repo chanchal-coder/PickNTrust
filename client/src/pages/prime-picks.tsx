@@ -167,7 +167,7 @@ export default function PrimePicks() {
   // Check admin status
   useEffect(() => {
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost');
+    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost' || window.location.hostname === 'pickntrust.com');
   }, []);
 
   // Show error toast if products fail to load
@@ -371,11 +371,10 @@ export default function PrimePicks() {
         title="Prime Picks Videos"
       />
       
-        <Footer />
         <ScrollNavigation />
-        
-        {/* Individual delete buttons are already on each product card - no bulk panel needed */}
-      </div>
-    </UniversalPageLayout>
+      
+      {/* Individual delete buttons are already on each product card - no bulk panel needed */}
+    </div>
+  </UniversalPageLayout>
   );
 }

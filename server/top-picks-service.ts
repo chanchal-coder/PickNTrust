@@ -1,8 +1,8 @@
 import { db } from './db';
-import { featuredProducts } from '../shared/sqlite-schema';
-import { eq, desc, and, sql, or, gte, lte } from 'drizzle-orm';
+import { topPicksProducts } from '../shared/sqlite-schema';
+import { eq, desc, and, sql } from 'drizzle-orm';
 import { UniversalUrlDetector } from './url-detector';
-import { CategoryManager } from './category-manager';
+import { categoryManager } from './category-manager';
 
 /**
  * TopPicksService - Today's Top Picks processing service
@@ -12,16 +12,16 @@ import { CategoryManager } from './category-manager';
  */
 export class TopPicksService {
   private urlDetector: UniversalUrlDetector;
-  private categoryManager: CategoryManager;
+  private categoryManager: typeof categoryManager;
   
   constructor() {
     this.urlDetector = new UniversalUrlDetector();
-    this.categoryManager = CategoryManager.getInstance();
-    console.log('Hot Top Picks Service initialized:');
-    console.log('   Features: viral, trending, limited deals, new offers');
-    console.log('   Sources: all pages + dedicated @pnttoppicks channel');
-    console.log('   Database: featured_products');
-    console.log('   Advanced: trend detection, viral scoring, urgency levels');
+    this.categoryManager = categoryManager;
+    console.log('Top Picks Service initialized:');
+    console.log('   Product types: premium, featured, trending, exclusive');
+    console.log('   Custom affiliate tag: ref=sicvppak');
+    console.log('   Database: top_picks_products');
+    console.log('   Features: same as other pages + premium features');
     console.log('   Category Management: auto-creation enabled');
   }
 
@@ -501,7 +501,7 @@ export class TopPicksService {
    */
   private async saveTopPicksProduct(productData: any): Promise<any> {
     try {
-      const result = await db.insert(featuredProducts).values({
+      const result = await db.insert(topPicksProducts).values({
         name: productData.name,
         description: productData.description,
         price: productData.price,
@@ -545,19 +545,11 @@ export class TopPicksService {
       
       const savedProduct = result[0];
       
-      // Auto-create category if it doesn't exist
+      // Category is already set in the product data
       if (savedProduct && productData.category) {
         try {
-          await this.categoryManager.ensureCategoryExists(productData.category, {
-            productId: savedProduct.id,
-            productTable: 'featured_products',
-            pageName: 'top-picks',
-            productName: productData.name,
-            productPrice: productData.price,
-            productImageUrl: productData.imageUrl,
-            productExpiresAt: productData.expiresAt,
-            categoryType: 'product' // Featured products are generally products
-          });
+          // Category validation is handled during product insertion
+          console.log(`Product saved with category: ${productData.category}`);
         } catch (error) {
           console.error('Error auto-creating category for top pick:', error);
         }
@@ -599,22 +591,22 @@ export class TopPicksService {
         featured 
       } = options;
       
-      const conditions = [eq(featuredProducts.isActive, true)];
+      const conditions = [eq(topPicksProducts.processingStatus, 'active')];
       
       // Apply filters
       if (category) {
-        conditions.push(eq(featuredProducts.category, category));
+        conditions.push(eq(topPicksProducts.category, category));
       }
       
       if (featured !== undefined) {
-        conditions.push(eq(featuredProducts.isFeatured, featured));
+        conditions.push(eq(topPicksProducts.isFeatured, featured));
       }
       
       if (limitedDeal !== undefined) {
-        conditions.push(eq(featuredProducts.hasLimitedOffer, limitedDeal));
+        conditions.push(eq(topPicksProducts.hasLimitedOffer, limitedDeal));
       }
       
-      const query = db.select().from(featuredProducts);
+      const query = db.select().from(topPicksProducts);
       
       if (conditions.length > 0) {
         query.where(and(...conditions));
@@ -622,8 +614,8 @@ export class TopPicksService {
       
       return await query
         .orderBy(
-          featuredProducts.displayOrder,
-          desc(featuredProducts.createdAt)
+          topPicksProducts.displayOrder,
+          desc(topPicksProducts.createdAt)
         )
         .limit(limit)
         .offset(offset);
@@ -639,14 +631,14 @@ export class TopPicksService {
    */
   async getCategories(): Promise<string[]> {
     try {
-      const result = await db.select({ category: featuredProducts.category })
-        .from(featuredProducts)
-        .where(eq(featuredProducts.isActive, true))
-        .groupBy(featuredProducts.category);
+      const result = await db.select({ category: topPicksProducts.category })
+         .from(topPicksProducts)
+         .where(eq(topPicksProducts.processingStatus, 'active'))
+         .groupBy(topPicksProducts.category);
       
       return result.map(r => r.category).filter(Boolean);
     } catch (error) {
-      console.error('Error Error fetching Featured Products categories:', error);
+      console.error('Error Error fetching Top Picks categories:', error);
       return [];
     }
   }
@@ -656,14 +648,14 @@ export class TopPicksService {
    */
   async getViralProducts(limit: number = 20): Promise<any[]> {
     try {
-      // Featured products don't have viral scoring, return featured products instead
-      return await db.select().from(featuredProducts)
-        .where(and(
-          eq(featuredProducts.isActive, true),
-          eq(featuredProducts.isFeatured, true)
-        ))
-        .orderBy(featuredProducts.displayOrder, desc(featuredProducts.createdAt))
-        .limit(limit);
+      // Top picks products don't have viral scoring, return featured products instead
+      return await db.select().from(topPicksProducts)
+         .where(and(
+           eq(topPicksProducts.processingStatus, 'active'),
+           eq(topPicksProducts.isFeatured, true)
+         ))
+         .orderBy(topPicksProducts.displayOrder, desc(topPicksProducts.createdAt))
+         .limit(limit);
     } catch (error) {
       console.error('Error Error fetching viral products:', error);
       return [];
@@ -675,14 +667,14 @@ export class TopPicksService {
    */
   async getTrendingProducts(limit: number = 20): Promise<any[]> {
     try {
-      // Featured products don't have trending scoring, return featured products instead
-      return await db.select().from(featuredProducts)
-        .where(and(
-          eq(featuredProducts.isActive, true),
-          eq(featuredProducts.isFeatured, true)
-        ))
-        .orderBy(featuredProducts.displayOrder, desc(featuredProducts.createdAt))
-        .limit(limit);
+      // Top picks products don't have trending scoring, return featured products instead
+      return await db.select().from(topPicksProducts)
+         .where(and(
+           eq(topPicksProducts.processingStatus, 'active'),
+           eq(topPicksProducts.isFeatured, true)
+         ))
+         .orderBy(topPicksProducts.displayOrder, desc(topPicksProducts.createdAt))
+         .limit(limit);
     } catch (error) {
       console.error('Error Error fetching trending products:', error);
       return [];
@@ -694,13 +686,13 @@ export class TopPicksService {
    */
   async getLimitedDeals(limit: number = 20): Promise<any[]> {
     try {
-      return await db.select().from(featuredProducts)
-        .where(and(
-          eq(featuredProducts.isActive, true),
-          eq(featuredProducts.hasLimitedOffer, true)
-        ))
-        .orderBy(featuredProducts.displayOrder, desc(featuredProducts.createdAt))
-        .limit(limit);
+      return await db.select().from(topPicksProducts)
+         .where(and(
+           eq(topPicksProducts.processingStatus, 'active'),
+           eq(topPicksProducts.hasLimitedOffer, true)
+         ))
+         .orderBy(topPicksProducts.displayOrder, desc(topPicksProducts.createdAt))
+         .limit(limit);
     } catch (error) {
       console.error('Error Error fetching limited deals:', error);
       return [];
@@ -712,13 +704,13 @@ export class TopPicksService {
    */
   async getNewOffers(limit: number = 20): Promise<any[]> {
     try {
-      return await db.select().from(featuredProducts)
-        .where(and(
-          eq(featuredProducts.isActive, true),
-          eq(featuredProducts.isNew, true)
-        ))
-        .orderBy(desc(featuredProducts.createdAt))
-        .limit(limit);
+      return await db.select().from(topPicksProducts)
+         .where(and(
+           eq(topPicksProducts.processingStatus, 'active'),
+           eq(topPicksProducts.isNew, true)
+         ))
+         .orderBy(desc(topPicksProducts.createdAt))
+         .limit(limit);
     } catch (error) {
       console.error('Error Error fetching new offers:', error);
       return [];
@@ -730,27 +722,27 @@ export class TopPicksService {
    */
   async updateTrendScores(): Promise<void> {
     try {
-      console.log('Refresh Updating display order for Featured products...');
+      console.log('Refresh Updating display order for Top Picks products...');
       
       // This would be called periodically to update display order
       // based on performance metrics, clicks, views, etc.
       
-      const products = await db.select().from(featuredProducts)
-        .where(eq(featuredProducts.isActive, true))
-        .limit(100);
+      const products = await db.select().from(topPicksProducts)
+         .where(eq(topPicksProducts.processingStatus, 'active'))
+         .limit(100);
       
       for (let i = 0; i < products.length; i++) {
         const product = products[i];
         
-        await db.update(featuredProducts)
+        await db.update(topPicksProducts)
           .set({
             displayOrder: i,
             updatedAt: new Date()
           } as any)
-          .where(eq(featuredProducts.id, product.id));
+          .where(eq(topPicksProducts.id, product.id));
       }
       
-      console.log(`Success Updated display order for ${products.length} featured products`);
+      console.log(`Success Updated display order for ${products.length} top picks products`);
     } catch (error) {
       console.error('Error Error updating display order:', error);
     }

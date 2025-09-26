@@ -1,5 +1,4 @@
 import Header from '@/components/header';
-import Footer from '@/components/footer';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 export default function TermsOfServicePage() {
@@ -111,7 +110,6 @@ export default function TermsOfServicePage() {
                 </div>
               </div>
             </div>
-            <Footer />
           </div>
     </UniversalPageLayout>
   );

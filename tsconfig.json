@@ -38,6 +38,17 @@
     "dist",
     "build",
     "**/*.js",
-    "**/*.cjs"
+    "**/*.cjs",
+    "ddum_bckup/**/*",
+    "restore_yo/**/*",
+    "deploy/**/*",
+    "templates/**/*",
+    "**/*.backup",
+    "**/*.emergency-backup",
+    "server/routes-backup.ts",
+    "server/routes-final.ts",
+    "server/affiliate-routes.ts",
+    "server/enhanced-telegram-manager.ts",
+    "server/bot-admin-routes.ts"
   ]
 }

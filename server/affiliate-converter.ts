@@ -1,8 +1,9 @@
 // Affiliate Link Converter
 // Converts original product URLs to user's affiliate links with proper tracking parameters
 
-import { ResolvedURL } from './universal-url-resolver';
-import { PlatformInfo } from './platform-detector';
+import { ResolvedURL } from './universal-url-resolver.js';
+import { PlatformInfo } from './platform-detector.js';
+import { ChannelConfig } from '../shared/sqlite-schema';
 
 interface AffiliateConfig {
   platform: string;
@@ -25,6 +26,14 @@ interface ConvertedLink {
   error?: string;
 }
 
+export interface ConversionResult {
+  success: boolean;
+  originalUrl: string;
+  affiliateUrl: string;
+  platform: string;
+  error?: string;
+}
+
 class AffiliateConverter {
   private affiliateConfigs: Map<string, AffiliateConfig> = new Map();
   private defaultTrackingParams = {
@@ -35,6 +44,289 @@ class AffiliateConverter {
 
   constructor() {
     this.initializeAffiliateConfigs();
+  }
+
+  /**
+   * Convert a URL to affiliate link based on channel configuration
+   */
+  static async convertUrl(url: string, channelConfig: ChannelConfig): Promise<ConversionResult> {
+    try {
+      // Clean and validate URL
+      const cleanUrl = this.cleanUrl(url);
+      if (!this.isValidUrl(cleanUrl)) {
+        return {
+          success: false,
+          originalUrl: url,
+          affiliateUrl: '',
+          platform: channelConfig.affiliatePlatform,
+          error: 'Invalid URL format'
+        };
+      }
+
+      // Handle single platform channels
+      if (channelConfig.affiliatePlatform !== 'multiple') {
+        return await this.convertSinglePlatform(cleanUrl, channelConfig);
+      }
+
+      // Handle multiple platform channels - detect best platform
+      return await this.convertMultiplePlatform(cleanUrl, channelConfig);
+      
+    } catch (error) {
+      return {
+        success: false,
+        originalUrl: url,
+        affiliateUrl: '',
+        platform: channelConfig.affiliatePlatform,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Convert URL for single platform channels
+   */
+  private static async convertSinglePlatform(url: string, config: ChannelConfig): Promise<ConversionResult> {
+    switch (config.affiliatePlatform) {
+      case 'amazon':
+        return this.convertAmazonUrl(url, config.affiliateTag!);
+      
+      case 'cuelinks':
+        return this.convertCuelinksUrl(url, config.affiliateUrl!);
+      
+      case 'earnkaro':
+        return this.convertEarnKaroUrl(url);
+      
+      case 'inrdeals':
+        return this.convertInrDealsUrl(url, config.affiliateTag!);
+      
+      case 'deodap':
+        return this.convertDeodapUrl(url, config.affiliateTag!);
+      
+      default:
+        return {
+          success: false,
+          originalUrl: url,
+          affiliateUrl: '',
+          platform: config.affiliatePlatform,
+          error: 'Unsupported platform'
+        };
+    }
+  }
+
+  /**
+   * Convert URL for multiple platform channels - auto-detect best platform
+   */
+  private static async convertMultiplePlatform(url: string, config: ChannelConfig): Promise<ConversionResult> {
+    const supportedPlatforms = config.supportedPlatforms || [];
+    
+    // Try platforms in priority order
+    for (const platform of supportedPlatforms) {
+      try {
+        let result: ConversionResult;
+        
+        switch (platform) {
+          case 'cuelinks':
+            result = this.convertCuelinksUrl(url, 'https://linksredirect.com/?cid=243942&source=linkkit&url={{URL_ENC}}');
+            break;
+          case 'earnkaro':
+            result = this.convertEarnKaroUrl(url);
+            break;
+          case 'inrdeals':
+            result = this.convertInrDealsUrl(url, 'id=sha678089037');
+            break;
+          default:
+            continue;
+        }
+        
+        if (result.success) {
+          return result;
+        }
+      } catch (error) {
+        // Continue to next platform
+        continue;
+      }
+    }
+
+    // If no platform worked, return error
+    return {
+      success: false,
+      originalUrl: url,
+      affiliateUrl: '',
+      platform: 'multiple',
+      error: 'No supported platform could convert this URL'
+    };
+  }
+
+  /**
+   * Convert Amazon URLs
+   */
+  private static convertAmazonUrl(url: string, tag: string): ConversionResult {
+    try {
+      const urlObj = new URL(url);
+      
+      // Check if it's an Amazon URL
+      if (!urlObj.hostname.includes('amazon.')) {
+        return {
+          success: false,
+          originalUrl: url,
+          affiliateUrl: '',
+          platform: 'amazon',
+          error: 'Not an Amazon URL'
+        };
+      }
+
+      // Add affiliate tag
+      urlObj.searchParams.set('tag', tag);
+      
+      return {
+        success: true,
+        originalUrl: url,
+        affiliateUrl: urlObj.toString(),
+        platform: 'amazon'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        originalUrl: url,
+        affiliateUrl: '',
+        platform: 'amazon',
+        error: 'Failed to process Amazon URL'
+      };
+    }
+  }
+
+  /**
+   * Convert URLs using Cuelinks
+   */
+  private static convertCuelinksUrl(url: string, templateUrl: string): ConversionResult {
+    try {
+      const encodedUrl = encodeURIComponent(url);
+      const affiliateUrl = templateUrl.replace('{{URL_ENC}}', encodedUrl);
+      
+      return {
+        success: true,
+        originalUrl: url,
+        affiliateUrl: affiliateUrl,
+        platform: 'cuelinks'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        originalUrl: url,
+        affiliateUrl: '',
+        platform: 'cuelinks',
+        error: 'Failed to process Cuelinks URL'
+      };
+    }
+  }
+
+  /**
+   * Convert URLs using EarnKaro
+   */
+  private static convertEarnKaroUrl(url: string): ConversionResult {
+    try {
+      // EarnKaro conversion logic would go here
+      // For now, return the original URL as placeholder
+      return {
+        success: true,
+        originalUrl: url,
+        affiliateUrl: url, // Placeholder - implement actual EarnKaro API
+        platform: 'earnkaro'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        originalUrl: url,
+        affiliateUrl: '',
+        platform: 'earnkaro',
+        error: 'Failed to process EarnKaro URL'
+      };
+    }
+  }
+
+  /**
+   * Convert URLs using InrDeals
+   */
+  private static convertInrDealsUrl(url: string, tag: string): ConversionResult {
+    try {
+      const urlObj = new URL(url);
+      
+      // Add InrDeals affiliate parameter
+      const separator = urlObj.search ? '&' : '?';
+      const affiliateUrl = `${url}${separator}${tag}`;
+      
+      return {
+        success: true,
+        originalUrl: url,
+        affiliateUrl: affiliateUrl,
+        platform: 'inrdeals'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        originalUrl: url,
+        affiliateUrl: '',
+        platform: 'inrdeals',
+        error: 'Failed to process InrDeals URL'
+      };
+    }
+  }
+
+  /**
+   * Convert URLs using Deodap
+   */
+  private static convertDeodapUrl(url: string, tag: string): ConversionResult {
+    try {
+      const urlObj = new URL(url);
+      
+      // Add Deodap affiliate parameter
+      const separator = urlObj.search ? '&' : '?';
+      const affiliateUrl = `${url}${separator}${tag}`;
+      
+      return {
+        success: true,
+        originalUrl: url,
+        affiliateUrl: affiliateUrl,
+        platform: 'deodap'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        originalUrl: url,
+        affiliateUrl: '',
+        platform: 'deodap',
+        error: 'Failed to process Deodap URL'
+      };
+    }
+  }
+
+  /**
+   * Clean URL by removing tracking parameters
+   */
+  private static cleanUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      
+      // Remove common tracking parameters
+      const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid'];
+      trackingParams.forEach(param => urlObj.searchParams.delete(param));
+      
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  /**
+   * Validate URL format
+   */
+  private static isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -392,6 +684,7 @@ class AffiliateConverter {
   }
 }
 
-// Export singleton instance
+// Export both class and singleton instance
+export { AffiliateConverter };
 export const affiliateConverter = new AffiliateConverter();
 export type { ConvertedLink, AffiliateConfig };

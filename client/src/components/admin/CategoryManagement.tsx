@@ -189,7 +189,7 @@ export default function CategoryManagement() {
   const reorderCategoriesMutation = useMutation({
     mutationFn: async (categoryOrders: { id: number; displayOrder: number }[]) => {
       const adminPassword = 'pickntrust2025';
-      const response = await fetch('http://localhost:5001/api/admin/categories/reorder', {
+      const response = await fetch('/api/admin/categories/reorder', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -8,11 +8,11 @@ export default function Categories() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showAllCategories, setShowAllCategories] = useState(false);
 
-  // Fetch categories from API with product counts from all networks
+  // Fetch categories from browse API which has product counts
   const { data: apiCategories, isLoading, error } = useQuery({
-    queryKey: ['/api/categories'],
+    queryKey: ['/api/categories/browse'],
     queryFn: async () => {
-      const response = await fetch('/api/categories');
+      const response = await fetch('/api/categories/browse');
       if (!response.ok) {
         throw new Error('Failed to fetch categories');
       }
@@ -20,19 +20,6 @@ export default function Categories() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     gcTime: 10 * 60 * 1000, // 10 minutes cache
-  });
-
-  // Fetch product counts per category from all networks
-  const { data: categoryStats } = useQuery({
-    queryKey: ['/api/categories/stats'],
-    queryFn: async () => {
-      const response = await fetch('/api/categories/stats');
-      if (!response.ok) {
-        return {};
-      }
-      return response.json();
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
   });
 
   // Categories that require gender selection
@@ -84,7 +71,7 @@ export default function Categories() {
     );
   }
 
-  if (error || !apiCategories || apiCategories.length === 0) {
+  if (error || !apiCategories || !Array.isArray(apiCategories) || apiCategories.length === 0) {
     return (
       <section id="categories" className="py-16 bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -136,9 +123,7 @@ export default function Categories() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 gap-4 sm:gap-6">
           {(showAllCategories ? apiCategories : apiCategories.slice(0, 12)).map((category: any, index: number) => {
-            const stats = categoryStats?.[category.name] || {};
-            const totalProducts = stats.totalProducts || 0;
-            const networkCount = stats.networkCount || 0;
+            const totalProducts = category.total_products_count || 0;
             const hasProducts = totalProducts > 0;
             
             return (
@@ -169,33 +154,7 @@ export default function Categories() {
                   background: `linear-gradient(135deg, ${getVibrantColor(index, category.name)}, ${getVibrantColor(index, category.name)}E6)`
                 }}
               >
-                {/* Product count badge */}
-                {hasProducts && (
-                  <div className="absolute -top-1 -left-1 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                    {totalProducts}
-                  </div>
-                )}
-                
-                {/* Network count badge */}
-                {networkCount > 1 && (
-                  <div className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-400 to-cyan-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                    {networkCount}<i className="fas fa-store"></i>
-                  </div>
-                )}
-                
-                {/* Gender selection badge for specific categories */}
-                {genderSpecificCategories.includes(category.name) && (
-                  <div className="absolute top-1 left-1 bg-gradient-to-r from-purple-400 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                    <i className="fas fa-user"></i>
-                  </div>
-                )}
-                
-                {/* Special badge for Apps & AI Apps */}
-                {category.name === 'Apps & AI Apps' && (
-                  <div className="absolute top-1 right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-2 py-1 rounded-full animate-pulse shadow-lg">
-                    NEW
-                  </div>
-                )}
+                {/* Remove all badges - no product count badge, no network count badge, no gender badge, no special badges */}
 
                 {/* Inner highlight effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-[20px]"></div>
@@ -208,14 +167,9 @@ export default function Categories() {
                   <h3 className="font-bold text-white text-xs sm:text-sm mb-1 leading-tight drop-shadow-sm line-clamp-2">
                     {category.name}
                   </h3>
-                  <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-1">
-                    {hasProducts ? `${totalProducts} products` : 'Coming soon'}
+                  <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-2 text-center px-2">
+                    {category.description || 'Explore this category'}
                   </p>
-                  {networkCount > 1 && (
-                    <p className="text-white/80 text-[9px] sm:text-[10px] leading-tight drop-shadow-sm">
-                      From {networkCount} networks
-                    </p>
-                  )}
                 </div>
 
                 {/* Hover effect overlay */}

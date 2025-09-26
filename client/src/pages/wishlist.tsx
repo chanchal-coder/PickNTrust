@@ -123,7 +123,7 @@ export default function WishlistPage() {
                                   <span className="text-2xl font-bold text-accent-green">₹{(product as any).monthlyPrice}/month</span>
                                   {product.originalPrice && product.originalPrice > product.price && (
                                     <span className="text-sm text-gray-500 line-through ml-2">
-                                      ₹{product.originalPrice.toLocaleString()}/month
+                                      ₹{(product.originalPrice || 0).toLocaleString()}/month
                                     </span>
                                   )}
                                 </div>
@@ -132,36 +132,36 @@ export default function WishlistPage() {
                                   <span className="text-2xl font-bold text-accent-green">₹{(product as any).yearlyPrice}/year</span>
                                   {product.originalPrice && product.originalPrice > product.price && (
                                     <span className="text-sm text-gray-500 line-through ml-2">
-                                      ₹{product.originalPrice.toLocaleString()}/year
+                                      ₹{(product.originalPrice || 0).toLocaleString()}/year
                                     </span>
                                   )}
                                 </div>
                               ) : (product as any).pricingType === 'monthly' ? (
                                 <div>
-                                  <span className="text-2xl font-bold text-accent-green">₹{product.price.toLocaleString()}/month</span>
+                                  <span className="text-2xl font-bold text-accent-green">₹{(product.price || 0).toLocaleString()}/month</span>
                                   {product.originalPrice && product.originalPrice > product.price && (
                                     <span className="text-sm text-gray-500 line-through ml-2">
-                                      ₹{product.originalPrice.toLocaleString()}/month
+                                      ₹{(product.originalPrice || 0).toLocaleString()}/month
                                     </span>
                                   )}
                                 </div>
                               ) : (product as any).pricingType === 'yearly' ? (
                                 <div>
-                                  <span className="text-2xl font-bold text-accent-green">₹{product.price.toLocaleString()}/year</span>
+                                  <span className="text-2xl font-bold text-accent-green">₹{(product.price || 0).toLocaleString()}/year</span>
                                   {product.originalPrice && product.originalPrice > product.price && (
                                     <span className="text-sm text-gray-500 line-through ml-2">
-                                      ₹{product.originalPrice.toLocaleString()}/year
+                                      ₹{(product.originalPrice || 0).toLocaleString()}/year
                                     </span>
                                   )}
                                 </div>
                               ) : (
                                 <div>
                                   <span className="text-2xl font-bold text-accent-green">
-                                    ₹{product.price.toLocaleString()}
+                                    ₹{(product.price || 0).toLocaleString()}
                                   </span>
                                   {product.originalPrice && product.originalPrice > product.price && (
                                     <span className="text-sm text-gray-500 line-through ml-2">
-                                      ₹{product.originalPrice.toLocaleString()}
+                                      ₹{(product.originalPrice || 0).toLocaleString()}
                                     </span>
                                   )}
                                 </div>
@@ -204,9 +204,8 @@ export default function WishlistPage() {
               </div>
             </div>
       
-            <Footer />
             <ScrollNavigation />
-          </div>
+      </div>
     </UniversalPageLayout>
   );
 }

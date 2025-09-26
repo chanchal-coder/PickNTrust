@@ -5,8 +5,8 @@
 import * as puppeteer from 'puppeteer';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { ResolvedURL } from './universal-url-resolver';
-import { platformDetector, PlatformInfo, ProductSelectors } from './platform-detector';
+import { ResolvedURL } from './universal-url-resolver.js';
+import { platformDetector, PlatformInfo, ProductSelectors } from './platform-detector.js';
 
 interface ScrapedProduct {
   name: string;
@@ -80,39 +80,41 @@ class EnhancedUniversalScraper {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Extract product data
-      const productData = await page.evaluate((selectors: ProductSelectors) => {
-        const getTextBySelectors = (selectorList: string[]): string | undefined => {
-          for (const selector of selectorList) {
-            const element = document.querySelector(selector);
-            if (element) {
-              return element.textContent?.trim() || element.getAttribute('alt')?.trim();
+      const productData = await page.evaluate(`
+        (function(selectors) {
+          const getTextBySelectors = function(selectorList) {
+            for (const selector of selectorList) {
+              const element = document.querySelector(selector);
+              if (element) {
+                return element.textContent && element.textContent.trim() || element.getAttribute('alt') && element.getAttribute('alt').trim();
+              }
             }
-          }
-          return undefined;
-        };
-        
-        const getImageBySelectors = (selectorList: string[]): string | undefined => {
-          for (const selector of selectorList) {
-            const element = document.querySelector(selector) as HTMLImageElement;
-            if (element) {
-              return element.src || element.getAttribute('data-src') || element.getAttribute('data-lazy-src');
+            return undefined;
+          };
+          
+          const getImageBySelectors = function(selectorList) {
+            for (const selector of selectorList) {
+              const element = document.querySelector(selector);
+              if (element) {
+                return element.src || element.getAttribute('data-src') || element.getAttribute('data-lazy-src');
+              }
             }
-          }
-          return undefined;
-        };
-        
-        return {
-          name: getTextBySelectors(selectors.title || []),
-          price: getTextBySelectors(selectors.price || []),
-          originalPrice: getTextBySelectors(selectors.originalPrice || []),
-          imageUrl: getImageBySelectors(selectors.image || []),
-          description: getTextBySelectors(selectors.description || []),
-          rating: getTextBySelectors(selectors.rating || []),
-          reviewCount: getTextBySelectors(selectors.reviewCount || []),
-          brand: getTextBySelectors(selectors.brand || []),
-          availability: getTextBySelectors(selectors.availability || [])
-        };
-      }, platformInfo.selectors!);
+            return undefined;
+          };
+          
+          return {
+            name: getTextBySelectors(selectors.title || []),
+            price: getTextBySelectors(selectors.price || []),
+            originalPrice: getTextBySelectors(selectors.originalPrice || []),
+            imageUrl: getImageBySelectors(selectors.image || []),
+            description: getTextBySelectors(selectors.description || []),
+            rating: getTextBySelectors(selectors.rating || []),
+            reviewCount: getTextBySelectors(selectors.reviewCount || []),
+            brand: getTextBySelectors(selectors.brand || []),
+            availability: getTextBySelectors(selectors.availability || [])
+          };
+        })(${JSON.stringify(platformInfo.selectors!)})
+      `);
       
       return this.processScrapedData(productData, platformInfo, 'puppeteer');
       

@@ -96,17 +96,42 @@ export function ProductCard({
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check admin authentication
+  // Check admin authentication with proper validation
   useEffect(() => {
-    const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminAuth === 'active');
+    const checkAdminAuth = () => {
+      const adminSession = localStorage.getItem('pickntrust-admin-session');
+      const adminToken = localStorage.getItem('pickntrust-admin-token');
+      const adminPassword = localStorage.getItem('pickntrust-admin-password');
+      
+      // Use the same strict validation as the admin auth hook
+      const isValidAdmin = (
+        adminSession === 'active' &&
+        adminToken &&
+        adminPassword === 'pickntrust2025' &&
+        adminToken.length > 10
+      ) || window.location.hostname === 'localhost'; // Localhost fallback for development
+      
+      setIsAdmin(isValidAdmin);
+    };
+
+    checkAdminAuth();
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.includes('pickntrust-admin')) {
+        checkAdminAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
   const isWishlisted = isInWishlist(product.id);
 
   // Delete product mutation (admin only)
   const deleteProductMutation = useMutation({
-    mutationFn: deleteProduct,
+    mutationFn: (productId: number | string) => deleteProduct(productId, undefined, 'pickntrust2025'),
     onSuccess: () => {
       invalidateAllProductQueries(queryClient);
       toast({
@@ -167,7 +192,7 @@ export function ProductCard({
   const getNumericValue = (value: string | number | undefined): number => {
     if (typeof value === 'number') return value;
     if (typeof value === 'string') {
-      const parsed = parseFloat(value.replace(/[^d.-]/g, ''));
+      const parsed = parseFloat(value.replace(/[^\d.-]/g, ''));
       return isNaN(parsed) ? 0 : parsed;
     }
     return 0;
@@ -183,9 +208,9 @@ export function ProductCard({
     const numericPrice = getNumericValue(price);
     if (numericPrice === 0) return 'Free';
     if (currency === 'INR') {
-      return `₹${numericPrice.toLocaleString('en-IN')}`;
+      return `₹${Math.round(numericPrice).toLocaleString('en-IN')}`;
     }
-    return `${currency} ${numericPrice.toLocaleString()}`;
+    return `${currency} ${Math.round(numericPrice).toLocaleString()}`;
   };
 
   return (
@@ -201,30 +226,35 @@ export function ProductCard({
         
         {/* Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {/* Discount Badge - Calculated from price difference */}
           {(() => {
-            // Calculate discount percentage from original price and current price
-            const currentPrice = getNumericValue(product.price);
-            const originalPrice = getNumericValue(product.originalPrice);
-            const dbDiscount = getNumericValue(product.discount);
+            const originalPriceValue = getNumericValue(product.originalPrice || product.original_price);
+            const priceValue = getNumericValue(product.price);
+            const discountValue = getNumericValue(product.discount);
             
-            // Use database discount if available, otherwise calculate from prices
-            const discountPercentage = dbDiscount > 0 ? dbDiscount : 
-              (originalPrice > currentPrice && originalPrice > 0) ? 
-                Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
+            // Calculate discount percentage from price difference if both prices are available
+            let calculatedDiscount = 0;
+            if (originalPriceValue > 0 && priceValue > 0 && originalPriceValue > priceValue) {
+              calculatedDiscount = Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100);
+            }
             
-            return discountPercentage > 0 ? (
-              <Badge className="bg-red-600 text-white text-xs font-bold px-2 py-1 shadow-lg">
-                -{discountPercentage}% OFF
+            // Use calculated discount if available, otherwise use API discount value
+            const displayDiscount = calculatedDiscount > 0 ? calculatedDiscount : discountValue;
+            
+            return displayDiscount > 0 ? (
+              <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-2 py-1 shadow-lg animate-pulse">
+                {displayDiscount}% OFF
               </Badge>
             ) : null;
           })()}
+          
           {getBooleanValue(product.isNew) && (
-            <Badge className="bg-red-600 text-white text-xs font-bold px-2 py-1 shadow-lg">
+            <Badge className="bg-green-600 text-white text-xs font-bold px-2 py-1 shadow-lg">
               NEW
             </Badge>
           )}
           {getBooleanValue(product.isFeatured) && (
-            <Badge className="bg-red-600 text-white text-xs font-bold px-2 py-1 shadow-lg">
+            <Badge className="bg-purple-600 text-white text-xs font-bold px-2 py-1 shadow-lg">
               FEATURED
             </Badge>
           )}
@@ -275,30 +305,42 @@ export function ProductCard({
               </span>
             </div>
             <span className="text-gray-500 dark:text-gray-400">
-              ({getNumericValue(product.reviewCount).toLocaleString()} reviews)
+              ({getNumericValue(product.reviewCount || 0).toLocaleString()} reviews)
             </span>
           </div>
         )}
 
         {/* Price or Description */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           {product.price && getNumericValue(product.price) > 0 ? (
-            // Show price for products with pricing (hide if price is 0)
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-green-600">
+            // Enhanced pricing display for products
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xl font-bold text-green-600 dark:text-green-400">
                   {formatPrice(product.price, product.currency)}
                 </span>
-                {product.originalPrice && getNumericValue(product.originalPrice) > getNumericValue(product.price) && (
-                  <span className="text-sm text-gray-500 line-through">
-                    {formatPrice(product.originalPrice, product.currency)}
-                  </span>
+                {(product.originalPrice || product.original_price) && getNumericValue(product.originalPrice || product.original_price) > getNumericValue(product.price) && (
+                  <>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                      {formatPrice(product.originalPrice || product.original_price, product.currency)}
+                    </span>
+                    <span className="text-xs bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-1 rounded-full font-medium">
+                      {getNumericValue(product.discount) > 0 ? `${getNumericValue(product.discount)}% OFF` : 
+                        `${Math.round(((getNumericValue(product.originalPrice || product.original_price) - getNumericValue(product.price)) / getNumericValue(product.originalPrice || product.original_price)) * 100)}% OFF`}
+                    </span>
+                  </>
                 )}
               </div>
-              {/* Green Savings Message */}
-              {product.originalPrice && getNumericValue(product.originalPrice) > getNumericValue(product.price) && (
-                <div className="text-xs text-green-600 font-medium">
-                  You save {formatPrice(getNumericValue(product.originalPrice) - getNumericValue(product.price), product.currency)}
+              {/* Enhanced Savings Message */}
+              {(product.originalPrice || product.original_price) && getNumericValue(product.originalPrice || product.original_price) > getNumericValue(product.price) && (
+                <div className="text-sm text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
+                  💰 You save {formatPrice(getNumericValue(product.originalPrice || product.original_price) - getNumericValue(product.price), product.currency)}
+                </div>
+              )}
+              {/* Product Description for products with price */}
+              {product.description && (
+                <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-2">
+                  {product.description}
                 </div>
               )}
             </div>
@@ -312,15 +354,15 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
+        {/* Action Buttons - Enhanced */}
+        <div className="flex gap-2 pt-3">
           <Button
             onClick={() => window.open((product.affiliateUrl || product.affiliate_url || ""), '_blank')}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200"
             size="sm"
           >
-            <ExternalLink className="w-4 h-4 mr-1" />
-            {product.price && getNumericValue(product.price) > 0 ? 'Buy Now' : 'Learn More'}
+            <ExternalLink className="w-4 h-4 mr-2" />
+            {product.price && getNumericValue(product.price) > 0 ? '🛒 Buy Now' : '📖 Learn More'}
           </Button>
           {/* Admin Enhanced Share Button - Multiple Options */}
           {isAdmin && (

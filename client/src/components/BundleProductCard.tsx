@@ -158,12 +158,12 @@ export function BundleProductCard({
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string | number | undefined) => {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/admin/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('pickntrust-admin-session')}`
-        }
+        },
+        body: JSON.stringify({ password: 'pickntrust2025' }),
       });
       
       if (!response.ok) {
@@ -197,7 +197,7 @@ export function BundleProductCard({
   const formatPrice = (price?: string | number | number | undefined, currency: string = 'INR') => {
     const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '₹';
     const numPrice = typeof price === "string" ? parseFloat(price.replace(/[^\d.-]/g, "")) : price;
-    return `${symbol}${numPrice.toLocaleString()}`;
+    return `${symbol}${Math.round(numPrice || 0).toLocaleString()}`;
   };
 
   const getNumericValue = (value: string | number | undefined | undefined): number => {
@@ -301,7 +301,7 @@ export function BundleProductCard({
                 </span>
               </div>
               <span className="text-gray-500 dark:text-gray-400">
-                ({getNumericValue(product.reviewCount).toLocaleString()} reviews)
+                ({getNumericValue(product.reviewCount || 0).toLocaleString()} reviews)
               </span>
             </div>
           )}
@@ -463,7 +463,7 @@ export function BundleProductCard({
             <div className="flex items-center gap-2 text-xs">
               <span className="text-yellow-500"><i className="fas fa-star"></i></span>
               <span className="font-medium">{product.rating}</span>
-              <span className="text-gray-500">({getNumericValue(product.reviewCount).toLocaleString()})</span>
+              <span className="text-gray-500">({getNumericValue(product.reviewCount || 0).toLocaleString()})</span>
             </div>
           )}
 
@@ -616,7 +616,7 @@ export function BundleProductCard({
             <div className="flex items-center gap-2 text-xs mt-1">
               <span className="text-yellow-500"><i className="fas fa-star"></i></span>
               <span className="font-medium">{product.rating}</span>
-              <span className="text-gray-500">({getNumericValue(product.reviewCount).toLocaleString()})</span>
+              <span className="text-gray-500">({getNumericValue(product.reviewCount || 0).toLocaleString()})</span>
             </div>
           )}
         </div>

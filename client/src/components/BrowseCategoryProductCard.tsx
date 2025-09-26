@@ -341,7 +341,7 @@ export default function BrowseCategoryProductCard({
                 </span>
               </div>
               <span className="text-gray-500 dark:text-gray-400">
-                ({product.reviewCount.toLocaleString()} reviews)
+                ({(product.reviewCount || 0).toLocaleString()} reviews)
               </span>
             </div>
           )}

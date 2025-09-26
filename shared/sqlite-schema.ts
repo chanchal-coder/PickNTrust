@@ -99,6 +99,55 @@ export const categories = sqliteTable("categories", {
   displayOrder: integer("display_order").default(0),
 });
 
+// Bot-related tables
+export const telegramChannels = sqliteTable("telegram_channels", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  channelId: text("channel_id").notNull().unique(), // Telegram channel ID
+  name: text("name").notNull(), // Internal name (e.g., 'prime-picks')
+  displayName: text("display_name").notNull(), // Display name (e.g., 'Prime Picks')
+  affiliatePlatform: text("affiliate_platform").notNull(), // 'amazon', 'cuelinks', etc.
+  affiliateTag: text("affiliate_tag"), // Affiliate tag/parameter
+  affiliateUrl: text("affiliate_url"), // Base affiliate URL template
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+export const botTransformations = sqliteTable("bot_transformations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  channelId: text("channel_id").notNull().references((): any => telegramChannels.channelId),
+  messageId: integer("message_id").notNull(), // Telegram message ID
+  originalText: text("original_text").notNull(), // Original message text
+  transformedText: text("transformed_text").notNull(), // Transformed message text
+  originalUrls: text("original_urls").notNull(), // JSON array of original URLs
+  transformedUrls: text("transformed_urls").notNull(), // JSON array of transformed URLs
+  affiliatePlatform: text("affiliate_platform").notNull(),
+  transformationCount: integer("transformation_count").default(0), // Number of URLs transformed
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+export const botLogs = sqliteTable("bot_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  level: text("level").notNull(), // 'info', 'warn', 'error'
+  message: text("message").notNull(),
+  channelId: text("channel_id"), // Optional channel context
+  messageId: integer("message_id"), // Optional message context
+  error: text("error"), // Error details if level is 'error'
+  metadata: text("metadata"), // Additional JSON metadata
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+export const botStats = sqliteTable("bot_stats", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  channelId: text("channel_id").notNull().references((): any => telegramChannels.channelId),
+  date: text("date").notNull(), // YYYY-MM-DD format
+  messagesProcessed: integer("messages_processed").default(0),
+  urlsTransformed: integer("urls_transformed").default(0),
+  errorsCount: integer("errors_count").default(0),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
 export const adminUsers = sqliteTable("admin_users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
@@ -896,6 +945,147 @@ export type InsertWidget = z.infer<typeof insertWidgetSchema>;
 
 export type InsertFeaturedProduct = z.infer<typeof insertFeaturedProductSchema>;
 
+// Channel Posts - Track messages from Telegram channels
+export const channelPosts = sqliteTable("channel_posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  channelId: text("channel_id").notNull(), // Telegram channel ID
+  channelName: text("channel_name").notNull(), // Channel display name
+  websitePage: text("website_page").notNull(), // Target website page
+  messageId: integer("message_id").notNull(), // Telegram message ID
+  
+  // Content
+  originalText: text("original_text").notNull(), // Original message text
+  processedText: text("processed_text").notNull(), // Text with affiliate links
+  extractedUrls: text("extracted_urls"), // JSON array of original URLs found
+  
+  // Processing Status
+  isProcessed: integer("is_processed", { mode: 'boolean' }).default(false),
+  isPosted: integer("is_posted", { mode: 'boolean' }).default(false),
+  processingError: text("processing_error"),
+  
+  // Timestamps
+  telegramTimestamp: integer("telegram_timestamp", { mode: 'timestamp' }), // When posted on Telegram
+  processedAt: integer("processed_at", { mode: 'timestamp' }), // When processed by bot
+  postedAt: integer("posted_at", { mode: 'timestamp' }), // When posted to website
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+// Affiliate Conversions - Track URL conversions and performance
+export const affiliateConversions = sqliteTable("affiliate_conversions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  channelPostId: integer("channel_post_id").references(() => channelPosts.id),
+  
+  // URL Information
+  originalUrl: text("original_url").notNull(),
+  affiliateUrl: text("affiliate_url").notNull(),
+  platform: text("platform").notNull(), // amazon, cuelinks, earnkaro, etc.
+  
+  // Conversion Details
+  conversionSuccess: integer("conversion_success", { mode: 'boolean' }).notNull(),
+  conversionError: text("conversion_error"),
+  
+  // Performance Tracking
+  clickCount: integer("click_count").default(0),
+  conversionCount: integer("conversion_count").default(0),
+  revenue: text("revenue").default('0'), // stored as text in SQLite
+  
+  // Metadata
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+export const insertChannelPostSchema = createInsertSchema(channelPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAffiliateConversionSchema = createInsertSchema(affiliateConversions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ChannelPost = typeof channelPosts.$inferSelect;
+export type AffiliateConversion = typeof affiliateConversions.$inferSelect;
+export type InsertChannelPost = z.infer<typeof insertChannelPostSchema>;
+export type InsertAffiliateConversion = z.infer<typeof insertAffiliateConversionSchema>;
+
+// Unified Content table for cross-platform content management
+export const unifiedContent = sqliteTable("unified_content", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description"),
+  price: text("price"),
+  originalPrice: text("original_price"),
+  imageUrl: text("image_url").notNull(),
+  affiliateUrl: text("affiliate_url").notNull(),
+  
+  // Content Classification
+  contentType: text("content_type").notNull(), // 'product', 'service', 'app', 'travel'
+  pageType: text("page_type").notNull(), // 'today_picks', 'travel', 'deals', 'apps'
+  category: text("category").notNull(),
+  subcategory: text("subcategory"),
+  
+  // Source & Platform Information
+  sourceType: text("source_type").notNull(), // 'manual', 'telegram', 'rss', 'api'
+  sourceId: text("source_id"), // channel_id, rss_url, api_key, etc.
+  affiliatePlatform: text("affiliate_platform"), // 'amazon', 'flipkart', 'booking', 'cuelinks'
+  
+  // Additional Metadata
+  rating: text("rating"), // stored as text in SQLite
+  reviewCount: integer("review_count"),
+  discount: integer("discount"), // percentage
+  currency: text("currency").default('INR'),
+  gender: text("gender"), // "Men", "Women", "Kids", or null
+  
+  // Display & Status
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  isFeatured: integer("is_featured", { mode: 'boolean' }).default(false),
+  displayOrder: integer("display_order").default(0),
+  
+  // Page Display Configuration
+  displayPages: text("display_pages").default('["home"]'), // JSON array of pages where content should appear
+  
+  // Timer functionality
+  hasTimer: integer("has_timer", { mode: 'boolean' }).default(false),
+  timerDuration: integer("timer_duration"), // Duration in hours
+  timerStartTime: integer("timer_start_time", { mode: 'timestamp' }),
+  
+  // Timestamps
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+export const insertUnifiedContentSchema = createInsertSchema(unifiedContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type UnifiedContent = typeof unifiedContent.$inferSelect;
+export type InsertUnifiedContent = z.infer<typeof insertUnifiedContentSchema>;
+
+// Meta tags table for website ownership verification
+export const metaTags = sqliteTable("meta_tags", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(), // Meta tag name (e.g., "google-site-verification", "facebook-domain-verification")
+  content: text("content").notNull(), // Meta tag content/value
+  provider: text("provider").notNull(), // Provider name (e.g., "Google", "Facebook", "Bing", "Pinterest")
+  purpose: text("purpose").notNull(), // Purpose description (e.g., "Site Verification", "Domain Verification")
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
+});
+
+export const insertMetaTagSchema = createInsertSchema(metaTags).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type MetaTag = typeof metaTags.$inferSelect;
+export type InsertMetaTag = z.infer<typeof insertMetaTagSchema>;
+
 // Travel Deals Schema for SQLite
 // DEPRECATED: travelDeals table - DO NOT USE
 // All travel data should use the unified travel_products table
@@ -918,3 +1108,13 @@ export type InsertTravelDeal = z.infer<typeof insertTravelDealSchema>;
 
 // NOTE: For travel data, use the existing travel_products table structure
 // which is managed by bot-specific tables and unified data architecture
+
+// ChannelConfig type for webhook and affiliate conversion
+export interface ChannelConfig {
+  id: number;
+  isActive: boolean;
+  affiliateUrl: string;
+  affiliatePlatform?: string;
+  affiliateTag?: string;
+  supportedPlatforms?: string[];
+}

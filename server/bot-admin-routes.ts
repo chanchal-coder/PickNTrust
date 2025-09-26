@@ -317,6 +317,13 @@ router.put('/api/admin/bots/affiliate-tags/:tagId', async (req, res) => {
 // Delete affiliate tag
 router.delete('/api/admin/bots/affiliate-tags/:tagId', async (req, res) => {
   try {
+    const { password } = req.body;
+    
+    // Verify admin password
+    if (!password || password !== 'pickntrust2025') {
+      return res.status(401).json({ success: false, error: 'Invalid admin password' });
+    }
+    
     const { tagId } = req.params;
     
     const result = db.prepare('DELETE FROM bot_affiliate_tags WHERE id = ?').run(tagId);

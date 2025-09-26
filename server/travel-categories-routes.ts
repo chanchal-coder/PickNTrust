@@ -381,6 +381,13 @@ router.put('/travel-categories/:id', (req, res) => {
 // DELETE /api/travel-categories/:id - Delete travel category
 router.delete('/travel-categories/:id', (req, res) => {
   try {
+    const { password } = req.body;
+    
+    // Verify admin password (simple check for now)
+    if (!password || password !== 'pickntrust2025') {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+    
     const { id } = req.params;
     
     const db = new Database(dbPath);
@@ -431,6 +438,27 @@ router.get('/travel-deals', (req, res) => {
   } catch (error) {
     console.error('Error fetching travel deals:', error);
     res.status(500).json({ error: 'Failed to fetch travel deals' });
+  }
+});
+
+// GET /api/travel-products/flights - Get flight products
+router.get('/travel-products/flights', (req, res) => {
+  try {
+    const db = new Database(dbPath);
+    
+    // Query for flight-related products from unified_content
+    const flights = db.prepare(`
+      SELECT * FROM unified_content 
+      WHERE (category LIKE '%flight%' OR title LIKE '%flight%' OR display_pages LIKE '%flight%')
+      AND processing_status = 'active'
+      ORDER BY created_at DESC
+    `).all();
+    
+    db.close();
+    res.json(flights);
+  } catch (error) {
+    console.error('Error fetching flight products:', error);
+    res.status(500).json({ error: 'Failed to fetch flight products' });
   }
 });
 

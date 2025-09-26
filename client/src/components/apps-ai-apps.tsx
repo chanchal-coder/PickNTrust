@@ -131,13 +131,13 @@ export default function AppsAIApps() {
 
   // Fetch AI Apps products from Apps page (same source as /apps page)
   const { data: aiAppsProducts = [], isLoading } = useQuery({
-    queryKey: ['/api/products/apps', getDailyRotationOffset()],
+    queryKey: ['/api/products/page/apps-ai-apps', getDailyRotationOffset()],
     queryFn: async () => {
       try {
-        // Fetch from Apps page (same source as /apps page)
-        const response = await fetch('/api/products/apps');
+        // Fetch latest AI/app products from apps page (filters by isAIApp=true)
+        const response = await fetch('/api/products/page/apps-ai-apps');
         if (!response.ok) {
-          console.log('Apps API failed, showing coming soon message');
+          console.log('Apps page API failed, showing coming soon message');
           return [];
         }
         const data = await response.json();
@@ -151,15 +151,15 @@ export default function AppsAIApps() {
            
            // CRITICAL: If we have ANY real data, return it instead of fallback
            if (previewData.length > 0) {
-             console.log(`Apps: Showing ${previewData.length} real apps (total available: ${data.length})`);
+             console.log(`Apps: Showing ${previewData.length} real apps from apps page (total available: ${data.length})`);
              return previewData;
            }
          }
          
-         console.log('Apps: No real data available, showing coming soon message');
+         console.log('Apps: No real data available from apps page, showing coming soon message');
           return [];
       } catch (error) {
-          console.log('Apps API error, showing coming soon message:', error);
+          console.log('Apps page API error, showing coming soon message:', error);
           return [];
         }
     },
@@ -514,7 +514,7 @@ export default function AppsAIApps() {
                     <div className="flex items-center space-x-2">
                       <StarRating rating={app.rating} />
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {app.rating} ({app.reviewCount.toLocaleString()})
+                        {app.rating} ({(app.reviewCount || 0).toLocaleString()})
                       </span>
                     </div>
                     {app.isNew && (

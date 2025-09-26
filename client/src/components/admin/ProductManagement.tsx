@@ -53,7 +53,7 @@ interface ProductForm {
   monthlyPrice: string;
   yearlyPrice: string;
   isFree: boolean;
-  priceDescription: string;
+  customPricingDetails?: string;
   displayPages: string[];
   customFields: Record<string, string>;
 }
@@ -112,7 +112,7 @@ export default function ProductManagement() {
     monthlyPrice: '',
     yearlyPrice: '',
     isFree: false,
-    priceDescription: '',
+    customPricingDetails: '',
     displayPages: ['home'],
     customFields: {} as Record<string, string>
   });
@@ -205,7 +205,7 @@ export default function ProductManagement() {
       // Try direct backend call first, fallback to proxy
       let response;
       try {
-        response = await fetch('http://localhost:5000/api/nav-tabs', {
+        response = await fetch('/api/nav-tabs', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -230,7 +230,7 @@ export default function ProductManagement() {
   // Create dynamic pages array from navigation tabs
   const dynamicPages = [
     { id: 'home', label: '<i className="fas fa-home"></i> Home Page', description: 'Main website' },
-    ...navTabs
+    ...(Array.isArray(navTabs) ? navTabs : [])
       .filter(tab => tab.is_active)
       .sort((a, b) => a.display_order - b.display_order)
       .map(tab => ({
@@ -254,11 +254,11 @@ export default function ProductManagement() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch product-specific categories
+  // Fetch product-specific categories for forms (all categories)
   const { data: productCategories = [] } = useQuery({
-    queryKey: ['/api/categories/products'],
+    queryKey: ['/api/categories/forms/products'],
     queryFn: async () => {
-      const response = await fetch('/api/categories/products');
+      const response = await fetch('/api/categories/forms/products');
       if (!response.ok) {
         throw new Error('Failed to fetch product categories');
       }
@@ -268,11 +268,11 @@ export default function ProductManagement() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch service-specific categories
+  // Fetch service-specific categories for forms (all categories)
   const { data: serviceCategories = [] } = useQuery({
-    queryKey: ['/api/categories/services'],
+    queryKey: ['/api/categories/forms/services'],
     queryFn: async () => {
-      const response = await fetch('/api/categories/services');
+      const response = await fetch('/api/categories/forms/services');
       if (!response.ok) {
         throw new Error('Failed to fetch service categories');
       }
@@ -282,11 +282,11 @@ export default function ProductManagement() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch AI app-specific categories
+  // Fetch AI app-specific categories for forms (all categories)
   const { data: aiAppCategories = [] } = useQuery({
-    queryKey: ['/api/categories/aiapps'],
+    queryKey: ['/api/categories/forms/aiapps'],
     queryFn: async () => {
-      const response = await fetch('/api/categories/aiapps');
+      const response = await fetch('/api/categories/forms/aiapps');
       if (!response.ok) {
         throw new Error('Failed to fetch AI app categories');
       }
@@ -369,7 +369,7 @@ export default function ProductManagement() {
         monthlyPrice: finalMonthlyPrice || null,
         yearlyPrice: finalYearlyPrice || null,
         isFree: Boolean(productData.isFree),
-        priceDescription: productData.priceDescription?.trim() || null,
+        priceDescription: productData.customPricingDetails?.trim() || null,
         
         // Display pages selection
         displayPages: productData.displayPages || []
@@ -503,7 +503,7 @@ export default function ProductManagement() {
         monthlyPrice: '',
         yearlyPrice: '',
         isFree: false,
-        priceDescription: '',
+        customPricingDetails: '',
         displayPages: ['home'],
         customFields: {}
       });
@@ -580,7 +580,7 @@ export default function ProductManagement() {
         monthlyPrice: finalMonthlyPrice || null,
         yearlyPrice: finalYearlyPrice || null,
         isFree: Boolean(productData.isFree),
-        priceDescription: productData.priceDescription?.trim() || null
+        priceDescription: productData.customPricingDetails?.trim() || null
       };
 
       console.log('Updating product data:', payload);
@@ -652,7 +652,7 @@ export default function ProductManagement() {
         monthlyPrice: '',
         yearlyPrice: '',
         isFree: false,
-        priceDescription: '',
+        customPricingDetails: '',
         displayPages: ['home'],
         customFields: {}
       });
@@ -713,7 +713,7 @@ export default function ProductManagement() {
           monthlyPrice: '',
           yearlyPrice: '',
           isFree: false,
-          priceDescription: '',
+          customPricingDetails: '',
           displayPages: ['home'],
           customFields: {}
         });
@@ -999,7 +999,7 @@ export default function ProductManagement() {
       monthlyPrice: (product as any).monthlyPrice || '',
       yearlyPrice: (product as any).yearlyPrice || '',
       isFree: Boolean((product as any).isFree),
-      priceDescription: (product as any).priceDescription || '',
+      customPricingDetails: (product as any).priceDescription || '',
       displayPages: (product as any).displayPages || ['home'],
       customFields: {}
     });
@@ -1039,7 +1039,7 @@ export default function ProductManagement() {
       monthlyPrice: '',
       yearlyPrice: '',
       isFree: false,
-      priceDescription: '',
+      customPricingDetails: '',
       displayPages: ['home'],
       customFields: {}
     });
@@ -1051,40 +1051,50 @@ export default function ProductManagement() {
     });
   };
 
+  // Add automatic discount calculation function
+  const calculateDiscount = (price: string, originalPrice: string) => {
+    if (price && originalPrice) {
+      // Remove commas and parse as numbers
+      const currentPrice = parseFloat(price.replace(/,/g, ''));
+      const origPrice = parseFloat(originalPrice.replace(/,/g, ''));
+      
+      if (origPrice > currentPrice && origPrice > 0) {
+        const discount = Math.round(((origPrice - currentPrice) / origPrice) * 100);
+        return discount.toString();
+      }
+    }
+    return '';
+  };
+
   // Get categories based on active tab - use dynamic categories from API
   const getAvailableCategories = () => {
     if (activeTab === 'services') {
-      // For services, use service categories from API, fallback to hardcoded if empty
+      // For services, use service-specific categories from API
       if (serviceCategories.length > 0) {
         return serviceCategories.map((cat: any) => cat.name || cat);
       }
-      // Fallback service categories
+      // Fallback service categories only if API fails
       return [
         'Credit Cards', 'Banking Services', 'Streaming Services', 'Software & Apps', 
         'Insurance', 'Investment', 'Mobile Apps', 'Subscription Services', 'Financial Services'
       ];
     } else if (activeTab === 'aiapps') {
-      // For AI Apps, use AI app categories from API, fallback to hardcoded if empty
+      // For AI Apps, use AI app-specific categories from API
       if (aiAppCategories.length > 0) {
         return aiAppCategories.map((cat: any) => cat.name || cat);
       }
-      // Fallback AI app categories
+      // Fallback AI app categories only if API fails
       return [
         'AI Apps', 'Productivity Apps', 'Developer Tools', 'Design Apps', 'Writing Tools',
         'Image Generation', 'Video Editing', 'Audio Tools', 'Data Analysis', 'Automation Tools',
         'Business Intelligence', 'Machine Learning', 'Natural Language Processing', 'Computer Vision'
       ];
     } else {
-      // For products, use product categories from API, fallback to all categories, then hardcoded
+      // For products, use product-specific categories from API
       if (productCategories.length > 0) {
         return productCategories.map((cat: any) => cat.name || cat);
-      } else if (allCategories.length > 0) {
-        // Filter for product categories if available
-        return allCategories
-          .filter((cat: any) => cat.isForProducts !== false)
-          .map((cat: any) => cat.name || cat);
       }
-      // Fallback product categories
+      // Fallback product categories only if API fails
       return [
         'Electronics & Gadgets', 'Fashion & Clothing', 'Home & Kitchen', 'Health & Beauty',
         'Sports & Fitness', 'Books & Education', 'Toys & Games', 'Automotive',
@@ -1430,22 +1440,109 @@ export default function ProductManagement() {
               </div>
 
               {/* Pricing Section - Different for Products vs Services/AI Apps */}
-              {(activeTab === 'services' || activeTab === 'aiapps') ? (
+              {activeTab === 'products' ? (
+                // Simple pricing for products (original design)
                 <div className="space-y-4">
-                  <h3 className={`text-lg font-semibold ${activeTab === 'services' ? 'text-purple-300' : 'text-green-300'}`}>{activeTab === 'services' ? 'Service' : 'AI App'} Pricing</h3>
+                  <h3 className="text-lg font-semibold text-blue-300">Pricing Information</h3>
+                  
+                  {/* Currency Selector */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-blue-300">Currency</label>
+                    <select
+                      value={newProduct.currency}
+                      onChange={(e) => setNewProduct({ ...newProduct, currency: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
+                    >
+                      {Object.entries(CURRENCIES).map(([code, info]) => (
+                        <option key={code} value={code}>
+                          {info.symbol} {code} - {info.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Simple Price Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">
+                        Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})
+                      </label>
+                      <input
+                        type="text"
+                        value={newProduct.price}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^\d,]/g, '');
+                          const updatedProduct = { ...newProduct, price: value };
+                          // Auto-calculate discount when price changes
+                          const calculatedDiscount = calculateDiscount(value, newProduct.originalPrice);
+                          if (calculatedDiscount) {
+                            updatedProduct.discount = calculatedDiscount;
+                          }
+                          setNewProduct(updatedProduct);
+                        }}
+                        placeholder="2,999"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                        required
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 2,999)</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">
+                        Original Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})
+                      </label>
+                      <input
+                        type="text"
+                        value={newProduct.originalPrice}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^\d,]/g, '');
+                          const updatedProduct = { ...newProduct, originalPrice: value };
+                          // Auto-calculate discount when original price changes
+                          const calculatedDiscount = calculateDiscount(newProduct.price, value);
+                          if (calculatedDiscount) {
+                            updatedProduct.discount = calculatedDiscount;
+                          }
+                          setNewProduct(updatedProduct);
+                        }}
+                        placeholder="3,999"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 3,999)</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Discount (%)</label>
+                      <input
+                        type="number"
+                        value={newProduct.discount}
+                        onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
+                        placeholder="25"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Complex pricing for services and AI apps
+                <div className="space-y-4">
+                  <h3 className={`text-lg font-semibold ${
+                    activeTab === 'services' ? 'text-purple-300' : 
+                    activeTab === 'aiapps' ? 'text-green-300' : 
+                    'text-blue-300'
+                  }`}>Pricing Information</h3>
                   
                   {/* Pricing Type */}
                   <div>
                     <label className="block text-sm font-medium mb-2 text-blue-300">Pricing Type</label>
                     <select
-                      value={newProduct.pricingType}
+                      value={newProduct.pricingType || 'one-time'}
                       onChange={(e) => setNewProduct({ ...newProduct, pricingType: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
                     >
                       <option value="one-time">One-time Payment</option>
                       <option value="monthly">Monthly Subscription</option>
                       <option value="yearly">Yearly Subscription</option>
-                      <option value="free">Free Service</option>
+                      <option value="free">Free</option>
                       <option value="custom">Custom Pricing</option>
                     </select>
                   </div>
@@ -1466,40 +1563,61 @@ export default function ProductManagement() {
                     </select>
                   </div>
 
-                  {/* Free Service Toggle */}
+                  {/* Free Toggle */}
                   <div className="flex items-center">
                     <input
                       type="checkbox"
                       id="isFree"
-                      checked={newProduct.isFree}
-                      onChange={(e) => setNewProduct({ ...newProduct, isFree: e.target.checked })}
+                      checked={newProduct.isFree || newProduct.pricingType === 'free'}
+                      onChange={(e) => {
+                        const isFree = e.target.checked;
+                        setNewProduct({ 
+                          ...newProduct, 
+                          isFree,
+                          pricingType: isFree ? 'free' : (newProduct.pricingType || 'one-time')
+                        });
+                      }}
                       className="mr-2"
                     />
-                    <label htmlFor="isFree" className="text-sm font-medium text-blue-300">Free Service</label>
+                    <label htmlFor="isFree" className="text-sm font-medium text-blue-300">Free Product/Service</label>
                   </div>
 
                   {/* Pricing Fields - Show based on pricing type and free status */}
-                  {!newProduct.isFree && (
+                  {!newProduct.isFree && newProduct.pricingType !== 'free' && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* One-time Price */}
                       {(newProduct.pricingType === 'one-time' || newProduct.pricingType === 'custom') && (
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-blue-300">Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})</label>
+                          <label className="block text-sm font-medium mb-2 text-blue-300">
+                            One-time Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})
+                          </label>
                           <input
                             type="text"
                             value={newProduct.price}
                             onChange={(e) => {
                               const value = e.target.value.replace(/[^\d,]/g, '');
-                              setNewProduct({ ...newProduct, price: value });
+                              const updatedProduct = { ...newProduct, price: value };
+                              // Auto-calculate discount when price changes
+                              const calculatedDiscount = calculateDiscount(value, newProduct.originalPrice);
+                              if (calculatedDiscount) {
+                                updatedProduct.discount = calculatedDiscount;
+                              }
+                              setNewProduct(updatedProduct);
                             }}
                             placeholder="2,999"
                             className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                            required={newProduct.pricingType === 'one-time'}
                           />
+                          <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 2,999)</p>
                         </div>
                       )}
                       
+                      {/* Monthly Price */}
                       {(newProduct.pricingType === 'monthly' || newProduct.pricingType === 'custom') && (
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-blue-300">Monthly Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})</label>
+                          <label className="block text-sm font-medium mb-2 text-blue-300">
+                            Monthly Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})
+                          </label>
                           <input
                             type="text"
                             value={newProduct.monthlyPrice}
@@ -1507,15 +1625,20 @@ export default function ProductManagement() {
                               const value = e.target.value.replace(/[^\d,]/g, '');
                               setNewProduct({ ...newProduct, monthlyPrice: value });
                             }}
-                            placeholder="299/month"
+                            placeholder="299"
                             className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                            required={newProduct.pricingType === 'monthly'}
                           />
+                          <p className="text-xs text-gray-400 mt-1">Monthly subscription price</p>
                         </div>
                       )}
                       
+                      {/* Yearly Price */}
                       {(newProduct.pricingType === 'yearly' || newProduct.pricingType === 'custom') && (
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-blue-300">Yearly Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})</label>
+                          <label className="block text-sm font-medium mb-2 text-blue-300">
+                            Yearly Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})
+                          </label>
                           <input
                             type="text"
                             value={newProduct.yearlyPrice}
@@ -1523,9 +1646,11 @@ export default function ProductManagement() {
                               const value = e.target.value.replace(/[^\d,]/g, '');
                               setNewProduct({ ...newProduct, yearlyPrice: value });
                             }}
-                            placeholder="2,999/year"
+                            placeholder="2,999"
                             className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                            required={newProduct.pricingType === 'yearly'}
                           />
+                          <p className="text-xs text-gray-400 mt-1">Yearly subscription price</p>
                         </div>
                       )}
                     </div>
@@ -1536,103 +1661,69 @@ export default function ProductManagement() {
                     <label className="block text-sm font-medium mb-2 text-blue-300">Price Description</label>
                     <input
                       type="text"
-                      value={newProduct.priceDescription}
-                      onChange={(e) => setNewProduct({ ...newProduct, priceDescription: e.target.value })}
-                      placeholder="e.g., Starting from, Per user, One-time setup fee"
+                      value={newProduct.customPricingDetails || ''}
+                      onChange={(e) => setNewProduct({ ...newProduct, customPricingDetails: e.target.value })}
+                      placeholder="e.g., Starting from, Per user, One-time setup fee, Contact for pricing"
                       className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     />
                     <p className="text-xs text-gray-400 mt-1">Optional description to clarify pricing structure</p>
                   </div>
 
-                  {/* Original Price and Discount for Services */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Custom Pricing Details */}
+                  {newProduct.pricingType === 'custom' && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-blue-300">Original Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})</label>
-                      <input
-                        type="text"
-                        value={newProduct.originalPrice}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^\d,]/g, '');
-                          setNewProduct({ ...newProduct, originalPrice: value });
-                        }}
-                        placeholder="3,999"
+                      <label className="block text-sm font-medium mb-2 text-blue-300">Custom Pricing Details</label>
+                      <textarea
+                        value={newProduct.customPricingDetails || ''}
+                        onChange={(e) => setNewProduct({ ...newProduct, customPricingDetails: e.target.value })}
+                        placeholder="Describe your custom pricing structure, tiers, or contact information..."
                         className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                        rows={3}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-blue-300">Discount (%)</label>
-                      <input
-                        type="number"
-                        value={newProduct.discount}
-                        onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
-                        placeholder="25"
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
-                      />
+                  )}
+
+                  {/* Original Price and Discount */}
+                  {!newProduct.isFree && newProduct.pricingType !== 'free' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-blue-300">
+                          Original Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})
+                        </label>
+                        <input
+                          type="text"
+                          value={newProduct.originalPrice}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d,]/g, '');
+                            const updatedProduct = { ...newProduct, originalPrice: value };
+                            // Auto-calculate discount when original price changes
+                            const calculatedDiscount = calculateDiscount(newProduct.price, value);
+                            if (calculatedDiscount) {
+                              updatedProduct.discount = calculatedDiscount;
+                            }
+                            setNewProduct(updatedProduct);
+                          }}
+                          placeholder="3,999"
+                          className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Optional - for showing discounts</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-blue-300">
+                          Discount (%) <span className="text-xs text-green-400">Auto-calculated</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={newProduct.discount}
+                          onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
+                          placeholder="25"
+                          className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
+                          readOnly
+                        />
+                        <p className="text-xs text-green-400 mt-1">Automatically calculated from prices</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ) : (
-                /* Regular Product Pricing */
-                <div className="space-y-4">
-                  {/* Currency Selector */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-blue-300">Currency</label>
-                    <select
-                      value={newProduct.currency}
-                      onChange={(e) => setNewProduct({ ...newProduct, currency: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
-                    >
-                      {Object.entries(CURRENCIES).map(([code, info]) => (
-                        <option key={code} value={code}>
-                          {info.symbol} {code} - {info.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-blue-300">Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})</label>
-                      <input
-                        type="text"
-                        value={newProduct.price}
-                        onChange={(e) => {
-                          // Allow numbers and commas
-                          const value = e.target.value.replace(/[^\d,]/g, '');
-                          setNewProduct({ ...newProduct, price: value });
-                        }}
-                        placeholder="2,999"
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
-                        required
-                      />
-                      <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 2,999)</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-blue-300">Original Price ({CURRENCIES[newProduct.currency as CurrencyCode]?.symbol || '₹'})</label>
-                      <input
-                        type="text"
-                        value={newProduct.originalPrice}
-                        onChange={(e) => {
-                          // Allow numbers and commas
-                          const value = e.target.value.replace(/[^\d,]/g, '');
-                          setNewProduct({ ...newProduct, originalPrice: value });
-                        }}
-                        placeholder="3,999"
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">Use commas for thousands (e.g., 3,999)</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-blue-300">Discount (%)</label>
-                      <input
-                        type="number"
-                        value={newProduct.discount}
-                        onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
-                        placeholder="25"
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 

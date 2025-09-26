@@ -71,7 +71,7 @@ export default function VideosPage() {
       // Try direct backend call first, then fallback to proxy
       let response;
       try {
-        response = await fetch('http://localhost:5000/api/video-content');
+        response = await fetch('/api/video-content');
       } catch (error) {
         console.log('Direct call failed, trying proxy...');
         response = await fetch('/api/video-content');

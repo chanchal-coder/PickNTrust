@@ -7,10 +7,10 @@ const path = require('path');
 console.log('🔍 Debugging static file serving...');
 
 // Simulate the server's path resolution
-const __dirname = '/home/ubuntu/PickNTrust/dist/server';
-const publicPath = path.resolve(__dirname, '../public');
+const serverDir = '/home/ubuntu/PickNTrust/dist/server';
+const publicPath = path.resolve(serverDir, '../public');
 
-console.log('Server __dirname:', __dirname);
+console.log('Server directory:', serverDir);
 console.log('Resolved publicPath:', publicPath);
 
 // Check if paths exist

@@ -78,7 +78,7 @@ export default function NavigationManagement() {
       // Try direct backend call first, fallback to proxy
       let response;
       try {
-        response = await fetch('http://localhost:5000/api/admin/nav-tabs', {
+        response = await fetch('/api/admin/nav-tabs', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export default function NavigationManagement() {
       // Try direct backend call first, fallback to proxy
       let response;
       try {
-        response = await fetch('http://localhost:5000/api/admin/nav-tabs', {
+        response = await fetch('/api/admin/nav-tabs', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -390,7 +390,7 @@ export default function NavigationManagement() {
       // Try direct backend call first, fallback to proxy
       let response;
       try {
-        response = await fetch(`http://localhost:5000/api/admin/nav-tabs/${tab.id}`, {
+        response = await fetch(`/api/admin/nav-tabs/${tab.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -668,7 +668,7 @@ export default function NavigationManagement() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-600 dark:text-gray-400">Loading navigation tabs...</p>
             </div>
-          ) : navTabs.length === 0 ? (
+          ) : (Array.isArray(navTabs) && navTabs.length === 0) ? (
             <div className="text-center py-8">
               <p className="text-gray-600 dark:text-gray-400">No navigation tabs found.</p>
             </div>
@@ -677,7 +677,7 @@ export default function NavigationManagement() {
               <Droppable droppableId="nav-tabs">
                 {(provided) => (
                   <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                    {navTabs.map((tab, index) => (
+                    {(Array.isArray(navTabs) ? navTabs : []).map((tab, index) => (
                       <Draggable key={tab.id} draggableId={tab.id.toString()} index={index}>
                         {(provided, snapshot) => (
                           <div

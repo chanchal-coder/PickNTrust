@@ -57,7 +57,7 @@ class CanvaAutomationService {
   private socialMediaPoster: SocialMediaPoster;
 
   constructor() {
-    const dbPath = path.join(__dirname, '..', 'database.sqlite');
+    const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
     this.db = new Database(dbPath);
     this.socialMediaPoster = createSocialMediaPoster(this.db);
   }

@@ -6,6 +6,7 @@ import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import MetaTags from "@/components/meta-tags";
+import MetaTagsInjector from "@/components/MetaTagsInjector";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<
@@ -54,33 +55,34 @@ class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-import Home from "@/pages/home";
-import Category from "@/pages/category";
-import Admin from "@/pages/admin";
-import BotAdmin from "@/pages/BotAdmin";
-import Wishlist from "@/pages/wishlist";
-import Blog from "@/pages/blog";
-import BlogPost from "@/pages/blog-post";
-import Videos from "@/pages/videos";
-import HowItWorks from "@/pages/how-it-works";
-import TermsOfService from "@/pages/terms-of-service";
-import PrivacyPolicy from "@/pages/privacy-policy";
-import Search from "@/pages/search";
-import TopPicks from "@/pages/top-picks";
-import Services from "@/pages/services";
-import Apps from "@/pages/apps";
-import LootBox from "@/pages/loot-box";
-import GlobalPicks from "@/pages/global-picks";
-import TravelPicks from "@/pages/travel-picks";
-import Flights from "@/pages/flights";
-import Hotels from "@/pages/hotels";
-import PrimePicks from "@/pages/prime-picks";
-import CuePicks from "@/pages/cue-picks";
-import ValuePicks from "@/pages/value-picks";
-import ClickPicks from "@/pages/click-picks";
-import DealsHub from "@/pages/deals-hub";
-import BrowseCategories from "@/pages/browse-categories";
-import DynamicPage from "@/pages/DynamicPage";
+// Lazy load page components for better code splitting
+const Home = React.lazy(() => import("@/pages/home"));
+const Category = React.lazy(() => import("@/pages/category"));
+const Admin = React.lazy(() => import("@/pages/admin"));
+const BotAdmin = React.lazy(() => import("@/pages/BotAdmin"));
+const Wishlist = React.lazy(() => import("@/pages/wishlist"));
+const Blog = React.lazy(() => import("@/pages/blog"));
+const BlogPost = React.lazy(() => import("@/pages/blog-post"));
+const Videos = React.lazy(() => import("@/pages/videos"));
+const HowItWorks = React.lazy(() => import("@/pages/how-it-works"));
+const TermsOfService = React.lazy(() => import("@/pages/terms-of-service"));
+const PrivacyPolicy = React.lazy(() => import("@/pages/privacy-policy"));
+const Search = React.lazy(() => import("@/pages/search"));
+const TopPicks = React.lazy(() => import("@/pages/top-picks"));
+const Services = React.lazy(() => import("@/pages/services"));
+const Apps = React.lazy(() => import("@/pages/apps"));
+const LootBox = React.lazy(() => import("@/pages/loot-box"));
+const GlobalPicks = React.lazy(() => import("@/pages/global-picks"));
+const TravelPicks = React.lazy(() => import("@/pages/travel-picks"));
+const Flights = React.lazy(() => import("@/pages/flights"));
+const Hotels = React.lazy(() => import("@/pages/hotels"));
+const PrimePicks = React.lazy(() => import("@/pages/prime-picks"));
+const CuePicks = React.lazy(() => import("@/pages/cue-picks"));
+const ValuePicks = React.lazy(() => import("@/pages/value-picks"));
+const ClickPicks = React.lazy(() => import("@/pages/click-picks"));
+const DealsHub = React.lazy(() => import("@/pages/deals-hub"));
+const BrowseCategories = React.lazy(() => import("@/pages/browse-categories"));
+const DynamicPage = React.lazy(() => import("@/pages/DynamicPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,10 +135,17 @@ function App() {
             <WishlistProvider>
               <div className="min-h-screen bg-white dark:bg-gray-900" style={{ minHeight: '100vh' }}>
                 <MetaTags />
-                <Switch>
+                <MetaTagsInjector />
+                <React.Suspense fallback={
+                  <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+                  </div>
+                }>
+                  <Switch>
                   <Route path="/" component={Home} />
                   <Route path="/category/:category" component={Category} />
                   <Route path="/admin" component={Admin} />
+                  <Route path="/admin/blog" component={Admin} />
                   <Route path="/bot-admin" component={BotAdmin} />
                   <Route path="/wishlist" component={Wishlist} />
                   <Route path="/blog" component={Blog} />
@@ -162,8 +171,9 @@ function App() {
                   <Route path="/browse-categories" component={BrowseCategories} />
                   {/* Dynamic route for custom navigation tabs */}
                   <Route path="/:slug" component={DynamicPage} />
-                  <Route>404 - Page Not Found</Route>
-                </Switch>
+                    <Route>404 - Page Not Found</Route>
+                  </Switch>
+                </React.Suspense>
                 <Toaster />
               </div>
             </WishlistProvider>

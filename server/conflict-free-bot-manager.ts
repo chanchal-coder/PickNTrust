@@ -1,7 +1,7 @@
 // Conflict-Free Bot Manager
 // Prevents 409 polling conflicts across all Telegram bots
 
-import { botLockManager } from './bot-lock-manager';
+import { botLockManager } from './bot-lock-manager.js';
 
 interface BotConfig {
   name: string;

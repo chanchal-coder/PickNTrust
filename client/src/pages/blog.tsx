@@ -433,8 +433,6 @@ export default function Blog() {
         title="Blog Videos"
       />
       
-      {/* Footer */}
-      <Footer />
       <ScrollNavigation />
       
       {/* Share Automatically Modal */}

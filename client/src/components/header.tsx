@@ -418,49 +418,49 @@ export default function Header() {
         </div>
 
         {/* Centered Navigation Row - Mobile Optimized */}
-        <div className="flex justify-center items-center space-x-2 sm:space-x-3 lg:space-x-4 border-t border-gray-100 dark:border-gray-800 pt-2 px-1 sm:px-4 lg:px-8 overflow-x-auto">
+        <div className="flex justify-center items-center space-x-1 sm:space-x-2 lg:space-x-3 border-t border-gray-100 dark:border-gray-800 pt-2 pb-1 px-1 sm:px-2 lg:px-4 overflow-x-auto scrollbar-hide">
           {/* Home */}
           <Link 
             href="/" 
-            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Home"
             onClick={() => setMobileMenuOpen(false)}
           >
             <i className="fas fa-home group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Home</span>
+            <span className="font-semibold hidden sm:inline">Home</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </Link>
 
           {/* Top Picks */}
           <button
             onClick={() => scrollToSection('featured-products')}
-            className="group relative bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Today's Top Picks"
           >
             <i className="fas fa-star group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Top Picks</span>
+            <span className="font-semibold hidden sm:inline">Top Picks</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
           {/* Services */}
           <button
             onClick={() => scrollToSection('cards-apps-services')}
-            className="group relative bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Cards & Services"
           >
             <i className="fas fa-credit-card group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Services</span>
+            <span className="font-semibold hidden sm:inline">Services</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
           {/* Apps & AI Apps */}
           <button
             onClick={() => scrollToSection('apps-ai-apps')}
-            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Apps & AI Apps"
           >
             <i className="fas fa-robot group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Apps & AI Apps</span>
+            <span className="font-semibold hidden sm:inline">Apps & AI</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
             {/* NEW Badge - Hidden on mobile, visible on larger screens */}
             <div className="hidden sm:block absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-lg z-10">
@@ -471,47 +471,47 @@ export default function Header() {
           {/* Categories (renamed from Menu) */}
           <button
             onClick={() => scrollToSection('categories')}
-            className="group relative bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Browse Categories"
           >
             <i className="fas fa-th-large group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Categories</span>
+            <span className="font-semibold hidden sm:inline">Categories</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
           {/* Blog */}
           <button
             onClick={() => scrollToSection('blog')}
-            className="group relative bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Quick Tips and Trends"
           >
             <i className="fas fa-blog group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Blog</span>
+            <span className="font-semibold hidden sm:inline">Blog</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
           {/* Videos */}
           <button
             onClick={() => scrollToSection('videos-section')}
-            className="group relative bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Featured Videos"
           >
             <i className="fas fa-video group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Videos</span>
+            <span className="font-semibold hidden sm:inline">Videos</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
           {/* Wishlist */}
           <Link 
             href="/wishlist" 
-            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Wishlist"
             onClick={() => {
               setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
             }}
           >
             <i className="fas fa-heart group-hover:scale-125 transition-transform text-pink-100"></i>
-            <span className="font-semibold hidden xs:inline">Wishlist</span>
+            <span className="font-semibold hidden sm:inline">Wishlist</span>
             {wishlistCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 bg-yellow-400 text-red-800 text-[8px] sm:text-[10px] rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center font-bold shadow-md animate-bounce">
                 {wishlistCount > 9 ? '9+' : wishlistCount}
@@ -523,11 +523,11 @@ export default function Header() {
           {/* Contact Us */}
           <button
             onClick={() => scrollToSection('footer')}
-            className="group relative bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+            className="group relative bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
             title="Contact Us"
           >
             <i className="fas fa-envelope group-hover:rotate-12 transition-transform"></i>
-            <span className="font-semibold hidden xs:inline">Contact</span>
+            <span className="font-semibold hidden sm:inline">Contact</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
@@ -543,13 +543,13 @@ export default function Header() {
         </div>
         
         {/* Second Row - External Links */}
-        <div className="flex justify-center items-center space-x-2 sm:space-x-3 lg:space-x-4 pt-1 pb-1 px-1 sm:px-4 lg:px-8 overflow-x-auto">
+        <div className="flex justify-center items-center space-x-1 sm:space-x-2 lg:space-x-3 pt-1 pb-2 px-1 sm:px-2 lg:px-4 overflow-x-auto scrollbar-hide">
           {/* Dynamic Navigation Tabs */}
           {navTabs.map((tab) => (
             <Link
               key={tab.id}
               href={`/${tab.slug}`}
-              className="group relative text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+              className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
               style={{
                 background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
               }}
@@ -558,8 +558,8 @@ export default function Header() {
                 setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
               }}
             >
-              <i className={`${tab.icon} group-hover:rotate-12 transition-transform`}></i>
-               <span className="font-semibold hidden xs:inline">{tab.name}</span>
+              <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
+               <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
              </Link>
            ))}

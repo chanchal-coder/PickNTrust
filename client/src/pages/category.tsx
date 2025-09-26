@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "wouter";
-import { useState, useMemo } from "react";
+import { useParams, Link, useLocation } from "wouter";
+import { useState, useMemo, useEffect } from "react";
+import { useToast } from '@/hooks/use-toast';
 
 // Route params interface
 interface CategoryRouteParams {
@@ -177,7 +178,20 @@ const getNetworkDisplayName = (networkSource: string): string => {
 export default function CategoryPage() {
   const { category } = useParams<CategoryRouteParams>();
   const decodedCategory = category ? decodeURIComponent(category) : '';
+  const { toast } = useToast();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('all');
+
+  // Scroll to top when component mounts or category changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [category]);
+
+  // Check admin status
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('pickntrust-admin-session');
+    setIsAdmin(adminAuth === 'active');
+  }, []);
   const [sortBy, setSortBy] = useState('relevance');
   const [selectedCurrency, setSelectedCurrency] = useState('all');
   const [convertPrices, setConvertPrices] = useState(false);
@@ -537,12 +551,13 @@ export default function CategoryPage() {
               { name: 'Books & Media', icon: 'fas fa-book', color: 'from-purple-500 to-violet-500', count: 22 },
               { name: 'Sports & Fitness', icon: 'fas fa-dumbbell', color: 'from-red-500 to-pink-500', count: 18 }
             ].map((relatedCategory, index) => (
-              <div
+              <Link
                 key={index}
-                className="group cursor-pointer transform hover:scale-105 transition-all duration-300"
+                href={`/category/${encodeURIComponent(relatedCategory.name)}`}
+                className="group cursor-pointer transform hover:scale-105 transition-all duration-300 block"
                 onClick={() => {
-                  // Use proper navigation instead of direct window.location
-                  window.location.href = `/category/${encodeURIComponent(relatedCategory.name)}`;
+                  // Scroll to top immediately
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               >
                 <div className={`bg-gradient-to-br ${relatedCategory.color} rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300`}>
@@ -561,28 +576,26 @@ export default function CategoryPage() {
                   {/* Hover effect overlay */}
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           
           {/* View All Categories Button */}
           <div className="text-center mt-8">
-            <button 
+            <Link 
+              href="/"
               onClick={() => {
-                  // Use proper navigation instead of direct window.location
-                  window.location.href = '/';
+                  // Scroll to top immediately
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
             >
               <i className="fas fa-th-large"></i>
               View All Categories
-            </button>
+            </Link>
           </div>
         </div>
       </section>
-      
-        <Footer />
-        <ScrollNavigation />
       </div>
     </UniversalPageLayout>
   );

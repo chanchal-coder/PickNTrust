@@ -34,6 +34,8 @@ import BannerManagement from '@/components/admin/BannerManagement';
 import CommissionManagement from '@/components/admin/CommissionManagement';
 import CredentialManagement from '@/components/admin/CredentialManagement';
 import WidgetManagement from '@/components/admin/WidgetManagement';
+import MetaTagsManagement from '@/components/admin/MetaTagsManagement';
+import RSSFeedsManagement from '@/components/admin/RSSFeedsManagement';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 const productSchema = z.object({
@@ -332,7 +334,13 @@ export default function AdminPage() {
       if (response.ok && data.success) {
         setIsAuthenticated(true);
         setPassword('');
+        
+        // Set all required admin authentication values
+        const adminToken = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         localStorage.setItem('pickntrust-admin-session', 'active');
+        localStorage.setItem('pickntrust-admin-token', adminToken);
+        localStorage.setItem('pickntrust-admin-password', 'pickntrust2025');
+        
         toast({
           title: 'Access Granted',
           description: 'Welcome to PickNTrust Enhanced Admin Panel.',
@@ -373,6 +381,8 @@ export default function AdminPage() {
   const handleLogout = () => {
     console.log('🚪 Logout initiated');
     localStorage.removeItem('pickntrust-admin-session');
+    localStorage.removeItem('pickntrust-admin-token');
+    localStorage.removeItem('pickntrust-admin-password');
     
     toast({
       title: 'Logged Out',
@@ -627,7 +637,7 @@ export default function AdminPage() {
               </TabsList>
               
               {/* Third Row */}
-              <TabsList className="grid w-full grid-cols-4 bg-transparent p-0">
+              <TabsList className="grid w-full grid-cols-6 bg-transparent p-0">
                 <TabsTrigger value="widgets" className="flex items-center gap-2 data-[state=active]:bg-violet-500 data-[state=active]:text-white">
                   <Code className="w-4 h-4" />
                   <span className="hidden sm:inline">Widgets</span>
@@ -639,6 +649,14 @@ export default function AdminPage() {
                 <TabsTrigger value="credentials" className="flex items-center gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
                   <Shield className="w-4 h-4" />
                   <span className="hidden sm:inline">Credentials</span>
+                </TabsTrigger>
+                <TabsTrigger value="metatags" className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Meta Tags</span>
+                </TabsTrigger>
+                <TabsTrigger value="rssfeeds" className="flex items-center gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
+                  <Globe className="w-4 h-4" />
+                  <span className="hidden sm:inline">RSS Feeds</span>
                 </TabsTrigger>
                 <TabsTrigger value="bots" className="flex items-center gap-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white">
                   <Settings className="w-4 h-4" />
@@ -817,6 +835,16 @@ export default function AdminPage() {
             {/* Credential Management Tab */}
             <TabsContent value="credentials">
               <CredentialManagement />
+            </TabsContent>
+
+            {/* Meta Tags Management Tab */}
+            <TabsContent value="metatags">
+              <MetaTagsManagement />
+            </TabsContent>
+
+            {/* RSS Feeds Management Tab */}
+            <TabsContent value="rssfeeds">
+              <RSSFeedsManagement />
             </TabsContent>
 
             {/* Bot Management Tab */}

@@ -10,6 +10,7 @@ import SmartShareDropdown from "@/components/SmartShareDropdown";
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
 import { useCurrency, getCurrencySymbol, CurrencyCode } from '@/contexts/CurrencyContext';
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
+import Sidebar from '@/components/sidebar';
 
 
 // Define Product type locally to avoid schema conflicts
@@ -93,11 +94,11 @@ export default function FeaturedProducts() {
   };
 
   const { data: products } = useQuery<Product[]>({
-    queryKey: ['/api/products/featured', getDailyRotationOffset()],
+    queryKey: ['/api/products/page/top-picks', getDailyRotationOffset()],
     queryFn: async () => {
       try {
-        // First try featured products API
-        const response = await fetch('/api/products/featured');
+        // Fetch latest featured products from top-picks page (filters by isFeatured=true)
+        const response = await fetch('/api/products/page/top-picks');
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -105,30 +106,15 @@ export default function FeaturedProducts() {
             const rotationOffset = getDailyRotationOffset() % data.length;
             const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
             const previewData = rotatedData.slice(0, 6);
-            console.log(`Featured Products: Showing ${previewData.length} featured products`);
+            console.log(`Featured Products: Showing ${previewData.length} featured products from top-picks`);
             return previewData;
           }
         }
         
-        // Fallback to all products if featured products are empty
-        console.log('Featured products empty, falling back to all products');
-        const allProductsResponse = await fetch('/api/products');
-        if (allProductsResponse.ok) {
-          const allData = await allProductsResponse.json();
-          if (allData.products && Array.isArray(allData.products) && allData.products.length > 0) {
-            // Apply daily rotation
-            const rotationOffset = getDailyRotationOffset() % allData.products.length;
-            const rotatedData = [...allData.products.slice(rotationOffset), ...allData.products.slice(0, rotationOffset)];
-            const previewData = rotatedData.slice(0, 6);
-            console.log(`All Products Fallback: Showing ${previewData.length} products (total: ${allData.products.length})`);
-            return previewData;
-          }
-        }
-        
-        console.log('No products available from any endpoint');
+        console.log('No featured products available from top-picks page');
         return [];
       } catch (error) {
-        console.log('Products API error:', error);
+        console.log('Top-picks API error:', error);
         return [];
       }
     },
@@ -184,6 +170,11 @@ export default function FeaturedProducts() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
+  // Sidebar state management
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 100000});
+  const [minRating, setMinRating] = useState<number>(0);
+  
   // Mock admin panel settings - in real app, this would come from API
   const adminPlatformSettings = ['Instagram', 'Facebook', 'WhatsApp', 'Telegram'];
 
@@ -215,8 +206,50 @@ export default function FeaturedProducts() {
     setSelectedProduct(null);
   };
 
+  // Sidebar handler functions
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  const handlePriceRangeChange = (min: number, max: number) => {
+    setPriceRange({ min, max });
+  };
+
+  const handleRatingChange = (rating: number) => {
+    setMinRating(rating);
+  };
+
   // Use API data if available, otherwise use fallback data
   const displayProducts = products && products.length > 0 ? products : [];
+
+  // Filter products based on sidebar selections
+  const filteredProducts = displayProducts.filter((product: Product) => {
+    // Category filter
+    if (selectedCategory && selectedCategory !== 'All Products' && product.category !== selectedCategory) {
+      return false;
+    }
+
+    // Price filter
+    const productPrice = typeof product.price === 'string' 
+      ? parseFloat(product.price.replace(/[^\d.-]/g, '')) 
+      : (product.price || 0);
+    if (productPrice < priceRange.min || productPrice > priceRange.max) {
+      return false;
+    }
+
+    // Rating filter
+    const productRating = typeof product.rating === 'string' 
+      ? parseFloat(product.rating) 
+      : (product.rating || 0);
+    if (productRating < minRating) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Get available categories from products
+  const availableCategories = Array.from(new Set(displayProducts.map((product: Product) => product.category).filter(Boolean)));
 
   const trackAffiliateMutation = useMutation({
     mutationFn: async (data: { productId: number; affiliateUrl: string }) => {
@@ -420,59 +453,74 @@ export default function FeaturedProducts() {
           </p>
         </div>
         
-        {/* Horizontal Scrollable Container with Border */}
-        <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-white/50 dark:bg-gray-800/50">
-          {/* Left Arrow */}
-          <button
-            onClick={scrollLeft}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
-          >
-            <i className="fas fa-chevron-left text-lg"></i>
-          </button>
+        {/* Layout with Sidebar */}
+        <div className="flex gap-6">
+          {/* Sidebar - Hidden on mobile, visible on desktop */}
+          <div className="hidden lg:block">
+            <Sidebar 
+              onCategoryChange={handleCategoryChange}
+              onPriceRangeChange={handlePriceRangeChange}
+              onRatingChange={handleRatingChange}
+              availableCategories={availableCategories}
+              selectedCategory={selectedCategory}
+            />
+          </div>
 
-          {/* Right Arrow */}
-          <button
-            onClick={scrollRight}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
-          >
-            <i className="fas fa-chevron-right text-lg"></i>
-          </button>
+          {/* Products Section */}
+          <div className="flex-1">
+            {/* Horizontal Scrollable Container with Border */}
+            <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-white/50 dark:bg-gray-800/50">
+              {/* Left Arrow */}
+              <button
+                onClick={scrollLeft}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
+              >
+                <i className="fas fa-chevron-left text-lg"></i>
+              </button>
 
-          {/* Coming Soon Message - Desktop */}
-          {displayProducts.length === 0 ? (
-            <div className="hidden md:flex items-center justify-center py-16 px-8">
-              <div className="text-center">
-                <div className="text-6xl mb-4"><i className="fas fa-rocket"></i></div>
-                <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">
-                  Exciting Deals Coming Soon!
-                </h3>
-                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                  Stay tuned for today's hottest picks and amazing deals
-                </p>
-                <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full text-sm font-medium">
-                  <span className="animate-pulse mr-2">⏰</span>
-                  New products added daily
+              {/* Right Arrow */}
+              <button
+                onClick={scrollRight}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl rounded-full p-3 transition-all transform hover:scale-110 hidden md:block"
+              >
+                <i className="fas fa-chevron-right text-lg"></i>
+              </button>
+
+              {/* Coming Soon Message - Desktop */}
+              {filteredProducts.length === 0 ? (
+                <div className="hidden md:flex items-center justify-center py-16 px-8">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4"><i className="fas fa-rocket"></i></div>
+                    <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+                      {displayProducts.length === 0 ? 'Exciting Deals Coming Soon!' : 'No products match your filters'}
+                    </h3>
+                    <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                      {displayProducts.length === 0 ? 'Stay tuned for today\'s hottest picks and amazing deals' : 'Try adjusting your filters to see more products'}
+                    </p>
+                    <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full text-sm font-medium">
+                      <span className="animate-pulse mr-2">⏰</span>
+                      {displayProducts.length === 0 ? 'New products added daily' : 'Clear filters to see all products'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ) : (
-            /* Desktop: Scrollable Products Container - Single Row */
-            <div 
-              ref={scrollContainerRef}
-              onWheel={handleWheel}
-              className="hidden md:flex gap-4 overflow-x-auto pb-6 px-12 md:px-16"
-              style={{ 
-                scrollbarWidth: 'none', 
-                msOverflowStyle: 'none'
-              }}
-            >
-              {displayProducts.map((product: Product, index: number) => (
+              ) : (
+                /* Desktop: Scrollable Products Container - Single Row */
+                <div 
+                  ref={scrollContainerRef}
+                  onWheel={handleWheel}
+                  className="hidden md:flex gap-4 overflow-x-auto pb-6 px-12 md:px-16"
+                  style={{ 
+                    scrollbarWidth: 'none', 
+                    msOverflowStyle: 'none'
+                  }}
+                >
+              {filteredProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
                 className="flex-shrink-0 w-[320px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {/* Product Image with colored border */}
-                <div className={`relative p-3 ${getCardColor(index, displayProducts.length)}`}>
+                <div className={`relative p-3 ${getCardColor(index, filteredProducts.length)}`}>
                   <div className="w-full h-40 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
                     <img 
                       src={(product.imageUrl || product.image_url || "")} 
@@ -653,7 +701,7 @@ export default function FeaturedProducts() {
           )}
 
           {/* Coming Soon Message - Mobile */}
-          {displayProducts.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="md:hidden flex items-center justify-center py-12 px-4">
               <div className="text-center">
                 <div className="text-4xl mb-3"><i className="fas fa-rocket"></i></div>
@@ -672,13 +720,13 @@ export default function FeaturedProducts() {
           ) : (
             /* Mobile: Horizontal Scrolling with Smaller Cards */
             <div className="md:hidden flex gap-3 overflow-x-auto pb-4 px-2">
-              {displayProducts.map((product: Product, index: number) => (
+              {filteredProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
                 className="flex-shrink-0 w-64 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
               >
                 {/* Product Image with colored border */}
-                <div className={`relative p-2 ${getCardColor(index, displayProducts.length)}`}>
+                <div className={`relative p-2 ${getCardColor(index, filteredProducts.length)}`}>
                   <div className="w-full h-32 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
                     <img 
                       src={(product.imageUrl || product.image_url || "")} 
@@ -899,6 +947,8 @@ export default function FeaturedProducts() {
             ))}
           </div>
           )}
+        </div>
+        </div>
         </div>
         
         {/* More Button */}

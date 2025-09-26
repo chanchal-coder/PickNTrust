@@ -1,5 +1,4 @@
 import Header from "@/components/header";
-import Footer from "@/components/footer";
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 export default function HowItWorksPage() {
@@ -142,8 +141,6 @@ export default function HowItWorksPage() {
                 </div>
               </div>
             </div>
-      
-            <Footer />
           </div>
     </UniversalPageLayout>
   );

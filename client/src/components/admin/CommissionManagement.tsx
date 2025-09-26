@@ -156,8 +156,13 @@ export default function CommissionManagement() {
    // Delete network mutation
     const deleteNetworkMutation = useMutation({
     mutationFn: async (networkId: number) => {
+      const adminPassword = 'pickntrust2025';
       const response = await fetch(`/api/admin/affiliate-networks/${networkId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
       });
       if (!response.ok) throw new Error('Failed to delete network');
       return response.json();

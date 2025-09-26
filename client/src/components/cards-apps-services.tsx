@@ -10,6 +10,32 @@ import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
 
+// ServiceDescription component for expandable text
+const ServiceDescription = ({ description }: { description: string }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLongDescription = description.length > 100;
+  
+  return (
+    <div className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed">
+      <p className={isExpanded ? '' : 'line-clamp-2'}>
+        {description}
+      </p>
+      {isLongDescription && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-xs font-medium mt-1 transition-colors"
+        >
+          {isExpanded ? 'Read Less' : 'Read More'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 // Define Product type locally to match the complete schema
 interface Product {
   id: number | string;
@@ -143,13 +169,13 @@ export default function CardsAppsServices() {
 
   // Fetch cards/apps/services from Services page (same source as /services page)
   const { data: services } = useQuery<Product[]>({
-    queryKey: ['/api/services', getDailyRotationOffset()],
+    queryKey: ['/api/products/page/services', getDailyRotationOffset()],
     queryFn: async () => {
       try {
-        // Fetch from Services page (same source as /services page)
-        const response = await fetch('/api/services');
+        // Fetch latest services from services page (filters by isService=true)
+        const response = await fetch('/api/products/page/services');
         if (!response.ok) {
-          console.log('Services API failed, showing coming soon message');
+          console.log('Services page API failed, showing coming soon message');
           return [];
         }
         const data = await response.json();
@@ -163,15 +189,15 @@ export default function CardsAppsServices() {
            
            // CRITICAL: If we have ANY real data, return it instead of fallback
            if (previewData.length > 0) {
-             console.log(`Services: Showing ${previewData.length} real services (total available: ${data.length})`);
+             console.log(`Services: Showing ${previewData.length} real services from services page (total available: ${data.length})`);
              return previewData;
            }
          }
          
-         console.log('Services: No real data available, showing coming soon message');
+         console.log('Services: No real data available from services page, showing coming soon message');
           return [];
       } catch (error) {
-          console.log('Services API error, showing coming soon message:', error);
+          console.log('Services page API error, showing coming soon message:', error);
           return [];
         }
     },
@@ -417,16 +443,16 @@ export default function CardsAppsServices() {
               {displayServices.map((service: Product, index: number) => (
               <div 
                 key={service.id}
-                className="flex-shrink-0 w-72 md:w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden"
+                className="flex-shrink-0 w-64 md:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden"
               >
                 {/* Service Image with colored border */}
-                <div className={`relative p-3 ${
+                <div className={`relative p-2 ${
                   index % 4 === 0 ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 
                   index % 4 === 1 ? 'bg-gradient-to-br from-purple-500 to-pink-600' : 
                   index % 4 === 2 ? 'bg-gradient-to-br from-pink-500 to-red-500' :
                   'bg-gradient-to-br from-blue-500 to-indigo-600'
                 }`}>
-                  <div className="w-full h-40 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
+                  <div className="w-full h-32 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
                     <img 
                       src={service.imageUrl} 
                       alt={service.name} 
@@ -453,7 +479,7 @@ export default function CardsAppsServices() {
                 </div>
                 
                 {/* Service Content */}
-                <div className="p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white space-y-2 relative">
+                <div className="p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white space-y-1.5 relative">
                   {/* Admin Action Buttons - Top Right */}
                   {isAdmin && (
                     <div className="absolute top-2 right-2 flex gap-1">
@@ -534,10 +560,10 @@ export default function CardsAppsServices() {
                   </div>
                   
                   {/* Service Name */}
-                  <h4 className="font-bold text-sm text-indigo-600 dark:text-indigo-400 leading-tight pr-16">{service.name}</h4>
+                  <h4 className="font-bold text-sm text-indigo-600 dark:text-indigo-400 leading-tight pr-16 truncate">{service.name}</h4>
                   
-                  {/* Service Description */}
-                  <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed">{service.description}</p>
+                  {/* Service Description with Read More */}
+                  <ServiceDescription description={service.description || ''} />
                   
                   {/* Category Badge */}
                   <div className="flex justify-start">
@@ -597,7 +623,7 @@ export default function CardsAppsServices() {
                   {/* Pick Now Button */}
                   <button 
                     onClick={() => handleAffiliateClick(service)}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-sm"
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2 px-3 rounded-lg hover:shadow-lg transition-all duration-300 text-sm"
                   >
                     <i className="fas fa-shopping-bag mr-2"></i>Pick Now
                   </button>

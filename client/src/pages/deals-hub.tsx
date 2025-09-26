@@ -97,7 +97,7 @@ export default function DealsHub() {
   // Check admin status
   useEffect(() => {
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost');
+    setIsAdmin(adminAuth === 'active' || window.location.hostname === 'localhost' || window.location.hostname === 'pickntrust.com');
   }, []);
 
   const handleBulkDelete = async (deleteAll = false) => {
@@ -408,7 +408,6 @@ export default function DealsHub() {
         title="Deals Hub Videos"
       />
       
-        <Footer />
         <ScrollNavigation />
       </div>
     </UniversalPageLayout>

@@ -1,38 +1,40 @@
 const Database = require('better-sqlite3');
-const path = require('path');
 
-// Connect to database
-const dbPath = path.join(__dirname, 'database.sqlite');
-const db = new Database(dbPath);
-
-console.log('Search Checking specific products in database...');
+const db = new Database('./database.sqlite');
 
 try {
-  // Get products 95 and 98 specifically
-  const specificProducts = db.prepare('SELECT id, name, display_pages, source FROM products WHERE id IN (95, 98) ORDER BY id').all();
+  const telegram = db.prepare('SELECT * FROM unified_content WHERE source_type = ? ORDER BY created_at DESC LIMIT 5').all('telegram');
   
-  console.log(`\nStats Found ${specificProducts.length} specific products:`);
+  console.log('=== TELEGRAM PRODUCTS ANALYSIS ===');
+  console.log('Total Telegram products found:', telegram.length);
+  console.log('');
   
-  specificProducts.forEach((product, index) => {
-    console.log(`\n${index + 1}. Product ID: ${product.id}`);
-    console.log(`   Name: ${product.name}`);
-    console.log(`   Source: ${product.source || 'manual'}`);
-    console.log(`   Display Pages: ${JSON.stringify(product.display_pages)}`);
-  });
-  
-  // Also check all products on Prime Picks page
-  console.log('\nTarget Checking all products on Prime Picks page...');
-  const primePicksProducts = db.prepare('SELECT id, name, display_pages, source FROM products WHERE display_pages LIKE ? ORDER BY created_at DESC').all('%prime-picks%');
-  
-  console.log(`\n📋 Found ${primePicksProducts.length} products on Prime Picks page:`);
-  
-  primePicksProducts.forEach((product, index) => {
-    console.log(`\n${index + 1}. ID: ${product.id} | Name: ${product.name} | Source: ${product.source || 'manual'}`);
-    console.log(`   Display Pages: ${JSON.stringify(product.display_pages)}`);
-  });
+  if (telegram.length === 0) {
+    console.log('❌ No products found with source_type = "telegram"');
+    console.log('This indicates that Telegram messages are not being processed correctly.');
+    
+    // Check what source types exist
+    const sources = db.prepare('SELECT DISTINCT source_type, COUNT(*) as count FROM unified_content GROUP BY source_type').all();
+    console.log('\nExisting source types:');
+    sources.forEach(s => console.log(`- ${s.source_type}: ${s.count} products`));
+  } else {
+    telegram.forEach((p, i) => {
+      console.log(`--- Telegram Product ${i + 1} ---`);
+      console.log('Title:', p.title);
+      console.log('Description:', p.description);
+      console.log('Price:', p.price);
+      console.log('Original Price:', p.original_price);
+      console.log('Image URL:', p.image_url);
+      console.log('Affiliate URL:', p.affiliate_url);
+      console.log('Source ID:', p.source_id);
+      console.log('Display Pages:', p.display_pages);
+      console.log('Created:', new Date(p.created_at * 1000).toLocaleString());
+      console.log('');
+    });
+  }
   
 } catch (error) {
-  console.error('Error Database error:', error);
+  console.error('Error:', error.message);
 } finally {
   db.close();
 }

@@ -1,7 +1,7 @@
 // Platform Detection Engine
 // Identifies e-commerce platforms and extracts product information
 
-import { ResolvedURL } from './universal-url-resolver';
+import { ResolvedURL } from './universal-url-resolver.js';
 
 interface PlatformInfo {
   platform: string;

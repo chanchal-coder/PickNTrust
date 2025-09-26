@@ -164,43 +164,42 @@ export default function AppsPage() {
     setSelectedApp(null);
   };
 
-  // Fetch apps from dedicated apps channel + aggregate from all other pages
+  // Fetch apps using new backend filtering (isAIApp=true)
   const { data: allApps = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/apps/all-pages', selectedCategory],
+    queryKey: ['/api/products/page/apps-ai-apps', selectedCategory],
     queryFn: async (): Promise<Product[]> => {
       try {
-        // Fetch from dedicated apps channel first
-        const sources = ['apps', 'prime-picks', 'click-picks', 'cue-picks', 'value-picks', 'global-picks', 'deals-hub', 'loot-box'];
         const allAppsData = [];
         
-        for (const source of sources) {
-          try {
-            const url = source === 'apps' 
-              ? `/api/products/apps`
-              : `/api/products/page/${source}?apps_only=true`;
-            
-            const response = await fetch(url);
-            if (response.ok) {
-              const data = await response.json();
-              if (Array.isArray(data)) {
-                // Filter for apps and AI apps only from other sources
-                const apps = source === 'apps' 
-                  ? data // All products from dedicated apps channel
-                  : data.filter((item: any) => 
-                      item.isAIApp || item.is_ai_app || 
-                      item.category?.toLowerCase().includes('app') ||
-                      item.appType || item.app_type
-                    );
-                
-                allAppsData.push(...apps.map((item: any) => ({ ...item, source })));
-              }
+        // 1. Fetch from dedicated apps channel
+        try {
+          const response = await fetch('/api/products/apps');
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              allAppsData.push(...data.map((item: any) => ({ ...item, source: 'apps' })));
             }
-          } catch (error) {
-            console.error(`Failed to fetch apps from ${source}:`, error);
           }
+        } catch (error) {
+          console.error('Failed to fetch apps from dedicated channel:', error);
         }
         
-        // Return real apps or empty array - no fallback data
+        // 2. Fetch apps from unified backend (filters by isAIApp=true)
+        try {
+          const url = selectedCategory 
+            ? `/api/products/page/apps-ai-apps?category=${encodeURIComponent(selectedCategory)}`
+            : '/api/products/page/apps-ai-apps';
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              allAppsData.push(...data.map((item: any) => ({ ...item, source: 'apps-ai-apps' })));
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch apps from unified backend:', error);
+        }
+        
         return allAppsData;
       } catch (error) {
         console.warn('API call error, returning empty array:', error);
@@ -409,7 +408,6 @@ export default function AppsPage() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -610,7 +608,7 @@ export default function AppsPage() {
                     <div className="flex items-center space-x-2">
                       <StarRating rating={app.rating} />
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {app.rating} ({app.reviewCount.toLocaleString()})
+                        {app.rating} ({(app.reviewCount || 0).toLocaleString()})
                       </span>
                     </div>
                   </div>
@@ -703,7 +701,6 @@ export default function AppsPage() {
         title="Apps Videos"
       />
 
-      <Footer />
       <ScrollNavigation />
       
       {/* Share Automatically Modal */}

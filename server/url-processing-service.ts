@@ -1,11 +1,11 @@
 // URL Processing Service
 // Main orchestrator that combines URL resolution, platform detection, scraping, and affiliate conversion
 
-import { urlResolver, ResolvedURL } from './universal-url-resolver';
-import { platformDetector, PlatformInfo } from './platform-detector';
-import { enhancedScraper, ScrapedProduct } from './enhanced-universal-scraper';
-import { affiliateConverter, ConvertedLink } from './affiliate-converter';
-import { sqliteDb } from './db';
+import { urlResolver, ResolvedURL } from './universal-url-resolver.js';
+import { platformDetector, PlatformInfo } from './platform-detector.js';
+import { enhancedScraper, ScrapedProduct } from './enhanced-universal-scraper.js';
+import { affiliateConverter, ConvertedLink } from './affiliate-converter.js';
+import { sqliteDb } from './db.js';
 
 interface ProcessingResult {
   success: boolean;
@@ -248,102 +248,51 @@ class URLProcessingService {
   /**
    * Save processed product to database
    */
-  async saveProductToDatabase(productCard: ProductCardData, targetTable: string = 'value_picks_products'): Promise<boolean> {
+  async saveProductToDatabase(productCard: ProductCardData, targetPage: string = 'prime-picks'): Promise<boolean> {
     try {
-      console.log(`Save Saving product to ${targetTable}: ${productCard.name}`);
+      console.log(`Save Saving product to unified_content table for page: ${targetPage}, product: ${productCard.name}`);
       
-      // Determine the appropriate table and fields based on target
-      let insertQuery: string;
-      let params: any[];
+      // Convert targetPage to display_pages format
+      const displayPages = JSON.stringify([targetPage]);
       
-      if (targetTable === 'amazon_products') {
-        insertQuery = `
-          INSERT INTO amazon_products (
-            name, description, price, original_price, currency, image_url, affiliate_url,
-            category, rating, review_count, discount, is_new, is_featured,
-            affiliate_network, telegram_message_id, processing_status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        params = [
-          productCard.name,
-          productCard.description,
-          productCard.price,
-          productCard.originalPrice,
-          productCard.currency,
-          productCard.imageUrl,
-          productCard.affiliateUrl,
-          productCard.category,
-          productCard.rating,
-          productCard.reviewCount,
-          productCard.discount,
-          productCard.isNew ? 1 : 0,
-          productCard.isFeatured ? 1 : 0,
-          productCard.affiliateNetwork,
-          Date.now(), // telegram_message_id as timestamp
-          'active',
-          Math.floor(Date.now() / 1000)
-        ];
-      } else if (targetTable === 'cuelinks_products') {
-        insertQuery = `
-          INSERT INTO cuelinks_products (
-            name, description, price, original_price, currency, image_url, affiliate_url,
-            category, rating, review_count, discount, is_new, is_featured,
-            affiliate_network, telegram_message_id, processing_status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        params = [
-          productCard.name,
-          productCard.description,
-          productCard.price,
-          productCard.originalPrice,
-          productCard.currency,
-          productCard.imageUrl,
-          productCard.affiliateUrl,
-          productCard.category,
-          productCard.rating,
-          productCard.reviewCount,
-          productCard.discount,
-          productCard.isNew ? 1 : 0,
-          productCard.isFeatured ? 1 : 0,
-          productCard.affiliateNetwork,
-          Date.now(), // telegram_message_id as timestamp
-          'active',
-          Math.floor(Date.now() / 1000)
-        ];
-      } else {
-        // Default to value_picks_products
-        insertQuery = `
-          INSERT INTO value_picks_products (
-            name, description, price, original_price, currency, image_url, affiliate_url,
-            category, rating, review_count, discount, is_new, is_featured,
-            affiliate_network, telegram_message_id, processing_status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        params = [
-          productCard.name,
-          productCard.description,
-          productCard.price,
-          productCard.originalPrice,
-          productCard.currency,
-          productCard.imageUrl,
-          productCard.affiliateUrl,
-          productCard.category,
-          productCard.rating,
-          productCard.reviewCount,
-          productCard.discount,
-          productCard.isNew ? 1 : 0,
-          productCard.isFeatured ? 1 : 0,
-          productCard.affiliateNetwork,
-          Date.now(), // telegram_message_id as timestamp
-          'active',
-          Math.floor(Date.now() / 1000)
-        ];
-      }
+      // Save to unified_content table (the single source of truth)
+      const insertQuery = `
+        INSERT INTO unified_content (
+          title, description, price, original_price, currency, image_url, affiliate_url,
+          category, rating, review_count, discount, is_featured,
+          affiliate_platform, display_pages, processing_status, created_at, updated_at,
+          content_type, page_type, source_type, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const params = [
+        productCard.name,
+        productCard.description,
+        productCard.price,
+        productCard.originalPrice,
+        productCard.currency,
+        productCard.imageUrl,
+        productCard.affiliateUrl,
+        productCard.category,
+        productCard.rating,
+        productCard.reviewCount,
+        productCard.discount,
+        productCard.isFeatured ? 1 : 0,
+        productCard.affiliateNetwork,
+        displayPages, // This is the key field for page routing
+        'active',
+        Math.floor(Date.now() / 1000),
+        Math.floor(Date.now() / 1000),
+        'product',
+        targetPage,
+        'url-processing',
+        1
+      ];
       
       const result = sqliteDb.prepare(insertQuery).run(...params);
       
       if (result.changes > 0) {
-        console.log(`Success Product saved successfully with ID: ${result.lastInsertRowid}`);
+        console.log(`Success Product saved successfully to unified_content with ID: ${result.lastInsertRowid} for page: ${targetPage}`);
         return true;
       } else {
         console.error(`Error Failed to save product: No changes made`);

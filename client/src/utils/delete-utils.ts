@@ -77,7 +77,7 @@ export const deleteProduct = async (productType: number | string, productId?: nu
  * @returns useMutation configuration object
  */
 export const createDeleteMutation = (queryClient: QueryClient, onSuccessMessage?: string) => ({
-  mutationFn: deleteProduct,
+  mutationFn: (productId: number | string) => deleteProduct(productId, undefined, 'pickntrust2025'),
   onSuccess: () => {
     invalidateAllProductQueries(queryClient);
   },

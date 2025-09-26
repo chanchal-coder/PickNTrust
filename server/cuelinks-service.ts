@@ -1,5 +1,5 @@
 import { db } from './db';
-import { products } from '../shared/schema';
+import { products } from '../shared/sqlite-schema';
 import { eq } from 'drizzle-orm';
 import { config } from 'dotenv';
 import { sqliteDb } from './db';
@@ -35,7 +35,6 @@ interface CueLinksProductInfo {
   createdAt: string;
   sourceMetadata?: any;
 }
-
 
 export class CueLinksService {
   private affiliateTemplate: string;
@@ -130,20 +129,20 @@ export class CueLinksService {
       console.log(`Link Detected ${detectedUrl.platform} URL (${detectedUrl.type}): ${detectedUrl.url}`);
       const originalUrl = detectedUrl.url;
 
-      // Use bulletproof universal scraper - BUSINESS CRITICAL
+            // Use bulletproof universal scraper - BUSINESS CRITICAL
       console.log(`Launch ENTERPRISE SCRAPING: Using universal scraper for business-critical affiliate link`);
       const scrapedData = await universalScraper.scrapeProduct(originalUrl);
       
-      if (!scrapedData) {
-        console.log('Warning Universal scraper returned null, using enhanced fallback');
+      if (!scrapedData || !scrapedData.title || scrapedData.title === 'Unknown Product' || scrapedData.title === 'Failed to scrape product') {
+        console.log('Warning Universal scraper returned insufficient data, using enhanced fallback');
         return this.createFallbackProductInfo(message, originalUrl);
       }
 
       console.log(`Success UNIVERSAL SCRAPER SUCCESS - Business protected!`);
       console.log(`   Title: ${scrapedData.title}`);
-      console.log(`   Price: ₹${scrapedData.price}`);
-      console.log(`   Original Price: ${scrapedData.originalPrice ? '₹' + scrapedData.originalPrice : 'None'}`);
-      console.log(`   Rating: ${scrapedData.rating || 'N/A'} (${scrapedData.reviewCount || 0} reviews)`);
+      console.log(`   Price: ${scrapedData.price}`);
+      console.log(`   Original Price: ${scrapedData.originalPrice ? scrapedData.originalPrice : 'None'}`);
+      console.log(`   Rating: ${scrapedData.rating || 'N/A'}`);
       console.log(`   Image: ${scrapedData.imageUrl?.substring(0, 50)}...`);
       console.log(`   Discount: ${scrapedData.discount ? scrapedData.discount + '%' : 'None'}`);
 
@@ -170,7 +169,6 @@ export class CueLinksService {
         isNew: this.checkIfNew(text) || this.isRecentProduct(date),
         isFeatured: this.shouldBeFeatured(scrapedData),
         hasLimitedOffer: scrapedData.hasLimitedOffer || false,
-        limitedOfferText: scrapedData.limitedOfferText || null,
         source: 'cuelinks',
         sourceType: 'cue_picks',
         networkBadge: 'Cue Picks',
@@ -216,9 +214,10 @@ export class CueLinksService {
    */
   async saveProduct(productInfo: any): Promise<void> {
     try {
-      // Check if product already exists in cuelinks_products table
+      // Check if product already exists in unified_content table
       const existingProduct = sqliteDb.prepare(`
-        SELECT id FROM cuelinks_products WHERE telegram_message_id = ? OR name = ?
+        SELECT id FROM unified_content 
+        WHERE source_id = ? AND title = ?
       `).get(productInfo.telegramMessageId, productInfo.name);
 
       if (existingProduct) {
@@ -226,69 +225,77 @@ export class CueLinksService {
         return;
       }
 
-      // Insert new product into cuelinks_products table
+      // Insert new product into unified_content table
       const insertProduct = sqliteDb.prepare(`
-        INSERT INTO cuelinks_products (
-          name, description, price, original_price, currency,
-          image_url, affiliate_url, cuelinks_url, original_url,
-          category, rating, review_count, discount, is_featured,
-          cuelinks_cid, affiliate_network, commission_rate,
-          telegram_message_id, telegram_channel_id, telegram_channel_name,
-          click_count, conversion_count, processing_status,
-          expires_at, display_pages, source_metadata, tags,
-          has_limited_offer, limited_offer_text,
-          created_at, updated_at
+        INSERT INTO unified_content (
+          title, description, price, original_price, currency,
+          image_url, affiliate_url, content_type, page_type,
+          category, subcategory, source_type, source_id,
+          affiliate_platform, rating, review_count, discount,
+          is_active, is_featured, display_order, display_pages,
+          has_timer, timer_duration, timer_start_time,
+          created_at, updated_at, processing_status, content,
+          source_platform, affiliate_urls, status, visibility,
+          media_urls
         ) VALUES (
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
-          ?, ?, ?, ?, ?,
-          ?, ?, ?,
-          ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
           ?, ?, ?,
           ?, ?, ?, ?,
-          ?, ?,
-          ?, ?
+          ?, ?, ?, ?,
+          ?
         )
       `);
 
-      const currentTime = Math.floor(Date.now() / 1000);
-      const expiresAt = productInfo.expiresAt || (currentTime + (30 * 24 * 60 * 60)); // 30 days default
-
+      const now = Date.now();
+      const displayPages = 'cue-picks,all-products';
+      
       insertProduct.run(
         productInfo.name,
         productInfo.description,
-        parseFloat(productInfo.price) || 0,
-        productInfo.originalPrice ? parseFloat(productInfo.originalPrice) : null,
-        productInfo.currency || 'INR',
+        productInfo.price,
+        productInfo.originalPrice,
+        productInfo.currency,
         productInfo.imageUrl,
         productInfo.affiliateUrl,
-        productInfo.cuelinksUrl || productInfo.affiliateUrl,
-        productInfo.originalUrl,
+        'product',
+        'cue-picks',
         productInfo.category,
-        parseFloat(productInfo.rating) || 4.0,
-        parseInt(productInfo.reviewCount) || 0,
-        productInfo.discount ? parseInt(productInfo.discount) : null,
-        productInfo.isFeatured ? 1 : 0,
-        this.cid,
+        null, // subcategory
+        'telegram',
+        productInfo.telegramMessageId.toString(),
         'cuelinks',
-        productInfo.commissionRate || null,
-        productInfo.telegramMessageId || null,
-        this.channelId,
-        this.channelTitle,
-        0, // click_count
-        0, // conversion_count
-        'active',
-        expiresAt,
-        JSON.stringify(['cue-picks']),
-        productInfo.sourceMetadata ? JSON.stringify(productInfo.sourceMetadata) : null,
-        productInfo.tags ? JSON.stringify(productInfo.tags) : null,
+        productInfo.rating,
+        productInfo.reviewCount,
+        productInfo.discount,
+        1, // is_active
+        productInfo.isFeatured ? 1 : 0,
+        0, // display_order
+        displayPages,
         productInfo.hasLimitedOffer ? 1 : 0,
-        productInfo.limitedOfferText || null,
-        currentTime,
-        currentTime
+        null, // timer_duration
+        null, // timer_start_time
+        now,
+        now,
+        'active',
+        JSON.stringify({
+          originalUrl: productInfo.originalUrl,
+          cuelinksUrl: productInfo.cuelinksUrl,
+          sourceMetadata: productInfo.sourceMetadata,
+          networkBadge: productInfo.networkBadge,
+          limitedOfferText: productInfo.limitedOfferText
+        }),
+        'telegram',
+        JSON.stringify([productInfo.affiliateUrl]),
+        'active',
+        'public',
+        JSON.stringify([productInfo.imageUrl])
       );
 
-      console.log(`Success Saved CueLinks product to dedicated table: ${productInfo.name}`);
+      console.log(`Success CueLinks product saved to unified_content: ${productInfo.name}`);
     } catch (error) {
       console.error('Error Error saving CueLinks product:', error);
       throw error;

@@ -115,7 +115,7 @@ export default function Hotels() {
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
-    mutationFn: deleteProduct,
+    mutationFn: (productId: string | number) => deleteProduct(productId, undefined, 'pickntrust2025'),
     onSuccess: () => {
       invalidateAllProductQueries(queryClient);
       toast({
@@ -674,7 +674,6 @@ export default function Hotels() {
         title="Hotel Travel Videos"
       />
 
-      <Footer />
       <ScrollNavigation />
     </div>
   );

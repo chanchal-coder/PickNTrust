@@ -2,68 +2,65 @@
 const Database = require('better-sqlite3');
 const db = new Database('database.sqlite');
 
-console.log('Search ALL PRIME PICKS PRODUCTS (Latest 3):');
-console.log('=' .repeat(60));
+console.log('🔍 CHECKING PRIME-PICKS PRODUCTS');
+console.log('================================');
 
-const products = db.prepare(`
-  SELECT id, name, price, original_price, discount, 
-         image_url, rating, review_count, created_at
-  FROM amazon_products 
-  ORDER BY id DESC 
-  LIMIT 3
-`).all();
-
-products.forEach((p, i) => {
-  console.log(`\n${i+1}. PRODUCT ID: ${p.id}`);
-  console.log(`   Name: ${p.name}`);
-  console.log(`   Price: ${p.price}`);
-  console.log(`   Original Price: ${p.original_price}`);
-  console.log(`   Discount: ${p.discount}%`);
-  console.log(`   Image URL: ${p.image_url ? 'YES' : 'NO'}`);
-  console.log(`   Rating: ${p.rating}`);
-  console.log(`   Review Count: ${p.review_count}`);
-  console.log(`   Created: ${new Date(p.created_at * 1000).toLocaleString()}`);
-});
-
-console.log('\nSearch COMPARISON ANALYSIS:');
-if (products.length >= 2) {
-  const latest = products[0];
-  const previous = products[1];
+try {
+  // Check products with prime-picks in display_pages
+  console.log('📊 Products with prime-picks in display_pages:');
+  const primePicksProducts = db.prepare(`
+    SELECT id, title, display_pages, source_type, processing_status
+    FROM unified_content 
+    WHERE display_pages LIKE '%prime-picks%'
+    LIMIT 10
+  `).all();
   
-  console.log('\nStats LATEST vs PREVIOUS:');
-  console.log(`   Price Format: "${latest.price}" vs "${previous.price}"`);
-  console.log(`   Original Price: "${latest.original_price}" vs "${previous.original_price}"`);
-  console.log(`   Discount: ${latest.discount}% vs ${previous.discount}%`);
-  console.log(`   Rating: ${latest.rating} vs ${previous.rating}`);
-  console.log(`   Reviews: ${latest.review_count} vs ${previous.review_count}`);
-  console.log(`   Image: ${latest.image_url ? 'Has Image' : 'No Image'} vs ${previous.image_url ? 'Has Image' : 'No Image'}`);
-  
-  console.log('\nError ISSUES FOUND:');
-  
-  // Check pricing format
-  if (!latest.price.includes('₹') && previous.price.includes('₹')) {
-    console.log('   - Latest product missing ₹ currency symbol in price');
+  if (primePicksProducts.length > 0) {
+    primePicksProducts.forEach(product => {
+      console.log(`   ID ${product.id}: ${product.title}`);
+      console.log(`      Pages: ${product.display_pages}`);
+      console.log(`      Source: ${product.source_type}, Status: ${product.processing_status}`);
+      console.log('');
+    });
+  } else {
+    console.log('   ❌ No products found with prime-picks in display_pages');
   }
   
-  // Check original price format
-  if (!latest.original_price.includes('₹') && previous.original_price.includes('₹')) {
-    console.log('   - Latest product missing ₹ currency symbol in original price');
+  // Check all Telegram products and their display_pages
+  console.log('📊 All Telegram products and their display_pages:');
+  const telegramProducts = db.prepare(`
+    SELECT id, title, display_pages, processing_status
+    FROM unified_content 
+    WHERE source_type = 'telegram'
+    LIMIT 10
+  `).all();
+  
+  if (telegramProducts.length > 0) {
+    telegramProducts.forEach(product => {
+      console.log(`   ID ${product.id}: ${product.title}`);
+      console.log(`      Pages: ${product.display_pages}`);
+      console.log(`      Status: ${product.processing_status}`);
+      console.log('');
+    });
+  } else {
+    console.log('   ❌ No Telegram products found');
   }
   
-  // Check rating
-  if (!latest.rating && previous.rating) {
-    console.log('   - Latest product missing rating');
-  }
+  // Check what display_pages values exist
+  console.log('📊 All unique display_pages values:');
+  const uniquePages = db.prepare(`
+    SELECT DISTINCT display_pages, COUNT(*) as count
+    FROM unified_content 
+    GROUP BY display_pages
+    ORDER BY count DESC
+  `).all();
   
-  // Check review count
-  if (!latest.review_count && previous.review_count) {
-    console.log('   - Latest product missing review count');
-  }
+  uniquePages.forEach(page => {
+    console.log(`   "${page.display_pages}": ${page.count} products`);
+  });
   
-  // Check image
-  if (!latest.image_url && previous.image_url) {
-    console.log('   - Latest product missing image URL');
-  }
+} catch (error) {
+  console.error('❌ Error:', error.message);
+} finally {
+  db.close();
 }
-
-db.close();

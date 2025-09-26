@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import credentialManager from './credential-manager';
+import credentialManager from './credential-manager.js';
 
 const router = Router();
 

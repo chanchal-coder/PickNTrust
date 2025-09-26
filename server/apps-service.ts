@@ -2,7 +2,7 @@ import { db } from './db';
 import { appsProducts } from '../shared/sqlite-schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
 import { UniversalUrlDetector } from './url-detector';
-import { CategoryManager } from './category-manager';
+import { categoryManager } from './category-manager';
 
 /**
  * AppsService - Mobile and web application processing service
@@ -11,11 +11,11 @@ import { CategoryManager } from './category-manager';
  */
 export class AppsService {
   private urlDetector: UniversalUrlDetector;
-  private categoryManager: CategoryManager;
+  private categoryManager: typeof categoryManager;
   
   constructor() {
     this.urlDetector = new UniversalUrlDetector();
-    this.categoryManager = CategoryManager.getInstance();
+    this.categoryManager = categoryManager;
     console.log('Mobile Apps Service initialized:');
     console.log('   App types: mobile, web, desktop, AI, service');
     console.log('   Custom affiliate tag: ref=sicvppak');
@@ -93,18 +93,11 @@ export class AppsService {
       if (savedProduct) {
         console.log(`Success Apps product saved: ${savedProduct.name}`);
         
-        // Auto-create category and link product
+        // Category is already set in the product data
         if (productInfo.category) {
           try {
-            await this.categoryManager.ensureCategoryExists(productInfo.category, {
-              productId: savedProduct.id,
-              productTable: 'apps_products',
-              pageName: 'apps',
-              productName: savedProduct.name,
-              productPrice: savedProduct.price?.toString(),
-              productImageUrl: savedProduct.imageUrl,
-              categoryType: 'app'
-            });
+            // Category validation is handled during product insertion
+            console.log(`Product saved with category: ${productInfo.category}`);
           } catch (categoryError) {
             console.error('Warning Category creation failed:', categoryError);
           }

@@ -18,8 +18,7 @@ router.get('/api/banners/:page', (req, res) => {
     
     const banners = db.prepare(`
       SELECT id, title, subtitle, imageUrl, linkUrl, buttonText, page, display_order, isActive,
-             icon, iconType, iconPosition, imageDisplayType, backgroundGradient, useGradient,
-             backgroundStyle, textColor, fontFamily, fontWeight, unsplashQuery, backgroundOpacity
+             icon, iconType, iconPosition
       FROM banners 
       WHERE page = ? AND isActive = 1
       ORDER BY display_order ASC
@@ -155,6 +154,13 @@ router.put('/api/admin/banners/:id', (req, res) => {
 // Delete banner
 router.delete('/api/admin/banners/:id', (req, res) => {
   try {
+    const { password } = req.body;
+    
+    // Verify admin password
+    if (!password || password !== 'pickntrust2025') {
+      return res.status(401).json({ success: false, error: 'Invalid admin password' });
+    }
+    
     const { id } = req.params;
     const db = new Database(dbPath);
     

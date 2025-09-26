@@ -161,9 +161,8 @@ export default function TopPicks() {
     
     try {
       for (const productId of idsToDelete) {
-        // Extract the actual ID from featured products (remove 'featured_' prefix if present)
-        const actualId = String(productId).replace('featured_', '');
-        await fetch(`/api/admin/featured-products/${actualId}`, {
+        // Use the full product ID (including 'featured_' prefix) for the admin products endpoint
+        await fetch(`/api/admin/products/${productId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: 'pickntrust2025' }),
@@ -443,7 +442,6 @@ export default function TopPicks() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -493,7 +491,6 @@ export default function TopPicks() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -740,8 +737,6 @@ export default function TopPicks() {
         title="Top Picks Videos"
       />
       
-      {/* Footer */}
-      <Footer />
       <ScrollNavigation />
       
       {/* Share Automatically Modal */}

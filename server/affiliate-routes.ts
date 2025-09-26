@@ -126,19 +126,15 @@ export function setupAffiliateRoutes(router: Router, db: any): void {
       let tableName: string;
       switch (page) {
         case 'click-picks':
-          tableName = 'click_picks_products';
-          break;
+          tableName =           break;
         case 'prime-picks':
         case 'amazon':
-          tableName = 'amazon_products';
-          break;
+          tableName =           break;
         case 'cue-picks':
         case 'cuelinks':
-          tableName = 'cuelinks_products';
-          break;
+          tableName =           break;
         case 'value-picks':
-          tableName = 'value_picks_products';
-          break;
+          tableName =           break;
         default:
           return res.status(400).json({
             success: false,

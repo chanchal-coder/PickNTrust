@@ -465,8 +465,28 @@ export default function TravelPicks() {
 
   // Flight card rendering function matching the provided image design
   const renderTravelCard = (deal: TravelDeal, cardType: 'featured' | 'standard' | 'destinations' | 'special' | 'cities', section?: TravelSection) => {
-    const displayPrice = convertPrice(parseFloat(deal.price) || 0, (deal.currency || 'INR') as any, selectedCurrency);
-    const displayOriginalPrice = deal.originalPrice ? convertPrice(parseFloat(deal.originalPrice) || 0, (deal.currency || 'INR') as any, selectedCurrency) : null;
+    // Safe price parsing with error handling
+    const safeParsePrice = (priceStr: string | number | null | undefined): number => {
+      if (!priceStr) return 0;
+      const cleanPrice = String(priceStr).replace(/[^0-9.]/g, '');
+      const parsed = parseFloat(cleanPrice);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    
+    const safePriceDisplay = (price: number, currency: string = selectedCurrency): string => {
+      try {
+        const convertedPrice = convertPrice(price, (deal.currency || 'INR') as any, selectedCurrency);
+        const roundedPrice = Math.round(convertedPrice);
+        return `${getCurrencySymbol(selectedCurrency)}${roundedPrice.toLocaleString()}`;
+      } catch (error) {
+        return `${getCurrencySymbol(selectedCurrency)}${Math.round(price).toLocaleString()}`;
+      }
+    };
+    
+    const basePrice = safeParsePrice(deal.price);
+    const originalPrice = safeParsePrice(deal.originalPrice || deal.original_price);
+    const displayPrice = safePriceDisplay(basePrice);
+    const displayOriginalPrice = originalPrice > 0 ? safePriceDisplay(originalPrice) : null;
     const isWishlisted = wishlistItems.some(item => item.id === deal.id);
     
     // Tours section 1 - Trending Destinations (unique design inspired by trending destinations)
@@ -1274,7 +1294,9 @@ export default function TravelPicks() {
                {/* Pricing info */}
                <div className="text-white mb-2">
                  <div className="text-lg font-bold">Starting from</div>
-                 <div className="text-2xl font-black text-yellow-200" style={getFieldStyle('price')}>{displayPrice}</div>
+                 <div className="text-2xl font-black text-yellow-200" style={getFieldStyle('price')}>
+                   {displayPrice}
+                 </div>
                  <div className="text-xs text-white text-opacity-70">per person</div>
                  {displayOriginalPrice && (
                    <div className="text-sm text-white text-opacity-60 line-through">{displayOriginalPrice}</div>
@@ -1415,7 +1437,7 @@ export default function TravelPicks() {
             {/* Colorful content area */}
             <div className={`p-4 ${backgroundClass}`}>
               <h3 className="text-lg font-semibold text-white mb-2" style={getFieldStyle('name')}>{destinationName}</h3>
-              <p className="text-white/90 text-sm mb-3" style={getFieldStyle('price')}>Starting from {currencySymbol}{price.toLocaleString()} per person</p>
+              <p className="text-white/90 text-sm mb-3" style={getFieldStyle('price')}>Starting from {displayPrice} per person</p>
               
               {/* Separator line */}
               <div className="h-px bg-white/30 mb-3"></div>
@@ -2739,8 +2761,8 @@ export default function TravelPicks() {
        
        // Section 3 - Destinations card matching the reference image
        if (cardType === 'destinations') {
-       const currencySymbol = getCurrencySymbol(deal.currency || 'USD');
-       const price = parseFloat(deal.price.replace(/,/g, '')) || 0;
+       const currencySymbol = getCurrencySymbol(selectedCurrency);
+       const price = Math.round(convertPrice(parseFloat(deal.price?.replace(/,/g, '') || '0') || 0, (deal.currency || 'INR') as any, selectedCurrency));
        // Use specific images for each destination based on category
        const getDestinationImage = (dealName: string) => {
          if (selectedCategory === 'hotels') {

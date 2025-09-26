@@ -467,36 +467,6 @@ function fixDatabase() {
       }
     }
     
-    // Add isForProducts to sqlite.db: categories
-    try {
-      db.prepare('ALTER TABLE sqlite.db: categories ADD COLUMN isForProducts INTEGER DEFAULT 0').run();
-      console.log('Success Added isForProducts to sqlite.db: categories');
-    } catch (e) {
-      if (!e.message.includes('duplicate column')) {
-        console.log('Error Failed to add isForProducts:', e.message);
-      }
-    }
-    
-    // Add isForServices to sqlite.db: categories
-    try {
-      db.prepare('ALTER TABLE sqlite.db: categories ADD COLUMN isForServices INTEGER DEFAULT 0').run();
-      console.log('Success Added isForServices to sqlite.db: categories');
-    } catch (e) {
-      if (!e.message.includes('duplicate column')) {
-        console.log('Error Failed to add isForServices:', e.message);
-      }
-    }
-    
-    // Add displayOrder to sqlite.db: categories
-    try {
-      db.prepare('ALTER TABLE sqlite.db: categories ADD COLUMN displayOrder INTEGER').run();
-      console.log('Success Added displayOrder to sqlite.db: categories');
-    } catch (e) {
-      if (!e.message.includes('duplicate column')) {
-        console.log('Error Failed to add displayOrder:', e.message);
-      }
-    }
-    
     // Add isActive to sqlite.db: announcements
     try {
       db.prepare('ALTER TABLE sqlite.db: announcements ADD COLUMN isActive INTEGER DEFAULT 0').run();

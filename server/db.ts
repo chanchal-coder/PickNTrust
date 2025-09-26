@@ -1,7 +1,7 @@
 // server/db.ts
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
-import * as schema from '../shared/sqlite-schema';
+import * as schema from '../shared/sqlite-schema.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -16,8 +16,9 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 // Always use SQLite for simplicity and reliability
-// Check for both possible database file names
-const dbFile = fs.existsSync('database.sqlite') ? 'database.sqlite' : 'sqlite.db';
+// Use the main database file from the root directory
+// When compiled, the server runs from dist/server/server/, so we need to go up 3 levels
+const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
 console.log(`Using SQLite database: ${dbFile}`);
 
 const sqlite = new Database(dbFile);

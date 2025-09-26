@@ -516,18 +516,52 @@ export function setupRoutes(app: Express, storage: IStorage) {
   // Announcement active endpoint - Only one instance of this route
   app.get('/api/announcement/active', async (req, res) => {
     try {
+      const { page } = req.query;
+      
       // Use storage to get active announcements
       const allAnnouncements = await storage.getAnnouncements();
       const activeAnnouncements = allAnnouncements.filter(announcement => announcement.isActive);
       
+      let selectedAnnouncement = null;
+      
       if (activeAnnouncements && activeAnnouncements.length > 0) {
-        // Sort by createdAt descending and take the first one
-        const sorted = activeAnnouncements.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        });
-        const row = sorted[0];
+        // First, try to find page-specific announcement
+        if (page) {
+          const pageSpecificAnnouncements = activeAnnouncements.filter(announcement => 
+            !announcement.isGlobal && announcement.page === page
+          );
+          
+          if (pageSpecificAnnouncements.length > 0) {
+            // Sort page-specific announcements by createdAt descending
+            const sortedPageSpecific = pageSpecificAnnouncements.sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return dateB - dateA;
+            });
+            selectedAnnouncement = sortedPageSpecific[0];
+          }
+        }
+        
+        // If no page-specific announcement found, fall back to global announcements
+        if (!selectedAnnouncement) {
+          const globalAnnouncements = activeAnnouncements.filter(announcement => 
+            announcement.isGlobal !== false
+          );
+          
+          if (globalAnnouncements.length > 0) {
+            // Sort global announcements by createdAt descending
+            const sortedGlobal = globalAnnouncements.sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return dateB - dateA;
+            });
+            selectedAnnouncement = sortedGlobal[0];
+          }
+        }
+      }
+      
+      if (selectedAnnouncement) {
+        const row = selectedAnnouncement;
         
         const announcement = {
           id: row.id,
@@ -691,17 +725,6 @@ export function setupRoutes(app: Express, storage: IStorage) {
 async function extractFromUrlPattern(url: string): Promise<any> {
   // This is a simplified version - in a real implementation you would
   // implement actual web scraping logic here
-  return {
-    name: "Sample Product",
-    description: "Sample product description",
-    price: "1000",
-    originalPrice: "1200",
-    discount: "15",
-    rating: "4.5",
-    reviewCount: "100",
-    category: "Electronics & Gadgets",
-    affiliateNetworkId: "1",
-    imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80",
-    affiliateUrl: url,
-  };
+  // For now, return null to indicate no product found
+  return null;
 }

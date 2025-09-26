@@ -2,23 +2,51 @@ import { Request, Response, NextFunction } from 'express';
 import { config } from './config';
 
 export const corsMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const origin = req.headers.origin as string;
+  const origin = req.headers.origin;
   
-  // Allow all origins in development, specific origins in production
-  if (config.cors.origin.includes(origin) || process.env.NODE_ENV !== 'production') {
+  // Define allowed origins based on environment
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [
+        'https://picktrustdeals.com',
+        'https://www.picktrustdeals.com',
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://localhost:5173',
+        'http://127.0.0.1:5000',
+        'http://127.0.0.1:5173'
+      ]
+    : [
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://127.0.0.1:5173',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5000'
+      ];
+
+  // Set CORS headers
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV !== 'production') {
+    // In development, allow all origins
     res.header('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    // In production, be more restrictive
+    res.header('Access-Control-Allow-Origin', 'https://picktrustdeals.com');
   }
   
-  res.header('Access-Control-Allow-Methods', config.cors.methods.join(','));
-  res.header('Access-Control-Allow-Headers', config.cors.allowedHeaders.join(','));
   res.header('Access-Control-Allow-Credentials', 'true');
-  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-File-Name, X-HTTP-Method-Override, If-Modified-Since, X-Forwarded-For, X-Real-IP');
+  res.header('Access-Control-Expose-Headers', 'Content-Length, X-Foo, X-Bar');
+  res.header('Access-Control-Max-Age', '86400');
+
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.sendStatus(config.cors.optionsSuccessStatus);
+    res.status(200).end();
     return;
   }
-  
+
   next();
 };
 

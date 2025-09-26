@@ -137,9 +137,9 @@ export default function Services() {
     setSelectedService(null);
   };
 
-  // Fetch services from all sources: website pages + manually added services
+  // Fetch services using new backend filtering (isService=true)
   const { data: services } = useQuery<Product[]>({
-    queryKey: ['/api/services/all-sources', selectedCategory],
+    queryKey: ['/api/products/page/services', selectedCategory],
     queryFn: async () => {
       try {
         const allServices = [];
@@ -157,30 +157,38 @@ export default function Services() {
           console.error('Failed to fetch manual services:', error);
         }
         
-        // 2. Fetch services from all website page databases
-        const sources = ['prime-picks', 'click-picks', 'cue-picks', 'value-picks', 'global-picks', 'deals-hub', 'loot-box'];
-        
-        for (const source of sources) {
-          try {
-            const url = `/api/products/page/${source}`;
-            const response = await fetch(url);
-            if (response.ok) {
-              const data = await response.json();
-              if (Array.isArray(data)) {
-                // Filter for services only - must have category="Service" from website
-                 const services = data.filter((item: any) => {
-                   // Only include items with category="Service" from website sources (case-insensitive)
-                   return item.category === 'service' || item.category === 'Service';
-                 }).map((item: any) => ({ ...item, source }));
-                allServices.push(...services);
-              }
+        // 2. Fetch services from unified backend (filters by isService=true)
+        try {
+          const url = selectedCategory 
+            ? `/api/products/page/services?category=${encodeURIComponent(selectedCategory)}`
+            : '/api/products/page/services';
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              allServices.push(...data.map((item: any) => ({ ...item, source: 'services' })));
             }
-          } catch (error) {
-            console.error(`Failed to fetch services from ${source}:`, error);
           }
+        } catch (error) {
+          console.error('Failed to fetch services from unified backend:', error);
         }
         
-        return allServices;
+        // Deduplicate services by ID to prevent React key conflicts
+        const uniqueServices = allServices.reduce((acc: Product[], current: Product) => {
+          const existingService = acc.find(service => service.id === current.id);
+          if (!existingService) {
+            acc.push(current);
+          } else {
+            // If duplicate found, prefer the one with more complete data or manual source
+            if (current.source === 'manual' || Object.keys(current).length > Object.keys(existingService).length) {
+              const index = acc.findIndex(service => service.id === current.id);
+              acc[index] = current;
+            }
+          }
+          return acc;
+        }, []);
+        
+        return uniqueServices;
       } catch (error) {
         console.error('Failed to fetch all services:', error);
         return [];
@@ -348,38 +356,37 @@ export default function Services() {
     const hasHalfStar = ratingNum % 1 !== 0;
     
     return (
-    <UniversalPageLayout pageId="services">
-            <div className="flex items-center text-yellow-400">
-              {[...Array(5)].map((_, i) => (
-                <i 
-                  key={i}
-                  className={`text-xs ${
-                    i < fullStars 
-                      ? 'fas fa-star' 
-                      : i === fullStars && hasHalfStar 
-                        ? 'fas fa-star-half-alt' 
-                        : 'far fa-star'
-                  }`}
-                ></i>
-              ))}
-            </div>
-    </UniversalPageLayout>
-  );
+      <div className="flex items-center text-yellow-400">
+        {[...Array(5)].map((_, i) => (
+          <i 
+            key={i}
+            className={`text-xs ${
+              i < fullStars 
+                ? 'fas fa-star' 
+                : i === fullStars && hasHalfStar 
+                  ? 'fas fa-star-half-alt' 
+                  : 'far fa-star'
+            }`}
+          ></i>
+        ))}
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20">
-      <Header />
-      
-      <AnnouncementBanner />
-      
-      <WhatsAppBanner />
-      
-      {/* Amazing Page Banner */}
-      <StaticPageBanner page="services" />
-      
-      {/* Services Content Section with Sidebar */}
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <UniversalPageLayout pageId="services">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20">
+        <Header />
+        
+        <AnnouncementBanner />
+        
+        <WhatsAppBanner />
+        
+        {/* Amazing Page Banner */}
+        <StaticPageBanner page="services" />
+        
+        {/* Services Content Section with Sidebar */}
+          <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* Sidebar */}
           <Sidebar 
             onCategoryChange={handleCategoryChange}
@@ -418,7 +425,7 @@ export default function Services() {
                   }`}>
                     <div className="w-full h-32 bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
                       <img 
-                        src={service.imageUrl} 
+                        src={service.imageUrl || service.image_url || `https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&q=80`} 
                         alt={service.name} 
                         className="w-full h-full object-cover" 
                         onError={(e) => {
@@ -624,7 +631,6 @@ export default function Services() {
         title="Services Videos"
       />
 
-      <Footer />
       <ScrollNavigation />
       
       {/* Share Automatically Modal */}
@@ -635,6 +641,7 @@ export default function Services() {
         productName={selectedService?.name || ''}
         platforms={adminPlatformSettings}
       />
-    </div>
+        </div>
+    </UniversalPageLayout>
   );
 }

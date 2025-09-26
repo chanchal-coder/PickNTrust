@@ -309,7 +309,6 @@ Each of these gadgets has been carefully selected based on:
                   </div>
                 </div>
               </div>
-              <Footer />
             </div>
     </UniversalPageLayout>
   );
@@ -342,7 +341,6 @@ Each of these gadgets has been carefully selected based on:
             </a>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -463,7 +461,6 @@ Each of these gadgets has been carefully selected based on:
         </article>
       </main>
       
-      <Footer />
     </div>
   );
 }

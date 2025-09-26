@@ -4,6 +4,11 @@
 import Database from 'better-sqlite3';
 import { affiliateSystem } from './affiliate-system';
 
+// Define the product tables that need affiliate processing
+const tables = [
+  'unified_content'
+];
+
 export interface AffiliateUrlResult {
   success: boolean;
   originalUrl: string;
@@ -199,8 +204,7 @@ class AffiliateUrlBuilder {
    * Process all product tables
    */
   bulkProcessAllTables(limit: number = 100): { [tableName: string]: BulkAffiliateResult } {
-    const tables = ['amazon_products', 'cuelinks_products', 'value_picks_products', 'click_picks_products'];
-    const results: { [tableName: string]: BulkAffiliateResult } = {};
+        const results: { [tableName: string]: BulkAffiliateResult } = {};
 
     console.log('Launch Starting bulk processing of all product tables...');
     console.log('');
@@ -229,8 +233,7 @@ class AffiliateUrlBuilder {
    */
   getAffiliateStats(): any {
     try {
-      const tables = ['amazon_products', 'cuelinks_products', 'value_picks_products', 'click_picks_products'];
-      const stats: any = {
+            const stats: any = {
         total: 0,
         processed: 0,
         networks: {}

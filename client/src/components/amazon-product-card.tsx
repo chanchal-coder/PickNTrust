@@ -399,9 +399,9 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
       </div>
 
       {/* Product Info */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         {/* Badges */}
-        <div className="flex flex-wrap gap-1 mb-1">
+        <div className="flex flex-wrap gap-1 mb-2">
           {(() => {
             // Hybrid discount calculation: use database value or calculate fallback
             const dbDiscount = Number(product.discount || 0);
@@ -413,87 +413,26 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
             const finalDiscount = dbDiscount > 0 ? dbDiscount : calculatedDiscount;
             
             return finalDiscount > 0 ? (
-              <span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+              <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-bold">
                 {Math.round(finalDiscount)}% off
               </span>
             ) : null;
           })()}
           {(() => {
-            return product.isNew === true ? (
-              <span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
-                New
-              </span>
-            ) : null;
-          })()}
-          {(() => {
             return product.isFeatured === true ? (
-              <span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+              <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-bold">
                 Featured
               </span>
             ) : null;
           })()}
-          {(() => {
-            // Show limited offer badge only when real website has limited offer
-            return product.hasLimitedOffer ? (
-              <span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-xs font-semibold animate-pulse">
-                {product.limitedOfferText || 'Limited time deal'}
-              </span>
-            ) : null;
-          })()}
-          {(() => {
-            // Optional content type badges - subtle and toggleable
-            const showContentTypeBadges = localStorage.getItem('show-content-type-badges') === 'true';
-            if (!showContentTypeBadges || !product.content_type || product.content_type === 'product') {
-              return null;
-            }
-            
-            const badgeConfig = {
-              'service': { text: '<i className="fas fa-tools"></i> Service', color: 'bg-blue-500' },
-              'app': { text: '<i className="fas fa-mobile-alt"></i> App', color: 'bg-green-500' }
-            };
-            
-            const config = badgeConfig[product.content_type as keyof typeof badgeConfig];
-            if (!config) return null;
-            
-            // Detect AI apps
-            const isAIApp = product.content_type === 'app' && 
-              /\b(ai|artificial intelligence|machine learning|ml|neural|smart|intelligent|automated|bot|assistant)\b/i.test(
-                `${product.name} ${product.description}`
-              );
-            
-            if (isAIApp) {
-              return (
-                <span className="bg-purple-500 text-white px-1.5 py-0.5 rounded text-xs font-medium">
-                  <i className="fas fa-robot"></i> AI App
-                </span>
-              );
-            }
-            
-            return (
-              <span className={`${config.color} text-white px-1.5 py-0.5 rounded text-xs font-medium`}>
-                {config.text}
-              </span>
-            );
-          })()}
         </div>
 
-        {/* Rating and Reviews - Only show if reviewCount > 0 */}
-        {(() => {
-          const reviewCount = Number(product.reviewCount || 0);
-          return reviewCount > 0 ? (
-            <div className="flex items-center gap-1 mb-1">
-              {renderStars(product.rating)}
-              <span className="text-gray-500 dark:text-gray-400 text-xs">({reviewCount})</span>
-            </div>
-          ) : null;
-        })()}
-
         {/* Product Name */}
-        <h3 className="text-base font-bold text-purple-800 dark:text-purple-200 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors leading-tight shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-tight mb-2">
           {product.name}
         </h3>
 
-        {/* Price or Description */}
+        {/* Price Section */}
         {(() => {
           const priceValue = product.price;
           if (!priceValue) return false;
@@ -505,12 +444,14 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
           
           return !isNaN(numericPrice) && numericPrice > 0;
         })() ? (
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-gray-900 dark:text-white">
+          <div className="space-y-1 mb-2">
+            {/* Current Price - Large and Bold */}
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatProductPrice(product.price, product.currency)}
-            </span>
+            </div>
+            
+            {/* Original Price with Strikethrough */}
             {(() => {
-              // Only show original price if it's higher than current price
               const currentPrice = typeof product.price === 'string' 
                 ? parseFloat(product.price.replace(/[^\d.-]/g, '')) 
                 : (product.price || 0);
@@ -519,53 +460,50 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
                 : (product.originalPrice || 0);
               
               return originalPrice > 0 && currentPrice > 0 && originalPrice > currentPrice ? (
-                <span className="text-sm text-gray-500 line-through">
+                <div className="text-sm text-gray-500 line-through">
                   {formatProductPrice(product.originalPrice, product.currency)}
-                </span>
+                </div>
+              ) : null;
+            })()}
+            
+            {/* You Save Amount */}
+            {(() => {
+              const getNumericPrice = (price: string | number | undefined): number => {
+                if (!price) return 0;
+                if (typeof price === 'number') return price;
+                if (typeof price === 'string') {
+                  const cleaned = price.replace(/[^\d.-]/g, '');
+                  const parsed = parseFloat(cleaned);
+                  return isNaN(parsed) ? 0 : parsed;
+                }
+                return 0;
+              };
+              
+              const originalPrice = getNumericPrice(product.originalPrice);
+              const currentPrice = getNumericPrice(product.price);
+              const dbDiscount = Number(product.discount || 0);
+              const calculatedDiscount = originalPrice > currentPrice && originalPrice > 0 ? 
+                Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
+              
+              const finalDiscount = dbDiscount > 0 ? dbDiscount : calculatedDiscount;
+              const hasSavings = originalPrice > 0 && currentPrice > 0 && originalPrice > currentPrice && finalDiscount > 0;
+              
+              return hasSavings ? (
+                <div className="text-sm text-green-600 dark:text-green-400 font-medium">
+                  You save {formatProductPrice((originalPrice - currentPrice).toString(), product.currency)}
+                </div>
               ) : null;
             })()}
           </div>
         ) : (
-          <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+          <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-2">
             {product.description}
           </div>
         )}
 
-        {/* Savings - Only show if there's actual savings */}
-        {(() => {
-          // Helper function to extract numeric value from formatted price strings
-          const getNumericPrice = (price: string | number | undefined): number => {
-            if (!price) return 0;
-            if (typeof price === 'number') return price;
-            if (typeof price === 'string') {
-              // Remove currency symbols and non-numeric characters except decimal point
-              const cleaned = price.replace(/[^\d.-]/g, '');
-              const parsed = parseFloat(cleaned);
-              return isNaN(parsed) ? 0 : parsed;
-            }
-            return 0;
-          };
-          
-          // Hybrid savings calculation: use database discount or calculate fallback
-          const originalPrice = getNumericPrice(product.originalPrice);
-          const currentPrice = getNumericPrice(product.price);
-          const dbDiscount = Number(product.discount || 0);
-          const calculatedDiscount = originalPrice > currentPrice && originalPrice > 0 ? 
-            Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-          
-          const finalDiscount = dbDiscount > 0 ? dbDiscount : calculatedDiscount;
-          const hasSavings = originalPrice > 0 && currentPrice > 0 && originalPrice > currentPrice && finalDiscount > 0;
-          
-          return hasSavings ? (
-            <div className="text-xs text-green-700 dark:text-green-400">
-              You save {formatProductPrice((originalPrice - currentPrice).toString(), product.currency)}
-            </div>
-          ) : null;
-        })()}
-
         {/* Timer */}
         {product.hasTimer && (
-          <div className="mt-1">
+          <div className="mb-2">
             <ProductTimer product={product} />
           </div>
         )}
@@ -573,14 +511,14 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
         {/* Pick Now Button */}
         <button
           onClick={() => window.open((product.affiliateUrl || product.affiliate_url || ""), '_blank')}
-          className="w-full mt-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2 px-3 rounded-md text-xs transition-colors"
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2.5 px-4 rounded-md text-sm transition-colors"
         >
-          <i className="fas fa-shopping-bag mr-1"></i>Pick Now
+          <i className="fas fa-shopping-bag mr-2"></i>Pick Now
         </button>
         
         {/* Affiliate Disclaimer */}
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-          <i className="fas fa-link"></i> Affiliate Link - We earn from purchases
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+          <i className="fas fa-link mr-1"></i>Affiliate Link - We earn from purchases
         </p>
         
         {/* Action Buttons - Below Disclosure at Right Corner */}

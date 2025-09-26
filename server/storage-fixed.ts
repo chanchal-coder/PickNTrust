@@ -144,7 +144,7 @@ export class DatabaseStorage implements IStorage {
       try {
         // Use raw SQL with proper column mapping
         const Database = require('better-sqlite3');
-        const dbFile = require('fs').existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+        const dbFile = 'database.sqlite';
         const rawDb = new Database(dbFile);
         
         const result = rawDb.prepare(`
@@ -200,7 +200,7 @@ export class DatabaseStorage implements IStorage {
       console.log('DatabaseStorage: Products by category query failed, trying raw SQL fallback...');
       try {
         const Database = require('better-sqlite3');
-        const dbFile = require('fs').existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+        const dbFile = 'database.sqlite';
         const rawDb = new Database(dbFile);
         
         const result = rawDb.prepare(`
@@ -265,7 +265,7 @@ export class DatabaseStorage implements IStorage {
         try {
           // Fallback 2: Use raw SQL to get basic categories
           const Database = require('better-sqlite3');
-          const dbFile = require('fs').existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+          const dbFile = 'database.sqlite';
           const rawDb = new Database(dbFile);
           
           const result = rawDb.prepare(`
@@ -284,7 +284,7 @@ export class DatabaseStorage implements IStorage {
           try {
             // Fallback 3: Minimal query with only required columns
             const Database = require('better-sqlite3');
-            const dbFile = require('fs').existsSync('sqlite.db') ? 'sqlite.db' : 'database.sqlite';
+            const dbFile = 'database.sqlite';
             const rawDb = new Database(dbFile);
             
             const result = rawDb.prepare(`

@@ -2,11 +2,11 @@
 // Backend endpoints for both automated and manual URL processing
 
 import { Request, Response, Express } from "express";
-import { urlProcessingService, ProcessingResult, BulkProcessingResult } from './url-processing-service';
-import { urlResolver } from './universal-url-resolver';
-import { platformDetector } from './platform-detector';
-import { enhancedScraper } from './enhanced-universal-scraper';
-import { affiliateConverter } from './affiliate-converter';
+import { urlProcessingService, ProcessingResult, BulkProcessingResult } from './url-processing-service.js';
+import { urlResolver } from './universal-url-resolver.js';
+import { platformDetector } from './platform-detector.js';
+import { enhancedScraper } from './enhanced-universal-scraper.js';
+import { affiliateConverter } from './affiliate-converter.js';
 
 // Middleware for admin authentication
 async function verifyAdminPassword(password: string): Promise<boolean> {
@@ -47,8 +47,7 @@ export function setupURLProcessingRoutes(app: Express) {
       
       // Save to database if requested and successful
       if (saveToDatabase && result.success && result.productCard) {
-        const targetTable = getTargetTable(targetPage);
-        const saved = await urlProcessingService.saveProductToDatabase(result.productCard, targetTable);
+        const saved = await urlProcessingService.saveProductToDatabase(result.productCard, targetPage || 'prime-picks');
         
         if (!saved) {
           console.warn('Warning Product processing succeeded but database save failed');
@@ -97,10 +96,9 @@ export function setupURLProcessingRoutes(app: Express) {
       
       // Save successful results to database if requested
       if (saveToDatabase) {
-        const targetTable = getTargetTable(targetPage);
         const savePromises = result.results
           .filter(r => r.success && r.productCard)
-          .map(r => urlProcessingService.saveProductToDatabase(r.productCard!, targetTable));
+          .map(r => urlProcessingService.saveProductToDatabase(r.productCard!, targetPage || 'prime-picks'));
         
         await Promise.all(savePromises);
       }
@@ -340,14 +338,15 @@ export function setupURLProcessingRoutes(app: Express) {
 function getTargetTable(targetPage?: string): string {
   switch (targetPage) {
     case 'prime-picks':
-      return 'amazon_products';
+      return 'unified_content';
     case 'cue-picks':
-      return 'cuelinks_products';
+      return 'unified_content';
     case 'click-picks':
-      return 'click_picks_products';
+      return 'unified_content';
     case 'value-picks':
+      return 'unified_content';
     default:
-      return 'value_picks_products';
+      return 'unified_content';
   }
 }
 
@@ -380,8 +379,7 @@ export async function processURLFromSource(
         result.productCard.id = `${targetPage}_${params.messageId}_${Date.now()}`;
       }
       
-      const targetTable = getTargetTable(targetPage);
-      const saved = await urlProcessingService.saveProductToDatabase(result.productCard, targetTable);
+      const saved = await urlProcessingService.saveProductToDatabase(result.productCard, targetPage);
       
       if (saved) {
         console.log(`Success URL from ${source} processed and saved: ${result.productCard.name}`);

@@ -7,6 +7,7 @@ interface TravelDealFormData {
   description: string;
   price: string;
   originalPrice: string;
+  discount: string;
   currency: string;
   imageUrl: string;
   affiliateUrl: string;
@@ -33,6 +34,7 @@ const initialFormData: TravelDealFormData = {
   description: '',
   price: '',
   originalPrice: '',
+  discount: '',
   currency: 'INR',
   imageUrl: '',
   affiliateUrl: '',
@@ -100,6 +102,20 @@ const AdminTravelForm = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Calculate discount percentage based on price and original price
+  const calculateDiscount = (price: string, originalPrice: string): string => {
+    if (!price || !originalPrice) return '';
+    
+    // Remove currency symbols and commas, extract numbers
+    const priceNum = parseFloat(price.replace(/[^\d.]/g, ''));
+    const originalPriceNum = parseFloat(originalPrice.replace(/[^\d.]/g, ''));
+    
+    if (isNaN(priceNum) || isNaN(originalPriceNum) || originalPriceNum <= 0) return '';
+    
+    const discountPercent = ((originalPriceNum - priceNum) / originalPriceNum) * 100;
+    return discountPercent > 0 ? Math.round(discountPercent).toString() : '';
+  };
+
   if (!isOpen) {
     return (
       <button
@@ -151,7 +167,15 @@ const AdminTravelForm = () => {
                 <input
                   type="text"
                   value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value)}
+                  onChange={(e) => {
+                    const updatedFormData = { ...formData, price: e.target.value };
+                    // Auto-calculate discount when price changes
+                    const calculatedDiscount = calculateDiscount(e.target.value, formData.originalPrice);
+                    if (calculatedDiscount) {
+                      updatedFormData.discount = calculatedDiscount;
+                    }
+                    setFormData(updatedFormData);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                   placeholder="e.g., From ₹3,500"
@@ -165,10 +189,33 @@ const AdminTravelForm = () => {
                 <input
                   type="text"
                   value={formData.originalPrice}
-                  onChange={(e) => handleInputChange('originalPrice', e.target.value)}
+                  onChange={(e) => {
+                    const updatedFormData = { ...formData, originalPrice: e.target.value };
+                    // Auto-calculate discount when original price changes
+                    const calculatedDiscount = calculateDiscount(formData.price, e.target.value);
+                    if (calculatedDiscount) {
+                      updatedFormData.discount = calculatedDiscount;
+                    }
+                    setFormData(updatedFormData);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   placeholder="e.g., ₹4,500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Discount (%) <span className="text-xs text-green-600">Auto-calculated</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.discount}
+                  onChange={(e) => handleInputChange('discount', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-600"
+                  placeholder="Auto-calculated"
+                  readOnly
+                />
+                <p className="text-xs text-green-600 mt-1">Automatically calculated from prices</p>
               </div>
 
               <div>

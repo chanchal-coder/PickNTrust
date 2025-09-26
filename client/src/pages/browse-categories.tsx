@@ -148,7 +148,6 @@ export default function BrowseCategories() {
                   </div>
                 </div>
               </div>
-              <Footer />
             </div>
     </UniversalPageLayout>
   );
@@ -390,7 +389,6 @@ export default function BrowseCategories() {
         title="Category Videos"
       />
       
-      <Footer />
       <ScrollNavigation />
     </div>
   );
