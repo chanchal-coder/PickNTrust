@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/header";
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
 import Sidebar from "@/components/sidebar";
@@ -251,8 +250,6 @@ export default function GlobalPicks() {
         <Header />
         
         <AnnouncementBanner />
-        
-        <WhatsAppBanner />
         
         {/* Page Banner Slider */}
         <PageBanner page="global-picks" />

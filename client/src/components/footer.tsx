@@ -71,6 +71,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li><a href="#why-trust-us" onClick={handleAboutUsClick} className="text-blue-100 hover:text-white transition-colors cursor-pointer">About Us</a></li>
               <li><Link href="/how-it-works" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">How It Works</Link></li>
+              <li><Link href="/advertise" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Advertise with Us</Link></li>
               <li><Link href="/privacy-policy" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms-of-service" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Terms of Service</Link></li>
               <li><Link href="/affiliate-disclosure" onClick={handleLinkClick} className="text-blue-100 hover:text-white transition-colors">Affiliate Disclosure</Link></li>
@@ -82,12 +83,20 @@ export default function Footer() {
             <h4 className="font-bold text-lg mb-4">Get in Touch</h4>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
+                <i className="fas fa-phone gold"></i>
+                <a href="tel:+919898892198" className="text-blue-100 hover:text-white transition-colors">+91 9898892198</a>
+              </div>
+              <div className="flex items-center space-x-3">
+                <i className="fab fa-whatsapp gold"></i>
+                <a href="https://wa.me/919898892198" target="_blank" rel="noopener noreferrer" className="text-blue-100 hover:text-white transition-colors">+91 9898892198</a>
+              </div>
+              <div className="flex items-center space-x-3">
                 <i className="fas fa-envelope gold"></i>
                 <span className="text-blue-100">contact@pickntrust.com</span>
               </div>
               <div className="flex items-center space-x-3">
                 <i className="fas fa-clock gold"></i>
-                <span className="text-blue-100">Mon-Fri 9AM-6PM EST</span>
+                <span className="text-blue-100">Mon - Sat 9 AM-9 PM EST</span>
               </div>
             </div>
           </div>

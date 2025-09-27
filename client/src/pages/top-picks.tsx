@@ -11,7 +11,6 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import StaticPageBanner from "@/components/StaticPageBanner";
 import PageVideosSection from '@/components/PageVideosSection';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import Sidebar from "@/components/sidebar";
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
@@ -503,8 +502,6 @@ export default function TopPicks() {
         
         <AnnouncementBanner />
         
-        <WhatsAppBanner />
-      
       {/* Amazing Page Banner */}
       <StaticPageBanner page="top-picks" />
 

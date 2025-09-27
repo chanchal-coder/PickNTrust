@@ -15,10 +15,27 @@ const __dirname = dirname(__filename);
 // Load environment variables from .env file
 dotenv.config();
 
-// Always use SQLite for simplicity and reliability
-// Use the main database file from the root directory
-// When compiled, the server runs from dist/server/server/, so we need to go up 3 levels
-const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+// Resolve database path
+// Prefer DATABASE_URL env var (supports formats like: file:./database.sqlite or absolute paths)
+function resolveDbFile(): string {
+  const envUrl = process.env.DATABASE_URL;
+  if (envUrl && envUrl.length > 0) {
+    // Handle sqlite URL prefixes like file:./database.sqlite
+    if (envUrl.startsWith('file:')) {
+      const p = envUrl.replace(/^file:/, '');
+      // If relative, resolve relative to process.cwd()
+      return path.isAbsolute(p) ? p : path.join(process.cwd(), p);
+    }
+    // If it's already a path, use as-is (resolve relative to cwd when not absolute)
+    return path.isAbsolute(envUrl) ? envUrl : path.join(process.cwd(), envUrl);
+  }
+  // Fallback: locate database.sqlite one level above compiled server directory
+  // When running from dist/server, this points to dist/database.sqlite
+  const fallback = path.join(__dirname, '..', 'database.sqlite');
+  return fallback;
+}
+
+const dbFile = resolveDbFile();
 console.log(`Using SQLite database: ${dbFile}`);
 
 const sqlite = new Database(dbFile);

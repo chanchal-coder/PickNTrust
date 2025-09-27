@@ -48,7 +48,6 @@
     "server/routes-backup.ts",
     "server/routes-final.ts",
     "server/affiliate-routes.ts",
-    "server/enhanced-telegram-manager.ts",
     "server/bot-admin-routes.ts"
   ]
 }

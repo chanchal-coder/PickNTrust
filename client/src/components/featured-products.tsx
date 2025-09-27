@@ -453,21 +453,8 @@ export default function FeaturedProducts() {
           </p>
         </div>
         
-        {/* Layout with Sidebar */}
-        <div className="flex gap-6">
-          {/* Sidebar - Hidden on mobile, visible on desktop */}
-          <div className="hidden lg:block">
-            <Sidebar 
-              onCategoryChange={handleCategoryChange}
-              onPriceRangeChange={handlePriceRangeChange}
-              onRatingChange={handleRatingChange}
-              availableCategories={availableCategories}
-              selectedCategory={selectedCategory}
-            />
-          </div>
-
-          {/* Products Section */}
-          <div className="flex-1">
+        {/* Products Section - No Sidebar on Home Page */}
+        <div className="w-full">
             {/* Horizontal Scrollable Container with Border */}
             <div className="relative border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-white/50 dark:bg-gray-800/50">
               {/* Left Arrow */}
@@ -948,8 +935,6 @@ export default function FeaturedProducts() {
           </div>
           )}
         </div>
-        </div>
-        </div>
         
         {/* More Button */}
         <div className="flex justify-end mt-6">
@@ -971,6 +956,7 @@ export default function FeaturedProducts() {
         productName={selectedProduct?.name || ''}
         platforms={adminPlatformSettings}
       />
+      </div>
     </section>
   );
 }

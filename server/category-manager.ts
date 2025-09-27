@@ -28,7 +28,7 @@ export class CategoryManager {
     };
 
     try {
-      // Count products for each page type from the main products table
+      // Count items for each page type from the unified content table
       const pageTypes = [
         'prime-picks',
         'click-picks', 
@@ -44,10 +44,10 @@ export class CategoryManager {
       for (const pageType of pageTypes) {
         try {
           const result = await db.all(
-            sql`SELECT COUNT(*) as count FROM products 
+            sql`SELECT COUNT(*) as count FROM unified_content 
                 WHERE category = ${categoryName} 
                 AND display_pages LIKE '%' || ${pageType} || '%'
-                AND processing_status = 'active'`
+            `
           ) as Array<{count: number}>;
           
           const count = result[0]?.count || 0;
@@ -68,10 +68,9 @@ export class CategoryManager {
   async getAllCategories(): Promise<string[]> {
     try {
       const result = await db.all(
-        sql`SELECT DISTINCT category FROM products 
+        sql`SELECT DISTINCT category FROM unified_content 
             WHERE category IS NOT NULL 
             AND category != '' 
-            AND processing_status = 'active'
             ORDER BY category`
       ) as Array<{category: string}>;
       
@@ -85,11 +84,10 @@ export class CategoryManager {
   async getCategoriesForPage(page: string): Promise<string[]> {
     try {
       const result = await db.all(
-        sql`SELECT DISTINCT category FROM products 
+        sql`SELECT DISTINCT category FROM unified_content 
             WHERE display_pages LIKE '%' || ${page} || '%'
             AND category IS NOT NULL 
             AND category != '' 
-            AND processing_status = 'active'
             ORDER BY category`
       ) as Array<{category: string}>;
       
@@ -102,15 +100,14 @@ export class CategoryManager {
 
   async getProductCountForCategory(category: string, page?: string): Promise<number> {
     try {
-      let query = sql`SELECT COUNT(*) as count FROM products 
-                     WHERE category = ${category} 
-                     AND processing_status = 'active'`;
+      let query = sql`SELECT COUNT(*) as count FROM unified_content 
+                     WHERE category = ${category}`;
       
       if (page) {
-        query = sql`SELECT COUNT(*) as count FROM products 
+        query = sql`SELECT COUNT(*) as count FROM unified_content 
                    WHERE category = ${category} 
                    AND display_pages LIKE '%' || ${page} || '%'
-                   AND processing_status = 'active'`;
+                   `;
       }
       
       const result = await db.all(query) as Array<{count: number}>;

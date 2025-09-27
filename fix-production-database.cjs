@@ -1,230 +1,90 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-console.log('🔧 Fixing production database schema...');
-
-// Try both possible database locations
-const possiblePaths = [
-  path.join(__dirname, 'database.sqlite'),
-  path.join(__dirname, 'sqlite.db'),
-  '/home/ec2-user/PickNTrust/database.sqlite',
-  '/home/ec2-user/PickNTrust/sqlite.db'
-];
-
-let dbPath = null;
-for (const testPath of possiblePaths) {
-  try {
-    const fs = require('fs');
-    if (fs.existsSync(testPath)) {
-      dbPath = testPath;
-      console.log(`Success Found database at: ${dbPath}`);
-      break;
-    }
-  } catch (error) {
-    // Continue searching
-  }
-}
-
-if (!dbPath) {
-  console.error('Error Could not find database file');
-  process.exit(1);
-}
-
-const db = new Database(dbPath);
+// Use the correct database path for production
+const dbPath = path.join(__dirname, 'database.sqlite');
+console.log('Database path:', dbPath);
 
 try {
-  console.log('\n=== PRODUCTION DATABASE SCHEMA FIX ===\n');
-  
-  // 1. Check current products table structure
-  console.log('1️⃣ Checking current products table structure:');
-  const columns = db.prepare("PRAGMA table_info(products)").all();
-  console.log('Current columns:');
-  columns.forEach(col => {
-    console.log(`   - ${col.name}: ${col.type} ${col.notnull ? 'NOT NULL' : ''} ${col.dflt_value ? `DEFAULT ${col.dflt_value}` : ''}`);
-  });
-  
-  // 2. Add missing columns to products table
-  console.log('\n2️⃣ Adding missing columns to products table:');
-  
-  const missingColumns = [
-    { name: 'is_service', type: 'INTEGER', default: '0' },
-    { name: 'custom_fields', type: 'TEXT', default: 'NULL' },
-    { name: 'has_timer', type: 'INTEGER', default: '0' },
-    { name: 'timer_duration', type: 'INTEGER', default: 'NULL' },
-    { name: 'timer_start_time', type: 'INTEGER', default: 'NULL' },
-    { name: 'gender', type: 'TEXT', default: 'NULL' },
-    { name: 'is_new', type: 'INTEGER', default: '0' }
-  ];
-  
-  missingColumns.forEach(col => {
-    const existingColumn = columns.find(c => c.name === col.name);
-    if (!existingColumn) {
-      try {
-        const sql = `ALTER TABLE products ADD COLUMN ${col.name} ${col.type} DEFAULT ${col.default}`;
-        db.prepare(sql).run();
-        console.log(`   Success Added column: ${col.name} ${col.type}`);
-      } catch (error) {
-        console.log(`   Error Failed to add ${col.name}: ${error.message}`);
-      }
-    } else {
-      console.log(`   Success Column ${col.name} already exists`);
+    const db = new Database(dbPath);
+    
+    // Check if database exists and has the unified_content table
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    console.log('Available tables:', tables.map(t => t.name));
+    
+    if (!tables.find(t => t.name === 'unified_content')) {
+        console.error('unified_content table not found!');
+        process.exit(1);
     }
-  });
-  
-  // 3. Create video_content table if missing
-  console.log('\n3️⃣ Creating video_content table:');
-  
-  try {
-    // Check if table exists
-    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='video_content'").get();
     
-    if (!tableExists) {
-      const createVideoContentTable = `
-        CREATE TABLE video_content (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT NOT NULL,
-          description TEXT,
-          video_url TEXT NOT NULL,
-          thumbnail_url TEXT,
-          platform TEXT NOT NULL DEFAULT 'YouTube',
-          category TEXT,
-          tags TEXT,
-          duration INTEGER,
-          view_count INTEGER DEFAULT 0,
-          is_featured INTEGER DEFAULT 0,
-          has_timer INTEGER DEFAULT 0,
-          timer_duration INTEGER,
-          timer_start_time INTEGER,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER
-        )
-      `;
-      
-      db.prepare(createVideoContentTable).run();
-      console.log('   Success Created video_content table');
-      
-      // Create indexes
-      db.prepare('CREATE INDEX idx_video_content_platform ON video_content(platform)').run();
-      db.prepare('CREATE INDEX idx_video_content_category ON video_content(category)').run();
-      db.prepare('CREATE INDEX idx_video_content_featured ON video_content(is_featured)').run();
-      db.prepare('CREATE INDEX idx_video_content_created_at ON video_content(created_at)').run();
-      console.log('   Success Created video_content indexes');
-      
-    } else {
-      console.log('   Success video_content table already exists');
+    // Get schema for unified_content table
+    const schema = db.prepare("PRAGMA table_info(unified_content)").all();
+    console.log('unified_content schema:', schema.map(col => col.name));
+    
+    // First, remove featured status from test products
+    console.log('\n🔍 Checking for test products...');
+    const testProducts = db.prepare(`
+        SELECT id, title, is_featured 
+        FROM unified_content 
+        WHERE title LIKE '%test%' OR title LIKE '%TEST%' OR title LIKE '%Test%'
+    `).all();
+    
+    console.log(`Found ${testProducts.length} test products:`, testProducts);
+    
+    if (testProducts.length > 0) {
+        const removeTestFeatured = db.prepare(`
+            UPDATE unified_content 
+            SET is_featured = 0 
+            WHERE title LIKE '%test%' OR title LIKE '%TEST%' OR title LIKE '%Test%'
+        `);
+        
+        const result = removeTestFeatured.run();
+        console.log(`✅ Removed featured status from ${result.changes} test products`);
     }
-  } catch (error) {
-    console.log(`   Error Failed to create video_content table: ${error.message}`);
-  }
-  
-  // 4. Fix timer column types if needed
-  console.log('\n4️⃣ Checking timer column types:');
-  
-  const updatedColumns = db.prepare("PRAGMA table_info(products)").all();
-  const timerStartTimeCol = updatedColumns.find(col => col.name === 'timer_start_time');
-  
-  if (timerStartTimeCol && timerStartTimeCol.type === 'TEXT') {
-    console.log('   🔧 Converting timer_start_time from TEXT to INTEGER...');
-    try {
-      // Create backup
-      db.prepare('CREATE TABLE products_backup AS SELECT * FROM products').run();
-      
-      // Update TEXT timestamps to INTEGER (Unix timestamps)
-      db.prepare(`
-        UPDATE products 
-        SET timer_start_time = CASE 
-          WHEN timer_start_time IS NOT NULL AND timer_start_time != '' 
-          THEN strftime('%s', timer_start_time)
-          ELSE NULL 
-        END
-      `).run();
-      
-      console.log('   Success Converted timer_start_time to INTEGER');
-    } catch (error) {
-      console.log(`   Error Failed to convert timer_start_time: ${error.message}`);
+    
+    // Now set real products as featured (up to 8)
+    console.log('\n🔍 Setting real products as featured...');
+    const realProducts = db.prepare(`
+        SELECT id, title, price, category 
+        FROM unified_content 
+        WHERE (title NOT LIKE '%test%' AND title NOT LIKE '%TEST%' AND title NOT LIKE '%Test%')
+        AND (status = 'active' OR status IS NULL)
+        LIMIT 8
+    `).all();
+    
+    console.log(`Found ${realProducts.length} real products to feature`);
+    
+    if (realProducts.length > 0) {
+        // First, clear all featured status
+        db.prepare('UPDATE unified_content SET is_featured = 0').run();
+        
+        // Then set the selected products as featured
+        const setFeatured = db.prepare('UPDATE unified_content SET is_featured = 1 WHERE id = ?');
+        
+        realProducts.forEach(product => {
+            setFeatured.run(product.id);
+            console.log(`✅ Set as featured: ${product.title}`);
+        });
     }
-  } else {
-    console.log('   Success timer_start_time column type is correct');
-  }
-  
-  // 5. Verify the fixes
-  console.log('\n5️⃣ Verifying fixes:');
-  
-  // Test products table
-  try {
-    const testProduct = db.prepare(`
-      INSERT INTO products (
-        name, description, price, image_url, affiliate_url, category,
-        rating, review_count, is_service, custom_fields, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      'Test Product',
-      'Test Description',
-      100,
-      'https://example.com/image.jpg',
-      'https://example.com/affiliate',
-      'Test Category',
-      4.5,
-      100,
-      0,
-      '{}',
-      Math.floor(Date.now() / 1000)
-    );
     
-    console.log(`   Success Products table test successful (ID: ${testProduct.lastInsertRowid})`);
+    // Verify the results
+    console.log('\n📊 Final featured products:');
+    const featuredProducts = db.prepare(`
+        SELECT id, title, price, category 
+        FROM unified_content 
+        WHERE is_featured = 1 
+        ORDER BY created_at DESC
+    `).all();
     
-    // Clean up test product
-    db.prepare('DELETE FROM products WHERE id = ?').run(testProduct.lastInsertRowid);
+    console.log(`Total featured products: ${featuredProducts.length}`);
+    featuredProducts.forEach(product => {
+        console.log(`- ${product.title} (${product.category}) - $${product.price}`);
+    });
     
-  } catch (error) {
-    console.log(`   Error Products table test failed: ${error.message}`);
-  }
-  
-  // Test video_content table
-  try {
-    const testVideo = db.prepare(`
-      INSERT INTO video_content (
-        title, description, video_url, platform, created_at
-      ) VALUES (?, ?, ?, ?, ?)
-    `).run(
-      'Test Video',
-      'Test Description',
-      'https://youtube.com/watch?v=test',
-      'YouTube',
-      Math.floor(Date.now() / 1000)
-    );
+    db.close();
+    console.log('\n✅ Production database fixes completed successfully!');
     
-    console.log(`   Success Video content table test successful (ID: ${testVideo.lastInsertRowid})`);
-    
-    // Clean up test video
-    db.prepare('DELETE FROM video_content WHERE id = ?').run(testVideo.lastInsertRowid);
-    
-  } catch (error) {
-    console.log(`   Error Video content table test failed: ${error.message}`);
-  }
-  
-  // 6. Final schema verification
-  console.log('\n6️⃣ Final schema verification:');
-  
-  const finalColumns = db.prepare("PRAGMA table_info(products)").all();
-  console.log('Products table columns:');
-  finalColumns.forEach(col => {
-    console.log(`   - ${col.name}: ${col.type}`);
-  });
-  
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-  console.log('\nAll tables:');
-  tables.forEach(table => {
-    console.log(`   - ${table.name}`);
-  });
-  
-  console.log('\nSuccess Production database schema fix completed!');
-  console.log('\nRefresh Please restart the server to apply changes:');
-  console.log('   pm2 restart all');
-  
 } catch (error) {
-  console.error('Error Error fixing production database:', error.message);
-} finally {
-  db.close();
-  console.log('\nDatabase connection closed');
+    console.error('❌ Error fixing production database:', error);
+    process.exit(1);
 }

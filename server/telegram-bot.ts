@@ -9,6 +9,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { categorizeForAutomation, shouldAutoCategorize } from './enhanced-smart-categorization.js';
+import { travelPicksBot } from './travel-picks-bot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,6 +90,9 @@ class TelegramBotManager {
       // Setup event handlers
       this.setupEventHandlers();
 
+      // Initialize travel bot
+      await travelPicksBot.initialize();
+
       // Setup graceful shutdown
       this.setupGracefulShutdown();
       
@@ -134,6 +138,9 @@ class TelegramBotManager {
 
   private setupGracefulShutdown(): void {
     const cleanup = async () => {
+      // Stop travel bot first
+      await travelPicksBot.stop();
+      
       if (this.bot) {
         console.log('🛑 Shutting down Telegram bot...');
         try {
@@ -153,6 +160,9 @@ class TelegramBotManager {
   }
 
   public async stopBot(): Promise<void> {
+    // Stop travel bot first
+    await travelPicksBot.stop();
+    
     if (this.bot) {
       console.log('🛑 Stopping bot...');
       await this.bot.stopPolling();
@@ -956,6 +966,14 @@ async function processMessage(msg) {
   });
   
   const chatId = msg.chat.id.toString();
+  
+  // Check if this is a travel channel message
+  if (chatId === '-1003047967930') {
+    console.log('🧳 Routing message to Travel Picks bot');
+    await travelPicksBot.processMessage(msg);
+    return;
+  }
+  
   const channelConfig = CHANNEL_CONFIGS[chatId];
   
   if (!channelConfig) {

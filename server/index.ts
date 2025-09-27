@@ -24,6 +24,10 @@ import metaTagsRoutes from './meta-tags-routes.js';
 import rssFeedsRoutes from './rss-feeds-routes.js';
 import aggregationService from './rss-aggregation-service.js';
 
+// Import advertiser routes for advertising system
+import advertiserRoutes from './advertiser-routes.js';
+import paymentRoutes from './payment-routes.js';
+
 
 
 // Fix __dirname for ES modules
@@ -154,9 +158,13 @@ app.use((req, res, next) => {
   app.use(credentialRoutes);
   app.use(metaTagsRoutes);
   app.use(rssFeedsRoutes);
+  app.use('/api/advertisers', advertiserRoutes); // Advertising system routes
+  app.use('/api/payments', paymentRoutes); // Payment and checkout routes
   console.log('🔐 Credential management routes initialized');
   console.log('🏷️ Meta tags management routes initialized');
   console.log('📡 RSS feeds management routes initialized');
+  console.log('📢 Advertiser management routes initialized');
+  console.log('💳 Payment routes initialized');
   
   // Setup image proxy routes for authentic product images
   imageProxyService.setupRoutes(app);

@@ -6,7 +6,7 @@ import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
-import WhatsAppBanner from "@/components/whatsapp-banner";
+
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
@@ -254,7 +254,6 @@ export default function LootBox() {
             <Header />
             
             <AnnouncementBanner />
-            <WhatsAppBanner />
             
             {/* Page Banner Slider */}
             <PageBanner page="loot-box" />
@@ -277,7 +276,7 @@ export default function LootBox() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                          <i className="fas fa-gift"></i> DeoDap Loot Box ({filteredProducts.length})
+                          <i className="fas fa-gift"></i> Loot Box ({filteredProducts.length})
                         </h2>
                         {/* Bulk Delete Icon - Admin Only */}
                         {isAdmin && (

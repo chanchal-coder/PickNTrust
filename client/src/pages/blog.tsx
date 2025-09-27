@@ -7,7 +7,6 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import StaticPageBanner from '@/components/StaticPageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
 import { useToast } from '@/hooks/use-toast';
@@ -255,8 +254,6 @@ export default function Blog() {
         <Header />
         
         <AnnouncementBanner page="blog" />
-        
-        <WhatsAppBanner />
       
       {/* Page Header */}
       {/* Amazing Page Banner */}

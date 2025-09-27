@@ -30,7 +30,6 @@
     "*.backup",
     "*.emergency-backup",
     "affiliate-routes.ts",
-    "enhanced-telegram-manager.ts",
     "bot-admin-routes.ts"
   ]
 }

@@ -10,7 +10,7 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import StaticPageBanner from '@/components/StaticPageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
+
 import Sidebar from "@/components/sidebar";
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
@@ -379,8 +379,6 @@ export default function Services() {
         <Header />
         
         <AnnouncementBanner />
-        
-        <WhatsAppBanner />
         
         {/* Amazing Page Banner */}
         <StaticPageBanner page="services" />

@@ -15,7 +15,7 @@ export default function WhatsAppBanner() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 dark:from-green-600 dark:via-green-700 dark:to-emerald-700 text-white py-2 sm:py-3 px-2 sm:px-4 shadow-lg border-b-4 border-black">
+    <div className="bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 dark:from-green-600 dark:via-green-700 dark:to-emerald-700 text-white py-1 sm:py-2 px-2 sm:px-4 shadow-lg -mt-1">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
           <div className="bg-white rounded-full p-1.5 sm:p-2 shadow-lg animate-pulse flex-shrink-0" style={{animationDuration: '1.5s'}}>

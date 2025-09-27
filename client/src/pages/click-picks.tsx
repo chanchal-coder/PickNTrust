@@ -5,7 +5,6 @@ import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
@@ -158,13 +157,13 @@ export default function ClickPicks() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Fetch products for Click Picks page with affiliate URLs
-  const { data: affiliateResponse, isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ['/api/affiliate/products/click-picks', selectedCategory],
+  // Fetch products for Click Picks page
+  const { data: allClickProducts = [], isLoading: productsLoading, error: productsError } = useQuery({
+    queryKey: ['/api/products/page/click-picks', selectedCategory],
     queryFn: async () => {
       const url = selectedCategory 
-        ? `/api/affiliate/products/click-picks?category=${encodeURIComponent(selectedCategory)}`
-        : '/api/affiliate/products/click-picks';
+        ? `/api/products/page/click-picks?category=${encodeURIComponent(selectedCategory)}`
+        : '/api/products/page/click-picks';
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -174,8 +173,6 @@ export default function ClickPicks() {
     },
     staleTime: 0, // Real-time updates
   });
-
-  const allClickProducts = affiliateResponse?.products || [];
 
   // Fetch categories for Click Picks page
   const { data: availableCategories = [] } = useQuery<string[]>({
@@ -255,7 +252,6 @@ export default function ClickPicks() {
             <Header />
             
             <AnnouncementBanner />
-            <WhatsAppBanner />
             
             {/* Page Banner Slider */}
             <PageBanner page="click-picks" />

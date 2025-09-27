@@ -8,6 +8,7 @@ import AmazingBrandLogo from "@/components/amazing-brand-logo";
 import CenteredBrandText from "@/components/centered-brand-text";
 import { GenderSelectionPopup } from "@/components/gender-selection-popup";
 import CurrencySelector from "@/components/currency-selector";
+import WhatsAppBanner from "@/components/whatsapp-banner";
 
 interface NavTab {
   id: number;
@@ -403,17 +404,30 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* Admin indicator for corner balance */}
-          <div className="w-8 sm:w-10 flex justify-end">
-            {isAdmin && (
-              <Link 
-                href="/admin" 
-                className="text-red-500 hover:text-red-600 transition-colors"
-                title="Admin Panel"
-              >
-                <i className="fas fa-cog text-sm"></i>
-              </Link>
-            )}
+          {/* Right Actions: CTA + Admin indicator */}
+          <div className="flex items-center gap-2">
+            <Link
+              href="/advertise"
+              className="group relative inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:scale-105 ring-1 ring-white/10"
+              title="Advertise with us"
+            >
+              <i className="fas fa-bullhorn mr-2 group-hover:rotate-12 transition-transform"></i>
+              <span className="hidden sm:inline">Advertise with us</span>
+              <span className="sm:hidden">Advertise</span>
+              <span className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+            </Link>
+
+            <div className="w-8 sm:w-10 flex justify-end">
+              {isAdmin && (
+                <Link 
+                  href="/admin" 
+                  className="text-red-500 hover:text-red-600 transition-colors"
+                  title="Admin Panel"
+                >
+                  <i className="fas fa-cog text-sm"></i>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
@@ -565,8 +579,13 @@ export default function Header() {
            ))}
         </div>
 
+        
+
         {/* Social Proof Bar - Full Original Version in Header */}
         <HeaderSocialProofBar />
+        
+        {/* WhatsApp Banner positioned after social proof bar - exactly as shown in image */}
+        <WhatsAppBanner />
 
         {/* Admin Login Modal - appears when dot is clicked */}
         {showAdminLogin && !isAdmin && (
@@ -750,9 +769,9 @@ function HeaderSocialProofBar() {
   }, [recentPurchases.length]);
 
   return (
-    <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 border-y border-green-200 dark:border-gray-600">
+    <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 border-b border-green-200 dark:border-gray-600 -mb-1">
       <div className="w-full px-0">
-        <div className="flex flex-col sm:flex-row items-center justify-between space-y-1 sm:space-y-0 sm:space-x-4 px-3 sm:px-6 lg:px-8 py-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between space-y-1 sm:space-y-0 sm:space-x-4 px-3 sm:px-6 lg:px-8 py-1">
           
           {/* Live User Count - Mobile Optimized */}
           <div className="flex items-center justify-center sm:justify-start">
@@ -800,5 +819,7 @@ function HeaderSocialProofBar() {
     </section>
   );
 }
+
+// WhatsApp Banner positioned after social proof bar
 
 

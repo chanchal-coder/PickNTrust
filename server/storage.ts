@@ -178,232 +178,259 @@ export class DatabaseStorage implements IStorage {
     this.sqliteDb = sqliteDb;
   }
 
-  // Products
+  // Products - Using unified_content table
   async getProducts(): Promise<Product[]> {
     try {
-      console.log('🔍 DatabaseStorage: Getting products...');
+      console.log('🔍 DatabaseStorage: Getting products from unified_content...');
       console.log('📊 Database connection status:', db ? 'Connected' : 'Not connected');
       
-      // Use a simpler query approach to avoid complex field mapping issues
-      console.log('🔄 Attempting simplified query...');
-      const result = await db.select().from(products).orderBy(desc(products.id));
-      console.log(`✅ DatabaseStorage: Found ${result.length} products`);
+      // Query unified_content table instead of products
+      const Database = (await import('better-sqlite3')).default;
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
+      const rawDb = new Database(dbFile);
       
-      if (result.length > 0) {
-        console.log('📝 Sample product:', { id: result[0].id, name: result[0].name, price: result[0].price });
-        console.log('🔍 All fields present:', Object.keys(result[0]).length > 10 ? 'Yes' : 'No');
+      const directResult = rawDb.prepare(`
+        SELECT 
+          id,
+          title as name,
+          description,
+          price,
+          original_price as originalPrice,
+          image_url as imageUrl,
+          affiliate_url as affiliateUrl,
+          category,
+          rating,
+          review_count as reviewCount,
+          discount,
+          currency,
+          is_active as isActive,
+          is_featured as isFeatured,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM unified_content 
+        WHERE content_type = 'product' AND is_active = 1
+        ORDER BY id DESC
+      `).all();
+      
+      rawDb.close();
+      console.log(`✅ DatabaseStorage: Found ${directResult.length} products from unified_content`);
+      
+      if (directResult.length > 0) {
+        console.log('📝 Sample product:', { id: directResult[0].id, name: directResult[0].name, price: directResult[0].price });
       }
       
-      return result;
+      return directResult as Product[];
     } catch (error) {
-      console.error('❌ DatabaseStorage: Error getting products:', error);
-      console.error('🔍 Error details:', {
-        message: error?.message || 'Unknown error',
-        code: error?.code || 'No code',
-        name: error?.name || 'Unknown',
-        stack: error?.stack?.split('\n').slice(0, 3).join('\n') || 'No stack'
-      });
-      
-      // Fallback: try direct SQLite query if Drizzle fails
-       try {
-         console.log('🔄 Attempting fallback direct query...');
-         const Database = (await import('better-sqlite3')).default;
-         const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
-         const rawDb = new Database(dbFile);
-         const directResult = rawDb.prepare('SELECT * FROM products ORDER BY id DESC').all();
-         rawDb.close();
-         console.log(`🔧 Fallback query found ${directResult.length} products`);
-         return directResult as Product[];
-       } catch (fallbackError) {
-         console.error('❌ Fallback query also failed:', fallbackError);
-         return [];
-       }
+      console.error('❌ DatabaseStorage: Error getting products from unified_content:', error);
+      return [];
     }
   }
 
   async getFeaturedProducts(): Promise<Product[]> {
     try {
-      return await db.select().from(products).where(eq(products.isFeatured, true)).orderBy(desc(products.id));
-    } catch (error) {
-      console.log('DatabaseStorage: Featured products query failed, trying raw SQL fallback...');
-      try {
-        // Use raw SQL with proper column mapping
-        const Database = (await import('better-sqlite3')).default;
-      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      console.log('🔍 DatabaseStorage: Getting featured products from unified_content...');
+      
+      const Database = (await import('better-sqlite3')).default;
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
-        
-        const result = rawDb.prepare(`
-          SELECT id, name, description, price, 
-                 original_price as originalPrice,
-                 image_url as imageUrl,
-                 affiliate_url as affiliateUrl,
-                 affiliate_network_id as affiliateNetworkId,
-                 category, gender, rating,
-                 review_count as reviewCount,
-                 discount,
-                 COALESCE(is_new, 0) as isNew,
-                 COALESCE(is_featured, 0) as isFeatured,
-                 COALESCE(is_service, 0) as isService,
-                 custom_fields as customFields,
-                 pricing_type as pricingType,
-                 monthly_price as monthlyPrice,
-                 yearly_price as yearlyPrice,
-                 COALESCE(is_free, 0) as isFree,
-                 price_description as priceDescription,
-                 COALESCE(has_timer, 0) as hasTimer,
-                 timer_duration as timerDuration,
-                 timer_start_time as timerStartTime,
-                 created_at as createdAt
-          FROM products 
-          WHERE COALESCE(is_featured, 0) = 1
-          ORDER BY id DESC
-        `).all();
-        
-        rawDb.close();
-        return result as Product[];
-      } catch (fallbackError) {
-        console.log('DatabaseStorage: Featured products fallback failed, returning empty array');
-        return [];
-      }
+      
+      const directResult = rawDb.prepare(`
+        SELECT 
+          id,
+          title as name,
+          description,
+          price,
+          original_price as originalPrice,
+          image_url as imageUrl,
+          affiliate_url as affiliateUrl,
+          category,
+          rating,
+          review_count as reviewCount,
+          discount,
+          currency,
+          is_active as isActive,
+          is_featured as isFeatured,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM unified_content 
+        WHERE content_type = 'product' AND is_active = 1 AND is_featured = 1
+        ORDER BY id DESC
+      `).all();
+      
+      rawDb.close();
+      console.log(`✅ DatabaseStorage: Found ${directResult.length} featured products from unified_content`);
+      
+      return directResult as Product[];
+    } catch (error) {
+      console.error('❌ DatabaseStorage: Error getting featured products from unified_content:', error);
+      return [];
     }
   }
 
   async getServiceProducts(): Promise<Product[]> {
     try {
-      return await db.select({
-        id: products.id,
-        name: products.name,
-        description: products.description,
-        price: products.price,
-        originalPrice: products.originalPrice,
-        currency: products.currency,
-        imageUrl: products.imageUrl,
-        affiliateUrl: products.affiliateUrl,
-        affiliateNetworkId: products.affiliateNetworkId,
-        category: products.category,
-        subcategory: products.subcategory,
-        gender: products.gender,
-        rating: products.rating,
-        reviewCount: products.reviewCount,
-        discount: products.discount,
-        isNew: products.isNew,
-        isFeatured: products.isFeatured,
-        isService: products.isService,
-        isAIApp: products.isAIApp,
-        customFields: products.customFields,
-        // Advanced pricing fields (mapped from schema)
-        pricingType: products.pricingType,
-        monthlyPrice: products.monthlyPrice,
-        yearlyPrice: products.yearlyPrice,
-        isFree: products.isFree,
-        priceDescription: products.priceDescription,
-        // Timer fields
-        hasTimer: products.hasTimer,
-        timerDuration: products.timerDuration,
-        timerStartTime: products.timerStartTime,
-        createdAt: products.createdAt,
-        displayPages: products.displayPages
-      }).from(products).where(eq(products.isService, true)).orderBy(desc(products.id));
+      console.log('🔍 DatabaseStorage: Getting service products from unified_content...');
+      
+      const Database = (await import('better-sqlite3')).default;
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
+      const rawDb = new Database(dbFile);
+      
+      const directResult = rawDb.prepare(`
+        SELECT 
+          id,
+          title as name,
+          description,
+          price,
+          original_price as originalPrice,
+          image_url as imageUrl,
+          affiliate_url as affiliateUrl,
+          category,
+          rating,
+          review_count as reviewCount,
+          discount,
+          currency,
+          is_active as isActive,
+          is_featured as isFeatured,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM unified_content 
+        WHERE content_type = 'product' AND is_active = 1 AND is_service = 1
+        ORDER BY id DESC
+      `).all();
+      
+      rawDb.close();
+      console.log(`✅ DatabaseStorage: Found ${directResult.length} service products from unified_content`);
+      
+      return directResult as Product[];
     } catch (error) {
-      console.log('DatabaseStorage: Service products query failed, returning empty array');
+      console.error('❌ DatabaseStorage: Error getting service products from unified_content:', error);
       return [];
     }
   }
 
   async getAIAppsProducts(): Promise<Product[]> {
     try {
-      return await db.select({
-        id: products.id,
-        name: products.name,
-        description: products.description,
-        price: products.price,
-        originalPrice: products.originalPrice,
-        currency: products.currency,
-        imageUrl: products.imageUrl,
-        affiliateUrl: products.affiliateUrl,
-        affiliateNetworkId: products.affiliateNetworkId,
-        category: products.category,
-        subcategory: products.subcategory,
-        gender: products.gender,
-        rating: products.rating,
-        reviewCount: products.reviewCount,
-        discount: products.discount,
-        isNew: products.isNew,
-        isFeatured: products.isFeatured,
-        isService: products.isService,
-        isAIApp: products.isAIApp,
-        customFields: products.customFields,
-        // Advanced pricing fields (mapped from schema)
-        pricingType: products.pricingType,
-        monthlyPrice: products.monthlyPrice,
-        yearlyPrice: products.yearlyPrice,
-        isFree: products.isFree,
-        priceDescription: products.priceDescription,
-        // Timer fields
-        hasTimer: products.hasTimer,
-        timerDuration: products.timerDuration,
-        timerStartTime: products.timerStartTime,
-        createdAt: products.createdAt,
-        displayPages: products.displayPages
-      }).from(products).where(eq(products.isAIApp, true)).orderBy(desc(products.id));
+      console.log('🔍 DatabaseStorage: Getting AI Apps products from unified_content...');
+      
+      const Database = (await import('better-sqlite3')).default;
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
+      const rawDb = new Database(dbFile);
+      
+      const directResult = rawDb.prepare(`
+        SELECT 
+          id,
+          title as name,
+          description,
+          price,
+          original_price as originalPrice,
+          image_url as imageUrl,
+          affiliate_url as affiliateUrl,
+          category,
+          rating,
+          review_count as reviewCount,
+          discount,
+          currency,
+          is_active as isActive,
+          is_featured as isFeatured,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM unified_content 
+        WHERE content_type = 'product' AND is_active = 1 AND is_ai_app = 1
+        ORDER BY id DESC
+      `).all();
+      
+      rawDb.close();
+      console.log(`✅ DatabaseStorage: Found ${directResult.length} AI Apps products from unified_content`);
+      
+      return directResult as Product[];
     } catch (error) {
-      console.log('DatabaseStorage: AI Apps products query failed, returning empty array');
+      console.error('❌ DatabaseStorage: Error getting AI Apps products from unified_content:', error);
       return [];
     }
   }
 
   async getProductsByCategory(category: string): Promise<Product[]> {
     try {
-      return await db.select().from(products).where(eq(products.category, category)).orderBy(desc(products.id));
+      console.log(`🔍 DatabaseStorage: Getting products by category '${category}' from unified_content...`);
+      
+      const Database = (await import('better-sqlite3')).default;
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
+      const rawDb = new Database(dbFile);
+      
+      const directResult = rawDb.prepare(`
+        SELECT 
+          id,
+          title as name,
+          description,
+          price,
+          original_price as originalPrice,
+          image_url as imageUrl,
+          affiliate_url as affiliateUrl,
+          category,
+          rating,
+          review_count as reviewCount,
+          discount,
+          currency,
+          is_active as isActive,
+          is_featured as isFeatured,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM unified_content 
+        WHERE content_type = 'product' AND is_active = 1 AND category = ?
+        ORDER BY id DESC
+      `).all(category);
+      
+      rawDb.close();
+      console.log(`✅ DatabaseStorage: Found ${directResult.length} products in category '${category}' from unified_content`);
+      
+      return directResult as Product[];
     } catch (error) {
-      console.log('DatabaseStorage: Products by category query failed, trying raw SQL fallback...');
-      try {
-        const Database = (await import('better-sqlite3')).default;
-        const dbFile = 'database.sqlite';
-        const rawDb = new Database(dbFile);
-        
-        const result = rawDb.prepare(`
-          SELECT id, name, description, price, 
-                 original_price as originalPrice,
-                 image_url as imageUrl,
-                 affiliate_url as affiliateUrl,
-                 affiliate_network_id as affiliateNetworkId,
-                 category, gender, rating,
-                 review_count as reviewCount,
-                 discount,
-                 COALESCE(is_new, 0) as isNew,
-                 COALESCE(is_featured, 0) as isFeatured,
-                 COALESCE(is_service, 0) as isService,
-                 custom_fields as customFields,
-                 pricing_type as pricingType,
-                 monthly_price as monthlyPrice,
-                 yearly_price as yearlyPrice,
-                 COALESCE(is_free, 0) as isFree,
-                 price_description as priceDescription,
-                 COALESCE(has_timer, 0) as hasTimer,
-                 timer_duration as timerDuration,
-                 timer_start_time as timerStartTime,
-                 created_at as createdAt
-          FROM products 
-          WHERE category = ?
-          ORDER BY id DESC
-        `).all(category);
-        
-        rawDb.close();
-        return result as Product[];
-      } catch (fallbackError) {
-        console.log('DatabaseStorage: Products by category fallback failed, returning empty array');
-        return [];
-      }
+      console.error(`❌ DatabaseStorage: Error getting products by category '${category}' from unified_content:`, error);
+      return [];
     }
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
     try {
-      const [product] = await db.select().from(products).where(eq(products.id, id));
-      return product || undefined;
+      console.log(`🔍 DatabaseStorage: Getting product ${id} from unified_content...`);
+      
+      const Database = (await import('better-sqlite3')).default;
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
+      const rawDb = new Database(dbFile);
+      
+      const directResult = rawDb.prepare(`
+        SELECT 
+          id,
+          title as name,
+          description,
+          price,
+          original_price as originalPrice,
+          image_url as imageUrl,
+          affiliate_url as affiliateUrl,
+          category,
+          rating,
+          review_count as reviewCount,
+          discount,
+          currency,
+          is_active as isActive,
+          is_featured as isFeatured,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM unified_content 
+        WHERE content_type = 'product' AND id = ?
+      `).get(id);
+      
+      rawDb.close();
+      
+      if (directResult) {
+        console.log(`✅ DatabaseStorage: Found product ${id} from unified_content`);
+        return directResult as Product;
+      } else {
+        console.log(`⚠️ DatabaseStorage: Product ${id} not found in unified_content`);
+        return undefined;
+      }
     } catch (error) {
-      console.log('DatabaseStorage: Get product failed, returning undefined');
+      console.error(`❌ DatabaseStorage: Error getting product ${id} from unified_content:`, error);
       return undefined;
     }
   }
@@ -445,13 +472,13 @@ export class DatabaseStorage implements IStorage {
   async getCategoriesByPage(page: string): Promise<string[]> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
       
       const result = rawDb.prepare(`
         SELECT DISTINCT category, subcategory
-        FROM products
-        WHERE display_pages LIKE '%' || ? || '%'
+        FROM unified_content
+        WHERE display_pages LIKE '%' || ? || '%' AND content_type = 'product'
       `).all(page);
       
       rawDb.close();

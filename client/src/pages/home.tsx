@@ -14,32 +14,37 @@ import VideosSection from "@/components/videos-section";
 import Newsletter from "@/components/newsletter";
 import SearchBar from "@/components/search-bar";
 import HeroBannerSlider from "@/components/hero-banner-slider";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 
 export default function Home() {
   const [location] = useLocation();
   const pageId = 'home';
   
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-gray-950 via-slate-900 to-black">
       {/* Main Header */}
       <Header />
       
       {/* Announcement Banner */}
       <AnnouncementBanner page="home" />
       
-      {/* WhatsApp Banner */}
-      <WhatsAppBanner />
-      
       {/* Content Top Widgets */}
       <div className="content-top-widgets">
         <WidgetRenderer page={pageId} position="content-top" />
       </div>
       
-      {/* Main Content - Full Width without Container Constraints */}
-      <div>
-        <HeroBannerSlider />
-        <SearchBar />
+      {/* Main Content - Subtle base with hero-only gradient */}
+      <div className="relative">
+        {/* Hero Section with rich gradient, overlays for depth */}
+        <section className="relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+          <div className="pointer-events-none absolute inset-0 bg-black/20" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20" />
+          <div className="relative">
+            <HeroBannerSlider />
+            <SearchBar />
+          </div>
+        </section>
+
+        {/* Rest of the content on neutral base */}
         <FeaturedProducts />
         <CardsAppsServices />
         <AppsAIApps />

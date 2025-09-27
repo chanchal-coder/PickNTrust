@@ -115,7 +115,6 @@ export default function PageLayout({
       
       {/* Fixed Elements */}
       <ScrollNavigation />
-      <WhatsAppBanner />
     </div>
   );
 }

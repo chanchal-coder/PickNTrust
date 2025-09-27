@@ -78,11 +78,16 @@ const Flights = React.lazy(() => import("@/pages/flights"));
 const Hotels = React.lazy(() => import("@/pages/hotels"));
 const PrimePicks = React.lazy(() => import("@/pages/prime-picks"));
 const CuePicks = React.lazy(() => import("@/pages/cue-picks"));
+const Advertise = React.lazy(() => import("@/pages/advertise"));
+const AdvertiseRegister = React.lazy(() => import("@/pages/advertise-register"));
+const AdvertiseCheckout = React.lazy(() => import("@/pages/advertise-checkout"));
+const AdvertiseDashboard = React.lazy(() => import("@/pages/advertise-dashboard"));
 const ValuePicks = React.lazy(() => import("@/pages/value-picks"));
 const ClickPicks = React.lazy(() => import("@/pages/click-picks"));
 const DealsHub = React.lazy(() => import("@/pages/deals-hub"));
 const BrowseCategories = React.lazy(() => import("@/pages/browse-categories"));
 const DynamicPage = React.lazy(() => import("@/pages/DynamicPage"));
+const AdminPaymentsPage = React.lazy(() => import("@/pages/admin-payments"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -146,6 +151,13 @@ function App() {
                   <Route path="/category/:category" component={Category} />
                   <Route path="/admin" component={Admin} />
                   <Route path="/admin/blog" component={Admin} />
+                  <Route path="/admin/announcements" component={Admin} />
+                  <Route path="/admin/banners" component={Admin} />
+                  <Route path="/admin/categories" component={Admin} />
+                  <Route path="/admin/products" component={Admin} />
+                  <Route path="/admin/widgets" component={Admin} />
+                  <Route path="/admin/meta-tags" component={Admin} />
+                  <Route path="/admin/payments" component={AdminPaymentsPage} />
                   <Route path="/bot-admin" component={BotAdmin} />
                   <Route path="/wishlist" component={Wishlist} />
                   <Route path="/blog" component={Blog} />
@@ -169,6 +181,10 @@ function App() {
                   <Route path="/click-picks" component={ClickPicks} />
                   <Route path="/deals-hub" component={DealsHub} />
                   <Route path="/browse-categories" component={BrowseCategories} />
+                  <Route path="/advertise" component={Advertise} />
+                  <Route path="/advertise/checkout" component={AdvertiseCheckout} />
+                  <Route path="/advertise/register" component={AdvertiseRegister} />
+                  <Route path="/advertise/dashboard" component={AdvertiseDashboard} />
                   {/* Dynamic route for custom navigation tabs */}
                   <Route path="/:slug" component={DynamicPage} />
                     <Route>404 - Page Not Found</Route>

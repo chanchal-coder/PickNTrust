@@ -1,16 +1,17 @@
-import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
-import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
-import { Share2, Calendar, Clock, Tag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import SmartShareDropdown from '@/components/SmartShareDropdown';
-import PageBanner from '@/components/PageBanner';
+import { useEffect, useState } from 'react';
+import { useParams } from 'wouter';
+import { Helmet } from 'react-helmet-async';
+import { useQuery } from '@tanstack/react-query';
+import Header from '@/components/header';
+import Footer from '@/components/footer';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { getBlogPost } from '@/lib/api';
+import { BlogPost } from '@/types/blog';
+import { Loader2, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin, Link2, Tag } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { toast, useToast } from '@/hooks/use-toast';
+import { AnnouncementBanner } from "@/components/announcement-banner";
+import PageBanner from '@/components/PageBanner';
 
 interface BlogPostData {
   id: number;
@@ -295,7 +296,6 @@ Each of these gadgets has been carefully selected based on:
               
               <AnnouncementBanner page="blog-post" />
               
-              <WhatsAppBanner />
               <div className="flex-1 pb-8">
                 <div className="max-w-4xl mx-auto p-8">
                   <div className="text-center">
@@ -321,8 +321,6 @@ Each of these gadgets has been carefully selected based on:
         <Header />
         
         <AnnouncementBanner page="blog-post" />
-        
-        <WhatsAppBanner />
         
         <div className="flex-1 flex items-center justify-center pt-20 pb-8">
           <div className="max-w-md mx-auto text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg">
@@ -354,8 +352,6 @@ Each of these gadgets has been carefully selected based on:
       <Header />
       
       <AnnouncementBanner page="blog-post" />
-      
-      <WhatsAppBanner />
       
       <PageBanner page="blog" />
       

@@ -1,0 +1,1 @@
+import{C as l}from"./index-B8cJgqVV.js";function d(o,i,n={}){const{showSymbol:s=!0,showCode:a=!1,decimals:r,locale:c="en-IN"}=n,e=l[i];if(!e)return o.toString();const m=r!==void 0?r:0,f=new Intl.NumberFormat(c,{minimumFractionDigits:m,maximumFractionDigits:m}).format(o);let t="";return s&&(t+=e.symbol),t+=f,a&&(t+=` ${i}`),t}export{d as f};

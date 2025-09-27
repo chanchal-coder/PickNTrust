@@ -11,6 +11,13 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  optimizeDeps: {
+    include: [
+      'react-hook-form',
+      '@hookform/resolvers/zod',
+      'zod'
+    ]
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),

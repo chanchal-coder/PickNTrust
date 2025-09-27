@@ -2,22 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/index.ts",
+      "src": "dist/server/server/index.js",
       "use": "@vercel/node"
     },
     {
-      "src": "client/**/*",
+      "src": "dist/public/**/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.ts"
+      "dest": "/dist/server/server/index.js"
     },
     {
       "src": "/admin/(.*)",
-      "dest": "/client/index.html"
+      "dest": "/dist/public/index.html"
     },
     {
       "src": "/uploads/(.*)",
@@ -25,7 +25,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/client/index.html"
+      "dest": "/dist/public/index.html"
     }
   ],
   "env": {

@@ -105,16 +105,16 @@ body, html {
   }
 
   html {
-    /* Prevent black screen issues */
-    background-color: white;
+    /* Use a professional dark baseline to avoid white flash */
+    background-color: #0b1220;
     min-height: 100vh;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-family: 'Inter', sans-serif;
-    /* Ensure body has proper background */
-    background-color: white;
+    /* Ensure body has proper dark background */
+    background-color: #0b1220;
     min-height: 100vh;
     margin: 0;
     padding: 0;
@@ -123,13 +123,13 @@ body, html {
   #root {
     /* Ensure root element has proper styling */
     min-height: 100vh;
-    background-color: white;
+    background-color: #0b1220;
     display: block;
   }
 
   /* Prevent flash of unstyled content */
   .app-loading {
-    background-color: white;
+    background-color: #0b1220;
     min-height: 100vh;
     display: flex;
     align-items: center;

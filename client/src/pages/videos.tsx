@@ -4,7 +4,6 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
 import ScrollNavigation from '@/components/scroll-navigation';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -244,8 +243,6 @@ export default function VideosPage() {
         
         <AnnouncementBanner page="videos" />
         
-        <WhatsAppBanner />
-        
         <PageBanner page="videos" />
         <div className="pt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -277,8 +274,6 @@ export default function VideosPage() {
         <Header />
         
         <AnnouncementBanner />
-        
-        <WhatsAppBanner />
         
         <PageBanner page="videos" />
       <div className="relative">

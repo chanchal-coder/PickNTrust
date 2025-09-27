@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 
 try {
-  const db = new Database('./database.sqlite');
+  const db = new Database('./server/database.sqlite');
   
   console.log('=== POPULATING NAVIGATION PAGES (FIXED) ===\n');
   
@@ -210,7 +210,7 @@ try {
   const insertStmt = db.prepare(`
     INSERT INTO unified_content (
       title, description, price, original_price, category, 
-      display_pages, processing_status, image_url, affiliate_url,
+      display_pages, status, image_url, affiliate_url,
       content_type, page_type, source_type, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
   `);
@@ -226,7 +226,7 @@ try {
         product.original_price || product.price,
         product.category,
         product.display_pages,
-        product.processing_status,
+        product.processing_status || 'active',
         product.image_url,
         product.affiliate_url,
         product.content_type,
@@ -252,7 +252,7 @@ try {
       SELECT COUNT(*) as count 
       FROM unified_content 
       WHERE display_pages LIKE '%' || ? || '%' 
-      AND processing_status = 'processed'
+      AND status = 'active'
     `).get(page);
     console.log(`  ${page}: ${count.count} products`);
   });

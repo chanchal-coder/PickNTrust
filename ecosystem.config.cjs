@@ -6,7 +6,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 5000,
-        DATABASE_URL: 'file:./sqlite.db'
+        DATABASE_URL: 'file:./database.sqlite'
       },
       instances: 1,
       exec_mode: 'fork',

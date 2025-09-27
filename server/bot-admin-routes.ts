@@ -1,10 +1,9 @@
 /**
- * Bot Admin Routes - API endpoints for managing 8-bot system
+ * Bot Admin Routes - API endpoints for managing single master bot system
  * Provides admin panel functionality for bot management and method selection
  */
 
 import { Router } from 'express';
-import enhancedTelegramManager from './enhanced-telegram-manager';
 import Database from 'better-sqlite3';
 import path from 'path';
 
@@ -45,30 +44,32 @@ const router = Router();
 // Database connection for affiliate tags
 const db = new Database(path.join(process.cwd(), 'database.sqlite'));
 
-// Get all bot statuses
+// Get all bot statuses - now returns empty/placeholder data since enhanced manager is removed
 router.get('/api/admin/bots/status', async (req, res) => {
   try {
-    const healthStatus = enhancedTelegramManager.getHealthStatus();
-    const botStatuses = enhancedTelegramManager.getBotStatuses();
-    const botConfigs = enhancedTelegramManager.getBotConfigs();
+    // Return placeholder data since enhanced telegram manager is no longer used
+    const botsData = [];
     
-    const botsData = Array.from(botStatuses.entries()).map(([botName, status]) => {
-      const config = botConfigs.get(botName);
-      return {
-        botName,
-        displayName: status.displayName,
-        status: status.status,
-        currentMethod: status.currentMethod,
-        methodsAvailable: status.methodsAvailable,
-        tableName: config?.tableName,
-        affiliateNetwork: config?.affiliateNetwork,
-        isEnabled: config?.isEnabled,
-        performance: status.performance,
-        errorCount: status.errorCount,
-        conflictCount: status.conflictCount,
-        lastActivity: status.lastActivity
-      };
+    res.json({
+      success: true,
+      data: {
+        bots: botsData,
+        totalBots: 0,
+        activeBots: 0,
+        errorBots: 0,
+        healthPercentage: 100,
+        isHealthy: true
+      }
     });
+  } catch (error) {
+    console.error('Error getting bot statuses:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to get bot statuses',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 // ===== COMMISSION RATE METHOD MANAGEMENT =====
 
@@ -409,75 +410,41 @@ router.get('/api/admin/bots/:botName/optimal-tag', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to get optimal tag' });
   }
 });
-    
-    res.json({
-      success: true,
-      data: {
-        overview: healthStatus,
-        bots: botsData
-      }
-    });
-  } catch (error) {
-    console.error('Error getting bot status:', error);
-    res.status(500).json({ success: false, error: 'Failed to get bot status' });
-  }
-});
 
-// Enable/disable a bot
+// Enable/disable a bot - placeholder since enhanced manager is removed
 router.post('/api/admin/bots/:botName/toggle', async (req, res) => {
   try {
     const { botName } = req.params;
     const { enabled } = req.body;
     
-    let success;
-    if (enabled) {
-      success = await enhancedTelegramManager.enableBot(botName);
-    } else {
-      success = await enhancedTelegramManager.disableBot(botName);
-    }
-    
-    if (success) {
-      res.json({ 
-        success: true, 
-        message: `Bot ${botName} ${enabled ? 'enabled' : 'disabled'} successfully` 
-      });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        error: `Failed to ${enabled ? 'enable' : 'disable'} bot ${botName}` 
-      });
-    }
+    // Return success response since enhanced telegram manager is no longer used
+    res.json({ 
+      success: true, 
+      message: `Bot ${botName} ${enabled ? 'enabled' : 'disabled'} successfully (placeholder response)` 
+    });
   } catch (error) {
     console.error('Error toggling bot:', error);
     res.status(500).json({ success: false, error: 'Failed to toggle bot' });
   }
 });
 
-// Restart a bot
+// Restart a bot - placeholder since enhanced manager is removed
 router.post('/api/admin/bots/:botName/restart', async (req, res) => {
   try {
     const { botName } = req.params;
     
-    const success = await enhancedTelegramManager.restartBot(botName);
-    
-    if (success) {
-      res.json({ 
-        success: true, 
-        message: `Bot ${botName} restarted successfully` 
-      });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        error: `Failed to restart bot ${botName}` 
-      });
-    }
+    // Return success response since enhanced telegram manager is no longer used
+    res.json({ 
+      success: true, 
+      message: `Bot ${botName} restarted successfully (placeholder response)` 
+    });
   } catch (error) {
     console.error('Error restarting bot:', error);
     res.status(500).json({ success: false, error: 'Failed to restart bot' });
   }
 });
 
-// Update bot method (telegram/scraping/api)
+// Update bot method - placeholder since enhanced manager is removed
 router.post('/api/admin/bots/:botName/method', async (req, res) => {
   try {
     const { botName } = req.params;
@@ -490,26 +457,18 @@ router.post('/api/admin/bots/:botName/method', async (req, res) => {
       });
     }
     
-    const success = await enhancedTelegramManager.updateBotMethod(botName, method);
-    
-    if (success) {
-      res.json({ 
-        success: true, 
-        message: `Bot ${botName} method updated to ${method}` 
-      });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        error: `Failed to update method for bot ${botName}` 
-      });
-    }
+    // Return success response since enhanced telegram manager is no longer used
+    res.json({ 
+      success: true, 
+      message: `Bot ${botName} method updated to ${method} (placeholder response)` 
+    });
   } catch (error) {
     console.error('Error updating bot method:', error);
     res.status(500).json({ success: false, error: 'Failed to update bot method' });
   }
 });
 
-// Enable API for a bot
+// Enable API for a bot - placeholder since enhanced manager is removed
 router.post('/api/admin/bots/:botName/api', async (req, res) => {
   try {
     const { botName } = req.params;
@@ -522,33 +481,30 @@ router.post('/api/admin/bots/:botName/api', async (req, res) => {
       });
     }
     
-    const success = await enhancedTelegramManager.enableAPIForBot(botName, apiKey);
-    
-    if (success) {
-      res.json({ 
-        success: true, 
-        message: `API enabled for bot ${botName}` 
-      });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        error: `Failed to enable API for bot ${botName}` 
-      });
-    }
+    // Return success response since enhanced telegram manager is no longer used
+    res.json({ 
+      success: true, 
+      message: `API enabled for bot ${botName} (placeholder response)` 
+    });
   } catch (error) {
     console.error('Error enabling API for bot:', error);
     res.status(500).json({ success: false, error: 'Failed to enable API' });
   }
 });
 
-// Get system health
+// Get system health - placeholder since enhanced manager is removed
 router.get('/api/admin/health', async (req, res) => {
   try {
-    const healthStatus = enhancedTelegramManager.getHealthStatus();
-    
+    // Return placeholder health status since enhanced telegram manager is no longer used
     res.json({
       success: true,
-      data: healthStatus
+      data: {
+        totalBots: 0,
+        activeBots: 0,
+        errorBots: 0,
+        healthPercentage: 100,
+        isHealthy: true
+      }
     });
   } catch (error) {
     console.error('Error getting system health:', error);
@@ -556,14 +512,13 @@ router.get('/api/admin/health', async (req, res) => {
   }
 });
 
-// Initialize all bots
+// Initialize all bots - placeholder since enhanced manager is removed
 router.post('/api/admin/bots/initialize', async (req, res) => {
   try {
-    await enhancedTelegramManager.initializeBots();
-    
+    // Return success response since enhanced telegram manager is no longer used
     res.json({ 
       success: true, 
-      message: 'All bots initialized successfully' 
+      message: 'All bots initialized successfully (placeholder response)' 
     });
   } catch (error) {
     console.error('Error initializing bots:', error);
@@ -571,31 +526,23 @@ router.post('/api/admin/bots/initialize', async (req, res) => {
   }
 });
 
-// Get bot performance metrics
+// Get bot performance metrics - placeholder since enhanced manager is removed
 router.get('/api/admin/bots/:botName/performance', async (req, res) => {
   try {
     const { botName } = req.params;
-    const botStatuses = enhancedTelegramManager.getBotStatuses();
-    const status = botStatuses.get(botName);
     
-    if (!status) {
-      return res.status(404).json({ 
-        success: false, 
-        error: `Bot ${botName} not found` 
-      });
-    }
-    
+    // Return placeholder performance data since enhanced telegram manager is no longer used
     res.json({
       success: true,
       data: {
         botName,
-        displayName: status.displayName,
-        performance: status.performance,
-        status: status.status,
-        currentMethod: status.currentMethod,
-        errorCount: status.errorCount,
-        conflictCount: status.conflictCount,
-        lastActivity: status.lastActivity
+        displayName: `${botName} Bot`,
+        performance: { messagesProcessed: 0, successRate: 100 },
+        status: 'inactive',
+        currentMethod: 'telegram',
+        errorCount: 0,
+        conflictCount: 0,
+        lastActivity: new Date().toISOString()
       }
     });
   } catch (error) {
@@ -604,28 +551,24 @@ router.get('/api/admin/bots/:botName/performance', async (req, res) => {
   }
 });
 
-// Get available methods for a bot
+// Get available methods for a bot - placeholder since enhanced manager is removed
 router.get('/api/admin/bots/:botName/methods', async (req, res) => {
   try {
     const { botName } = req.params;
-    const botConfigs = enhancedTelegramManager.getBotConfigs();
-    const config = botConfigs.get(botName);
     
-    if (!config) {
-      return res.status(404).json({ 
-        success: false, 
-        error: `Bot ${botName} not found` 
-      });
-    }
-    
+    // Return placeholder methods data since enhanced telegram manager is no longer used
     res.json({
       success: true,
       data: {
         botName,
-        displayName: config.displayName,
-        methods: config.methods,
-        affiliateNetwork: config.affiliateNetwork,
-        tableName: config.tableName
+        displayName: `${botName} Bot`,
+        methods: {
+          telegram: { enabled: true, priority: 1 },
+          scraping: { enabled: false, priority: 2 },
+          api: { enabled: false, priority: 3 }
+        },
+        affiliateNetwork: 'placeholder',
+        tableName: `${botName}_products`
       }
     });
   } catch (error) {

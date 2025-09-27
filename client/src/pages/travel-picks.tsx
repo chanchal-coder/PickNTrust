@@ -9,7 +9,6 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import StaticPageBanner from '@/components/StaticPageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import Sidebar from "@/components/sidebar";
 import WidgetRenderer from "@/components/WidgetRenderer";
 import TravelNavigation from "@/components/TravelNavigation";
@@ -3617,7 +3616,6 @@ export default function TravelPicks() {
       
       <Header />
       <AnnouncementBanner />
-      <WhatsAppBanner />
       <StaticPageBanner page="travel-picks" />
 
       <div className="container mx-auto px-4 py-6">

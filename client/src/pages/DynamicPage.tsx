@@ -4,7 +4,6 @@ import { useParams } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
-import WhatsAppBanner from "@/components/whatsapp-banner";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
 import { BundleProductCard } from "@/components/BundleProductCard";
@@ -278,7 +277,6 @@ export default function DynamicPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 page-container">
       <Header />
       <AnnouncementBanner />
-      <WhatsAppBanner />
       <div className="header-spacing">
         {/* Page Header */}
         <div className="py-8" style={gradientStyle}>

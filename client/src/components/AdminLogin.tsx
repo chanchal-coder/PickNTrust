@@ -24,24 +24,44 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
 
     setIsLoading(true);
 
-    // Simple admin password check (in production, use proper authentication)
-    if (password === 'admin123' || password === 'pickntrust2024') {
-      localStorage.setItem('pickntrust-admin-session', 'active');
-      toast({
-        title: "Success",
-        description: "Admin login successful"
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
       });
-      onLogin();
-    } else {
+
+      const data = await res.json();
+
+      if (res.ok && data?.success) {
+        // Set consistent admin session markers used across the app
+        localStorage.setItem('pickntrust-admin-session', 'active');
+        const adminToken = data?.token || `admin_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem('pickntrust-admin-token', adminToken);
+        localStorage.setItem('pickntrust-admin-password', 'pickntrust2025');
+
+        toast({
+          title: "Success",
+          description: "Admin login successful"
+        });
+        onLogin();
+      } else {
+        toast({
+          title: "Error",
+          description: data?.message || "Invalid admin password",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
       toast({
-        title: "Error",
-        description: "Invalid admin password",
+        title: "Login Failed",
+        description: "Unable to connect to server. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
+      setPassword('');
     }
-
-    setIsLoading(false);
-    setPassword('');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

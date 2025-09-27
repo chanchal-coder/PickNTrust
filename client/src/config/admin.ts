@@ -7,7 +7,7 @@ export const ADMIN_CONFIG = {
   PASSWORD: import.meta.env.VITE_ADMIN_PASSWORD || 'pickntrust2025',
   
   // API endpoint to validate admin credentials
-  VALIDATE_ENDPOINT: '/api/admin/validate',
+  VALIDATE_ENDPOINT: '/api/admin/auth',
   
   // Security note: Never expose real credentials in client code
   // This is a temporary solution - implement proper authentication
