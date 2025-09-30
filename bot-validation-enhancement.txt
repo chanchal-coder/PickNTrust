@@ -1,0 +1,66 @@
+
+/**
+ * Enhanced URL validation for Prime Picks Bot
+ * Add this to the processProductUrl method
+ */
+
+// Before processing URL, validate it first
+const validation = await this.validateURL(expandedUrl, message.text);
+
+if (!validation.isValid) {
+  console.log(`⚠️ URL validation failed: ${validation.message}`);
+  
+  // Optionally send warning message to channel
+  if (this.bot) {
+    await this.bot.sendMessage(CHANNEL_ID, 
+      `⚠️ URL validation failed: ${validation.message}\n\nURL: ${expandedUrl}`
+    );
+  }
+  
+  return; // Skip processing invalid URLs
+}
+
+console.log(`✅ URL validation passed: ${validation.productInfo.name}`);
+
+/**
+ * Add this validation method to the PrimePicksBot class
+ */
+private async validateURL(url: string, messageText?: string): Promise<any> {
+  try {
+    const response = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    const $ = cheerio.load(response.data);
+    
+    // Extract product name
+    let productName = '';
+    if (url.includes('amazon')) {
+      productName = $('#productTitle').text().trim();
+    }
+    
+    // Basic validation
+    if (!productName || productName.length < 5) {
+      return {
+        isValid: false,
+        message: 'Product name not found or too short',
+        productInfo: { name: productName }
+      };
+    }
+    
+    return {
+      isValid: true,
+      message: 'Validation passed',
+      productInfo: { name: productName }
+    };
+    
+  } catch (error) {
+    return {
+      isValid: false,
+      message: `URL not accessible: ${error.message}`
+    };
+  }
+}

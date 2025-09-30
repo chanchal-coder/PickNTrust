@@ -1,0 +1,193 @@
+{
+  "travel-picks": [
+    {
+      "id": 1,
+      "title": "✈️ Flight Deals - Up to 50% Off",
+      "subtitle": "Book domestic and international flights at unbeatable prices",
+      "imageUrl": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=300&fit=crop",
+      "linkUrl": "/travel/flights",
+      "buttonText": "Book Flights",
+      "page": "travel-picks",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-blue-600 via-sky-600 to-cyan-600",
+      "icon": "fas fa-plane"
+    },
+    {
+      "id": 2,
+      "title": "🏨 Hotel Bookings - Best Price Guarantee",
+      "subtitle": "Luxury stays, budget hotels, and everything in between",
+      "imageUrl": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=300&fit=crop",
+      "linkUrl": "/travel/hotels",
+      "buttonText": "Book Hotels",
+      "page": "travel-picks",
+      "isActive": true,
+      "display_order": 2,
+      "gradient": "from-purple-600 via-pink-600 to-rose-600",
+      "icon": "fas fa-bed"
+    },
+    {
+      "id": 3,
+      "title": "🎫 Holiday Packages - All-Inclusive Deals",
+      "subtitle": "Complete vacation packages with flights, hotels & activities",
+      "imageUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=300&fit=crop",
+      "linkUrl": "/travel/packages",
+      "buttonText": "View Packages",
+      "page": "travel-picks",
+      "isActive": true,
+      "display_order": 3,
+      "gradient": "from-green-600 via-emerald-600 to-teal-600",
+      "icon": "fas fa-suitcase"
+    }
+  ],
+  "prime-picks": [
+    {
+      "id": 4,
+      "title": "👑 Prime Picks",
+      "subtitle": "Discover our premium selection of top-quality products handpicked just for you!",
+      "imageUrl": "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=300&fit=crop",
+      "linkUrl": "/prime-picks",
+      "buttonText": "Explore Prime Deals",
+      "page": "prime-picks",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-purple-600 via-pink-600 to-orange-500",
+      "icon": "fas fa-crown"
+    }
+  ],
+  "value-picks": [
+    {
+      "id": 5,
+      "title": "💎 Value Picks",
+      "subtitle": "Maximum value for your money - Best bang for buck",
+      "imageUrl": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=300&fit=crop",
+      "linkUrl": "/value-picks",
+      "buttonText": "Find Value Deals",
+      "page": "value-picks",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-green-600 via-emerald-600 to-teal-600",
+      "icon": "fas fa-gem"
+    }
+  ],
+  "click-picks": [
+    {
+      "id": 6,
+      "title": "🖱️ Click Picks",
+      "subtitle": "One-click shopping for the most popular products",
+      "imageUrl": "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=300&fit=crop",
+      "linkUrl": "/click-picks",
+      "buttonText": "Quick Shop Now",
+      "page": "click-picks",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-blue-600 via-indigo-600 to-purple-500",
+      "icon": "fas fa-mouse-pointer"
+    }
+  ],
+  "cue-picks": [
+    {
+      "id": 7,
+      "title": "🎯 Cue Picks",
+      "subtitle": "Trending products curated just for you",
+      "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=300&fit=crop",
+      "linkUrl": "/cue-picks",
+      "buttonText": "Browse Trends",
+      "page": "cue-picks",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-red-600 via-pink-600 to-rose-600",
+      "icon": "fas fa-bullseye"
+    }
+  ],
+  "global-picks": [
+    {
+      "id": 8,
+      "title": "🌍 Global Picks",
+      "subtitle": "International favorites from around the world",
+      "imageUrl": "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&h=300&fit=crop",
+      "linkUrl": "/global-picks",
+      "buttonText": "Explore Global",
+      "page": "global-picks",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-cyan-600 via-blue-600 to-indigo-600",
+      "icon": "fas fa-globe"
+    }
+  ],
+  "deals-hub": [
+    {
+      "id": 9,
+      "title": "🏷️ Deals Hub",
+      "subtitle": "Your central destination for the best deals and discounts",
+      "imageUrl": "https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=800&h=300&fit=crop",
+      "linkUrl": "/deals-hub",
+      "buttonText": "Browse Deals",
+      "page": "deals-hub",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-red-600 via-orange-600 to-yellow-500",
+      "icon": "fas fa-tags"
+    }
+  ],
+  "loot-box": [
+    {
+      "id": 10,
+      "title": "📦 Loot Box",
+      "subtitle": "Surprise deals and mystery products waiting to be discovered",
+      "imageUrl": "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=300&fit=crop",
+      "linkUrl": "/loot-box",
+      "buttonText": "Open Loot Box",
+      "page": "loot-box",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-purple-600 via-indigo-600 to-blue-600",
+      "icon": "fas fa-box-open"
+    }
+  ],
+  "services": [
+    {
+      "id": 11,
+      "title": "🛠️ Services",
+      "subtitle": "Premium cards, financial services, and digital solutions for your needs",
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=300&fit=crop",
+      "linkUrl": "/services",
+      "buttonText": "Explore Services",
+      "page": "services",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-indigo-500 to-purple-600",
+      "icon": "fas fa-cogs"
+    }
+  ],
+  "apps": [
+    {
+      "id": 12,
+      "title": "🤖 Apps & AI Apps",
+      "subtitle": "Cutting-edge AI tools and innovative applications for modern life",
+      "imageUrl": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=300&fit=crop",
+      "linkUrl": "/apps",
+      "buttonText": "Discover Apps",
+      "page": "apps",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-green-500 to-emerald-600",
+      "icon": "fas fa-robot"
+    }
+  ],
+  "videos": [
+    {
+      "id": 13,
+      "title": "📹 Video Content",
+      "subtitle": "Watch our curated collection of informative and entertaining videos!",
+      "imageUrl": "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&h=300&fit=crop",
+      "linkUrl": "/videos",
+      "buttonText": "Watch Videos",
+      "page": "videos",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-red-600 via-pink-600 to-purple-600",
+      "icon": "fas fa-play-circle"
+    }
+  ]
+}

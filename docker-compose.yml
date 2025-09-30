@@ -1,0 +1,16 @@
+# Docker Compose for SQLite-only setup
+# Note: This project now uses SQLite exclusively
+# No external database services needed
+
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/database.sqlite
+    volumes:
+      - ./database.sqlite:/app/database.sqlite

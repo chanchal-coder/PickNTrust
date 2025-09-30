@@ -1,0 +1,164 @@
+# Environment files (CRITICAL - Contains sensitive bot tokens)
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+.env.telegram-production
+.env.telegram-template
+.env.admin
+.env.backup
+.env.click-picks
+.env.credentials
+.env.cue-picks
+.env.cuelinks
+.env.deals-hub
+.env.dealshub
+.env.global-picks
+.env.loot-box
+.env.lootbox
+.env.prime-picks
+.env.social-media
+.env.telegram
+.env.travel-picks
+.env.value-picks
+
+# Bot configuration files (CRITICAL - Contains bot tokens and sensitive data)
+BOT_CONFIGURATION_REFERENCE.md
+bot-config.md
+bot-tokens.md
+telegram-bots.md
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.cache/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+logs/
+telegram-errors.log
+
+# Database files (if containing sensitive data)
+*.sqlite
+
+# Backup files (large files that exceed GitHub limits)
+*.zip
+*_backup_*.zip
+pnt_backup_*.zip
+*.db
+database.sqlite
+sqlite.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Bot lock files
+.bot-locks/
+
+# Temporary and cache directories
+tmp/
+temp/
+.tmp/
+.temp/
+image-cache/
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+
+# Security and sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+credentials/
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Test and development files
+test-*.js
+test-*.cjs
+test-*.mjs
+debug-*.js
+
+# Upload directories
+uploads/
+attached_assets/
+
+# Generated content
+public/generated-content/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# IMPORTANT SECURITY NOTE:
+# This .gitignore protects sensitive bot tokens and credentials
+# Never commit files containing:
+# - Telegram bot tokens
+# - Channel IDs
+# - API keys
+# - Database credentials
+# - Webhook secrets
