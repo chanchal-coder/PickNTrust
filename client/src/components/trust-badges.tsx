@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
+
 export default function TrustBadges() {
-  const testimonials = [
+  const defaultTestimonials = [
     {
       id: 1,
       name: "Priya Sharma",
@@ -25,6 +27,49 @@ export default function TrustBadges() {
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&w=64&h=64&fit=crop&crop=face"
     }
   ];
+
+  const [testimonials, setTestimonials] = useState(defaultTestimonials);
+  const [visibleTestimonials, setVisibleTestimonials] = useState(defaultTestimonials.slice(0, 3));
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/testimonials?limit=12', { headers: { accept: 'application/json' } });
+        if (res.ok) {
+          const payload: any = await res.json();
+          const arr = Array.isArray(payload) ? payload : (payload?.data || payload?.items || defaultTestimonials);
+          if (!cancelled && Array.isArray(arr) && arr.length) {
+            setTestimonials(arr);
+            setVisibleTestimonials(arr.slice(0, 3));
+          }
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let i = 0;
+    const rotate = () => {
+      const arr = testimonials;
+      if (arr.length <= 3) { setVisibleTestimonials(arr); return; }
+      const next = [arr[i % arr.length], arr[(i + 1) % arr.length], arr[(i + 2) % arr.length]];
+      setVisibleTestimonials(next);
+      i = (i + 1) % arr.length;
+    };
+    const id = window.setInterval(rotate, 6000);
+    return () => window.clearInterval(id);
+  }, [testimonials]);
+
+  const avatarFallback = useMemo(() => (name: string) => {
+    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>`+
+      `<rect width='100%' height='100%' rx='32' fill='#2563eb'/>`+
+      `<text x='50%' y='55%' font-size='24' font-family='Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif' fill='#fff' text-anchor='middle'>${initials}</text>`+
+      `</svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }, []);
 
   const partnerBrands = [
     { name: "Amazon", icon: "fab fa-amazon", color: "#FF9900" },
@@ -89,13 +134,15 @@ export default function TrustBadges() {
         <div className="mb-12">
           <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">What Our Customers Say</h3>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+            {visibleTestimonials.map((testimonial) => (
+              <div key={testimonial.id ?? testimonial.name} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center mb-4">
                   <img
                     src={testimonial.avatar}
                     alt={testimonial.name}
                     className="w-12 h-12 rounded-full object-cover mr-3"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarFallback(testimonial.name); (e.currentTarget as HTMLImageElement).onerror = null; }}
                   />
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</h4>

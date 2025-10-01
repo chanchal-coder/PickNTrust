@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -736,22 +736,56 @@ export default function Header() {
 
 // Full Social Proof Bar for Header (original styling)
 function HeaderSocialProofBar() {
-  const [currentUsers, setCurrentUsers] = useState(3500);
-  const [recentPurchases, setRecentPurchases] = useState([
-    { name: "Priya from Mumbai", product: "iPhone 15 Pro", time: "2 min ago" },
-    { name: "Raj from Delhi", product: "Samsung TV", time: "5 min ago" },
-    { name: "Sneha from Bangalore", product: "Laptop", time: "8 min ago" },
-    { name: "Amit from Pune", product: "Headphones", time: "12 min ago" },
-    { name: "Maya from Chennai", product: "Smart Watch", time: "15 min ago" }
-  ]);
+  const [currentUsers, setCurrentUsers] = useState(4800);
+  const usedCombosRef = useRef<Set<string>>(new Set());
+
+  const namePool = [
+    "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Reyansh", "Krishna", "Ishaan", "Rohan",
+    "Kabir", "Atharv", "Ananya", "Aanya", "Diya", "Isha", "Kavya", "Nisha", "Riya", "Sanya",
+    "Sneha", "Neha", "Meera", "Tara", "Maya", "Sara", "Aditi", "Anika", "Pooja", "Priya",
+    "Rahul", "Rakesh", "Amit", "Sumit", "Manish", "Vikas", "Deepak", "Suresh", "Ritesh", "Kunal"
+  ];
+  const cityPool = [
+    "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Ahmedabad", "Chennai", "Kolkata", "Surat", "Pune", "Jaipur",
+    "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane", "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad",
+    "Ludhiana", "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Varanasi", "Srinagar", "Ranchi", "Amritsar"
+  ];
+  const productPool = [
+    "iPhone 15 Pro", "Samsung TV", "Laptop", "Headphones", "Smart Watch", "Air Conditioner", "Mixer Grinder", "Bluetooth Speaker",
+    "Gaming Console", "DSLR Camera", "Robot Vacuum", "Fitness Tracker", "Tablet", "Wireless Earbuds", "Projector", "Coffee Maker",
+    "Microwave Oven", "Electric Kettle", "Power Bank", "Smartphone Case"
+  ];
+
+  const generateUniquePurchase = (): { name: string; product: string; time: string } => {
+    let combo = "";
+    let name = "";
+    let city = "";
+    let attempt = 0;
+    do {
+      name = namePool[Math.floor(Math.random() * namePool.length)];
+      city = cityPool[Math.floor(Math.random() * cityPool.length)];
+      combo = `${name} from ${city}`;
+      attempt++;
+      if (attempt > 1000) break;
+    } while (usedCombosRef.current.has(combo));
+    usedCombosRef.current.add(combo);
+
+    const product = productPool[Math.floor(Math.random() * productPool.length)];
+    const minutes = Math.floor(Math.random() * 9) + 1; // 1-10 min ago
+    return { name: combo, product, time: `${minutes} min ago` };
+  };
+
+  const [recentPurchases, setRecentPurchases] = useState(() =>
+    Array.from({ length: 5 }, () => generateUniquePurchase())
+  );
   const [currentPurchase, setCurrentPurchase] = useState(0);
 
-  // Simulate live user count updates
+  // Simulate live user count updates (never starts with 3)
   useEffect(() => {
     const userInterval = setInterval(() => {
       setCurrentUsers(prev => {
         const change = Math.floor(Math.random() * 21) - 10; // Random change between -10 and +10
-        const newCount = Math.max(3200, Math.min(4200, prev + change)); // Keep between 3200-4200
+        const newCount = Math.max(4200, Math.min(5800, prev + change)); // Keep between 4200-5800
         return newCount;
       });
     }, 8000);
@@ -759,14 +793,18 @@ function HeaderSocialProofBar() {
     return () => clearInterval(userInterval);
   }, []);
 
-  // Cycle through recent purchases
+  // Continuously generate unique recent purchases
   useEffect(() => {
     const purchaseInterval = setInterval(() => {
-      setCurrentPurchase(prev => (prev + 1) % recentPurchases.length);
+      setRecentPurchases(prev => {
+        const next = [...prev.slice(1), generateUniquePurchase()];
+        return next;
+      });
+      setCurrentPurchase(prev => (prev + 1) % 5);
     }, 4000);
 
     return () => clearInterval(purchaseInterval);
-  }, [recentPurchases.length]);
+  }, []);
 
   return (
     <section className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 border-b border-green-200 dark:border-gray-600 -mb-1">

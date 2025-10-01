@@ -222,6 +222,39 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
+  // Public testimonials endpoint for dynamic "What Our Customers Say"
+  app.get('/api/testimonials', (req, res) => {
+    try {
+      const limitParam = (req.query.limit as string) || '9';
+      const limit = Math.max(1, Math.min(24, parseInt(limitParam, 10) || 9));
+
+      const base = [
+        { id: 1, name: 'Priya Sharma', location: 'Mumbai', rating: 5, comment: 'Amazing deals and genuine products! Saved over ₹15,000 on my smartphone purchase.', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b047?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 2, name: 'Raj Patel', location: 'Delhi', rating: 5, comment: 'Transparent affiliate links and honest reviews. Trust PickNTrust for all my online shopping!', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2c?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 3, name: 'Sneha Gupta', location: 'Bangalore', rating: 5, comment: 'The best deals and cashback offers. Their recommendations never disappoint!', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 4, name: 'Aarav Mehta', location: 'Pune', rating: 5, comment: 'Got a genuine product at the lowest price. Love their honest approach.', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 5, name: 'Isha Verma', location: 'Noida', rating: 5, comment: 'Super helpful reviews and clear disclosures. No hidden catches!', avatar: 'https://images.unsplash.com/photo-1544005319-6e6e0a87f22b?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 6, name: 'Vikram Singh', location: 'Jaipur', rating: 4, comment: 'Found an amazing deal on earphones. Keep up the good work!', avatar: 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 7, name: 'Neha Kapoor', location: 'Chennai', rating: 5, comment: 'Genuine recommendations. Saved time and money!', avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 8, name: 'Rohan Das', location: 'Kolkata', rating: 4, comment: 'Appreciate the transparent affiliate policy. Very trustworthy.', avatar: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 9, name: 'Pooja Nair', location: 'Hyderabad', rating: 5, comment: 'Best place to discover genuine products and deals.', avatar: 'https://images.unsplash.com/photo-1529139574466-a303019a6958?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 10, name: 'Kunal Arora', location: 'Gurgaon', rating: 5, comment: 'Prices and reviews are accurate. Really helpful site.', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 11, name: 'Ananya Iyer', location: 'Coimbatore', rating: 5, comment: 'Consistent quality and honest content.', avatar: 'https://images.unsplash.com/photo-1544005313-83e3c3f67af8?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' },
+        { id: 12, name: 'Dev Patel', location: 'Ahmedabad', rating: 4, comment: 'Solid resource for choosing gadgets.', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-4.0.3&w=128&h=128&fit=crop&crop=face' }
+      ];
+
+      const shuffled = base
+        .map((item) => ({ item, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ item }) => item);
+
+      res.json(shuffled.slice(0, limit));
+    } catch (error) {
+      console.error('Error fetching testimonials:', error);
+      res.status(500).json({ error: 'Failed to fetch testimonials' });
+    }
+  });
+
   // Get products for a specific page using display_pages field and checkbox filters
   app.get("/api/products/page/:page", async (req, res) => {
     try {

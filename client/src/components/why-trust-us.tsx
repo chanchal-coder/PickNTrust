@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
+
 export default function WhyTrustUs() {
-  const testimonials = [
+  const defaultTestimonials = [
     {
       id: 1,
       name: "Priya Sharma",
@@ -25,6 +27,53 @@ export default function WhyTrustUs() {
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&w=64&h=64&fit=crop&crop=face"
     }
   ];
+
+  const [testimonials, setTestimonials] = useState(defaultTestimonials);
+  const [visibleTestimonials, setVisibleTestimonials] = useState(defaultTestimonials.slice(0, 3));
+
+  // Fetch testimonials dynamically if available, otherwise use defaults
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/testimonials?limit=12', { headers: { accept: 'application/json' } });
+        if (res.ok) {
+          const payload: any = await res.json();
+          const arr = Array.isArray(payload) ? payload : (payload?.data || payload?.items || defaultTestimonials);
+          if (!cancelled && Array.isArray(arr) && arr.length) {
+            setTestimonials(arr);
+            setVisibleTestimonials(arr.slice(0, 3));
+          }
+        }
+      } catch (e) {
+        // silently fall back to default testimonials
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Rotate visible testimonials every few seconds to keep section dynamic/live
+  useEffect(() => {
+    let i = 0;
+    const rotate = () => {
+      const arr = testimonials;
+      if (arr.length <= 3) { setVisibleTestimonials(arr); return; }
+      const next = [arr[i % arr.length], arr[(i + 1) % arr.length], arr[(i + 2) % arr.length]];
+      setVisibleTestimonials(next);
+      i = (i + 1) % arr.length;
+    };
+    const id = window.setInterval(rotate, 6000);
+    return () => window.clearInterval(id);
+  }, [testimonials]);
+
+  const avatarFallback = (name: string) => {
+    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>`+
+      `<rect width='100%' height='100%' rx='32' fill='#2563eb'/>`+
+      `<text x='50%' y='55%' font-size='24' font-family='Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif' fill='#fff' text-anchor='middle'>${initials}</text>`+
+      `</svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  };
 
   const partnerBrands = [
     { name: "Amazon", icon: "fab fa-amazon", color: "#FF9900" },
@@ -133,7 +182,7 @@ export default function WhyTrustUs() {
             </div>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => {
+            {visibleTestimonials.map((testimonial, index) => {
               const gradients = [
                 "bg-gradient-to-br from-pink-400 to-pink-500",
                 "bg-gradient-to-br from-indigo-400 to-indigo-500", 
@@ -145,12 +194,13 @@ export default function WhyTrustUs() {
                 "border-teal-300"
               ];
               return (
-                <div key={testimonial.id} className={`${gradients[index]} text-white rounded-xl p-6 shadow-xl border-2 ${borderColors[index]} transform hover:scale-105 transition-all duration-300`}>
+                <div key={testimonial.id ?? `${testimonial.name}-${index}`} className={`${gradients[index % gradients.length]} text-white rounded-xl p-6 shadow-xl border-2 ${borderColors[index % borderColors.length]} transform hover:scale-105 transition-all duration-300`}>
                   <div className="flex items-center mb-4">
                     <img
                       src={testimonial.avatar}
                       alt={testimonial.name}
                       className="w-12 h-12 rounded-full object-cover mr-3 border-2 border-white shadow-md"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarFallback(testimonial.name); (e.currentTarget as HTMLImageElement).onerror = null; }}
                     />
                     <div>
                       <h4 className="font-semibold text-white">{testimonial.name}</h4>

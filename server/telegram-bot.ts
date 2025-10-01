@@ -891,6 +891,11 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
       confidence: categorization.confidence
     });
     
+    // Determine affiliate URL with conversion based on channel/platform
+    const sourceUrls = (productData.urls && productData.urls.length > 0) ? productData.urls : (productInfo?.urls || []);
+    const convertedAffiliateUrls = convertUrls(sourceUrls, channelConfig);
+    const affiliateUrlToSave = convertedAffiliateUrls[0] || (sourceUrls[0] || '');
+    
     // Use raw SQL insert matching the actual unified_content table schema
     const insertSQL = `
       INSERT INTO unified_content (
@@ -909,14 +914,14 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
       numericPrice.toString(),
       numericOriginalPrice?.toString() || null,
       productData.imageUrl || 'https://via.placeholder.com/300x300?text=Product',
-      productData.urls?.[0] || productInfo.urls?.[0] || '',
+      affiliateUrlToSave,
       'product',
       channelConfig.pageSlug,
       categorization.category, // Use smart categorization result
       null, // subcategory
       'telegram', // source_type
       channelPostId?.toString() || channelConfig.pageSlug, // Use channel_posts ID as source_id
-      'amazon',
+      channelConfig.platform, // affiliate_platform reflects channel/platform (e.g., deodap)
       '4.0',
       100,
       discount,
