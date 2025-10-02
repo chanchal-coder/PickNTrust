@@ -7,7 +7,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import Sidebar from "@/components/sidebar";
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
@@ -731,7 +731,7 @@ export default function Flights() {
       <Header />
       
       {/* Page Banner */}
-      <StaticPageBanner 
+      <PageBanner 
         page="flights"
       />
       

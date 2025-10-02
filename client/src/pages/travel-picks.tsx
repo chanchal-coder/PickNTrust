@@ -7,7 +7,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
 import WidgetRenderer from "@/components/WidgetRenderer";
@@ -3616,7 +3616,7 @@ export default function TravelPicks() {
       
       <Header />
       <AnnouncementBanner />
-      <StaticPageBanner page="travel-picks" />
+      <PageBanner page="travel-picks" />
 
       <div className="container mx-auto px-4 py-6">
         <TravelNavigation 

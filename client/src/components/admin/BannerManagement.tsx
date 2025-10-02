@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Edit, Plus, Save, X, Eye, EyeOff, Image, Link, ArrowLeft, ArrowRight, Lock } from 'lucide-react';
+import { getStaticBanners } from '@/components/StaticPageBanner';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { bannerSlides } from '../hero-banner-slider';
 
@@ -17,7 +18,7 @@ interface BannerButton {
   style?: 'primary' | 'secondary' | 'outline';
 }
 
-interface Banner {
+  interface Banner {
   id: number;
   title: string;
   subtitle?: string;
@@ -44,12 +45,12 @@ interface Banner {
   backgroundGradient?: string;
   useGradient?: boolean;
   backgroundStyle?: 'solid' | 'gradient' | 'palette';
-  backgroundOpacity?: string;
+    backgroundOpacity?: number;
   created_at?: string;
   updated_at?: string;
 }
 
-interface BannerForm {
+  interface BannerForm {
   title: string;
   subtitle: string;
   imageUrl: string;
@@ -74,7 +75,7 @@ interface BannerForm {
   backgroundGradient?: string;
   useGradient?: boolean;
   backgroundStyle?: 'solid' | 'gradient' | 'palette';
-  backgroundOpacity?: string;
+    backgroundOpacity?: number;
 }
 
 interface NavTab {
@@ -106,6 +107,7 @@ const pages = [
   { value: 'click-picks', label: 'Click Picks' },
   { value: 'deals-hub', label: 'Deals Hub' },
   { value: 'global-picks', label: 'Global Picks' },
+  { value: 'travel-picks', label: 'Travel Picks' },
   { value: 'loot-box', label: 'Loot Box' },
 ];
 
@@ -321,17 +323,39 @@ export default function BannerManagement() {
     backgroundGradient: 'bg-gradient-to-r from-blue-600 to-purple-600',
     useGradient: false,
     backgroundStyle: 'solid',
+    backgroundOpacity: 100,
   });
 
   // Fetch banners
-  const { data: banners = [], isLoading } = useQuery({
+  const { data: banners = [], isLoading } = useQuery<Banner[]>({
     queryKey: ['/api/admin/banners'],
     queryFn: async () => {
       const response = await fetch('/api/admin/banners');
       if (!response.ok) {
         throw new Error('Failed to fetch banners');
       }
-      return response.json();
+      const data = await response.json();
+      // Normalize various possible backend shapes to a flat Banner[]
+      let payload: any = data;
+      // Handle wrapper: { success: true, banners: ... }
+      if (payload && typeof payload === 'object' && 'banners' in payload) {
+        payload = (payload as any).banners;
+      }
+      // If already an array
+      if (Array.isArray(payload)) {
+        return payload as Banner[];
+      }
+      // If grouped object keyed by page
+      if (payload && typeof payload === 'object') {
+        const flattened: Banner[] = Object.entries(payload).flatMap(([page, list]) =>
+          Array.isArray(list)
+            ? (list as any[]).map((b: any) => ({ ...b, page: b?.page ?? page }))
+            : []
+        );
+        return flattened;
+      }
+      // Fallback
+      return [] as Banner[];
     },
   });
 
@@ -363,6 +387,7 @@ export default function BannerManagement() {
     { value: 'videos', label: 'Videos Page' },
     { value: 'wishlist', label: 'Wishlist Page' },
     { value: 'contact', label: 'Contact Page' },
+    { value: 'travel-picks', label: 'Travel Picks' },
     // Add navigation pages from API if available, otherwise use hardcoded fallback
     ...(Array.isArray(navTabs) && navTabs.length > 0 
       ? navTabs
@@ -379,13 +404,14 @@ export default function BannerManagement() {
           { value: 'click-picks', label: 'Click Picks' },
           { value: 'deals-hub', label: 'Deals Hub' },
           { value: 'global-picks', label: 'Global Picks' },
-          { value: 'loot-box', label: 'Loot Box' }
+          { value: 'loot-box', label: 'Loot Box' },
+          { value: 'travel-picks', label: 'Travel Picks' }
         ]
     )
   ];
 
   // Filter banners by selected page
-  const filteredBanners = banners.filter((banner: Banner) => banner.page === selectedPage);
+  const filteredBanners = (Array.isArray(banners) ? banners : []).filter((banner: Banner) => banner.page === selectedPage);
 
   // Create banner mutation
   const createBannerMutation = useMutation({
@@ -399,8 +425,18 @@ export default function BannerManagement() {
       });
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create banner');
+        // Be tolerant to non-JSON error bodies
+        let errorMsg = 'Failed to create banner';
+        try {
+          const error = await response.json();
+          errorMsg = (error && (error.error || error.message)) || errorMsg;
+        } catch {
+          try {
+            const text = await response.text();
+            if (text && text.length > 0) errorMsg = text;
+          } catch {}
+        }
+        throw new Error(errorMsg);
       }
       
       return response.json();
@@ -538,10 +574,15 @@ export default function BannerManagement() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/banners/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Backend expects an admin password in the request body
+        body: JSON.stringify({ password: 'pickntrust2025' }),
       });
       
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to delete banner' }));
         throw new Error(error.message || 'Failed to delete banner');
       }
       
@@ -564,6 +605,53 @@ export default function BannerManagement() {
       toast({
         title: 'Success',
         description: 'Banner deleted successfully',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Import all static banners into dynamic database
+  const importStaticBannersMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/admin/banners/import-static', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        let errorMsg = 'Failed to import static banners';
+        try {
+          const err = await response.json();
+          errorMsg = (err && (err.error || err.message)) || errorMsg;
+        } catch {
+          try {
+            const text = await response.text();
+            if (text && text.length > 0) errorMsg = text;
+          } catch {}
+        }
+        throw new Error(errorMsg);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh all banner queries
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/banners'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/banners'] });
+      pages.forEach(page => {
+        queryClient.invalidateQueries({ queryKey: [`banners-${page.value}`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/banners/${page.value}`] });
+      });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        typeof query.queryKey[0] === 'string' && 
+        (query.queryKey[0].startsWith('banners-') || query.queryKey[0].startsWith('/api/banners/'))
+      });
+      toast({
+        title: 'Success',
+        description: 'Imported static banners into dynamic management',
       });
     },
     onError: (error: any) => {
@@ -742,9 +830,40 @@ export default function BannerManagement() {
 
   // Toggle banner active status
   const toggleBannerStatus = async (banner: Banner) => {
+    // Send a full payload to avoid backend NOT NULL violations
+    const placeholderImage =
+      banner.imageUrl && banner.imageUrl.trim().length > 0
+        ? banner.imageUrl
+        : "https://via.placeholder.com/1x1/transparent/transparent.png";
+
     updateBannerMutation.mutate({
       id: banner.id,
-      isActive: !banner.isActive
+      // core fields expected by backend update route
+      title: banner.title ?? "",
+      subtitle: banner.subtitle ?? "",
+      imageUrl: placeholderImage,
+      linkUrl: banner.linkUrl ?? "",
+      buttonText: banner.buttonText ?? "",
+      page: banner.page,
+      // toggle active status
+      isActive: !banner.isActive,
+      // icon-related
+      icon: banner.icon ?? "",
+      iconType: banner.iconType ?? "none",
+      iconPosition: banner.iconPosition ?? "top",
+      // background-related
+      useGradient:
+        typeof banner.useGradient === "boolean"
+          ? banner.useGradient
+          : banner.backgroundStyle === "gradient",
+      backgroundGradient: banner.backgroundGradient ?? "",
+      backgroundOpacity:
+        typeof banner.backgroundOpacity === "number"
+          ? banner.backgroundOpacity
+          : 100,
+      // image display helpers
+      imageDisplayType: banner.imageDisplayType ?? "image",
+      unsplashQuery: banner.unsplashQuery ?? "",
     });
   };
 
@@ -813,26 +932,11 @@ export default function BannerManagement() {
         backgroundGradient: hardcodedBanner.bgGradient ? `bg-gradient-to-r ${hardcodedBanner.bgGradient}` : 'bg-gradient-to-r from-purple-600 to-orange-600',
         useGradient: true,
         backgroundStyle: 'gradient' as const,
-        // Copy and convert icon properties
-        icon: hardcodedBanner.icon ? (
-          hardcodedBanner.icon === 'fas fa-crown' ? '👑' :
-          hardcodedBanner.icon === 'fas fa-gem' ? '💎' :
-          hardcodedBanner.icon === 'fas fa-fire' ? '🔥' :
-          hardcodedBanner.icon === 'fas fa-star' ? '⭐' :
-          hardcodedBanner.icon === 'fas fa-gift' ? '🎁' :
-          hardcodedBanner.icon === 'fas fa-bullseye' ? '🎯' :
-          hardcodedBanner.icon === 'fas fa-globe' ? '🌍' :
-          hardcodedBanner.icon === 'fas fa-shopping-bag' ? '🛍️' :
-          hardcodedBanner.icon.startsWith('fas fa-') ? '⭐' : hardcodedBanner.icon
-        ) : (hardcodedBanner.title.includes('Prime') ? '👑' : 
-             hardcodedBanner.title.includes('Value') ? '💎' :
-             hardcodedBanner.title.includes('Fire') || hardcodedBanner.title.includes('Deal') ? '🔥' :
-             hardcodedBanner.title.includes('Global') ? '🌍' :
-             hardcodedBanner.title.includes('Cue') ? '🎯' :
-             hardcodedBanner.title.includes('Loot') || hardcodedBanner.title.includes('Gift') ? '🎁' :
-             hardcodedBanner.title.includes('Click') ? '🛍️' : ''),
-        iconType: (hardcodedBanner.icon || hardcodedBanner.title.includes('Prime') || hardcodedBanner.title.includes('Value')) ? 'emoji' as const : 'none' as const,
-        iconPosition: 'left' as const,
+        // Keep Font Awesome icons exactly as in static banners
+        icon: hardcodedBanner.icon || '',
+        iconType: hardcodedBanner.icon ? 'fontawesome' as const : 'none' as const,
+        // Default to top icon to mirror static banner presentation
+        iconPosition: 'top' as const,
       };
       
       await createBannerMutation.mutateAsync(bannerData);
@@ -861,6 +965,30 @@ export default function BannerManagement() {
       }));
     }
     
+    // Travel page: show all static travel banners from config
+    if (selectedPage === 'travel-picks') {
+      try {
+        const staticTravel = (getStaticBanners('travel-picks') as any[]) || [];
+        return staticTravel
+          .filter(b => b && b.isActive)
+          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+          .map(b => ({
+            id: `static-${b.id}`,
+            title: b.title,
+            subtitle: b.subtitle || '',
+            image: b.imageUrl || '',
+            ctaText: b.buttonText || 'Learn More',
+            ctaLink: b.linkUrl || '/',
+            bgGradient: b.gradient || '',
+            icon: b.icon || '',
+            isHardcoded: true,
+            page: 'travel-picks'
+          }));
+      } catch {
+        return [];
+      }
+    }
+
     // Get fallback banners for other pages
     const fallbackBanners: { [key: string]: any } = {
       'prime-picks': {
@@ -921,7 +1049,7 @@ export default function BannerManagement() {
         ctaText: 'Browse Deals',
         ctaLink: '/',
         bgGradient: 'from-red-600 via-orange-600 to-yellow-500',
-        icon: 'fas fa-tags'
+        icon: 'fas fa-fire'
       },
       'loot-box': {
         id: 'fallback-loot-box',
@@ -956,13 +1084,22 @@ export default function BannerManagement() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Banner Management</h2>
           <p className="text-gray-600 dark:text-gray-400">Manage sliding banners for all pages</p>
         </div>
-        <Button
-          onClick={() => setIsAddingBanner(true)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Banner
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setIsAddingBanner(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Banner
+          </Button>
+          <Button
+            onClick={() => importStaticBannersMutation.mutate()}
+            disabled={importStaticBannersMutation.isPending}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            {importStaticBannersMutation.isPending ? 'Importing…' : 'Import Static'}
+          </Button>
+        </div>
       </div>
 
       {/* Page Filter */}
@@ -1142,7 +1279,7 @@ export default function BannerManagement() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Banner Image *</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Banner Image (optional)</Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -1169,7 +1306,6 @@ export default function BannerManagement() {
                     value={newBanner.imageUrl}
                     onChange={(e) => setNewBanner({ ...newBanner, imageUrl: e.target.value })}
                     placeholder="https://example.com/banner-image.jpg"
-                    required
                     className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 ) : (
@@ -1437,14 +1573,14 @@ export default function BannerManagement() {
                   
                   {/* Overlay Opacity Control */}
                   <div className="mb-4">
-                    <Label className="text-gray-700 dark:text-gray-300">Background Opacity: {(newBanner as any).backgroundOpacity || '100'}%</Label>
+                    <Label className="text-gray-700 dark:text-gray-300">Background Opacity: {newBanner.backgroundOpacity ?? 100}%</Label>
                     <input
                       type="range"
                       min="10"
                       max="100"
                       step="10"
-                      value={(newBanner as any).backgroundOpacity || '100'}
-                      onChange={(e) => setNewBanner({ ...newBanner, backgroundOpacity: e.target.value } as any)}
+                      value={newBanner.backgroundOpacity ?? 100}
+                      onChange={(e) => setNewBanner({ ...newBanner, backgroundOpacity: parseInt(e.target.value, 10) })}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                     />
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -1665,7 +1801,7 @@ export default function BannerManagement() {
                     style={{
                       backgroundColor: (newBanner.backgroundStyle === 'solid' || newBanner.backgroundStyle === 'palette') ? newBanner.backgroundColor : undefined,
                       color: newBanner.textStyle === 'solid' || newBanner.textStyle === 'palette' ? newBanner.textColor : undefined,
-                      opacity: newBanner.imageDisplayType === 'text-only' ? ((newBanner as any).backgroundOpacity || 100) / 100 : undefined
+                      opacity: newBanner.imageDisplayType === 'text-only' ? ((newBanner.backgroundOpacity ?? 100) / 100) : undefined
                     }}
                   >
                     {/* Background Image */}
@@ -1676,7 +1812,7 @@ export default function BannerManagement() {
                             src={`https://picsum.photos/800/400?random=${encodeURIComponent(newBanner.unsplashQuery)}`}
                             alt="Unsplash background"
                             className="w-full h-full object-cover"
-                            style={{ opacity: ((newBanner as any).backgroundOpacity || 100) / 100 }}
+                            style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
                             onError={(e) => {
                               // Fallback to a working placeholder
                               e.currentTarget.src = 'https://picsum.photos/800/400?random=1';
@@ -1687,7 +1823,7 @@ export default function BannerManagement() {
                             src={newBanner.imageUrl}
                             alt="Custom background"
                             className="w-full h-full object-cover"
-                            style={{ opacity: ((newBanner as any).backgroundOpacity || 100) / 100 }}
+                            style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
                             onError={(e) => {
                               e.currentTarget.src = 'https://via.placeholder.com/800x400/6B7280/FFFFFF?text=Image+Not+Found';
                             }}

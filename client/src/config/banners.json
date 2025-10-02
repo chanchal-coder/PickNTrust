@@ -53,7 +53,7 @@
       "linkUrl": "",
       "buttonText": "",
       "page": "cue-picks",
-      "isActive": false,
+      "isActive": true,
       "display_order": 1,
       "gradient": "from-red-600 via-pink-600 to-rose-600",
       "icon": "fas fa-bullseye"
@@ -167,11 +167,11 @@
   "global-picks": [
     {
       "id": 19,
-      "title": "🌍 Global Picks",
+      "title": "Global Picks",
       "subtitle": "International products and brands from around the world!",
       "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=400&fit=crop&q=80",
       "linkUrl": "/global-picks",
-      "buttonText": "🌎 Explore Global",
+      "buttonText": "Explore Global",
       "page": "global-picks",
       "isActive": true,
       "display_order": 1,
@@ -399,6 +399,47 @@
       "display_order": 1,
       "gradient": "from-pink-600 via-rose-600 to-red-600",
       "icon": "fas fa-heart"
+    }
+  ],
+  "home": [
+    {
+      "id": 48,
+      "title": "Welcome to PickNTrust",
+      "subtitle": "Discover amazing products, deals, and services handpicked just for you!",
+      "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=400&fit=crop&q=80",
+      "linkUrl": "/products",
+      "buttonText": "🛍️ Start Shopping",
+      "page": "home",
+      "isActive": true,
+      "display_order": 1,
+      "gradient": "from-blue-600 via-purple-600 to-pink-600",
+      "icon": "fas fa-home"
+    },
+    {
+      "id": 49,
+      "title": "Top Deals & Offers",
+      "subtitle": "Don't miss out on our exclusive deals and limited-time offers!",
+      "imageUrl": "https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=1200&h=400&fit=crop&q=80",
+      "linkUrl": "/deals-hub",
+      "buttonText": "🔥 View Deals",
+      "page": "home",
+      "isActive": true,
+      "display_order": 2,
+      "gradient": "from-red-600 via-orange-600 to-yellow-500",
+      "icon": "fas fa-tags"
+    },
+    {
+      "id": 50,
+      "title": "Premium Services",
+      "subtitle": "Professional services and AI-powered tools to boost your productivity",
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop&q=80",
+      "linkUrl": "/services",
+      "buttonText": "🚀 Explore Services",
+      "page": "home",
+      "isActive": true,
+      "display_order": 3,
+      "gradient": "from-green-600 via-emerald-600 to-teal-600",
+      "icon": "fas fa-cogs"
     }
   ]
 }

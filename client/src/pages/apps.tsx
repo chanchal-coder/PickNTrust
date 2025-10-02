@@ -6,7 +6,7 @@ import { useWishlist } from "@/hooks/use-wishlist";
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import ScrollNavigation from '@/components/scroll-navigation';
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 
@@ -398,7 +398,7 @@ export default function AppsPage() {
         <AnnouncementBanner page="apps" />
       
       {/* Amazing Page Banner */}
-      <StaticPageBanner page="apps" />
+      <PageBanner page="apps" />
         <div className="pt-20 pb-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center py-16">
@@ -419,7 +419,7 @@ export default function AppsPage() {
         <AnnouncementBanner page="apps" />
       
       {/* Amazing Page Banner */}
-      <StaticPageBanner page="apps" />
+      <PageBanner page="apps" />
       
       {/* Apps Content Section with Sidebar */}
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">

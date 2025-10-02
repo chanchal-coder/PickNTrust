@@ -8,7 +8,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 
 import Sidebar from "@/components/sidebar";
@@ -396,7 +396,7 @@ export default function Services() {
         <AnnouncementBanner />
         
         {/* Amazing Page Banner */}
-        <StaticPageBanner page="services" />
+        <PageBanner page="services" />
         
         {/* Services Content Section with Sidebar */}
           <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">

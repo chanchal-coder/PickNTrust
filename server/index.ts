@@ -5,6 +5,7 @@ import { serveStatic, log } from "./vite.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import './telegram-bot.js'; // Initialize Telegram bot
+import { sqliteDb } from "./db.js";
 
 // Initialize URL Processing Routes for manual URL processing
 import { setupURLProcessingRoutes } from './url-processing-routes.js';
@@ -218,217 +219,220 @@ app.use((req, res, next) => {
   imageProxyService.setupRoutes(app);
   console.log('🖼️ Image proxy service initialized for authentic product images');
   
-  // Root route: in development, defer to Vite middleware; otherwise redirect if FRONTEND_URL is set, or return JSON status
-  app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    const isDev = process.env.NODE_ENV !== 'production';
-
-    // In integrated dev mode, let Vite middleware serve the SPA on port 5000
-    if (isDev) {
-      return next();
-    }
-
-    const frontendUrl = process.env.FRONTEND_URL || '';
-    if (frontendUrl) {
-      return res.redirect(frontendUrl);
-    }
-
-    res.json({
-      message: 'Backend server is running',
-      environment: process.env.NODE_ENV || 'development',
-      port: parseInt(process.env.PORT || '5000', 10),
-      helpfulLinks: {
-        health: '/health',
-        apiStatus: '/api/status',
-        services: '/api/services',
-        apps: '/api/products/apps',
-        blog: '/api/blog',
-      }
-    });
+  // Root route: Always fall through to SPA fallback for meta tag injection and client routing
+  app.get('/', (_req: Request, _res: Response, next: NextFunction) => {
+    return next();
   });
+
+// Health check endpoint
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    services: {
+      database: 'connected'
+    }
+  });
+});
+
+// API status endpoint
+app.get('/api/status', (_req: Request, res: Response) => {
+  res.json({ 
+    status: 'operational',
+    version: '1.0.0',
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  const isJsonParseError = err instanceof SyntaxError && (err as any).status === 400 && 'body' in err;
+  const status = isJsonParseError ? 400 : (err.status || err.statusCode || 500);
+  const message = isJsonParseError ? 'Invalid JSON payload' : (err.message || "Internal Server Error");
+
+  // Log structured error details for debugging
+  console.error('Request Error:', {
+    url: req.url,
+    method: req.method,
+    status,
+    message,
+    headers: req.headers
+  });
+
+  res.status(status).json({ message });
+});
+
+// Environment configuration
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const PORT = process.env.PORT || 5000;
+const FRONTEND_URL = process.env.FRONTEND_URL || (isDevelopment ? 'http://localhost:5173' : '');
+
+// Log environment information
+console.log(`🌍 Environment: ${isDevelopment ? 'Development' : 'Production'}`);
+console.log(`🚀 Server will start on port: ${PORT}`);
+if (isDevelopment) {
+  console.log(`🎨 Frontend URL: ${FRONTEND_URL}`);
+}
+
+// Backend server startup
+const port = parseInt(process.env.PORT || '5000', 10);
+const server = app.listen(port, '0.0.0.0', async () => {
+  console.log(`✅ Backend server running on http://localhost:${port}`);
+  console.log(`📊 Health check: http://localhost:${port}/health`);
+  console.log(`🔧 API status: http://localhost:${port}/api/status`);
   
-  // Health check endpoint
-  app.get('/health', (_req: Request, res: Response) => {
-    res.status(200).json({ 
-      status: 'healthy', 
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      services: {
-        database: 'connected'
-      }
-    });
-  });
-
-  // API status endpoint
-  app.get('/api/status', (_req: Request, res: Response) => {
-    res.json({ 
-      status: 'operational',
-      version: '1.0.0',
-      uptime: process.uptime(),
-      memory: process.memoryUsage()
-    });
-  });
-
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const isJsonParseError = err instanceof SyntaxError && (err as any).status === 400 && 'body' in err;
-    const status = isJsonParseError ? 400 : (err.status || err.statusCode || 500);
-    const message = isJsonParseError ? 'Invalid JSON payload' : (err.message || "Internal Server Error");
-
-    // Log structured error details for debugging
-    console.error('Request Error:', {
-      url: req.url,
-      method: req.method,
-      status,
-      message,
-      headers: req.headers
-    });
-
-    res.status(status).json({ message });
-  });
-
-  // Environment configuration
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  const PORT = process.env.PORT || 5000;
-  const FRONTEND_URL = process.env.FRONTEND_URL || (isDevelopment ? 'http://localhost:5173' : '');
-
-  // Log environment information
-  console.log(`🌍 Environment: ${isDevelopment ? 'Development' : 'Production'}`);
-  console.log(`🚀 Server will start on port: ${PORT}`);
   if (isDevelopment) {
-    console.log(`🎨 Frontend URL: ${FRONTEND_URL}`);
+    console.log(`\n🎯 Development Mode Active:`);
+    console.log(`   • Backend API: http://localhost:${port}`);
+    console.log(`   • Frontend: Integrated with backend (or run separately on port 5173)`);
+    console.log(`   • Use 'npm run dev:separate' for separate frontend server`);
+  } else {
+    console.log(`\n🏭 Production Mode Active:`);
+    console.log(`   • Serving static frontend files`);
+    console.log(`   • All requests handled by this server`);
   }
 
-  // Backend server startup
-  const port = parseInt(process.env.PORT || '5000', 10);
-  const server = app.listen(port, '0.0.0.0', async () => {
-    console.log(`✅ Backend server running on http://localhost:${port}`);
-    console.log(`📊 Health check: http://localhost:${port}/health`);
-    console.log(`🔧 API status: http://localhost:${port}/api/status`);
-    
-    if (isDevelopment) {
-      console.log(`\n🎯 Development Mode Active:`);
-      console.log(`   • Backend API: http://localhost:${port}`);
-      console.log(`   • Frontend: Integrated with backend (or run separately on port 5173)`);
-      console.log(`   • Use 'npm run dev:separate' for separate frontend server`);
-    } else {
-      console.log(`\n🏭 Production Mode Active:`);
-      console.log(`   • Serving static frontend files`);
-      console.log(`   • All requests handled by this server`);
-    }
-
-    // Setup development or production mode after server is created
-    if (isDevelopment) {
-      // Setup Vite in development - this handles all static assets and SPA routing
-      import("./vite.js").then(async ({ setupVite }) => {
-        console.log('🔧 Setting up Vite development server...');
-        try {
-          await setupVite(app, server);
-          console.log('✅ Vite development server configured');
-          console.log('🌐 Frontend available at: http://localhost:5000');
-          console.log('🔧 For separate frontend dev server, run: cd client && npm run dev');
-        } catch (error) {
-          console.error('❌ Failed to setup Vite:', error);
-          console.log('💡 Fallback: You can run frontend separately with: cd client && npm run dev');
-        }
-      }).catch(error => {
-        console.error('❌ Failed to import Vite module:', error);
+  // Setup development or production mode after server is created
+  if (isDevelopment) {
+    // Setup Vite in development - this handles all static assets and SPA routing
+    import("./vite.js").then(async ({ setupVite }) => {
+      console.log('🔧 Setting up Vite development server...');
+      try {
+        await setupVite(app, server);
+        console.log('✅ Vite development server configured');
+        console.log('🌐 Frontend available at: http://localhost:5000');
+        console.log('🔧 For separate frontend dev server, run: cd client && npm run dev');
+      } catch (error) {
+        console.error('❌ Failed to setup Vite:', error);
         console.log('💡 Fallback: You can run frontend separately with: cd client && npm run dev');
+      }
+    }).catch(error => {
+      console.error('❌ Failed to import Vite module:', error);
+      console.log('💡 Fallback: You can run frontend separately with: cd client && npm run dev');
+    });
+  } else {
+    // Production mode - serve static files and handle SPA routing
+    const fs = await import('fs');
+    const publicPath = process.env.FRONTEND_STATIC_DIR
+      ? path.resolve(process.env.FRONTEND_STATIC_DIR)
+      : path.resolve(__dirname, "../public");
+    console.log(`📁 Frontend static dir resolved to: ${publicPath}`);
+    
+    if (fs.existsSync(publicPath)) {
+      console.log(`📁 Setting up static file serving from: ${publicPath}`);
+      
+      // Set proper MIME types for JavaScript files
+      // Important: Disable default index.html serving so SPA fallback can inject meta tags
+      app.use(express.static(publicPath, {
+        index: false,
+        maxAge: '1d',
+        setHeaders: (res, path) => {
+          if (path.endsWith('.js') || path.endsWith('.mjs')) {
+            res.setHeader('Content-Type', 'application/javascript');
+          } else if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+          }
+        }
+      }));
+      
+      // SPA fallback - serve index.html for client-side routes
+      app.get('*', (req, res, next) => {
+        // Skip API routes
+        if (req.path.startsWith('/api/')) {
+          return next();
+        }
+        
+        // Skip static files (files with extensions)
+        if (path.extname(req.path)) {
+          return next();
+        }
+        
+        const indexPath = path.join(publicPath, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          try {
+            // Read static HTML and inject active meta tags into <head>
+            let html = fs.readFileSync(indexPath, 'utf-8');
+            const activeTags = sqliteDb.prepare(
+              `SELECT name, content FROM meta_tags WHERE is_active = 1 ORDER BY provider ASC`
+            ).all() as { name: string; content: string }[];
+            const injection = activeTags
+              .map(t => `<meta name="${t.name}" content="${t.content}" data-injected="server" />`)
+              .join('\n');
+            // Insert right after the opening <head> tag to satisfy verification crawlers
+            if (html.includes('<head>')) {
+              html = html.replace('<head>', `<head>\n${injection}\n`);
+            } else if (html.includes('<head ')) {
+              // Handle cases like <head lang="en">
+              html = html.replace(/<head[^>]*>/i, (match) => `${match}\n${injection}\n`);
+            }
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.send(html);
+          } catch (err) {
+            console.error('Error injecting meta tags into index.html:', err);
+            return res.sendFile(indexPath);
+          }
+        } else {
+          res.status(404).json({ error: 'Frontend not built. Run npm run build first.' });
+        }
       });
     } else {
-      // Production mode - serve static files and handle SPA routing
-      const fs = await import('fs');
-      const publicPath = path.resolve(__dirname, '../../../dist/public');
-      
-      if (fs.existsSync(publicPath)) {
-        console.log(`📁 Setting up static file serving from: ${publicPath}`);
-        
-        // Set proper MIME types for JavaScript files
-        app.use(express.static(publicPath, {
-          maxAge: '1d',
-          setHeaders: (res, path) => {
-            if (path.endsWith('.js') || path.endsWith('.mjs')) {
-              res.setHeader('Content-Type', 'application/javascript');
-            } else if (path.endsWith('.css')) {
-              res.setHeader('Content-Type', 'text/css');
-            }
-          }
-        }));
-        
-        // SPA fallback - serve index.html for client-side routes
-        app.get('*', (req, res, next) => {
-          // Skip API routes
-          if (req.path.startsWith('/api/')) {
-            return next();
-          }
-          
-          // Skip static files (files with extensions)
-          if (path.extname(req.path)) {
-            return next();
-          }
-          
-          const indexPath = path.join(publicPath, 'index.html');
-          if (fs.existsSync(indexPath)) {
-            res.sendFile(indexPath);
-          } else {
-            res.status(404).json({ error: 'Frontend not built. Run npm run build first.' });
-          }
-        });
-      } else {
-        console.warn('⚠️ Public directory not found. Frontend may not be built.');
-      }
+      console.warn('⚠️ Public directory not found. Frontend may not be built.');
     }
+  }
 
-    // Initialize Category Cleanup Service for automatic category management
-    try {
-      console.log('Cleanup Starting Category Cleanup Service...');
-      CategoryCleanupService.initializeOnServerStart();
-      console.log('Success Category cleanup service initialized with 1-minute intervals for immediate updates');
-    } catch (error) {
-      console.error('Error Failed to initialize Category Cleanup Service:', error);
-    }
+  // Initialize Category Cleanup Service for automatic category management
+  try {
+    console.log('Cleanup Starting Category Cleanup Service...');
+    CategoryCleanupService.initializeOnServerStart();
+    console.log('Success Category cleanup service initialized with 1-minute intervals for immediate updates');
+  } catch (error) {
+    console.error('Error Failed to initialize Category Cleanup Service:', error);
+  }
 
-    // Initialize RSS Aggregation Service for automatic RSS feed processing
-    try {
-      console.log('📡 Starting RSS Aggregation Service...');
-      aggregationService.start();
-      console.log('✅ RSS aggregation service initialized with automatic scheduling');
-    } catch (error) {
-      console.error('❌ Failed to initialize RSS Aggregation Service:', error);
-    }
-  });
+  // Initialize RSS Aggregation Service for automatic RSS feed processing
+  try {
+    console.log('📡 Starting RSS Aggregation Service...');
+    aggregationService.start();
+    console.log('✅ RSS aggregation service initialized with automatic scheduling');
+  } catch (error) {
+    console.error('❌ Failed to initialize RSS Aggregation Service:', error);
+  }
+});
 
-  // Graceful shutdown handling
-  const gracefulShutdown = (signal: string) => {
-    console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-    
-    server.close((err) => {
-      if (err) {
-        console.error('❌ Error during server shutdown:', err);
-        process.exit(1);
-      }
-      
-      console.log('✅ Server closed successfully');
-      console.log('👋 Goodbye!');
-      process.exit(0);
-    });
-    
-    // Force shutdown after 10 seconds
-    setTimeout(() => {
-      console.error('⚠️  Forced shutdown after timeout');
+// Graceful shutdown handling
+const gracefulShutdown = (signal: string) => {
+  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+  
+  server.close((err) => {
+    if (err) {
+      console.error('❌ Error during server shutdown:', err);
       process.exit(1);
-    }, 10000);
-  };
-
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-  // Handle uncaught exceptions and rejections
-  process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    process.exit(1);
+    }
+    
+    console.log('✅ Server closed successfully');
+    console.log('👋 Goodbye!');
+    process.exit(0);
   });
-
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('⚠️  Forced shutdown after timeout');
     process.exit(1);
-  });
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle uncaught exceptions and rejections
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 })();

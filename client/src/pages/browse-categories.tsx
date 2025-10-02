@@ -6,9 +6,9 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import ScrollNavigation from '@/components/scroll-navigation';
-import StaticPageBanner from '@/components/StaticPageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import PageBanner from '@/components/PageBanner';
 
 // Define Category type
 interface Category {
@@ -161,7 +161,7 @@ export default function BrowseCategories() {
     <UniversalPageLayout pageId="browse-categories">
             <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/20 page-container">
               <Header />
-              <StaticPageBanner page="browse-categories" />
+              <PageBanner page="browse-categories" />
               <div className="pt-20 pb-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center py-16">
@@ -180,7 +180,7 @@ export default function BrowseCategories() {
       <Header />
       
       {/* Page Banner */}
-      <StaticPageBanner page="browse-categories" />
+      <PageBanner page="browse-categories" />
       
       {/* Categories Content Section */}
       <section className="pt-20 pb-16">

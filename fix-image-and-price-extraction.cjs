@@ -131,12 +131,12 @@ function generateCategoryImage(title, description) {
     };
 
     if (keywords[category] && keywords[category].some(keyword => text.includes(keyword))) {
-      return `https://via.placeholder.com/300x200/${config.color}/FFFFFF?text=${config.icon}+Product`;
+      return `https://via.placeholder.com/300x200/${config.color}/FFFFFF?text=${encodeURIComponent(config.icon)}+Product`;
     }
   }
 
   // Default placeholder
-  return 'https://via.placeholder.com/300x200/4F46E5/FFFFFF?text=📦+Product';
+  return 'https://via.placeholder.com/300x200/4F46E5/FFFFFF?text=' + encodeURIComponent('📦') + '+Product';
 }
 
 try {

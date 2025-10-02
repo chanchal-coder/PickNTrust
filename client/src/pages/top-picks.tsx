@@ -8,7 +8,7 @@ import { ProductTimer } from "@/components/product-timer";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
-import StaticPageBanner from "@/components/StaticPageBanner";
+import PageBanner from "@/components/PageBanner";
 import PageVideosSection from '@/components/PageVideosSection';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
@@ -504,7 +504,7 @@ export default function TopPicks() {
         <AnnouncementBanner />
         
       {/* Amazing Page Banner */}
-      <StaticPageBanner page="top-picks" />
+      <PageBanner page="top-picks" />
 
       {/* Top Picks Content Section with Sidebar */}
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">

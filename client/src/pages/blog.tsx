@@ -5,7 +5,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
@@ -157,7 +157,7 @@ export default function Blog() {
       
       {/* Page Header */}
       {/* Amazing Page Banner */}
-        <StaticPageBanner page="blog" />
+        <PageBanner page="blog" />
 
       {/* Blog Posts Grid */}
       <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">

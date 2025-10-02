@@ -777,6 +777,14 @@ export default function AdminPage() {
                       <Settings className="w-5 h-5" />
                       Bot Management
                     </Button>
+                    {/* New: Payments Gateway setup entry */}
+                    <Button 
+                      onClick={() => setLocation('/admin/payments')}
+                      className="h-16 bg-teal-600 hover:bg-teal-700 flex flex-col gap-1"
+                    >
+                      <DollarSign className="w-5 h-5" />
+                      Payment Gateways
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

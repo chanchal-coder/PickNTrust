@@ -431,6 +431,40 @@ try {
   console.error('Error ensuring banners table exists:', bannersError);
 }
 
+// Ensure new banner style columns exist for gradient/background options
+try {
+  const columns = sqlite.prepare("PRAGMA table_info(banners)").all() as any[];
+  const names = new Set(columns.map((c: any) => c.name));
+
+  const addColumn = (sql: string, label: string) => {
+    try {
+      sqlite.exec(sql);
+      console.log(`✅ Added banners column: ${label}`);
+    } catch (e) {
+      // If column already exists or ALTER fails, log and continue
+      console.warn(`⚠️ Could not add column ${label}:`, e instanceof Error ? e.message : e);
+    }
+  };
+
+  if (!names.has('useGradient')) {
+    addColumn("ALTER TABLE banners ADD COLUMN useGradient INTEGER DEFAULT 0", 'useGradient');
+  }
+  if (!names.has('backgroundGradient')) {
+    addColumn("ALTER TABLE banners ADD COLUMN backgroundGradient TEXT", 'backgroundGradient');
+  }
+  if (!names.has('backgroundOpacity')) {
+    addColumn("ALTER TABLE banners ADD COLUMN backgroundOpacity INTEGER DEFAULT 100", 'backgroundOpacity');
+  }
+  if (!names.has('imageDisplayType')) {
+    addColumn("ALTER TABLE banners ADD COLUMN imageDisplayType TEXT DEFAULT 'image'", 'imageDisplayType');
+  }
+  if (!names.has('unsplashQuery')) {
+    addColumn("ALTER TABLE banners ADD COLUMN unsplashQuery TEXT", 'unsplashQuery');
+  }
+} catch (styleErr) {
+  console.error('Error ensuring banners style columns exist:', styleErr);
+}
+
 // Optional compatibility exports
 export { db as dbInstance };
 export default db;

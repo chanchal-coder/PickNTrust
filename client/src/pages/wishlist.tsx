@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PriceTag from '@/components/PriceTag';
+import PageBanner from '@/components/PageBanner';
 
-import StaticPageBanner from '@/components/StaticPageBanner';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 export default function WishlistPage() {
   const { wishlist, removeFromWishlist, clearWishlist } = useWishlist();
@@ -35,7 +35,7 @@ export default function WishlistPage() {
             <Header />
             
             {/* Amazing Page Banner */}
-            <StaticPageBanner page="wishlist" />
+            <PageBanner page="wishlist" />
             
             <div className="pt-20 pb-16">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -161,6 +161,37 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
     }
   };
 
+  // Fallback FontAwesome icon per page (aligns with nav tabs)
+  const getPageIcon = (slug: string): string => {
+    switch (slug) {
+      case 'home': return 'fas fa-home';
+      case 'top-picks': return 'fas fa-star';
+      case 'prime-picks': return 'fas fa-crown';
+      case 'value-picks': return 'fas fa-gem';
+      case 'click-picks': return 'fas fa-mouse-pointer';
+      case 'cue-picks': return 'fas fa-bullseye';
+      case 'global-picks': return 'fas fa-globe';
+      case 'deals-hub': return 'fas fa-fire';
+      case 'loot-box': return 'fas fa-box-open';
+      case 'services': return 'fas fa-cogs';
+      case 'apps':
+      case 'apps-ai': return 'fas fa-robot';
+      case 'videos': return 'fas fa-play-circle';
+      case 'categories': return 'fas fa-th-large';
+      case 'browse-categories': return 'fas fa-layer-group';
+      case 'travel-picks': return 'fas fa-plane';
+      default: return 'fas fa-star';
+    }
+  };
+
+  // Helper: ensure we only render Font Awesome classes, never emoji strings
+  const isFontAwesomeClass = (icon?: string) => !!icon && /fa-/.test(icon);
+  const resolveFaIconClass = (icon?: string, slug?: string) => (
+    isFontAwesomeClass(icon) ? (icon as string) : getPageIcon(slug || page)
+  );
+  // Sanitize CTA text to remove emojis so only FA icon shows
+  const cleanButtonText = (text?: string) => (text || '').replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim();
+
   // Remove test data - using real API data now
 
   // Fetch banners from API for all pages
@@ -199,11 +230,25 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
   // Check if static banner is hidden using state
   const isStaticBannerHidden = hiddenBanners.has(`fallback-${page}`);
   
-  // Disable fallback banners - only show database banners
-  const fallbackBanners: Banner[] = [];
-  
-  // Use only database banners (no fallbacks)
-   const allBanners = [...activeBanners];
+  // Re-enable fallback banner when there are no active DB banners
+  const fallbackBanners: Banner[] = (!isStaticBannerHidden && activeBanners.length === 0 && fallbackBanner) ? [{
+    id: 0,
+    title: fallbackBanner.title,
+    subtitle: fallbackBanner.subtitle,
+    imageUrl: '',
+    linkUrl: fallbackBanner.linkUrl,
+    buttonText: fallbackBanner.buttonText,
+    isActive: true,
+    display_order: 0,
+    page: page,
+    // Show FontAwesome icon if provided in fallback
+    icon: (fallbackBanner as any).icon,
+    iconType: (fallbackBanner as any).icon ? 'fontawesome' : 'none',
+    iconPosition: 'left'
+  }] : [];
+
+  // Use database banners, and include a single fallback if none
+  const allBanners = [...activeBanners, ...fallbackBanners];
    
    console.log(`Page: ${page}, All banners:`, allBanners);
    console.log(`Should show slider: ${allBanners.length > 1}`);
@@ -292,70 +337,102 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
               index < currentBannerIndex ? '-translate-x-full' : 'translate-x-full'
             }`}
           >
-            {/* Background Image with Overlay */}
+            {/* Background: respect imported gradient/image/text-only for all pages */}
             <div className="absolute inset-0">
-              {(banner as any).imageDisplayType === 'text-only' || (banner as any).useGradient ? (
-                <div className={`w-full h-full ${(banner as any).backgroundGradient || (banner.id === 0 ? fallbackBanner?.gradient || 'bg-gradient-to-r from-gray-600 to-gray-800' : 'bg-gradient-to-r from-gray-600 to-gray-800')}`}></div>
-              ) : (banner as any).imageDisplayType === 'unsplash' && (banner as any).unsplashQuery ? (
-                <img
-                  src={`https://picsum.photos/1200/400?random=${encodeURIComponent((banner as any).unsplashQuery)}`}
-                  alt={banner.title || 'Banner image'}
-                  className="w-full h-full object-cover"
-                  style={{ opacity: ((banner as any).backgroundOpacity || 100) / 100 }}
-                />
-              ) : banner.imageUrl ? (
-                <img
-                  src={banner.imageUrl}
-                  alt={banner.title || 'Banner image'}
-                  className="w-full h-full object-cover"
-                  style={{ opacity: ((banner as any).backgroundOpacity || 100) / 100 }}
-                />
-              ) : (
-                <div 
-                  className={`w-full h-full bg-gradient-to-r ${banner.id === 0 ? fallbackBanner?.gradient || 'from-gray-600 to-gray-800' : 'from-gray-600 to-gray-800'}`}
-                  style={{ opacity: ((banner as any).backgroundOpacity || 100) / 100 }}
-                ></div>
-              )}
+              {(() => {
+                const opacity = (((banner as any).backgroundOpacity ?? 100) as number) / 100;
+                const imageDisplayType = (banner as any).imageDisplayType || 'image';
+                const useGradient = !!(banner as any).useGradient;
+                const bgGradient = (banner as any).backgroundGradient as string | undefined;
+                const bgColor = (banner as any).backgroundColor as string | undefined;
+
+                // If text-only or explicitly using gradient, render gradient
+                if (imageDisplayType === 'text-only' || useGradient) {
+                  const gradientClass = bgGradient && bgGradient.trim().length > 0
+                    ? bgGradient
+                    : `bg-gradient-to-r ${fallbackBanner?.gradient || 'from-gray-600 to-gray-800'}`;
+                  return (
+                    <div className={`w-full h-full ${gradientClass}`} style={{ opacity }}></div>
+                  );
+                }
+
+                // Unsplash image mode
+                if (imageDisplayType === 'unsplash' && (banner as any).unsplashQuery) {
+                  return (
+                    <img
+                      src={`https://picsum.photos/1200/400?random=${encodeURIComponent((banner as any).unsplashQuery)}`}
+                      alt={banner.title || 'Banner image'}
+                      className="w-full h-full object-cover"
+                      style={{ opacity }}
+                    />
+                  );
+                }
+
+                // Custom image
+                if (banner.imageUrl) {
+                  return (
+                    <img
+                      src={banner.imageUrl}
+                      alt={banner.title || 'Banner image'}
+                      className="w-full h-full object-cover"
+                      style={{ opacity }}
+                    />
+                  );
+                }
+
+                // Background color fallback if provided
+                if (bgColor) {
+                  return (
+                    <div className="w-full h-full" style={{ backgroundColor: bgColor, opacity }}></div>
+                  );
+                }
+
+                // Final gradient fallback
+                return (
+                  <div
+                    className={`w-full h-full bg-gradient-to-r ${banner.id === 0 ? (fallbackBanner?.gradient || 'from-gray-600 to-gray-800') : 'from-gray-600 to-gray-800'}`}
+                    style={{ opacity }}
+                  ></div>
+                );
+              })()}
               <div className="absolute inset-0 bg-black/20"></div>
             </div>
 
             {/* Content */}
             <div className="relative h-full flex items-center justify-center text-center px-4">
               <div className="max-w-4xl mx-auto text-white">
-                {/* Icon Above Title */}
-                {banner.iconType !== 'none' && banner.icon && banner.iconPosition === 'top' && (
+                {/* Icon Above Title (use banner icon or page fallback) */}
+                {(() => {
+                  const resolvedIcon = resolveFaIconClass(banner.icon, page);
+                  // Default to top position
+                  return resolvedIcon && ((banner.iconPosition || 'top') === 'top');
+                })() && (
                   <div className="mb-4">
-                    {banner.iconType === 'emoji' ? (
-                      <span className="text-6xl md:text-8xl">{banner.icon}</span>
-                    ) : (
-                      <i className={`${banner.icon} text-5xl md:text-7xl`}></i>
-                    )}
+                    <i className={`${resolveFaIconClass(banner.icon, page)} text-5xl md:text-7xl text-white`}></i>
                   </div>
                 )}
                 
                 {/* Title with Side Icons */}
                 <h1 className="text-3xl md:text-5xl font-bold mb-2 text-shadow-lg flex items-center justify-center gap-4">
                   {/* Left Icon */}
-                  {banner.iconType !== 'none' && banner.icon && banner.iconPosition === 'left' && (
+                  {(() => {
+                    const resolvedIcon = resolveFaIconClass(banner.icon, page);
+                    return resolvedIcon && ((banner.iconPosition || 'top') === 'left');
+                  })() && (
                     <span className="flex-shrink-0">
-                      {banner.iconType === 'emoji' ? (
-                        <span className="text-3xl md:text-5xl">{banner.icon}</span>
-                      ) : (
-                        <i className={`${banner.icon} text-2xl md:text-4xl`}></i>
-                      )}
+                      <i className={`${resolveFaIconClass(banner.icon, page)} text-2xl md:text-4xl text-white`}></i>
                     </span>
                   )}
                   
                   <span>{banner.title || 'Welcome'}</span>
                   
                   {/* Right Icon */}
-                  {banner.iconType !== 'none' && banner.icon && banner.iconPosition === 'right' && (
+                  {(() => {
+                    const resolvedIcon = resolveFaIconClass(banner.icon, page);
+                    return resolvedIcon && ((banner.iconPosition || 'top') === 'right');
+                  })() && (
                     <span className="flex-shrink-0">
-                      {banner.iconType === 'emoji' ? (
-                        <span className="text-3xl md:text-5xl">{banner.icon}</span>
-                      ) : (
-                        <i className={`${banner.icon} text-2xl md:text-4xl`}></i>
-                      )}
+                      <i className={`${resolveFaIconClass(banner.icon, page)} text-2xl md:text-4xl text-white`}></i>
                     </span>
                   )}
                 </h1>
@@ -375,8 +452,23 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
                       onClick={() => handleButtonClick(banner)}
                       className="inline-flex items-center px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-full transition-all transform hover:scale-105 shadow-lg"
                     >
-                      <i className={`${page === 'top-picks' ? 'fas fa-star' : page === 'prime-picks' ? 'fas fa-crown' : page === 'value-picks' ? 'fas fa-gem' : page === 'click-picks' ? 'fas fa-mouse-pointer' : page === 'cue-picks' ? 'fas fa-bullseye' : page === 'global-picks' ? 'fas fa-globe' : page === 'services' ? 'fas fa-credit-card' : (page === 'apps' || page === 'apps-ai') ? 'fas fa-robot' : 'fas fa-fire'} mr-2`}></i>
-                      {banner.buttonText}
+                      <i className={`${
+                        page === 'top-picks' ? 'fas fa-star' :
+                        page === 'prime-picks' ? 'fas fa-crown' :
+                        page === 'value-picks' ? 'fas fa-gem' :
+                        page === 'click-picks' ? 'fas fa-mouse-pointer' :
+                        page === 'cue-picks' ? 'fas fa-bullseye' :
+                        page === 'global-picks' ? 'fas fa-globe' :
+                        page === 'deals-hub' ? 'fas fa-fire' :
+                        page === 'loot-box' ? 'fas fa-box-open' :
+                        page === 'services' ? 'fas fa-cogs' :
+                        page === 'categories' ? 'fas fa-th-large' :
+                        page === 'browse-categories' ? 'fas fa-layer-group' :
+                        page === 'travel-picks' ? 'fas fa-plane' :
+                        (page === 'apps' || page === 'apps-ai') ? 'fas fa-robot' :
+                        'fas fa-star'
+                      } mr-2`}></i>
+                      {cleanButtonText(banner.buttonText)}
                     </button>
                   )}
                 </div>

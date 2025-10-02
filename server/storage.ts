@@ -37,6 +37,7 @@ import {
 import { db, sqliteDb } from "./db.js";
 import { eq, desc, ne, and, lt } from "drizzle-orm";
 import fs from 'fs';
+import path from 'path';
 
 // Utility functions for consistent timestamp handling
 const toUnixTimestamp = (date: Date): number => Math.floor(date.getTime() / 1000);
@@ -1581,7 +1582,7 @@ export class DatabaseStorage implements IStorage {
   public async ensureCanvaTablesExist(): Promise<void> {
     try {
       const Database = (await import('better-sqlite3')).default;
-      const dbFile = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      const dbFile = path.join(__dirname, '..', 'database.sqlite');
       const rawDb = new Database(dbFile);
 
       // Create canva_settings table if it doesn't exist - matching Drizzle schema exactly

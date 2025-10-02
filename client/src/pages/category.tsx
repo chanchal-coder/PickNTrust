@@ -11,7 +11,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import CategoryNavigation from "@/components/category-navigation";
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import AmazonProductCard from "@/components/amazon-product-card";
 import { BundleProductCard } from "@/components/BundleProductCard";
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
@@ -280,7 +280,7 @@ export default function CategoryPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
-        <StaticPageBanner page="categories" />
+        <PageBanner page="categories" />
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -296,7 +296,7 @@ export default function CategoryPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
-        <StaticPageBanner page="categories" />
+        <PageBanner page="categories" />
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-600 mb-4">Category Not Found</h2>
@@ -312,7 +312,7 @@ export default function CategoryPage() {
     <UniversalPageLayout pageId="category">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
-        <StaticPageBanner page="categories" />
+        <PageBanner page="categories" />
       
       <CategoryNavigation currentCategory={category || ''} />
       

@@ -1,36 +1,34 @@
-# Deploy PickNTrust to pickntrust.com domain
-Write-Host "Deploying PickNTrust to pickntrust.com..." -ForegroundColor Green
+# Deploy PickNTrust static client to EC2 safely (no Nginx changes)
+Write-Host "Deploying PickNTrust client to pickntrust.com..." -ForegroundColor Green
 
-# SSH key path
-$SSH_KEY = "C:\Users\sharm\OneDrive\Desktop\Apps\pntkey.pem"
-$SERVER = "ubuntu@51.21.112.211"
+# SSH key and server
+$SSH_KEY = "C:\Users\sharm\.ssh\pnt08.pem"
+$SERVER = "ec2-user@51.20.55.153"
 
-# 1. Create deployment package with React build
-Write-Host "Creating React build..." -ForegroundColor Yellow
-cd client
+# 1) Build React client
+Write-Host "Building React client..." -ForegroundColor Yellow
+Push-Location "client"
 npm run build
-cd ..
+Pop-Location
 
-# 2. Create tar with React build
-Write-Host "Creating deployment package..." -ForegroundColor Yellow
-tar -czf pickntrust-full.tar.gz -C client/dist .
+# 2) Create tarball of built assets
+Write-Host "Creating client artifact..." -ForegroundColor Yellow
+$tarPath = "pickntrust-client.tar.gz"
+if (Test-Path $tarPath) { Remove-Item $tarPath -Force }
+tar -czf $tarPath -C client/dist .
 
-# 3. Copy database
-Copy-Item "server/database.sqlite" "database.sqlite" -Force
+# 3) Ensure remote directories and permissions
+Write-Host "Preparing remote directories..." -ForegroundColor Yellow
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-user/pickntrust/client/dist/public && sudo chown -R ec2-user:ec2-user /home/ec2-user/pickntrust"
 
-# 4. Deploy React app to correct nginx location
-Write-Host "Deploying React app to /home/ubuntu/PickNTrust/public..." -ForegroundColor Yellow
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ubuntu/PickNTrust/public && sudo chown ubuntu:ubuntu /home/ubuntu/PickNTrust/public"
-scp -i "$SSH_KEY" -o StrictHostKeyChecking=no pickntrust-full.tar.gz "${SERVER}:/home/ubuntu/PickNTrust/"
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $SERVER "cd /home/ubuntu/PickNTrust && tar -xzf pickntrust-full.tar.gz -C public && rm pickntrust-full.tar.gz"
+# 4) Upload and extract client build into public directory
+Write-Host "Uploading client artifact..." -ForegroundColor Yellow
+scp -i $SSH_KEY -o StrictHostKeyChecking=no $tarPath "$SERVER:/home/ec2-user/pickntrust/"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "set -e; cd /home/ec2-user/pickntrust && tar -xzf pickntrust-client.tar.gz -C client/dist/public && rm -f pickntrust-client.tar.gz; sudo nginx -t && sudo systemctl reload nginx"
 
-# 5. Deploy backend server
-Write-Host "Deploying backend server..." -ForegroundColor Yellow
-scp -i "$SSH_KEY" -o StrictHostKeyChecking=no production-server.js "${SERVER}:/home/ubuntu/PickNTrust/"
-scp -i "$SSH_KEY" -o StrictHostKeyChecking=no database.sqlite "${SERVER}:/home/ubuntu/PickNTrust/"
+# 5) Verify HTTPS endpoints from local machine
+Write-Host "Verifying HTTPS endpoints..." -ForegroundColor Yellow
+try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/health" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "health check error: $($_.Exception.Message)" -ForegroundColor Red }
+try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/api/status" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "api status error: $($_.Exception.Message)" -ForegroundColor Red }
 
-# 6. Install dependencies and restart server
-Write-Host "Installing dependencies and restarting server..." -ForegroundColor Yellow
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $SERVER "cd /home/ubuntu/PickNTrust && npm install express sqlite3 cors && pm2 stop pickntrust-production 2>/dev/null || true && pm2 start production-server.js --name pickntrust-production && pm2 save"
-
-Write-Host "Deployment complete! Your PickNTrust app should now be live at https://pickntrust.com" -ForegroundColor Green
+Write-Host "✅ Client deployment completed without altering Nginx or backend." -ForegroundColor Green

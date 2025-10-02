@@ -7,7 +7,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
-import StaticPageBanner from '@/components/StaticPageBanner';
+import PageBanner from '@/components/PageBanner';
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import { deleteProduct, invalidateAllProductQueries } from '@/utils/delete-utils';
@@ -622,7 +622,7 @@ export default function Hotels() {
       <Header />
       
       {/* Page Banner */}
-      <StaticPageBanner 
+      <PageBanner 
         page="hotels"
       />
       

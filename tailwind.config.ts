@@ -3,6 +3,14 @@ import type { Config } from "tailwindcss";
 export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
+  // Ensure dynamic gradient classes from DB/config are not purged
+  safelist: [
+    'bg-gradient-to-r',
+    {
+      pattern:
+        /(from|via|to)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(100|200|300|400|500|600|700|800|900)/,
+    },
+  ],
   theme: {
     screens: {
       'xs': '475px',

@@ -106,7 +106,7 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
           gradient: "from-red-600 via-orange-600 to-yellow-500",
           buttonText: "Browse Deals",
           linkUrl: "/",
-          icon: "fas fa-tags"
+          icon: "fas fa-fire"
         };
       case 'loot-box':
         return {
@@ -216,6 +216,36 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
 
   const currentBanner = activeBanners[currentBannerIndex] || activeBanners[0];
 
+  // Fallback FontAwesome icon per page (aligns with nav tabs)
+  const getPageIcon = (slug: string): string => {
+    switch (slug) {
+      case 'home': return 'fas fa-home';
+      case 'top-picks': return 'fas fa-star';
+      case 'prime-picks': return 'fas fa-crown';
+      case 'value-picks': return 'fas fa-gem';
+      case 'click-picks': return 'fas fa-mouse-pointer';
+      case 'cue-picks': return 'fas fa-bullseye';
+      case 'global-picks': return 'fas fa-globe';
+      case 'deals-hub': return 'fas fa-fire';
+      case 'loot-box': return 'fas fa-box-open';
+      case 'services': return 'fas fa-cogs';
+      case 'apps': return 'fas fa-robot';
+      case 'videos': return 'fas fa-play-circle';
+      case 'categories': return 'fas fa-th-large';
+      case 'browse-categories': return 'fas fa-layer-group';
+      case 'travel-picks': return 'fas fa-plane';
+      default: return 'fas fa-star';
+    }
+  };
+
+  // Helper: only allow Font Awesome classes; if banner.icon isn't FA, use page fallback
+  const isFontAwesomeClass = (icon?: string) => !!icon && /fa-/.test(icon);
+  const resolveFaIconClass = (icon?: string, slug?: string) => (
+    isFontAwesomeClass(icon) ? (icon as string) : getPageIcon(slug || page)
+  );
+  // Sanitize CTA text to remove emojis so only FA icon shows
+  const cleanButtonText = (text?: string) => (text || '').replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim();
+
   return (
     <div className={`w-full ${className}`}>
       {/* Static Page Banner Slider */}
@@ -228,9 +258,9 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
               index < currentBannerIndex ? '-translate-x-full' : 'translate-x-full'
             }`}
           >
-            {/* Background Image with Overlay */}
+            {/* Background: Use gradient for all pages except travel-picks */}
             <div className="absolute inset-0">
-              {banner.imageUrl ? (
+              {page === 'travel-picks' && banner.imageUrl ? (
                 <img
                   src={banner.imageUrl}
                   alt={banner.title}
@@ -245,8 +275,11 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
             {/* Content */}
             <div className="relative h-full flex items-center justify-center text-center px-4">
               <div className="max-w-4xl mx-auto text-white">
+                {/* Centered Icon Above Title for consistency */}
+                <div className="mb-4">
+                  <i className={`${resolveFaIconClass(banner.icon, page)} text-5xl md:text-7xl text-white`}></i>
+                </div>
                 <h1 className="text-3xl md:text-5xl font-bold mb-2 text-shadow-lg">
-                  {banner.icon && <i className={`${banner.icon} mr-3`}></i>}
                   {banner.title || 'Welcome'}
                 </h1>
                 <p className="text-xl md:text-2xl font-semibold mb-4 text-yellow-300">
@@ -272,14 +305,14 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
                         page === 'click-picks' ? 'fas fa-mouse-pointer' :
                         page === 'cue-picks' ? 'fas fa-bullseye' :
                         page === 'global-picks' ? 'fas fa-globe' :
-                        page === 'deals-hub' ? 'fas fa-tags' :
+                        page === 'deals-hub' ? 'fas fa-fire' :
                         page === 'loot-box' ? 'fas fa-box-open' :
                         page === 'services' ? 'fas fa-cogs' :
                         page === 'apps' ? 'fas fa-robot' :
                         page === 'videos' ? 'fas fa-play-circle' :
                         'fas fa-star'
                       } mr-2`}></i>
-                      {banner.buttonText}
+                      {cleanButtonText(banner.buttonText)}
                     </button>
                   )}
                 </div>

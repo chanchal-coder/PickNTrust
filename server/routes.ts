@@ -11,6 +11,8 @@ import { db, sqliteDb } from './db.js';
 import { UnifiedContent, MappedUnifiedContent } from './types.js';
 import travelCategoriesRouter from './travel-categories-routes.js';
 import currencyRouter from './routes/currency.js';
+import canvaAdminRouter from './canva-admin-routes.js';
+import multer from 'multer';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -103,6 +105,56 @@ async function retryDatabaseOperation<T>(
 }
 
 export function setupRoutes(app: express.Application) {
+  // Initialize multer for CSV uploads (memory storage)
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+  });
+
+  // Minimal CSV parser (supports quoted fields and commas inside quotes)
+  function parseCSV(text: string): { headers: string[]; rows: Record<string, any>[] } {
+    const input = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = input.split('\n').filter(l => l.trim().length > 0);
+    if (lines.length === 0) return { headers: [], rows: [] };
+
+    const parseLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current);
+      return result.map(v => v.trim());
+    };
+
+    const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
+    const rows: Record<string, any>[] = [];
+
+    for (let li = 1; li < lines.length; li++) {
+      const values = parseLine(lines[li]).map(v => v.replace(/^"|"$/g, ''));
+      const row: Record<string, any> = {};
+      headers.forEach((h, idx) => {
+        row[h] = typeof values[idx] !== 'undefined' ? values[idx] : '';
+      });
+      rows.push(row);
+    }
+    return { headers, rows };
+  }
+
   // Helper to normalize product image URLs and route through proxy
   function toProxiedImage(url?: string | null): string {
     const u = typeof url === 'string' ? url.trim() : '';
@@ -1508,6 +1560,159 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
+  // Bulk product upload via CSV
+  app.post('/api/admin/products/bulk-upload', upload.single('file'), async (req, res) => {
+    try {
+      const bodyPwd = typeof req.body?.password === 'string' ? req.body.password : undefined;
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = bodyPwd || headerPwd || queryPwd || '';
+
+      const isValid = await verifyAdminPassword(password);
+      if (!isValid) {
+        return res.status(401).json({ message: 'Unauthorized: Invalid admin password' });
+      }
+
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ message: 'No CSV file uploaded. Please upload with form field "file".' });
+      }
+
+      const csvText = req.file.buffer.toString('utf8');
+      const { headers, rows } = parseCSV(csvText);
+
+      if (headers.length === 0 || rows.length === 0) {
+        return res.status(400).json({ message: 'Empty or invalid CSV content' });
+      }
+
+      const normalizeKey = (k: string) => k.trim().toLowerCase().replace(/\s+/g, '_');
+      const keyMap: Record<string, string> = {};
+      headers.forEach(h => {
+        const norm = normalizeKey(h);
+        switch (norm) {
+          case 'name':
+          case 'title':
+            keyMap[h] = 'name';
+            break;
+          case 'description':
+          case 'short_description':
+            keyMap[h] = 'description';
+            break;
+          case 'price':
+          case 'current_price':
+            keyMap[h] = 'price';
+            break;
+          case 'original_price':
+          case 'mrp':
+            keyMap[h] = 'originalPrice';
+            break;
+          case 'category':
+          case 'categories':
+            keyMap[h] = 'category';
+            break;
+          case 'imageurl':
+          case 'image_url':
+          case 'image':
+            keyMap[h] = 'imageUrl';
+            break;
+          case 'affiliateurl':
+          case 'affiliate_url':
+          case 'url':
+            keyMap[h] = 'affiliateUrl';
+            break;
+          case 'brand':
+            keyMap[h] = 'brand';
+            break;
+          case 'is_featured':
+          case 'featured':
+            keyMap[h] = 'isFeatured';
+            break;
+          case 'is_service':
+          case 'service':
+            keyMap[h] = 'isService';
+            break;
+          case 'is_ai_app':
+          case 'ai_app':
+          case 'is_app':
+            keyMap[h] = 'isAIApp';
+            break;
+          case 'gender':
+            keyMap[h] = 'gender';
+            break;
+          default:
+            keyMap[h] = h;
+        }
+      });
+
+      let processed = 0;
+      let inserted = 0;
+      const errors: { index: number; error: string }[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const raw = rows[i];
+        processed++;
+        try {
+          const productData: Record<string, any> = {};
+          for (const originalKey of Object.keys(raw)) {
+            const mappedKey = keyMap[originalKey] || originalKey;
+            productData[mappedKey] = raw[originalKey];
+          }
+
+          const name = (productData.name || productData.title || '').toString().trim();
+          if (!name) throw new Error('Missing required field: name/title');
+
+          const priceVal = productData.price !== undefined && productData.price !== ''
+            ? Number(String(productData.price).replace(/[^0-9.\-]/g, ''))
+            : undefined;
+          const originalPriceVal = productData.originalPrice !== undefined && productData.originalPrice !== ''
+            ? Number(String(productData.originalPrice).replace(/[^0-9.\-]/g, ''))
+            : undefined;
+
+          const toBool = (v: any) => {
+            if (typeof v === 'boolean') return v;
+            const s = String(v).trim().toLowerCase();
+            return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+          };
+
+          const mapped = {
+            name,
+            description: (productData.description || '').toString(),
+            category: (productData.category || '').toString(),
+            imageUrl: (productData.imageUrl || '').toString(),
+            affiliateUrl: (productData.affiliateUrl || productData.url || '').toString(),
+            brand: productData.brand ? String(productData.brand) : undefined,
+            price: priceVal,
+            originalPrice: originalPriceVal,
+            isFeatured: toBool(productData.isFeatured),
+            isService: toBool(productData.isService),
+            isAIApp: toBool(productData.isAIApp),
+            gender: productData.gender ? String(productData.gender) : undefined,
+          } as any;
+
+          const result = await storage.addProduct(mapped);
+          if (result) inserted++;
+        } catch (e: any) {
+          errors.push({ index: i + 1, error: e?.message || String(e) });
+        }
+      }
+
+      res.json({
+        message: 'Bulk upload completed',
+        totalRows: rows.length,
+        processed,
+        inserted,
+        failed: errors.length,
+        errors,
+        recognizedHeaders: headers,
+        expectedHeadersSample: [
+          'name', 'description', 'price', 'original_price', 'category', 'image_url', 'affiliate_url', 'brand', 'is_featured', 'is_service', 'is_ai_app'
+        ]
+      });
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      return handleDatabaseError(error, res, 'process bulk product CSV');
+    }
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -1681,6 +1886,9 @@ export function setupRoutes(app: express.Application) {
 
   // Use currency router
   app.use('/api/currency', currencyRouter);
+
+  // Use Canva admin router
+  app.use('/', canvaAdminRouter);
 
   // Blog management routes
   app.post('/api/admin/blog', async (req, res) => {

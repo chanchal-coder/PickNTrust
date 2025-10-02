@@ -2,12 +2,13 @@ module.exports = {
   apps: [
     {
       name: 'pickntrust-backend',
-      cwd: '/home/ubuntu/PickNTrust',
+      cwd: '/home/ec2-user/pickntrust',
       script: 'dist/server/index.js',
       env: {
         NODE_ENV: 'production',
         PORT: 5000,
-        DATABASE_URL: 'file:./database.sqlite'
+        DATABASE_URL: 'file:./database.sqlite',
+        FRONTEND_STATIC_DIR: '/home/ec2-user/pickntrust/dist/public'
       },
       instances: 1,
       exec_mode: 'fork',
