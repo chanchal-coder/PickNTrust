@@ -16,13 +16,19 @@ try {
     tables.forEach(table => {
         console.log(`- ${table.name}`);
     });
-    
-    // Check channel_posts table structure
+
+    const hasChannelPosts = tables.some(t => t.name === 'channel_posts');
+
+    // Check channel_posts table structure (only if present)
     console.log('\n\n📋 channel_posts table structure:');
-    const channelPostsSchema = db.prepare(`PRAGMA table_info(channel_posts)`).all();
-    channelPostsSchema.forEach(column => {
-        console.log(`  ${column.name}: ${column.type} ${column.notnull ? 'NOT NULL' : ''} ${column.pk ? 'PRIMARY KEY' : ''}`);
-    });
+    if (hasChannelPosts) {
+      const channelPostsSchema = db.prepare(`PRAGMA table_info(channel_posts)`).all();
+      channelPostsSchema.forEach(column => {
+          console.log(`  ${column.name}: ${column.type} ${column.notnull ? 'NOT NULL' : ''} ${column.pk ? 'PRIMARY KEY' : ''}`);
+      });
+    } else {
+      console.log('  (table does not exist)');
+    }
     
     // Check unified_content table structure
     console.log('\n\n📋 unified_content table structure:');
@@ -31,12 +37,16 @@ try {
         console.log(`  ${column.name}: ${column.type} ${column.notnull ? 'NOT NULL' : ''} ${column.pk ? 'PRIMARY KEY' : ''}`);
     });
     
-    // Sample data from channel_posts
+    // Sample data from channel_posts (only if present)
     console.log('\n\n📋 Sample channel_posts data:');
-    const samplePosts = db.prepare(`SELECT * FROM channel_posts LIMIT 3`).all();
-    samplePosts.forEach((post, index) => {
-        console.log(`\n${index + 1}. Post:`, post);
-    });
+    if (hasChannelPosts) {
+      const samplePosts = db.prepare(`SELECT * FROM channel_posts LIMIT 3`).all();
+      samplePosts.forEach((post, index) => {
+          console.log(`\n${index + 1}. Post:`, post);
+      });
+    } else {
+      console.log('  (table does not exist)');
+    }
     
     // Sample data from unified_content
     console.log('\n\n📋 Sample unified_content data:');

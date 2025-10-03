@@ -74,7 +74,7 @@ interface NavTab {
 export default function ProductManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'aiapps'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'apps'>('products');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const [extractUrl, setExtractUrl] = useState('');
@@ -118,6 +118,9 @@ export default function ProductManagement() {
   });
   const [customFields, setCustomFields] = useState<Array<{key: string, value: string}>>([]);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  // CSV Bulk Upload state
+  const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
+  const [bulkAdminPassword, setBulkAdminPassword] = useState('');
 
   // Add custom field
   const addCustomField = () => {
@@ -196,6 +199,38 @@ export default function ProductManagement() {
     retry: 1,
     retryDelay: 1000,
     staleTime: 30000 // 30 seconds
+  });
+
+  // Bulk upload mutation
+  const bulkUploadMutation = useMutation({
+    mutationFn: async () => {
+      if (!bulkUploadFile) throw new Error('Please select a CSV file');
+      const fd = new FormData();
+      fd.append('file', bulkUploadFile);
+      if (bulkAdminPassword) {
+        fd.append('password', bulkAdminPassword);
+      }
+      const res = await fetch('/api/admin/products/bulk-upload', {
+        method: 'POST',
+        body: fd
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || 'Bulk upload failed');
+      }
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: 'CSV Bulk Upload Complete',
+        description: `Inserted ${data.inserted}/${data.processed} rows. Failed: ${data.failed}`
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      setBulkUploadFile(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Upload Error', description: err?.message || 'Failed to upload CSV', variant: 'destructive' });
+    }
   });
 
   // Fetch navigation tabs for dynamic display pages
@@ -803,14 +838,14 @@ export default function ProductManagement() {
     if (!newProduct.name.trim()) {
       toast({
         title: 'Validation Error',
-        description: `${activeTab === 'services' ? 'Service' : activeTab === 'aiapps' ? 'AI App' : 'Product'} name is required`,
+        description: `${activeTab === 'services' ? 'Service' : activeTab === 'apps' ? 'App' : 'Product'} name is required`,
         variant: 'destructive',
       });
       return;
     }
     
     // Price validation - different logic for services/AI apps vs products
-    if (activeTab === 'services' || activeTab === 'aiapps') {
+    if (activeTab === 'services' || activeTab === 'apps') {
       // For services and AI apps, price is only required if it's not free and pricing type requires it
       if (!newProduct.isFree && newProduct.pricingType !== 'free') {
         const needsPrice = newProduct.pricingType === 'one-time' || newProduct.pricingType === 'custom';
@@ -1078,8 +1113,8 @@ export default function ProductManagement() {
         'Credit Cards', 'Banking Services', 'Streaming Services', 'Software & Apps', 
         'Insurance', 'Investment', 'Mobile Apps', 'Subscription Services', 'Financial Services'
       ];
-    } else if (activeTab === 'aiapps') {
-      // For AI Apps, use AI app-specific categories from API
+    } else if (activeTab === 'apps') {
+      // For Apps (including AI Apps), use AI app-specific categories from API
       if (aiAppCategories.length > 0) {
         return aiAppCategories.map((cat: any) => cat.name || cat);
       }
@@ -1134,7 +1169,7 @@ export default function ProductManagement() {
                   setNewProduct({
                     ...newProduct,
                     isService: activeTab === 'services',
-                    isAIApp: activeTab === 'aiapps',
+                    isAIApp: activeTab === 'apps',
                     category: ''
                   });
                 }}
@@ -1156,10 +1191,10 @@ export default function ProductManagement() {
       return product.category === 'Cards & Services' || 
              (product as any).isService === true ||
              availableCategories.includes(product.category);
-    } else if (activeTab === 'aiapps') {
-      // Show only AI Apps products
-      return product.category === 'AI Apps' || 
-             (product as any).isAIApp === true;
+    } else if (activeTab === 'apps') {
+      // Show only Apps (including AI Apps)
+      return (product as any).isAIApp === true || 
+             availableCategories.includes(product.category);
     } else {
       // Show only regular products (exclude services and AI apps)
       return product.category !== 'Cards & Services' && 
@@ -1184,11 +1219,11 @@ export default function ProductManagement() {
               ) : (
                 <i className="fas fa-robot text-green-400"></i>
               )}
-              Product, Service & AI Apps Management
+              Product, Service & Apps Management
             </div>
           </CardTitle>
           <CardDescription className="text-blue-200">
-            Manage your products, services, and AI apps with comprehensive admin controls
+            Manage your products, services, and apps with comprehensive admin controls
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1238,9 +1273,9 @@ export default function ProductManagement() {
               Cards & Services
             </Button>
             <Button
-              variant={activeTab === 'aiapps' ? 'default' : 'outline'}
+              variant={activeTab === 'apps' ? 'default' : 'outline'}
               onClick={() => {
-                setActiveTab('aiapps');
+                setActiveTab('apps');
                 setIsAddingProduct(false);
                 setNewProduct({
                   ...newProduct,
@@ -1251,13 +1286,13 @@ export default function ProductManagement() {
                 });
               }}
               className={`flex items-center gap-2 ${
-                activeTab === 'aiapps' 
+                activeTab === 'apps' 
                   ? 'bg-green-600 text-white' 
                   : 'border-green-600 text-green-300 hover:bg-green-800'
               }`}
             >
               <i className="fas fa-robot"></i>
-              AI Apps
+              Apps
             </Button>
           </div>
         </CardContent>
@@ -1268,7 +1303,7 @@ export default function ProductManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-purple-300">
             <Sparkles className="w-5 h-5" />
-            Smart {activeTab === 'services' ? 'Service' : activeTab === 'aiapps' ? 'AI App' : 'Product'} Extractor
+            Smart {activeTab === 'services' ? 'Service' : activeTab === 'apps' ? 'App' : 'Product'} Extractor
           </CardTitle>
           <CardDescription className="text-blue-200">
             Paste any {activeTab === 'services' ? 'service' : 'product'} URL to automatically extract details (Amazon, eBay, Flipkart, etc.)
@@ -1277,7 +1312,7 @@ export default function ProductManagement() {
         <CardContent className="space-y-4">
           <div className="flex gap-4">
             <Input
-              placeholder={`Paste ${activeTab === 'services' ? 'service' : 'product'} URL here (e.g., https://amazon.com/product/...)`}
+              placeholder={`Paste ${activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'} URL here (e.g., https://amazon.com/product/...)`}
               value={extractUrl}
               onChange={(e) => setExtractUrl(e.target.value)}
               className="flex-1 bg-slate-800 border-slate-600 text-white placeholder-slate-400"
@@ -1317,9 +1352,9 @@ export default function ProductManagement() {
       {/* Add Product Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Add New {activeTab === 'services' ? 'Service' : activeTab === 'aiapps' ? 'AI App' : 'Product'}</CardTitle>
+          <CardTitle>Add New {activeTab === 'services' ? 'Service' : activeTab === 'apps' ? 'App' : 'Product'}</CardTitle>
           <CardDescription className="text-blue-200">
-            Add a new {activeTab === 'services' ? 'service' : activeTab === 'aiapps' ? 'AI app' : 'product'} manually or use the extractor above
+            Add a new {activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'} manually or use the extractor above
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1334,17 +1369,17 @@ export default function ProductManagement() {
                     category: ''
                   });
                 }}
-                className={`${activeTab === 'services' ? 'bg-purple-600 hover:bg-purple-700' : activeTab === 'aiapps' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                className={`${activeTab === 'services' ? 'bg-purple-600 hover:bg-purple-700' : activeTab === 'apps' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
                 {activeTab === 'services' ? (
                   <>
                     <i className="fas fa-credit-card mr-2"></i>
                     Add Service Manually
                   </>
-                ) : activeTab === 'aiapps' ? (
+                ) : activeTab === 'apps' ? (
                   <>
                     <i className="fas fa-robot mr-2"></i>
-                    Add AI App Manually
+                    Add App Manually
                   </>
                 ) : (
                   <>
@@ -1359,13 +1394,13 @@ export default function ProductManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2 text-blue-300">
-                    {activeTab === 'services' ? 'Service' : activeTab === 'aiapps' ? 'AI App' : 'Product'} Name
+                    {activeTab === 'services' ? 'Service' : activeTab === 'apps' ? 'App' : 'Product'} Name
                   </label>
                   <input
                     type="text"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    placeholder={activeTab === 'services' ? 'e.g., HDFC Credit Card' : activeTab === 'aiapps' ? 'e.g., ChatGPT Plus' : 'e.g., Wireless Headphones'}
+                    placeholder={activeTab === 'services' ? 'e.g., HDFC Credit Card' : activeTab === 'apps' ? 'e.g., ChatGPT Plus' : 'e.g., Wireless Headphones'}
                     className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white placeholder-slate-400"
                     required
                   />
@@ -1523,11 +1558,11 @@ export default function ProductManagement() {
                   </div>
                 </div>
               ) : (
-                // Complex pricing for services and AI apps
+                // Complex pricing for services and apps
                 <div className="space-y-4">
                   <h3 className={`text-lg font-semibold ${
                     activeTab === 'services' ? 'text-purple-300' : 
-                    activeTab === 'aiapps' ? 'text-green-300' : 
+                    activeTab === 'apps' ? 'text-green-300' : 
                     'text-blue-300'
                   }`}>Pricing Information</h3>
                   
@@ -1984,16 +2019,100 @@ export default function ProductManagement() {
         </CardContent>
       </Card>
 
+      {/* CSV Bulk Upload */}
+      <Card className="border-2 border-dashed border-blue-500 bg-gradient-to-r from-blue-900/20 to-blue-900/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <i className="fas fa-file-csv text-blue-400"></i>
+            CSV Bulk Upload ({activeTab === 'services' ? 'Services' : activeTab === 'apps' ? 'Apps' : 'Products'})
+          </CardTitle>
+          <CardDescription className="text-blue-200">
+            Upload multiple {activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'} in one go.
+            Set `is_service` or `is_ai_app` in CSV to target Services or Apps. Accepted headers: 
+            name, description, price, original_price, category, image_url, affiliate_url, brand, is_featured, is_service, is_ai_app, gender.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => setBulkUploadFile(e.target.files?.[0] || null)}
+              className="px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white"
+            />
+            <input
+              type="password"
+              value={bulkAdminPassword}
+              onChange={(e) => setBulkAdminPassword(e.target.value)}
+              placeholder="Admin password"
+              className="px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white"
+            />
+            <Button
+              onClick={() => bulkUploadMutation.mutate()}
+              disabled={bulkUploadMutation.isPending || !bulkUploadFile}
+              className="bg-blue-600 hover:bg-blue-700 min-w-[180px]"
+            >
+              {bulkUploadMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-upload mr-2"></i>
+                  Upload & Process CSV
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="text-sm text-blue-200">
+            <a
+              href="/product-bulk-template.csv"
+              download
+              className="text-blue-300 hover:text-blue-200 underline"
+            >
+              Download CSV Template
+            </a>
+            <span className="mx-2">•</span>
+            <a
+              href="/product-bulk-notes.txt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-300 hover:text-blue-200 underline"
+            >
+              Field Notes & Valid Page Slugs
+            </a>
+            <p className="mt-2">Notes:</p>
+            <ul className="list-disc ml-6 mt-1 space-y-1">
+              <li>Column names must match exactly. Use commas, UTF-8 encoding.</li>
+              <li>Set `is_service` to true for Services, `is_ai_app` to true for Apps.</li>
+              <li>`price` and `original_price` can include symbols; they are normalized.</li>
+              <li>
+                `display_pages` accepts comma-separated page slugs. Common slugs:
+                <span className="ml-1 font-mono">prime-picks, cue-picks, value-picks, click-picks, global-picks, travel-picks, deals-hub, loot-box, services, apps, homepage</span>
+              </li>
+            </ul>
+          </div>
+          {bulkUploadMutation.isSuccess && (
+            <div className="text-xs text-blue-200">
+              <p>
+                Processed: {String((bulkUploadMutation.data as any)?.processed || 0)} | Inserted: {String((bulkUploadMutation.data as any)?.inserted || 0)} | Failed: {String((bulkUploadMutation.data as any)?.failed || 0)}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Products List */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>
-                Current {activeTab === 'services' ? 'Services' : activeTab === 'aiapps' ? 'AI Apps' : 'Products'} ({filteredProducts.length})
+                Current {activeTab === 'services' ? 'Services' : activeTab === 'apps' ? 'Apps' : 'Products'} ({filteredProducts.length})
               </CardTitle>
               <CardDescription className="text-blue-200">
-                Manage all your {activeTab === 'services' ? 'services' : activeTab === 'aiapps' ? 'AI apps' : 'products'} with full control
+                Manage all your {activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'} with full control
               </CardDescription>
             </div>
             {filteredProducts.length > 0 && (
@@ -2001,7 +2120,7 @@ export default function ProductManagement() {
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  if (window.confirm(`Are you sure you want to delete ALL ${activeTab === 'services' ? 'services' : activeTab === 'aiapps' ? 'AI apps' : 'products'}? This action cannot be undone.`)) {
+                  if (window.confirm(`Are you sure you want to delete ALL ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'}? This action cannot be undone.`)) {
                     // Delete all products in current tab
                     const deletePromises = filteredProducts.map(product => 
                       fetch(`/api/admin/products/${product.id}`, {
@@ -2015,7 +2134,7 @@ export default function ProductManagement() {
                       .then(() => {
                         toast({
                           title: "Success",
-                          description: `All ${activeTab === 'services' ? 'services' : activeTab === 'aiapps' ? 'AI apps' : 'products'} deleted successfully`,
+                          description: `All ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'} deleted successfully`,
                         });
                         queryClient.invalidateQueries({ queryKey: ['/api/products'] });
                         
@@ -2038,7 +2157,7 @@ export default function ProductManagement() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 <i className="fas fa-trash mr-2"></i>
-                Delete All {activeTab === 'services' ? 'Services' : activeTab === 'aiapps' ? 'AI Apps' : 'Products'}
+                Delete All {activeTab === 'services' ? 'Services' : activeTab === 'apps' ? 'Apps' : 'Products'}
               </Button>
             )}
           </div>
@@ -2054,17 +2173,17 @@ export default function ProductManagement() {
               <div className="mb-4">
                 {activeTab === 'services' ? (
                   <i className="fas fa-credit-card text-6xl text-purple-400 mb-4"></i>
-                ) : activeTab === 'aiapps' ? (
+                ) : activeTab === 'apps' ? (
                   <i className="fas fa-robot text-6xl text-green-400 mb-4"></i>
                 ) : (
                   <i className="fas fa-box text-6xl text-blue-400 mb-4"></i>
                 )}
               </div>
               <p className="text-gray-600 mb-2">
-                No {activeTab === 'services' ? 'services' : activeTab === 'aiapps' ? 'AI apps' : 'products'} found in this category.
+                No {activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'} found in this category.
               </p>
               <p className="text-gray-500 text-sm">
-                Add your first {activeTab === 'services' ? 'service' : activeTab === 'aiapps' ? 'AI app' : 'product'} using the form above.
+                Add your first {activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'} using the form above.
               </p>
             </div>
           ) : (
@@ -2075,7 +2194,7 @@ export default function ProductManagement() {
                   className={`flex items-center gap-4 p-4 rounded-lg hover:bg-gray-750 transition-colors ${
                     activeTab === 'services' 
                       ? 'bg-purple-900/20 border border-purple-600/30' 
-                      : activeTab === 'aiapps'
+                      : activeTab === 'apps'
                       ? 'bg-green-900/20 border border-green-600/30'
                       : 'bg-gray-800'
                   }`}
@@ -2099,8 +2218,8 @@ export default function ProductManagement() {
                       {activeTab === 'services' && (
                         <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">SERVICE</span>
                       )}
-                      {activeTab === 'aiapps' && (
-                        <span className="bg-green-600 text-white px-2 py-1 rounded text-xs">AI APP</span>
+                      {activeTab === 'apps' && (
+                        <span className="bg-green-600 text-white px-2 py-1 rounded text-xs">APP</span>
                       )}
                     </div>
                     <p className="text-gray-300 text-sm mb-2 line-clamp-1">{product.description}</p>
@@ -2128,7 +2247,7 @@ export default function ProductManagement() {
                       <button
                         onClick={() => setShowShareMenu(prev => ({...prev, [product.id]: !prev[product.id]}))}
                         className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                        title={`Share ${activeTab === 'services' ? 'service' : activeTab === 'aiapps' ? 'AI app' : 'product'}`}
+                        title={`Share ${activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'}`}
                       >
                         <i className="fas fa-share text-gray-300"></i>
                       </button>
@@ -2214,7 +2333,7 @@ export default function ProductManagement() {
                     <button
                       onClick={() => handleEditProduct(product)}
                       className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      title={`Edit ${activeTab === 'services' ? 'service' : activeTab === 'aiapps' ? 'AI app' : 'product'}`}
+                      title={`Edit ${activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'}`}
                     >
                       <i className="fas fa-edit text-gray-300"></i>
                     </button>
@@ -2222,7 +2341,7 @@ export default function ProductManagement() {
                       onClick={() => handleDeleteProduct(product.id)}
                       disabled={deleteProductMutation.isPending}
                       className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                      title={`Delete ${activeTab === 'services' ? 'service' : activeTab === 'aiapps' ? 'AI app' : 'product'}`}
+                      title={`Delete ${activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'}`}
                     >
                       <i className="fas fa-trash text-white"></i>
                     </button>

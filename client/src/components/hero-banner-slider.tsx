@@ -129,21 +129,29 @@ export default function HeroBannerSlider() {
   // Combine visible hardcoded banners + database banners
   const slides = [...visibleBannerSlides, ...dbSlides];
 
+  // Auto-advance only when we have slides
   useEffect(() => {
+    if (slides.length === 0) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
-
     return () => clearInterval(timer);
   }, [slides.length]);
 
   const nextSlide = () => {
+    if (slides.length === 0) return;
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
   const prevSlide = () => {
+    if (slides.length === 0) return;
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
+
+  if (slides.length === 0) {
+    // No banners to show; render nothing instead of breaking
+    return null;
+  }
 
   return (
     <section className="relative h-80 md:h-96 overflow-hidden bg-gray-900 dark:bg-gray-800">

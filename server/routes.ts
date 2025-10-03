@@ -13,6 +13,7 @@ import travelCategoriesRouter from './travel-categories-routes.js';
 import currencyRouter from './routes/currency.js';
 import canvaAdminRouter from './canva-admin-routes.js';
 import multer from 'multer';
+import { commissionRateManager } from './commission-rate-manager.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -111,6 +112,72 @@ export function setupRoutes(app: express.Application) {
     limits: { fileSize: 50 * 1024 * 1024 },
   });
 
+  // Static hosting for uploaded files and general media upload endpoints
+  // Create uploads directory if it doesn't exist
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+  } catch {}
+
+  // Serve uploaded files from /uploads
+  app.use('/uploads', express.static(uploadDir));
+
+  // Disk storage for general file/image/video uploads
+  const mediaStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '';
+      const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const unique = `${base}-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+      cb(null, unique);
+    },
+  });
+
+  const mediaUpload = multer({
+    storage: mediaStorage,
+    limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+    fileFilter: (_req, file, cb) => {
+      const ok = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/pdf';
+      if (ok) return cb(null, true);
+      cb(new Error('Unsupported file type'));
+    },
+  });
+
+  // Single file upload (expects field name 'file')
+  app.post('/api/upload', mediaUpload.single('file'), (req, res) => {
+    try {
+      const f = (req as any).file;
+      if (!f) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      const url = `/uploads/${f.filename}`;
+      return res.json({ url, filename: f.originalname, mimetype: f.mimetype, size: f.size });
+    } catch (e: any) {
+      console.error('Upload error:', e);
+      return res.status(500).json({ message: 'Upload failed', error: String(e?.message || e) });
+    }
+  });
+
+  // Multiple file upload (optional support for image and video fields)
+  app.post('/api/upload/multiple', mediaUpload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
+  ]), (req, res) => {
+    try {
+      const files = (req as any).files || {};
+      const imageFile = Array.isArray(files.image) ? files.image[0] : undefined;
+      const videoFile = Array.isArray(files.video) ? files.video[0] : undefined;
+      const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : null;
+      const videoUrl = videoFile ? `/uploads/${videoFile.filename}` : null;
+      return res.json({ imageUrl, videoUrl });
+    } catch (e: any) {
+      console.error('Upload/multiple error:', e);
+      return res.status(500).json({ message: 'Upload failed', error: String(e?.message || e) });
+    }
+  });
+
   // Minimal CSV parser (supports quoted fields and commas inside quotes)
   function parseCSV(text: string): { headers: string[]; rows: Record<string, any>[] } {
     const input = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -154,6 +221,37 @@ export function setupRoutes(app: express.Application) {
     }
     return { headers, rows };
   }
+
+  // Commission CSV Upload (admin panel)
+  app.post('/api/admin/upload-commission-csv', upload.single('csvFile'), async (req, res) => {
+    try {
+      const file = (req as any).file;
+      if (!file) {
+        return res.status(400).json({ success: false, error: 'Missing csvFile' });
+      }
+
+      const csvText = file.buffer.toString('utf-8');
+      const { rows } = parseCSV(csvText);
+      if (!rows || rows.length === 0) {
+        return res.status(400).json({ success: false, error: 'Empty CSV' });
+      }
+
+      // Normalize common header variants to expected keys
+      const normalized = rows.map((r) => ({
+        network: r.network ?? r.network_name ?? r.Network ?? r['Network'] ?? r['affiliate_network'],
+        category: r.category ?? r.category_name ?? r.Category ?? r['Category'],
+        rate: r.rate ?? r.commission_rate ?? r.Rate ?? r['Rate'] ?? r['commission_rate'],
+        minRate: r.minRate ?? r.MinRate ?? r['min_rate'] ?? r['MinRate'],
+        maxRate: r.maxRate ?? r.MaxRate ?? r['max_rate'] ?? r['MaxRate'],
+      }));
+
+      const updatedCount = await commissionRateManager.updateRatesFromCSV(normalized, 'csv');
+      return res.json({ success: true, count: updatedCount });
+    } catch (error: any) {
+      console.error('Commission CSV upload error:', error);
+      return res.status(500).json({ success: false, error: error?.message || 'Failed to process CSV' });
+    }
+  });
 
   // Helper to normalize product image URLs and route through proxy
   function toProxiedImage(url?: string | null): string {
@@ -388,7 +486,7 @@ export function setupRoutes(app: express.Application) {
       // Transform the data to match the expected frontend format with error handling
       const products = rawProducts.map((product: UnifiedContent) => {
         try {
-          let transformedProduct = {
+          let transformedProduct: Partial<MappedUnifiedContent> = {
             id: product.id,
             name: product.title || 'Untitled Product',
             description: product.description || 'No description available',
@@ -451,6 +549,82 @@ export function setupRoutes(app: express.Application) {
 
           // Final normalization and proxy mapping
           transformedProduct.imageUrl = toProxiedImage(transformedProduct.imageUrl);
+
+          // Timer fields mapping: hasTimer, timerDuration (hours), timerStartTime
+          try {
+            // Determine hasTimer from camelCase or snake_case
+            const rawHasTimer = (product as any).hasTimer ?? (product as any).has_timer;
+            const hasTimer = typeof rawHasTimer === 'boolean'
+              ? rawHasTimer
+              : (typeof rawHasTimer === 'number' ? rawHasTimer === 1 : Boolean(rawHasTimer));
+
+            // Parse content JSON once for cookieDurationDays fallback
+            let contentData: any = null;
+            if ((product as any).content) {
+              try {
+                contentData = JSON.parse((product as any).content);
+              } catch {}
+            }
+
+            // Duration (hours): prefer explicit timer_duration, else cookieDurationDays * 24
+            let timerDuration: number | null = null;
+            const rawDuration = (product as any).timerDuration ?? (product as any).timer_duration;
+            if (typeof rawDuration === 'number') {
+              timerDuration = rawDuration > 0 ? rawDuration : null;
+            } else if (typeof rawDuration === 'string') {
+              const parsed = parseInt(rawDuration, 10);
+              timerDuration = isNaN(parsed) || parsed <= 0 ? null : parsed;
+            }
+            if (!timerDuration && contentData && typeof contentData.cookieDurationDays !== 'undefined') {
+              const days = Number(contentData.cookieDurationDays);
+              if (!isNaN(days) && days > 0) {
+                timerDuration = Math.floor(days * 24);
+              }
+            }
+
+            // Start time: prefer timer_start_time, else created_at when timer is enabled
+            let timerStartRaw: any = (product as any).timerStartTime ?? (product as any).timer_start_time;
+            if (!timerStartRaw && hasTimer) {
+              timerStartRaw = (product as any).created_at ?? (product as any).createdAt ?? Date.now();
+            }
+            let timerStartTime: string | null = null;
+            if (timerStartRaw) {
+              let ms: number;
+              if (typeof timerStartRaw === 'string') {
+                const n = Number(timerStartRaw);
+                if (!isNaN(n)) {
+                  ms = n;
+                } else {
+                  // If string date, pass through
+                  timerStartTime = new Date(timerStartRaw).toISOString();
+                  ms = NaN;
+                }
+              } else if (typeof timerStartRaw === 'number') {
+                ms = timerStartRaw;
+              } else if (timerStartRaw instanceof Date) {
+                ms = timerStartRaw.getTime();
+              } else {
+                ms = Date.now();
+              }
+              if (!timerStartTime) {
+                // Normalize seconds → milliseconds if the value looks like seconds
+                if (ms < 10_000_000_000) {
+                  ms = ms * 1000;
+                }
+                timerStartTime = new Date(ms).toISOString();
+              }
+            }
+
+            // Assign only if timer is enabled and we have a duration
+            transformedProduct.hasTimer = Boolean(hasTimer) && Boolean(timerDuration);
+            transformedProduct.timerDuration = transformedProduct.hasTimer ? timerDuration : null;
+            transformedProduct.timerStartTime = transformedProduct.hasTimer ? timerStartTime : null;
+          } catch (timerMapErr) {
+            console.warn(`Timer mapping failed for product ${product.id}:`, timerMapErr);
+            transformedProduct.hasTimer = false;
+            transformedProduct.timerDuration = null;
+            transformedProduct.timerStartTime = null;
+          }
 
           // Parse affiliate_urls for affiliate link with error handling
           if (product.affiliate_urls) {
@@ -588,14 +762,30 @@ export function setupRoutes(app: express.Application) {
       
       console.log(`Getting products for category: "${category}", page: "${page}"`);
       
-      const products = sqliteDb.prepare(`
+      // If page=all, do not filter by display_pages. Otherwise, include robust JSON/string matching.
+      let query = `
         SELECT * FROM unified_content 
         WHERE category = ?
-        AND (display_pages LIKE '%' || ? || '%' OR display_pages IS NULL OR display_pages = '')
         AND is_active = 1
-        ORDER BY created_at DESC 
-        LIMIT ? OFFSET ?
-      `).all(category, page, parseInt(limit as string), parseInt(offset as string));
+      `;
+
+      const params: any[] = [category];
+
+      if ((page as string) !== 'all') {
+        query += ` AND (
+          JSON_EXTRACT(display_pages, '$') LIKE '%' || ? || '%'
+          OR display_pages LIKE '%' || ? || '%'
+          OR display_pages = ?
+          OR display_pages IS NULL
+          OR display_pages = ''
+        )`;
+        params.push(page, page, page);
+      }
+
+      query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+      params.push(parseInt(limit as string), parseInt(offset as string));
+
+      const products = sqliteDb.prepare(query).all(...params);
       
       console.log(`Found ${products.length} products for category "${category}"`);
       res.json(products);
@@ -682,6 +872,7 @@ export function setupRoutes(app: express.Application) {
       const categories = sqliteDb.prepare(`
         SELECT name, name as id
         FROM categories 
+        WHERE is_active = 1
         ORDER BY display_order ASC, name ASC
       `).all();
       
@@ -736,6 +927,7 @@ export function setupRoutes(app: express.Application) {
           OR (c.name = 'AI Applications' AND uc.category = 'AI App')
         )
         WHERE c.parent_id IS NULL
+          AND c.is_active = 1
           AND (
             uc.processing_status = 'completed' 
             OR uc.processing_status = 'active' 
@@ -770,28 +962,35 @@ export function setupRoutes(app: express.Application) {
   // Get categories filtered by type for browse sections (only categories with content)
   app.get('/api/categories/products', async (req, res) => {
     try {
+      // More robust count logic: handle singular/plural and known category aliases
+      // This mirrors the matching used in browse categories to avoid zero/incorrect counts
       const categories = sqliteDb.prepare(`
         SELECT 
-          c.name, 
-          c.id, 
-          COALESCE(uc.count, 0) as count
+          c.name,
+          c.id,
+          COALESCE((
+            SELECT COUNT(uc.id)
+            FROM unified_content uc
+            WHERE (
+              uc.category = c.name
+              OR uc.category = REPLACE(c.name, 's', '')
+              OR uc.category = c.name || 's'
+              OR (c.name = 'Technology Services' AND uc.category = 'Technology Service')
+              OR (c.name = 'AI Photo Apps' AND uc.category = 'AI Photo App')
+              OR (c.name = 'AI Applications' AND uc.category = 'AI App')
+            )
+            AND (uc.category IS NOT NULL AND uc.category != '')
+            AND (uc.processing_status = 'completed' OR uc.processing_status = 'active' OR uc.processing_status IS NULL)
+            AND (uc.visibility = 'public' OR uc.visibility IS NULL)
+            AND (uc.status = 'published' OR uc.status = 'active' OR uc.status IS NULL)
+            AND (uc.is_service IS NULL OR uc.is_service = 0)
+            AND (uc.is_ai_app IS NULL OR uc.is_ai_app = 0)
+          ), 0) AS count
         FROM categories c
-        INNER JOIN (
-          SELECT category, COUNT(*) as count
-          FROM unified_content 
-          WHERE category IS NOT NULL 
-          AND category != ''
-          AND (processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL)
-          AND (visibility = 'public' OR visibility IS NULL)
-          AND (status = 'published' OR status = 'active' OR status IS NULL)
-          AND (is_service IS NULL OR is_service = 0)
-          AND (is_ai_app IS NULL OR is_ai_app = 0)
-          GROUP BY category
-        ) uc ON c.name = uc.category
-        WHERE c.is_for_products = 1
+        WHERE c.is_for_products = 1 AND c.is_active = 1
         ORDER BY c.display_order ASC, c.name ASC
       `).all();
-      
+
       res.json(categories);
     } catch (error) {
       console.error('Error fetching product categories:', error);
@@ -818,7 +1017,7 @@ export function setupRoutes(app: express.Application) {
           AND is_service = 1
           GROUP BY category
         ) uc ON c.name = uc.category
-        WHERE c.is_for_services = 1
+        WHERE c.is_for_services = 1 AND c.is_active = 1
         ORDER BY c.display_order ASC, c.name ASC
       `).all();
       
@@ -848,7 +1047,7 @@ export function setupRoutes(app: express.Application) {
           AND is_ai_app = 1
           GROUP BY category
         ) uc ON c.name = uc.category
-        WHERE c.is_for_ai_apps = 1
+        WHERE c.is_for_ai_apps = 1 AND c.is_active = 1
         ORDER BY c.display_order ASC, c.name ASC
       `).all();
       
@@ -868,7 +1067,8 @@ export function setupRoutes(app: express.Application) {
           c.name as id, 
           0 as count
         FROM categories c
-        WHERE c.is_for_products = 1 OR c.is_for_products IS NULL
+        WHERE (c.is_for_products = 1 OR c.is_for_products IS NULL)
+          AND c.is_active = 1
         ORDER BY c.display_order ASC, c.name ASC
       `).all();
       
@@ -887,7 +1087,8 @@ export function setupRoutes(app: express.Application) {
           c.name as id, 
           0 as count
         FROM categories c
-        WHERE c.is_for_services = 1 OR c.is_for_services IS NULL
+        WHERE (c.is_for_services = 1 OR c.is_for_services IS NULL)
+          AND c.is_active = 1
         ORDER BY c.display_order ASC, c.name ASC
       `).all();
       
@@ -906,7 +1107,8 @@ export function setupRoutes(app: express.Application) {
           c.name as id, 
           0 as count
         FROM categories c
-        WHERE c.is_for_ai_apps = 1 OR c.is_for_ai_apps IS NULL
+        WHERE (c.is_for_ai_apps = 1 OR c.is_for_ai_apps IS NULL)
+          AND c.is_active = 1
         ORDER BY c.display_order ASC, c.name ASC
       `).all();
       
@@ -1016,17 +1218,11 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
-  // Dynamic widget endpoints for all pages and positions
-  app.get('/api/widgets/:page/:position', (req, res) => {
-    try {
-      const { page, position } = req.params;
-      
-      // Return empty widget array for now - this can be enhanced later with database integration
-      res.json([]);
-    } catch (error) {
-      console.error('Error fetching widgets:', error);
-      res.status(500).json({ message: 'Failed to fetch widgets' });
-    }
+  // Dynamic widget endpoint placeholder (defer to dedicated widget-routes)
+  // This route previously returned an empty array and shadowed the real implementation.
+  // Change to pass-through so the actual handlers in widget-routes.ts can serve widgets from SQLite.
+  app.get('/api/widgets/:page/:position', (_req, _res, next) => {
+    return next();
   });
 
   // Legacy widget endpoints (placeholder responses)
@@ -1605,9 +1801,22 @@ export function setupRoutes(app: express.Application) {
           case 'mrp':
             keyMap[h] = 'originalPrice';
             break;
+          case 'discount':
+            keyMap[h] = 'discount';
+            break;
           case 'category':
           case 'categories':
             keyMap[h] = 'category';
+            break;
+          case 'subcategory':
+          case 'sub_category':
+          case 'subcategories':
+            keyMap[h] = 'subcategory';
+            break;
+          case 'cookie_duration':
+          case 'cookie':
+          case 'cookie_days':
+            keyMap[h] = 'cookieDuration';
             break;
           case 'imageurl':
           case 'image_url':
@@ -1624,6 +1833,7 @@ export function setupRoutes(app: express.Application) {
             break;
           case 'is_featured':
           case 'featured':
+          case 'is_feature':
             keyMap[h] = 'isFeatured';
             break;
           case 'is_service':
@@ -1637,6 +1847,25 @@ export function setupRoutes(app: express.Application) {
             break;
           case 'gender':
             keyMap[h] = 'gender';
+            break;
+          // Advanced pricing fields for services/apps
+          case 'pricing_type':
+            keyMap[h] = 'pricingType';
+            break;
+          case 'monthly_price':
+            keyMap[h] = 'monthlyPrice';
+            break;
+          case 'yearly_price':
+            keyMap[h] = 'yearlyPrice';
+            break;
+          case 'is_free':
+            keyMap[h] = 'isFree';
+            break;
+          case 'price_description':
+            keyMap[h] = 'priceDescription';
+            break;
+          case 'display_pages':
+            keyMap[h] = 'displayPages';
             break;
           default:
             keyMap[h] = h;
@@ -1667,25 +1896,58 @@ export function setupRoutes(app: express.Application) {
             ? Number(String(productData.originalPrice).replace(/[^0-9.\-]/g, ''))
             : undefined;
 
+          // Parse discount if provided; otherwise compute from prices when possible
+          const discountVal = (productData.discount !== undefined && productData.discount !== '')
+            ? parseInt(String(productData.discount).replace(/[^0-9]/g, ''))
+            : (priceVal !== undefined && originalPriceVal !== undefined && originalPriceVal > 0 && priceVal < originalPriceVal
+                ? Math.round(((originalPriceVal - priceVal) / originalPriceVal) * 100)
+                : undefined);
+
           const toBool = (v: any) => {
             if (typeof v === 'boolean') return v;
             const s = String(v).trim().toLowerCase();
             return s === 'true' || s === '1' || s === 'yes' || s === 'y';
           };
 
+          // Normalize display pages: comma-separated -> array
+          const displayPages = productData.displayPages
+            ? String(productData.displayPages)
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter((s: string) => s.length > 0)
+            : undefined;
+
           const mapped = {
             name,
             description: (productData.description || '').toString(),
             category: (productData.category || '').toString(),
+            subcategory: (productData.subcategory || '').toString(),
             imageUrl: (productData.imageUrl || '').toString(),
             affiliateUrl: (productData.affiliateUrl || productData.url || '').toString(),
             brand: productData.brand ? String(productData.brand) : undefined,
             price: priceVal,
             originalPrice: originalPriceVal,
+            discount: discountVal,
             isFeatured: toBool(productData.isFeatured),
             isService: toBool(productData.isService),
             isAIApp: toBool(productData.isAIApp),
             gender: productData.gender ? String(productData.gender) : undefined,
+            // Advanced pricing
+            pricingType: productData.pricingType ? String(productData.pricingType).toLowerCase() : undefined,
+            monthlyPrice: productData.monthlyPrice !== undefined && productData.monthlyPrice !== ''
+              ? String(productData.monthlyPrice)
+              : undefined,
+            yearlyPrice: productData.yearlyPrice !== undefined && productData.yearlyPrice !== ''
+              ? String(productData.yearlyPrice)
+              : undefined,
+            isFree: toBool(productData.isFree),
+            priceDescription: productData.priceDescription ? String(productData.priceDescription) : undefined,
+            // Display pages
+            displayPages,
+            // Cookie duration (days)
+            cookieDuration: productData.cookieDuration !== undefined && productData.cookieDuration !== ''
+              ? parseInt(String(productData.cookieDuration).replace(/[^0-9]/g, ''))
+              : undefined
           } as any;
 
           const result = await storage.addProduct(mapped);
@@ -1695,16 +1957,17 @@ export function setupRoutes(app: express.Application) {
         }
       }
 
-      res.json({
-        message: 'Bulk upload completed',
-        totalRows: rows.length,
-        processed,
-        inserted,
-        failed: errors.length,
-        errors,
-        recognizedHeaders: headers,
-        expectedHeadersSample: [
-          'name', 'description', 'price', 'original_price', 'category', 'image_url', 'affiliate_url', 'brand', 'is_featured', 'is_service', 'is_ai_app'
+        res.json({
+          message: 'Bulk upload completed',
+          totalRows: rows.length,
+          processed,
+          inserted,
+          failed: errors.length,
+          errors,
+          recognizedHeaders: headers,
+          expectedHeadersSample: [
+          'name', 'description', 'price', 'original_price', 'discount', 'category', 'subcategory', 'image_url', 'affiliate_url', 'brand', 'gender', 'is_featured', 'is_service', 'is_ai_app',
+          'pricing_type', 'monthly_price', 'yearly_price', 'is_free', 'price_description', 'display_pages', 'cookie_duration'
         ]
       });
     } catch (error) {

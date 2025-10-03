@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useCurrency, getCurrencySymbol, CurrencyCode } from '@/contexts/CurrencyContext';
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
-import PriceTag from '@/components/PriceTag';
+import EnhancedPriceTag from '@/components/EnhancedPriceTag';
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
@@ -584,12 +584,14 @@ export default function CardsAppsServices() {
                   
                   {/* Price */}
                   <div className="flex items-center space-x-2">
-                    <PriceTag
+                    <EnhancedPriceTag
                       product={service}
                       colorClass="text-indigo-600 dark:text-indigo-400"
                       originalClass="text-gray-500 line-through text-sm"
                       freeClass="text-green-600 dark:text-green-400"
                       helperClass="text-xs text-gray-500"
+                      discountClass="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold"
+                      showDiscountBadge={false}
                     />
                   </div>
                   

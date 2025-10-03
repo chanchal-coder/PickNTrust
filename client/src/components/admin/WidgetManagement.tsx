@@ -15,6 +15,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 interface Widget {
   id: number;
   name: string;
+  description?: string;
   code: string;
   targetPage: string;
   position: string;
@@ -24,12 +25,14 @@ interface Widget {
   customCss?: string;
   showOnMobile: boolean;
   showOnDesktop: boolean;
+  externalLink?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 interface WidgetForm {
   name: string;
+  description: string;
   code: string;
   targetPage: string;
   position: string;
@@ -38,6 +41,7 @@ interface WidgetForm {
   customCss: string;
   showOnMobile: boolean;
   showOnDesktop: boolean;
+  externalLink: string;
 }
 
 // Travel category interface for dynamic categories
@@ -415,12 +419,27 @@ console.log('Custom widget loaded');
 ];
 
 export default function WidgetManagement() {
-  const [isAddingWidget, setIsAddingWidget] = useState(false);
+  const [isAddingWidget, setIsAddingWidget] = useState(true);
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [creationMode, setCreationMode] = useState<'code' | 'form'>('form');
+  const [formBuilder, setFormBuilder] = useState({
+    templateType: 'image-link' as 'image-link' | 'cta-button' | 'announcement-banner' | 'banner-ad' | 'adsense',
+    title: '',
+    descriptionText: '',
+    imageUrl: '',
+    imageAlt: '',
+    linkUrl: '',
+    buttonText: 'Learn More',
+    colorAccent: '#2563EB',
+    adClient: '',
+    adSlot: ''
+  });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formData, setFormData] = useState<WidgetForm>({
     name: '',
+    description: '',
     code: '',
     targetPage: '',  // No default - let user select
     position: '',    // No default - let user select
@@ -429,6 +448,7 @@ export default function WidgetManagement() {
     customCss: '',
     showOnMobile: true,
     showOnDesktop: true,
+    externalLink: '',
   });
 
   const { toast } = useToast();
@@ -505,6 +525,7 @@ export default function WidgetManagement() {
       return rawWidgets.map((widget: any) => ({
         id: widget.id,
         name: widget.name,
+        description: widget.description || '',
         code: widget.code,
         targetPage: widget.target_page,
         position: widget.position,
@@ -514,6 +535,7 @@ export default function WidgetManagement() {
         customCss: widget.custom_css,
         showOnMobile: Boolean(widget.show_on_mobile),
         showOnDesktop: Boolean(widget.show_on_desktop),
+        externalLink: widget.external_link || '',
         createdAt: widget.created_at,
         updatedAt: widget.updated_at
       }));
@@ -673,6 +695,7 @@ export default function WidgetManagement() {
   const resetForm = () => {
     setFormData({
       name: '',
+      description: '',
       code: '',
       targetPage: '',  // No default - let user select
       position: '',    // No default - let user select
@@ -681,9 +704,96 @@ export default function WidgetManagement() {
       customCss: '',
       showOnMobile: true,
       showOnDesktop: true,
+      externalLink: '',
     });
     setSelectedTemplate('');
     setSelectedCategory('All');
+    setCreationMode('form');
+    setFormBuilder({
+      templateType: 'image-link',
+      title: '',
+      descriptionText: '',
+      imageUrl: '',
+      imageAlt: '',
+      linkUrl: '',
+      buttonText: 'Learn More',
+      colorAccent: '#2563EB',
+      adClient: '',
+      adSlot: ''
+    });
+  };
+
+  // Generate widget code from the form builder inputs
+  const generateCodeFromForm = (): string | null => {
+    const { templateType, title, descriptionText, imageUrl, imageAlt, linkUrl, buttonText, colorAccent, adClient, adSlot } = formBuilder;
+
+    const safeTitle = title?.trim() || 'Widget';
+    const safeButtonText = buttonText?.trim() || 'Learn More';
+    const safeLink = linkUrl?.trim() || '#';
+    const descBlock = descriptionText?.trim()
+      ? `<p class="text-sm text-gray-700 mt-2">${descriptionText.trim()}</p>`
+      : '';
+
+    if (templateType === 'image-link') {
+      if (!imageUrl?.trim()) {
+        toast({ title: 'Error', description: 'Please provide an Image URL for the Image + Link template', variant: 'destructive' });
+        return null;
+      }
+      return `<!-- Auto-generated: Image + Link Widget -->\n<div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden max-w-md">\n  <img src="${imageUrl.trim()}" alt="${safeTitle}" class="w-full h-48 object-cover">\n  <div class="p-4">\n    <h3 class="text-lg font-semibold text-gray-900">${safeTitle}</h3>\n    ${descBlock}\n    <a href="${safeLink}" class="inline-block mt-3 px-4 py-2 rounded-md text-white" style="background-color:${colorAccent}">${safeButtonText}</a>\n  </div>\n</div>`;
+    }
+
+    if (templateType === 'cta-button') {
+      return `<!-- Auto-generated: CTA Button Widget -->\n<div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">\n  <h3 class="text-lg font-semibold text-gray-900">${safeTitle}</h3>\n  ${descBlock}\n  <a href="${safeLink}" class="inline-block mt-3 px-6 py-2 rounded-md text-white" style="background-color:${colorAccent}">${safeButtonText}</a>\n</div>`;
+    }
+
+    if (templateType === 'announcement-banner') {
+      const bannerText = descriptionText?.trim() || 'Announcement';
+      return `<!-- Auto-generated: Announcement Banner Widget -->\n<div class="text-white p-4 text-center relative" style="background-color:${colorAccent}">\n  <p class="font-medium"><strong>${safeTitle}:</strong> ${bannerText}</p>\n  <button class="absolute right-4 top-1/2 -translate-y-1/2" onclick="this.parentElement.style.display='none'">\n    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>\n    </svg>\n  </button>\n</div>`;
+    }
+
+    if (templateType === 'banner-ad') {
+      if (!imageUrl?.trim()) {
+        toast({ title: 'Error', description: 'Please provide an Image URL for the Banner Ad template', variant: 'destructive' });
+        return null;
+      }
+      const alt = (imageAlt?.trim() || safeTitle);
+      return `<!-- Auto-generated: Banner Ad Widget -->\n<div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden max-w-md">\n  <a href="${safeLink}" target="_blank" rel="nofollow sponsored">\n    <img src="${imageUrl.trim()}" alt="${alt}" class="w-full h-48 object-cover">\n  </a>\n  <div class="p-4">\n    <h3 class="text-lg font-semibold text-gray-900">${safeTitle}</h3>\n    ${descBlock}\n  </div>\n</div>`;
+    }
+
+    if (templateType === 'adsense') {
+      const client = adClient?.trim();
+      const slot = adSlot?.trim();
+      if (!client || !slot) {
+        toast({ title: 'Error', description: 'AdSense requires both Client ID (ca-pub-...) and Slot ID', variant: 'destructive' });
+        return null;
+      }
+      return `<!-- Auto-generated: Google AdSense Widget -->\n<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}" crossorigin="anonymous"></script>\n<ins class="adsbygoogle" style="display:block" data-ad-client="${client}" data-ad-slot="${slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>\n<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>`;
+    }
+
+    return null;
+  };
+
+  // Upload image helper and set imageUrl from response
+  const handleImageUpload = async (file: File) => {
+    try {
+      setIsUploadingImage(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error('Upload failed');
+      const data = await resp.json();
+      const url = typeof data.url === 'string' ? data.url : data?.files?.image || '';
+      if (url) {
+        setFormBuilder(prev => ({ ...prev, imageUrl: url }));
+        toast({ title: 'Image Uploaded', description: 'Image URL set from uploaded file.' });
+      } else {
+        throw new Error('No URL returned from upload');
+      }
+    } catch (e: any) {
+      toast({ title: 'Upload Error', description: e?.message || 'Failed to upload image', variant: 'destructive' });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -700,10 +810,21 @@ export default function WidgetManagement() {
       return;
     }
     
+    // When using the form builder, generate code before submit
+    let payload: WidgetForm = { ...formData };
+    if (creationMode === 'form') {
+      const generated = generateCodeFromForm();
+      if (!generated) {
+        // generation failed due to validation, do not submit
+        return;
+      }
+      payload = { ...payload, code: generated };
+    }
+
     if (editingWidget) {
-      updateWidgetMutation.mutate({ id: editingWidget.id, data: formData });
+      updateWidgetMutation.mutate({ id: editingWidget.id, data: payload });
     } else {
-      createWidgetMutation.mutate(formData);
+      createWidgetMutation.mutate(payload);
     }
   };
 
@@ -711,6 +832,7 @@ export default function WidgetManagement() {
     setEditingWidget(widget);
     setFormData({
       name: widget.name,
+      description: widget.description || '',
       code: widget.code,
       targetPage: widget.targetPage,
       position: widget.position,
@@ -719,8 +841,10 @@ export default function WidgetManagement() {
       customCss: widget.customCss || '',
       showOnMobile: widget.showOnMobile,
       showOnDesktop: widget.showOnDesktop,
+      externalLink: widget.externalLink || '',
     });
     setIsAddingWidget(true);
+    setCreationMode('code');
   };
 
   const handleTemplateSelect = (template: typeof widgetTemplates[0]) => {
@@ -730,6 +854,7 @@ export default function WidgetManagement() {
       code: template.code
     }));
     setSelectedTemplate(template.name);
+    setCreationMode('code');
   };
 
   const handleCancel = () => {
@@ -839,8 +964,16 @@ export default function WidgetManagement() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Template Selection */}
-              {!editingWidget && (
+              {/* Creation Mode Toggle */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Creation Mode</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant={creationMode === 'form' ? 'default' : 'outline'} size="sm" onClick={() => setCreationMode('form')}>Use Form</Button>
+                  <Button type="button" variant={creationMode === 'code' ? 'default' : 'outline'} size="sm" onClick={() => setCreationMode('code')}>Paste Code</Button>
+                </div>
+              </div>
+              {/* Template Selection (shown only in Code mode) */}
+              {!editingWidget && creationMode === 'code' && (
                 <div>
                   <Label className="text-sm font-medium">Widget Templates</Label>
                   <p className="text-xs text-gray-500 mb-3">Choose from our comprehensive collection of pre-built widgets</p>
@@ -868,15 +1001,15 @@ export default function WidgetManagement() {
                     {(selectedCategory === 'All' ? widgetTemplates : widgetTemplates.filter(t => t.category === selectedCategory))
                       .map((template) => (
                         <div key={template.name} className="mb-3 last:mb-0">
-                          <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-sm">{template.name}</h4>
+                                <h4 className="font-medium text-sm text-gray-900 dark:text-white">{template.name}</h4>
                                 <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                                   {template.category}
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-500 line-clamp-2">
+                              <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
                                 {getTemplateDescription(template.name)}
                               </p>
                             </div>
@@ -907,6 +1040,17 @@ export default function WidgetManagement() {
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Enter widget name"
                     required
+                  />
+                </div>
+
+                {/* Description (optional) */}
+                <div>
+                  <Label htmlFor="description">Description (optional)</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Short description for admins or template content"
                   />
                 </div>
 
@@ -954,21 +1098,128 @@ export default function WidgetManagement() {
                     placeholder="e.g., 300px, 100%, auto"
                   />
                 </div>
+
+                {/* External Link */}
+                <div>
+                  <Label htmlFor="externalLink">External Link (optional)</Label>
+                  <Input
+                    id="externalLink"
+                    value={formData.externalLink}
+                    onChange={(e) => setFormData(prev => ({ ...prev, externalLink: e.target.value }))}
+                    placeholder="https://example.com/landing"
+                  />
+                </div>
+              </div>
+
+              {/* Form Builder */}
+              {creationMode === 'form' && (
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Form Template</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Template Type</Label>
+                      <Select value={formBuilder.templateType} onValueChange={(v) => setFormBuilder(prev => ({ ...prev, templateType: v as any }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="image-link">Image + Link</SelectItem>
+                          <SelectItem value="cta-button">CTA Button</SelectItem>
+                          <SelectItem value="announcement-banner">Announcement Banner</SelectItem>
+                          <SelectItem value="banner-ad">Banner Ad</SelectItem>
+                          <SelectItem value="adsense">Google AdSense</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Title</Label>
+                      <Input value={formBuilder.title} onChange={(e) => setFormBuilder(prev => ({ ...prev, title: e.target.value }))} placeholder="Widget title" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Description Text</Label>
+                      <Textarea value={formBuilder.descriptionText} onChange={(e) => setFormBuilder(prev => ({ ...prev, descriptionText: e.target.value }))} rows={3} placeholder="Optional description shown inside the widget" />
+                    </div>
+                    {(formBuilder.templateType === 'image-link' || formBuilder.templateType === 'announcement-banner' || formBuilder.templateType === 'banner-ad') && (
+                      <div>
+                        <Label>Image URL or Upload</Label>
+                        <Input value={formBuilder.imageUrl} onChange={(e) => setFormBuilder(prev => ({ ...prev, imageUrl: e.target.value }))} placeholder="https://..." />
+                        <div className="mt-2 flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleImageUpload(f);
+                            }}
+                          />
+                          {isUploadingImage && <span className="text-xs text-gray-600">Uploading...</span>}
+                        </div>
+                        {formBuilder.imageUrl && (
+                          <div className="mt-2">
+                            <img src={formBuilder.imageUrl} alt="Preview" className="h-20 w-auto rounded border" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {(formBuilder.templateType === 'image-link' || formBuilder.templateType === 'banner-ad') && (
+                      <div>
+                        <Label>Image Alt Text (optional)</Label>
+                        <Input value={formBuilder.imageAlt} onChange={(e) => setFormBuilder(prev => ({ ...prev, imageAlt: e.target.value }))} placeholder="Describe the image" />
+                      </div>
+                    )}
+                    {formBuilder.templateType === 'adsense' && (
+                      <>
+                        <div>
+                          <Label>AdSense Client ID</Label>
+                          <Input value={formBuilder.adClient} onChange={(e) => setFormBuilder(prev => ({ ...prev, adClient: e.target.value }))} placeholder="ca-pub-XXXXXXXXXXXXXXXX" />
+                        </div>
+                        <div>
+                          <Label>AdSense Slot ID</Label>
+                          <Input value={formBuilder.adSlot} onChange={(e) => setFormBuilder(prev => ({ ...prev, adSlot: e.target.value }))} placeholder="e.g., 1234567890" />
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <Label>Link URL</Label>
+                      <Input value={formBuilder.linkUrl} onChange={(e) => setFormBuilder(prev => ({ ...prev, linkUrl: e.target.value }))} placeholder="https://..." />
+                    </div>
+                    <div>
+                      <Label>Button Text</Label>
+                      <Input value={formBuilder.buttonText} onChange={(e) => setFormBuilder(prev => ({ ...prev, buttonText: e.target.value }))} placeholder="Learn More" />
+                    </div>
+                    <div>
+                      <Label>Accent Color</Label>
+                      <Input type="color" value={formBuilder.colorAccent} onChange={(e) => setFormBuilder(prev => ({ ...prev, colorAccent: e.target.value }))} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">Code is auto-generated from these fields.</p>
+                </div>
+              )}
+
+              {/* Secondary Creation Mode Toggle (near builder/editor for visibility) */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Creation Mode</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant={creationMode === 'form' ? 'default' : 'outline'} size="sm" onClick={() => setCreationMode('form')}>Use Form</Button>
+                  <Button type="button" variant={creationMode === 'code' ? 'default' : 'outline'} size="sm" onClick={() => setCreationMode('code')}>Paste Code</Button>
+                </div>
               </div>
 
               {/* Widget Code */}
-              <div>
-                <Label htmlFor="code">Widget Code (HTML/CSS/JS)</Label>
-                <Textarea
-                  id="code"
-                  value={formData.code}
-                  onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                  placeholder="Paste your widget code here..."
-                  rows={8}
-                  className="font-mono text-sm"
-                  required
-                />
-              </div>
+              {creationMode === 'code' && (
+                <div>
+                  <Label htmlFor="code">Widget Code (HTML/CSS/JS)</Label>
+                  <Textarea
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="Paste your widget code here..."
+                    rows={8}
+                    className="font-mono text-sm"
+                    required
+                  />
+                </div>
+              )}
 
               {/* Custom CSS */}
               <div>
@@ -1082,6 +1333,9 @@ export default function WidgetManagement() {
                           <Smartphone className="w-4 h-4" />
                           {widget.showOnMobile ? 'Mobile' : 'No Mobile'}
                         </span>
+                        {widget.description && (
+                          <span className="truncate max-w-[240px]" title={widget.description}>Desc: {widget.description}</span>
+                        )}
                         {widget.maxWidth && (
                           <span>Max Width: {widget.maxWidth}</span>
                         )}

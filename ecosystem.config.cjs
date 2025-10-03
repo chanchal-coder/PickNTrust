@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'pickntrust-backend',
       cwd: '/home/ec2-user/pickntrust',
-      script: 'dist/server/index.js',
+      script: 'dist/server/server/index.js',
       env: {
         NODE_ENV: 'production',
         PORT: 5000,

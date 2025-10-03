@@ -12,7 +12,7 @@
     "build:client": "vite build",
     "build:server": "tsc -p server/tsconfig.json",
     "build:production": "node build-production.js",
-    "start": "set NODE_ENV=production&& set FRONTEND_STATIC_DIR=dist/public&& node dist/server/server/index.js",
+    "start": "cross-env NODE_ENV=production FRONTEND_STATIC_DIR=dist/public node dist/server/server/index.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -87,7 +87,8 @@
     "vaul": "^1.1.2",
     "vite": "^5.0.10",
     "wouter": "^3.7.1",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "cross-env": "^7.0.3"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",

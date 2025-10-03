@@ -64,10 +64,21 @@ export default function EnhancedPriceTag({
     discount, // explicit discount from database
   } = product || {};
 
+  // Derive an effective original price when only discount is provided
+  const effectiveOriginalPrice = (() => {
+    const originalNum = getNumeric(originalPrice);
+    const priceNum = getNumeric(price);
+    const explicitDiscount = getNumeric(discount);
+    if (originalNum > 0) return originalPrice;
+    if (explicitDiscount > 0 && priceNum > 0 && explicitDiscount < 100) {
+      return Math.round(priceNum / (1 - explicitDiscount / 100));
+    }
+    return null;
+  })();
+
   const hasMonthly = getNumeric(monthlyPrice) > 0;
   const hasYearly = getNumeric(yearlyPrice) > 0;
-  const hasOriginal = originalPrice !== undefined && originalPrice !== null && 
-    String(originalPrice) !== '' && String(originalPrice) !== '0' && getNumeric(originalPrice) > 0;
+  const hasOriginal = effectiveOriginalPrice !== null && getNumeric(effectiveOriginalPrice) > 0;
   const hasSimplePrice = getNumeric(price) > 0;
   
   // Check if product has complex pricing (tags)
@@ -75,7 +86,7 @@ export default function EnhancedPriceTag({
     (pricingType && pricingType !== 'one-time' && pricingType !== 'One-time Payment');
   
   // Calculate discount percentage
-  const calculatedDiscount = calculateDiscount(originalPrice, price);
+  const calculatedDiscount = calculateDiscount(effectiveOriginalPrice ?? originalPrice, price);
   const finalDiscount = getNumeric(discount) > 0 ? getNumeric(discount) : calculatedDiscount;
 
   // FREE pricing
@@ -103,7 +114,7 @@ export default function EnhancedPriceTag({
         <div className="flex items-center space-x-2">
           <span className={`text-lg font-bold ${colorClass}`}>{formatProductPrice(monthlyPrice, currency)}/month</span>
           {hasOriginal && (
-            <span className={originalClass}>{formatProductPrice(originalPrice, currency)}/month</span>
+            <span className={originalClass}>{formatProductPrice(effectiveOriginalPrice, currency)}/month</span>
           )}
           {finalDiscount > 0 && showDiscountBadge && (
             <span className={discountClass}>{finalDiscount}% OFF</span>
@@ -125,7 +136,7 @@ export default function EnhancedPriceTag({
         <div className="flex items-center space-x-2">
           <span className={`text-lg font-bold ${colorClass}`}>{formatProductPrice(yearlyPrice, currency)}/year</span>
           {hasOriginal && (
-            <span className={originalClass}>{formatProductPrice(originalPrice, currency)}/year</span>
+            <span className={originalClass}>{formatProductPrice(effectiveOriginalPrice, currency)}/year</span>
           )}
           {finalDiscount > 0 && showDiscountBadge && (
             <span className={discountClass}>{finalDiscount}% OFF</span>
@@ -157,7 +168,7 @@ export default function EnhancedPriceTag({
           {/* Original Price (strikethrough) */}
           {hasOriginal && (
             <span className={originalClass}>
-              {formatProductPrice(originalPrice, currency)}{suffix}
+              {formatProductPrice(effectiveOriginalPrice, currency)}{suffix}
             </span>
           )}
           
@@ -168,9 +179,9 @@ export default function EnhancedPriceTag({
         </div>
         
         {/* Savings Display */}
-        {hasOriginal && getNumeric(originalPrice) > getNumeric(price) && (
+        {hasOriginal && getNumeric(effectiveOriginalPrice) > getNumeric(price) && (
           <div className="text-xs text-green-600 font-medium">
-            You save {formatProductPrice(getNumeric(originalPrice) - getNumeric(price), currency)}
+            You save {formatProductPrice(getNumeric(effectiveOriginalPrice) - getNumeric(price), currency)}
           </div>
         )}
         

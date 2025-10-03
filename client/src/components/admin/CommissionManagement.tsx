@@ -926,6 +926,17 @@ export default function CommissionManagement() {
                 </div>
               </div>
 
+              <div className="mt-2">
+                <a
+                  href="/commission-upload-template.csv"
+                  download
+                  className="inline-flex items-center gap-2 text-blue-300 hover:text-blue-200 underline"
+                >
+                  <i className="fas fa-download"></i>
+                  Download CSV Template
+                </a>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="csvFile">Select CSV File</Label>

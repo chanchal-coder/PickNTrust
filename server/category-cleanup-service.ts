@@ -80,9 +80,6 @@ export class CategoryCleanupService {
       console.log('Cleanup Running category cleanup process...');
       const startTime = Date.now();
       
-      // Category cleanup is handled by the database constraints and triggers
-      console.log('Category cleanup process completed');
-      
       // Skip stats if unified_content is missing to avoid SQLITE_ERROR on EC2
       if (!this.unifiedTableExists()) {
         const duration = Date.now() - startTime;
@@ -91,11 +88,24 @@ export class CategoryCleanupService {
         return;
       }
 
+      // Mark categories with zero active content as inactive
+      const result = sqliteDb.prepare(`
+        UPDATE categories SET is_active = 0
+        WHERE id IN (
+          SELECT c.id FROM categories c
+          LEFT JOIN unified_content uc
+            ON uc.category = c.name AND uc.status = 'active'
+          GROUP BY c.id
+          HAVING COUNT(uc.id) = 0
+        )
+      `).run();
+
       // Get basic category information
       const categories = await this.categoryManager.getAllCategories();
       const stats = {
         totalCategories: categories.length,
-        cleanupTime: new Date().toISOString()
+        cleanupTime: new Date().toISOString(),
+        deactivatedCategories: result.changes || 0
       };
       
       const duration = Date.now() - startTime;
@@ -115,9 +125,6 @@ export class CategoryCleanupService {
       console.log('Cleanup Running manual category cleanup...');
       const startTime = Date.now();
       
-      // Category cleanup is handled by the database constraints and triggers
-      console.log('Manual category cleanup process completed');
-      
       // Skip stats if unified_content is missing to avoid SQLITE_ERROR on EC2
       if (!this.unifiedTableExists()) {
         const duration = Date.now() - startTime;
@@ -129,11 +136,24 @@ export class CategoryCleanupService {
         };
       }
 
+      // Mark categories with zero active content as inactive
+      const result = sqliteDb.prepare(`
+        UPDATE categories SET is_active = 0
+        WHERE id IN (
+          SELECT c.id FROM categories c
+          LEFT JOIN unified_content uc
+            ON uc.category = c.name AND uc.status = 'active'
+          GROUP BY c.id
+          HAVING COUNT(uc.id) = 0
+        )
+      `).run();
+
       // Get basic category information
       const categories = await this.categoryManager.getAllCategories();
       const stats = {
         totalCategories: categories.length,
-        cleanupTime: new Date().toISOString()
+        cleanupTime: new Date().toISOString(),
+        deactivatedCategories: result.changes || 0
       };
       
       const duration = Date.now() - startTime;
@@ -142,7 +162,7 @@ export class CategoryCleanupService {
         success: true,
         duration,
         stats,
-        message: `Cleanup completed in ${duration}ms`
+        message: `Cleanup completed in ${duration}ms (deactivated ${result.changes || 0})`
       };
       
     } catch (error) {

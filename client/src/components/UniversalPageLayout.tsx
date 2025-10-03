@@ -9,6 +9,7 @@ interface UniversalPageLayoutProps {
   pageId?: string;
   className?: string;
   showSidebar?: boolean;
+  showRightSidebar?: boolean;
   sidebarContent?: ReactNode;
   pageTitle?: string;
   showHeader?: boolean;
@@ -48,6 +49,7 @@ export default function UniversalPageLayout({
   pageId: providedPageId,
   className = '', 
   showSidebar = false, 
+  showRightSidebar = true,
   sidebarContent,
   pageTitle,
   showHeader = true,
@@ -76,12 +78,12 @@ export default function UniversalPageLayout({
       {/* Header Bottom Widgets */}
       <WidgetRenderer page={pageId} position="header-bottom" className="w-full" />
       
-      {/* Content Top Widgets */}
+      {/* Content Top Widgets (single placement to avoid duplication) */}
       <WidgetRenderer page={pageId} position="content-top" className="container mx-auto px-4" />
       
       {/* Main Content Area */}
       <div>
-        <div className={`flex ${showSidebar ? 'container mx-auto px-4' : ''}`}>
+        <div className={`flex flex-col md:flex-row ${showSidebar ? 'container mx-auto px-4' : ''}`}>
           {/* Left Sidebar */}
           {showSidebar && (
             <aside className="w-64 flex-shrink-0 hidden lg:block">
@@ -99,6 +101,13 @@ export default function UniversalPageLayout({
           <main className={`flex-1 ${showSidebar ? 'lg:ml-6' : ''} ${className}`}>
             {/* Content Middle Widgets */}
             <WidgetRenderer page={pageId} position="content-middle" className="mb-6" />
+
+            {/* Mobile fallback: show right-sidebar widgets at top of content on small screens */}
+            {showSidebar && showRightSidebar && (
+              <div className="block md:hidden mb-4">
+                <WidgetRenderer page={pageId} position="sidebar-right" />
+              </div>
+            )}
             
             {children}
             
@@ -107,8 +116,8 @@ export default function UniversalPageLayout({
           </main>
           
           {/* Right Sidebar (if needed) */}
-          {showSidebar && (
-            <aside className="w-64 flex-shrink-0 hidden xl:block ml-6">
+          {showSidebar && showRightSidebar && (
+            <aside className="w-64 flex-shrink-0 hidden md:block ml-0 md:ml-6">
               <div className="sticky top-20 space-y-4">
                 {/* Right Sidebar Widgets */}
                 <WidgetRenderer page={pageId} position="sidebar-right" />

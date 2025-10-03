@@ -13,6 +13,8 @@ import AmazonProductCard from "@/components/amazon-product-card";
 import URLProcessor from "@/components/URLProcessor";
 import { AdminBulkDelete } from "@/components/AdminBulkDelete";
 
+import WidgetRenderer from '@/components/WidgetRenderer';
+
 import { useToast } from '@/hooks/use-toast';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
@@ -234,82 +236,76 @@ export default function PrimePicks() {
   };
   return (
     <UniversalPageLayout pageId="prime-picks">
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
-        
-        <AnnouncementBanner />
-            
-            {/* Page Banner Slider */}
-            <PageBanner page="prime-picks" />
-            
-            <div className="header-spacing">
-      
-              {/* Main Content with Sidebar */}
-              <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-                {/* Sidebar */}
-                <Sidebar 
-                  onCategoryChange={handleCategoryChange}
-                  onPriceRangeChange={handlePriceRangeChange}
-                  onRatingChange={handleRatingChange}
-                  availableCategories={availableCategories}
-                />
-      
-                {/* Products Grid */}
-                <div className="flex-1 p-6">
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Results ({filteredProducts.length})
-                        </h2>
-                        {/* Bulk Delete Icon - Admin Only */}
-                        {isAdmin && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
-                              className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                              title="Bulk delete options"
-                            >
-                              <i className="fas fa-trash text-sm" />
-                            </button>
-                            
-                            {bulkDeleteMode && (
-                              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {selectedProducts.length} selected
-                                </span>
-                                <button
-                                  onClick={() => handleBulkDelete(false)}
-                                  disabled={selectedProducts.length === 0}
-                                  className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
-                                >
-                                  Delete Selected
-                                </button>
-                                <button
-                                  onClick={() => handleBulkDelete(true)}
-                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                                >
-                                  Delete All
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setBulkDeleteMode(false);
-                              setSelectedProducts([]);
-                            }}
-                            className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                          >
-                            <i className="fas fa-times" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {filteredProducts.length} of {allPrimeProducts.length} products
-                </div>
+      {/* Consistent header and announcement like other pages */}
+      <Header />
+      <AnnouncementBanner />
+      {/* Page Banner Slider */}
+      <PageBanner page="prime-picks" />
+
+      {/* Main Content */}
+      <div className="header-spacing">
+        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+          {/* Sidebar */}
+          <Sidebar 
+            onCategoryChange={handleCategoryChange}
+            onPriceRangeChange={handlePriceRangeChange}
+            onRatingChange={handleRatingChange}
+            availableCategories={availableCategories}
+          />
+          {/* Products Grid */}
+          <div className="flex-1 p-6">
+        {/* Main content only; sidebar widgets render via UniversalPageLayout */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Results ({filteredProducts.length})
+            </h2>
+            {/* Bulk Delete Icon - Admin Only */}
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
+                  className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                  title="Bulk delete options"
+                >
+                  <i className="fas fa-trash text-sm" />
+                </button>
+                {bulkDeleteMode && (
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedProducts.length} selected
+                    </span>
+                    <button
+                      onClick={() => handleBulkDelete(false)}
+                      disabled={selectedProducts.length === 0}
+                      className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                    >
+                      Delete Selected
+                    </button>
+                    <button
+                      onClick={() => handleBulkDelete(true)}
+                      className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                    >
+                      Delete All
+                    </button>
+                    <button
+                      onClick={() => {
+                        setBulkDeleteMode(false);
+                        setSelectedProducts([]);
+                      }}
+                      className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                    >
+                      <i className="fas fa-times" />
+                    </button>
+      </div>
+                )}
               </div>
-            </div>
+            )}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {filteredProducts.length} of {allPrimeProducts.length} products
+          </div>
+        </div>
 
             {productsLoading ? (
               <div className="text-center py-16">
@@ -368,11 +364,8 @@ export default function PrimePicks() {
         page="prime-picks" 
         title="Prime Picks Videos"
       />
-      
-        <ScrollNavigation />
-      
+
       {/* Individual delete buttons are already on each product card - no bulk panel needed */}
-    </div>
-  </UniversalPageLayout>
+    </UniversalPageLayout>
   );
 }

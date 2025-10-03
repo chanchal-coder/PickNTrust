@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product Bulk Upload – Field Notes</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #000; color: #fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+    h1, h2 { color: #fff; margin: 0 0 12px; }
+    section { margin: 20px 0; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; }
+    code { background: #111; border: 1px solid #222; border-radius: 6px; padding: 2px 6px; }
+    a { color: #9ec9ff; }
+    .note { color: #bbb; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Product Bulk Upload – Field Notes &amp; Valid Page Slugs</h1>
+    <p>Use these notes alongside <code>product-bulk-template.csv</code>. <span class="note">Plain text version: <a href="/product-bulk-notes.txt">product-bulk-notes.txt</a></span></p>
+
+    <section>
+      <h2>1) Display Pages (page slugs)</h2>
+      <ul>
+        <li>Use in the <code>display_pages</code> column. Comma-separated.</li>
+        <li>If using multiple slugs, wrap the cell in double quotes, e.g. <code>"homepage,prime-picks"</code> so it stays one CSV field.</li>
+        <li>Case-sensitive. Valid values: <code>prime-picks</code>, <code>cue-picks</code>, <code>value-picks</code>, <code>click-picks</code>, <code>global-picks</code>, <code>travel-picks</code>, <code>deals-hub</code>, <code>loot-box</code>, <code>services</code>, <code>apps</code>, <code>homepage</code>.</li>
+        <li>Internally stored as a JSON array; CSV comma-separated values are normalized to JSON on import. API uploads may send <code>["services","homepage"]</code> directly; for CSV keep comma-separated.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2) Pricing models (services &amp; apps)</h2>
+      <ul>
+        <li><code>pricing_type</code>: <code>one-time</code> | <code>monthly</code> | <code>yearly</code> | <code>free</code></li>
+        <li><code>is_free</code>: true/false/1/0/yes/no (all normalized)</li>
+        <li><code>monthly_price</code> / <code>yearly_price</code>: numbers or currency-formatted strings (₹199, 199, 199.00)</li>
+        <li><code>price_description</code>: optional free text (e.g., “₹199/mo after trial”)</li>
+        <li>Services &amp; AI apps: may omit <code>price</code> if using <code>is_free</code> or monthly/yearly pricing.</li>
+        <li>Products: must include <code>price</code> (MRP in <code>original_price</code> optional).</li>
+        <li><code>discount</code> (optional): percentage off MRP. Accepts <code>30</code> or <code>30%</code>. If omitted, it is auto‑computed when both <code>price</code> and <code>original_price</code> are provided. Stored as an integer percent.</li>
+        <li>Database columns used: <code>pricing_type</code>, <code>monthly_price</code>, <code>yearly_price</code>, <code>is_free</code>, <code>price_description</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>3) Required &amp; recommended fields</h2>
+      <ul>
+        <li>Required: <code>name</code> (or <code>title</code>)</li>
+        <li>Products: <code>price</code> required</li>
+        <li>Recommended for good cards: <code>category</code>, <code>image_url</code>, <code>affiliate_url</code>, <code>brand</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4) Booleans</h2>
+      <ul>
+        <li><code>is_featured</code>, <code>is_service</code>, <code>is_ai_app</code>, <code>is_free</code> accept: true/false/1/0/yes/no.</li>
+        <li>Stored as 0/1 in the database.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5) Formatting &amp; headers</h2>
+      <ul>
+        <li>Column names must match exactly. Order does not matter.</li>
+        <li>CSV should be UTF‑8, comma-separated.</li>
+        <li>Encoding: save as UTF‑8 (no BOM). Verify the rupee symbol appears as <code>₹</code>; if you see <code>â‚¹</code>, re-save the CSV as UTF‑8.</li>
+        <li>Currency: optional <code>currency</code> column (defaults to <code>INR</code>). Keep values consistent per row.</li>
+        <li>Template header includes <code>discount</code> placed after <code>original_price</code> to align with backend mapping.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6) Notes on slugs</h2>
+      <ul>
+        <li>A “slug” is a URL-friendly identifier. For product display, use page slugs above in <code>display_pages</code>.</li>
+        <li>Blog post slugs are separate and not part of product CSV.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>7) Examples</h2>
+      <ul>
+        <li>Services (monthly): set <code>is_service=true</code>, <code>pricing_type=monthly</code>, <code>monthly_price=199</code></li>
+        <li>Apps (free): set <code>is_ai_app=true</code>, <code>pricing_type=free</code>, <code>is_free=true</code></li>
+        <li>Display on homepage and Prime Picks: <code>display_pages=homepage,prime-picks</code></li>
+      </ul>
+      <p>If you need custom pricing details beyond these, consider adding a <code>price_description</code> line with concise info.</p>
+    </section>
+
+    <section>
+      <h2>8) Subcategory &amp; Cookie Duration</h2>
+      <ul>
+        <li><code>subcategory</code>: optional, placed immediately after <code>category</code> in the template.</li>
+        <li><code>cookie_duration</code>: optional, last header in the template. Provide duration in days (e.g., <code>30</code>, <code>60</code>). It is stored with the product for tracking-window reference.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9) Field name conventions &amp; mapping</h2>
+      <ul>
+        <li>Use snake_case headers for pricing-related fields: <code>pricing_type</code>, <code>monthly_price</code>, <code>yearly_price</code>, <code>is_free</code>, <code>price_description</code>.</li>
+        <li>Booleans are stored as 0/1 in the database; text values like yes/no/true/false are normalized on import.</li>
+        <li>Frontend responses use camelCase equivalents automatically (e.g., <code>monthlyPrice</code>, <code>yearlyPrice</code>, <code>pricingType</code>).</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>10) Validation &amp; normalization (optional)</h2>
+      <ul>
+        <li>Verify mapping with: <code>node server/check-field-mapping.cjs</code></li>
+        <li>Normalize flags/statuses defensively with: <code>node normalize-unified-content.cjs</code></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

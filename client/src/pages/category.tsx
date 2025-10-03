@@ -65,7 +65,17 @@ function UniversalSubcategoriesSection({ categoryName }: { categoryName: string 
                       }}
                     >
                       <h3 className="text-white font-bold text-sm sm:text-base mb-1">{subcategory.name}</h3>
-                      <p className="text-white/80 text-xs">{subcategory.description || 'Explore products'}</p>
+                      <p className="text-white/80 text-xs">
+                        {(() => {
+                          const desc = (subcategory.description || '').trim();
+                          const isService = Boolean(subcategory.isForServices);
+                          const isAIApp = Boolean(subcategory.isForAIApps);
+                          if (desc) return desc;
+                          if (isService) return `Professional services for ${subcategory.name}`;
+                          if (isAIApp) return `AI apps and tools for ${subcategory.name}`;
+                          return `Products and tools for ${subcategory.name}`;
+                        })()}
+                      </p>
                     </div>
                   </a>
                 ))}
@@ -199,9 +209,9 @@ export default function CategoryPage() {
 
   // Fetch products from all networks for this category using real-time endpoint
   const { data: allProducts = [], isLoading } = useQuery({
-    queryKey: [`/api/products/category/${category}`],
+    queryKey: [`/api/products/category/${category}`, 'all'],
     queryFn: async () => {
-      const response = await fetch(`/api/products/category/${encodeURIComponent(category || '')}`);
+      const response = await fetch(`/api/products/category/${encodeURIComponent(category || '')}?page=all`);
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
@@ -487,27 +497,33 @@ export default function CategoryPage() {
                      />
                    );
                  } else {
-                   return (
+                 return (
                      <AmazonProductCard 
                        key={product.id} 
                        product={{
                          id: product.id,
-                         name: product.name,
+                         name: product.name || product.title,
                          description: product.description || '',
                          price: product.price,
-                         originalPrice: product.originalPrice,
+                         originalPrice: product.originalPrice || product.original_price,
                          currency: product.currency || 'INR',
-                         imageUrl: product.imageUrl,
-                         affiliateUrl: product.affiliateUrl,
+                         imageUrl: product.imageUrl || product.image_url,
+                         affiliateUrl: product.affiliateUrl || product.affiliate_url,
                          category: product.category,
                          rating: product.rating,
-                         reviewCount: product.reviewCount,
+                         reviewCount: product.reviewCount || product.review_count,
                          discount: product.discount,
                          isNew: product.isNew,
                          isFeatured: product.isFeatured,
                          affiliate_network: product.affiliate_network || product.networkBadge,
                          networkBadge: product.networkBadge,
-                         affiliateNetwork: product.affiliateNetwork || 'Category Network',
+                         affiliateNetwork: product.affiliateNetwork || product.affiliateNetworkName || 'Category Network',
+                         // Pricing fields with snake_case fallbacks
+                         pricingType: product.pricingType || product.pricing_type,
+                         monthlyPrice: product.monthlyPrice ?? product.monthly_price,
+                         yearlyPrice: product.yearlyPrice ?? product.yearly_price,
+                         isFree: product.isFree ?? product.is_free,
+                         priceDescription: product.priceDescription ?? product.price_description,
                          sourceType: 'category',
                          source: 'category',
                          displayPages: ['category']

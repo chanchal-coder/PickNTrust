@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteProduct, invalidateAllProductQueries } from '@/utils/delete-utils';
 import { useState, useEffect } from 'react';
 import EnhancedShare from '@/components/enhanced-share';
+import { ProductTimer } from '@/components/product-timer';
 
 interface Product {
   id: number | string;
@@ -319,24 +320,40 @@ export function ProductCard({
                 <span className="text-xl font-bold text-green-600 dark:text-green-400">
                   {formatPrice(product.price, product.currency)}
                 </span>
-                {(product.originalPrice || product.original_price) && getNumericValue(product.originalPrice || product.original_price) > getNumericValue(product.price) && (
+                {(() => {
+                  const original = getNumericValue(product.originalPrice || product.original_price);
+                  const discountNum = getNumericValue(product.discount);
+                  const priceNum = getNumericValue(product.price);
+                  const effectiveOriginal = original > 0 ? original : (discountNum > 0 && priceNum > 0 && discountNum < 100)
+                    ? Math.round(priceNum / (1 - discountNum / 100))
+                    : 0;
+                  return effectiveOriginal > priceNum ? (
                   <>
                     <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                      {formatPrice(product.originalPrice || product.original_price, product.currency)}
-                    </span>
-                    <span className="text-xs bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-1 rounded-full font-medium">
-                      {getNumericValue(product.discount) > 0 ? `${getNumericValue(product.discount)}% OFF` : 
-                        `${Math.round(((getNumericValue(product.originalPrice || product.original_price) - getNumericValue(product.price)) / getNumericValue(product.originalPrice || product.original_price)) * 100)}% OFF`}
+                      {formatPrice(effectiveOriginal, product.currency)}
                     </span>
                   </>
-                )}
+                  ) : null;
+                })()}
               </div>
               {/* Enhanced Savings Message */}
-              {(product.originalPrice || product.original_price) && getNumericValue(product.originalPrice || product.original_price) > getNumericValue(product.price) && (
+              {(() => {
+                const original = getNumericValue(product.originalPrice || product.original_price);
+                const discountNum = getNumericValue(product.discount);
+                const priceNum = getNumericValue(product.price);
+                const effectiveOriginal = original > 0 ? original : (discountNum > 0 && priceNum > 0 && discountNum < 100)
+                  ? Math.round(priceNum / (1 - discountNum / 100))
+                  : 0;
+                return effectiveOriginal > priceNum ? (
                 <div className="text-sm text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
-                  💰 You save {formatPrice(getNumericValue(product.originalPrice || product.original_price) - getNumericValue(product.price), product.currency)}
+                  💰 You save {formatPrice(effectiveOriginal - priceNum, product.currency)}
                 </div>
-              )}
+                ) : null;
+              })()}
+              {/* Live Deal Timer */}
+              <div className="pt-1">
+                <ProductTimer product={product} />
+              </div>
               {/* Product Description for products with price */}
               {product.description && (
                 <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-2">

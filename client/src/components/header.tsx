@@ -9,6 +9,7 @@ import CenteredBrandText from "@/components/centered-brand-text";
 import { GenderSelectionPopup } from "@/components/gender-selection-popup";
 import CurrencySelector from "@/components/currency-selector";
 import WhatsAppBanner from "@/components/whatsapp-banner";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./ui/tooltip";
 
 interface NavTab {
   id: number;
@@ -264,32 +265,34 @@ export default function Header() {
 
 
   const scrollToSection = (sectionId: string) => {
-    const performScroll = () => {
-      // Use requestAnimationFrame to ensure DOM is fully rendered
-      requestAnimationFrame(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          // Calculate offset to account for fixed header
-          const headerHeight = 80; // Approximate header height
-          const elementPosition = element.offsetTop - headerHeight;
-          
-          // Use window.scrollTo for more reliable scrolling
-          window.scrollTo({
-            top: elementPosition,
-            behavior: 'smooth'
-          });
-        }
-      });
+    // Measure actual header height for precise offset
+    const getHeaderHeight = () => {
+      const headerEl = document.querySelector('header') as HTMLElement | null;
+      return headerEl ? headerEl.offsetHeight : 0;
     };
-    
-    // If we're not on the home page, navigate to home first
+
+    // Attempt to scroll once the target is present
+    const tryScroll = (attemptsLeft = 30) => {
+      const target = document.getElementById(sectionId);
+      if (target) {
+        const headerHeight = getHeaderHeight();
+        const y = target.getBoundingClientRect().top + window.scrollY - headerHeight - 8; // small margin
+        window.scrollTo({ top: y, behavior: 'smooth' });
+        return true;
+      }
+      if (attemptsLeft > 0) {
+        // Retry after a short delay to wait for DOM render
+        setTimeout(() => tryScroll(attemptsLeft - 1), 100);
+      }
+      return false;
+    };
+
+    // Navigate to home if needed, then scroll when ready
     if (location !== '/') {
       setLocation('/');
-      // Wait for navigation to complete, then scroll
-      setTimeout(performScroll, 600);
+      setTimeout(() => tryScroll(), 700);
     } else {
-      // We're already on home page, just scroll
-      performScroll();
+      tryScroll();
     }
     setMobileMenuOpen(false);
   };
@@ -378,12 +381,13 @@ export default function Header() {
   };
 
   return (
+    <>
     <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-700">
       <div className="w-full px-0">
         {/* Main Header Row */}
-        <div className="flex justify-between items-center py-2 sm:py-3 px-2 sm:px-4 lg:px-8">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center py-2 sm:py-3 px-2 sm:px-4 lg:px-8">
           {/* Logo in Corner with hidden admin access */}
-          <div className="flex-shrink-0 relative">
+          <div className="flex-shrink-0 relative justify-self-start">
             <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-110">
               <AmazingBrandLogo className="flex items-center gap-2" />
             </Link>
@@ -398,21 +402,22 @@ export default function Header() {
           </div>
 
           {/* Centered Brand Text */}
-          <div className="flex-1 flex justify-center items-center px-2">
+          <div className="justify-self-center px-2">
             <Link href="/" className="hover:opacity-80 transition-all duration-300 hover:scale-105">
               <CenteredBrandText />
             </Link>
           </div>
 
-          {/* Right Actions: CTA + Admin indicator */}
-          <div className="flex items-center gap-2">
+          {/* Right Actions: Admin indicator */}
+          <div className="flex items-center gap-2 justify-self-end">
+            {/* Advertise with us - placed beside admin gear */}
             <Link
               href="/advertise"
-              className="group relative inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:scale-105 ring-1 ring-white/10"
+              className="group relative bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:scale-105 ring-1 ring-white/10 flex items-center space-x-1 text-xs sm:text-sm touch-manipulation whitespace-nowrap"
               title="Advertise with us"
             >
-              <i className="fas fa-bullhorn mr-2 group-hover:rotate-12 transition-transform"></i>
-              <span className="hidden sm:inline">Advertise with us</span>
+              <i className="fas fa-bullhorn text-[12px] sm:text-[14px] mr-1 group-hover:rotate-12 transition-transform"></i>
+              <span className="font-semibold hidden sm:inline">Advertise with us</span>
               <span className="sm:hidden">Advertise</span>
               <span className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></span>
             </Link>
@@ -430,6 +435,8 @@ export default function Header() {
             </div>
           </div>
         </div>
+
+
 
         {/* Centered Navigation Row - Mobile Optimized */}
         <div className="flex justify-center items-center space-x-1 sm:space-x-2 lg:space-x-3 border-t border-gray-100 dark:border-gray-800 pt-2 pb-1 px-1 sm:px-2 lg:px-4 overflow-x-auto scrollbar-hide">
@@ -477,7 +484,7 @@ export default function Header() {
             <span className="font-semibold hidden sm:inline">Apps & AI</span>
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
             {/* NEW Badge - Hidden on mobile, visible on larger screens */}
-            <div className="hidden sm:block absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-lg z-10">
+            <div className="hidden sm:block absolute -top-3 -right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-lg z-10">
               NEW
             </div>
           </button>
@@ -558,28 +565,121 @@ export default function Header() {
         
         {/* Second Row - External Links */}
         <div className="flex justify-center items-center space-x-1 sm:space-x-2 lg:space-x-3 pt-1 pb-2 px-1 sm:px-2 lg:px-4 overflow-x-auto scrollbar-hide">
-          {/* Dynamic Navigation Tabs */}
-          {navTabs.map((tab) => (
-            <Link
-              key={tab.id}
-              href={`/${tab.slug}`}
-              className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
-              style={{
-                background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
-              }}
-              title={tab.description || tab.name}
-              onClick={() => {
-                setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-              }}
-            >
-              <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
-               <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
-               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
-             </Link>
-           ))}
+          {/* Dynamic Navigation Tabs, injecting Explore next to Loot Box */}
+          {navTabs.flatMap((tab) => {
+            const elements = [
+              (
+                <Link
+                  key={`nav-${tab.id}`}
+                  href={`/${tab.slug}`}
+                  className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
+                  style={{
+                    background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
+                  }}
+                  title={tab.description || tab.name}
+                  onClick={() => {
+                    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+                  }}
+                >
+                  <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
+                  <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+                </Link>
+              ),
+            ];
+
+            if (tab.slug === 'loot-box') {
+              elements.push(
+                <Link
+                  key={`nav-explore`}
+                  href="/explore"
+                  className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
+                  style={{
+                    background: 'linear-gradient(to right, #10B981, #06B6D4)',
+                  }}
+                  title="Explore advertisements"
+                  onClick={() => {
+                    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+                  }}
+                >
+                  <i className={`fas fa-compass text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
+                  <span className="font-semibold text-xs sm:text-sm">Explore</span>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+                </Link>
+              );
+            }
+
+            return elements;
+          })}
         </div>
 
         
+
+        {/* CTA row placed between navigation and social proof */}
+        <div className="w-full px-2 sm:px-4 lg:px-8 mt-2 sm:mt-3 mb-2 sm:mb-3">
+          <div className="flex justify-center">
+            <div className="flex items-center gap-2">
+              
+
+              
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href="https://store.pickntrust.com/?utm_source=pickntrust_site&utm_medium=header_cta&utm_campaign=store_cta&utm_content=gold_capsule"
+                      className="group relative inline-flex w-full sm:w-auto items-center justify-between gap-3 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 text-black px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg hover:shadow-amber-500/30 transition-all duration-300 transform active:translate-y-px active:scale-[0.99] ring-1 ring-black/10 ring-inset shadow-inner min-h-[56px] sm:min-h-[64px] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-amber-200"
+                      aria-label="Shop Now — Open PickNTrust Store"
+                      onClick={(e) => {
+                        const gtagRef: any = (window as any).gtag;
+                        if (gtagRef) {
+                          gtagRef('event', 'store_cta_click', {
+                            event_category: 'navigation',
+                            event_label: 'header_store_capsule',
+                            destination: 'store.pickntrust.com',
+                          });
+                        }
+                      }}
+                    >
+                {/* Left: Icon + Title + Tagline (inline on desktop, stacks on small screens) */}
+                <span className="flex flex-col sm:flex-row sm:items-center min-w-0 gap-1 sm:gap-2">
+                  <span className="flex items-center">
+                    <i className="fas fa-store mr-2 sm:mr-3 text-black/90 group-hover:rotate-3 transition-transform text-[22px] sm:text-[24px]"></i>
+                    <span className="font-extrabold tracking-tight text-base sm:text-lg leading-tight text-gray-900 drop-shadow-[0_1px_0_rgba(0,0,0,0.25)]">
+                      PickNTrust Store
+                    </span>
+                  </span>
+                  <span
+                    className="text-xs sm:text-sm font-bold text-gray-900"
+                  >
+                    — Official • Exclusive • Verified
+                  </span>
+                </span>
+
+                {/* Right-side cue (desktop inline; hidden on very small screens) */}
+                <span className="hidden sm:flex items-center pr-1">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-full px-3.5 py-1.5 shadow-md hover:shadow-lg transition-colors">
+                    <i className="fas fa-bag-shopping text-white text-[12px] opacity-90"></i>
+                    Shop Now
+                    <i className="fas fa-arrow-right text-white text-[12px] opacity-90"></i>
+                  </span>
+                </span>
+
+                {/* Glow + shimmer overlay for polish and anti-banding */}
+                <span className="absolute inset-0 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                <span className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_12px_rgba(255,190,0,0.25)]"></span>
+                <span className="pointer-events-none absolute inset-0 rounded-full opacity-[0.25] mix-blend-overlay bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.08)_0px,rgba(255,255,255,0.08)_2px,rgba(255,255,255,0)_2px,rgba(255,255,255,0)_6px)]"></span>
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="center">
+                    Shop Now — PickNTrust Store
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+          
+        </div>
 
         {/* Social Proof Bar - Full Original Version in Header */}
         <HeaderSocialProofBar />
@@ -731,6 +831,9 @@ export default function Header() {
         />
       </div>
     </header>
+
+    {/* External CTA block removed to avoid duplication; now inside header */}
+    </>
   );
 }
 

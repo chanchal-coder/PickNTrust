@@ -53,11 +53,22 @@ router.get('/api/admin/widgets', verifyAdminAccess, async (req: Request, res: Re
 router.get('/api/widgets/:page/:position', async (req: Request, res: Response) => {
   try {
     const { page, position } = req.params;
+
+    // Normalize legacy/synonym positions to avoid mismatches across layouts
+    let positionsToQuery: string[] = [position];
+
+    if (position === 'header') {
+      positionsToQuery = ['header', 'header-top', 'header-bottom'];
+    } else if (position === 'footer') {
+      positionsToQuery = ['footer', 'footer-top', 'footer-bottom'];
+    }
+
+    const placeholders = positionsToQuery.map(() => '?').join(', ');
     const pageWidgets = sqliteDb.prepare(`
       SELECT * FROM widgets 
-      WHERE target_page = ? AND position = ? AND is_active = 1
+      WHERE target_page = ? AND position IN (${placeholders}) AND is_active = 1
       ORDER BY display_order
-    `).all(page, position);
+    `).all(page, ...positionsToQuery);
     
     res.json(pageWidgets);
   } catch (error) {
@@ -90,11 +101,12 @@ router.post('/api/admin/widgets', verifyAdminAccess, async (req: Request, res: R
     
     const result = sqliteDb.prepare(`
       INSERT INTO widgets (
-        name, code, target_page, position, is_active, display_order, 
-        max_width, custom_css, show_on_mobile, show_on_desktop
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        name, description, code, target_page, position, is_active, display_order, 
+        max_width, custom_css, show_on_mobile, show_on_desktop, external_link
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       validatedData.name,
+      validatedData.description || null,
       validatedData.code,
       validatedData.targetPage,
       validatedData.position,
@@ -103,7 +115,8 @@ router.post('/api/admin/widgets', verifyAdminAccess, async (req: Request, res: R
       validatedData.maxWidth || null,
       validatedData.customCss || null,
       (validatedData.showOnMobile !== false) ? 1 : 0,  // Convert boolean to integer
-      (validatedData.showOnDesktop !== false) ? 1 : 0   // Convert boolean to integer
+      (validatedData.showOnDesktop !== false) ? 1 : 0,   // Convert boolean to integer
+      validatedData.externalLink || null
     );
     
     const newWidget = sqliteDb.prepare('SELECT * FROM widgets WHERE id = ?').get(result.lastInsertRowid);
@@ -165,6 +178,10 @@ router.put('/api/admin/widgets/:id', verifyAdminAccess, async (req: Request, res
       updateFields.push('custom_css = ?');
       updateValues.push(validatedData.customCss);
     }
+    if (validatedData.description !== undefined) {
+      updateFields.push('description = ?');
+      updateValues.push(validatedData.description || null);
+    }
     if (validatedData.showOnMobile !== undefined) {
       updateFields.push('show_on_mobile = ?');
       updateValues.push(validatedData.showOnMobile ? 1 : 0);
@@ -172,6 +189,10 @@ router.put('/api/admin/widgets/:id', verifyAdminAccess, async (req: Request, res
     if (validatedData.showOnDesktop !== undefined) {
       updateFields.push('show_on_desktop = ?');
       updateValues.push(validatedData.showOnDesktop ? 1 : 0);
+    }
+    if (validatedData.externalLink !== undefined) {
+      updateFields.push('external_link = ?');
+      updateValues.push(validatedData.externalLink || null);
     }
     
     updateValues.push(parseInt(id));

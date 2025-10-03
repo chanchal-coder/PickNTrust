@@ -369,7 +369,7 @@ export default function BrowseCategoryProductCard({
                   freeClass="text-green-600 dark:text-green-400"
                   helperClass="text-xs text-gray-500"
                   discountClass="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold"
-                  showDiscountBadge={true}
+                  showDiscountBadge={false}
                 />
                 
                 {/* Multiple Sources Indicator */}

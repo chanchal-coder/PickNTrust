@@ -226,7 +226,16 @@ class ImageProxyService {
         
       } catch (error) {
         console.error('Image proxy error:', error.message);
-        res.status(500).json({ error: 'Failed to proxy image' });
+        // Serve a tiny transparent PNG placeholder to avoid UI breakages
+        const transparentPngBase64 =
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+        const placeholder = Buffer.from(transparentPngBase64, 'base64');
+        res.set({
+          'Content-Type': 'image/png',
+          'Cache-Control': 'no-cache',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.status(200).send(placeholder);
       }
     });
     

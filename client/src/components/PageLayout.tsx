@@ -53,7 +53,10 @@ export default function PageLayout({
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header Widgets */}
       <div className="header-widgets">
+        {/* Extended Header Slots */}
+        <WidgetRenderer page={pageId} position="header-top" />
         <WidgetRenderer page={pageId} position="header" />
+        <WidgetRenderer page={pageId} position="header-bottom" />
       </div>
       
       {/* Main Header */}
@@ -61,6 +64,12 @@ export default function PageLayout({
       
       {/* Announcement Banner */}
       <AnnouncementBanner />
+
+      {/* Banner Widgets */}
+      <div className="banner-widgets">
+        <WidgetRenderer page={pageId} position="banner-top" className="container mx-auto px-4" />
+        <WidgetRenderer page={pageId} position="banner-bottom" className="container mx-auto px-4" />
+      </div>
       
       {/* Content Top Widgets */}
       <div className="content-top-widgets">
@@ -69,7 +78,7 @@ export default function PageLayout({
       
       {/* Main Content Area with proper spacing */}
       <div className="pt-20">
-        <div className={`flex ${showSidebar ? 'container mx-auto px-4' : ''}`}>
+        <div className={`flex flex-col md:flex-row ${showSidebar ? 'container mx-auto px-4' : ''}`}>
         {/* Left Sidebar */}
         {showSidebar && (
           <aside className="w-64 flex-shrink-0 hidden lg:block">
@@ -85,13 +94,15 @@ export default function PageLayout({
         
         {/* Main Content */}
         <main className={`flex-1 ${showSidebar ? 'lg:ml-6' : ''} ${className}`}>
+          {/* Middle Content Widgets */}
+          <WidgetRenderer page={pageId} position="content-middle" className="container mx-auto px-4" />
           {children}
         </main>
         
         {/* Right Sidebar */}
         {showSidebar && (
-          <aside className="w-64 flex-shrink-0 hidden xl:block">
-            <div className="sticky top-20 space-y-4 ml-6">
+          <aside className="w-64 flex-shrink-0 hidden md:block">
+            <div className="sticky top-20 space-y-4 ml-0 md:ml-6">
               {/* Right Sidebar Widgets */}
               <WidgetRenderer page={pageId} position="sidebar-right" />
             </div>
@@ -107,7 +118,10 @@ export default function PageLayout({
       
       {/* Footer Widgets */}
       <div className="footer-widgets">
+        {/* Extended Footer Slots */}
+        <WidgetRenderer page={pageId} position="footer-top" />
         <WidgetRenderer page={pageId} position="footer" />
+        <WidgetRenderer page={pageId} position="footer-bottom" />
       </div>
       
       {/* Main Footer */}

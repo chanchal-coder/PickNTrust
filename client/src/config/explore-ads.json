@@ -1,0 +1,121 @@
+[
+  {
+    "id": 1759446115686,
+    "title": "Explore Sponsored: Test",
+    "clickUrl": "https://example.com/sponsored",
+    "type": "banner",
+    "description": "Featured brand on Explore",
+    "source": "approved-request"
+  },
+  {
+    "id": 1759446058250,
+    "title": "Explore Sponsored: Test",
+    "clickUrl": "https://example.com/sponsored",
+    "type": "banner",
+    "description": "Featured brand on Explore",
+    "source": "approved-request"
+  },
+  {
+    "id": 1759445880568,
+    "title": "Explore Sponsored: Test",
+    "clickUrl": "https://example.com/sponsored",
+    "type": "banner",
+    "description": "Featured brand on Explore",
+    "source": "approved-request"
+  },
+  {
+    "id": 1759436166097,
+    "title": "poll",
+    "clickUrl": "https://affiliate-program.amazon.in/p/reporting/earnings",
+    "colorAccent": "#10B981",
+    "buttonText": "Shop",
+    "priority": "normal",
+    "rotationWeight": 50,
+    "status": "draft",
+    "pinFirst": false,
+    "badges": [],
+    "titleStyle": {
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "textDecoration": "line-through none",
+      "fontSize": "24px",
+      "color": "",
+      "gradientEnabled": false,
+      "gradientFrom": "#6366F1",
+      "gradientTo": "#9333EA",
+      "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+    },
+    "descriptionStyle": {
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "textDecoration": "none",
+      "fontSize": "14px",
+      "color": "",
+      "gradientEnabled": false,
+      "gradientFrom": "#6366F1",
+      "gradientTo": "#9333EA",
+      "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+    },
+    "source": "admin-direct",
+    "imageUrl": "/uploads/Screenshot_2025-10-02_225359-1759437449657-g625m8nqyhf.png",
+    "type": "",
+    "description": "",
+    "viewMode": "banner",
+    "advertiserId": "",
+    "campaignId": "",
+    "logoUrl": "",
+    "imageAlt": "",
+    "utmSource": "",
+    "utmMedium": "",
+    "utmCampaign": ""
+  },
+  {
+    "id": 1759434084771,
+    "title": "Festive Mega SaleFestive Mega Sale",
+    "imageUrl": "https://m.media-amazon.com/images/G/31/2025/LawnGarden/Associate_23_1.jpg",
+    "clickUrl": "https://affiliate-program.amazon.in/home",
+    "type": "Electronics",
+    "description": "50% Off on Smart Gadgets",
+    "colorAccent": "#6366F1",
+    "buttonText": "Shop Now",
+    "priority": "normal",
+    "rotationWeight": 50,
+    "status": "active",
+    "pinFirst": false,
+    "badges": [
+      "sponsored",
+      "isNew"
+    ],
+    "titleStyle": {
+      "fontWeight": 700,
+      "fontStyle": "normal",
+      "textDecoration": "none",
+      "fontSize": "24px",
+      "color": "",
+      "gradientEnabled": false,
+      "gradientFrom": "#6366F1",
+      "gradientTo": "#9333EA",
+      "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+    },
+    "descriptionStyle": {
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "textDecoration": "underline none",
+      "fontSize": "14px",
+      "color": "#000000",
+      "gradientEnabled": false,
+      "gradientFrom": "#6366F1",
+      "gradientTo": "#9333EA",
+      "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+    },
+    "source": "admin-direct",
+    "viewMode": "masonry",
+    "advertiserId": "",
+    "campaignId": "",
+    "logoUrl": "",
+    "imageAlt": "",
+    "utmSource": "",
+    "utmMedium": "",
+    "utmCampaign": ""
+  }
+]

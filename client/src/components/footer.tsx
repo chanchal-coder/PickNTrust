@@ -103,8 +103,16 @@ export default function Footer() {
         </div>
         
         {/* Bottom Bar */}
-        <div className="border-t border-blue-800 mt-8 pt-8 text-center">
-          <p className="text-blue-100">© 2024 PickNTrust. All rights reserved. | We may earn commission from affiliate links.</p>
+        <div className="border-t border-blue-800 mt-8 pt-8">
+          <p className="text-blue-100 text-center">© 2024 PickNTrust. All rights reserved. | We may earn commission from affiliate links.</p>
+          {/* Subtle Brand Attribution */}
+          <p
+            className="text-center mt-2 text-xs italic text-yellow-300/80"
+            style={{ fontFamily: 'cursive' }}
+            aria-hidden="true"
+          >
+            PickNTrust is a brand of Chanchal Enterprise
+          </p>
         </div>
       </div>
     </footer>

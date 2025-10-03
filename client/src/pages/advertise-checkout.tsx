@@ -9,8 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Lock, CreditCard, Wallet, Banknote, AlertCircle, ShieldCheck, Megaphone, Info, AlertTriangle, Copy } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
-// Use absolute backend base in dev to avoid proxy mismatch
-const API_BASE = import.meta.env.DEV ? 'http://localhost:5001' : '';
+// Use same-origin base so dev/prod work on any port
+const API_BASE = '';
 
 type Duration = 'daily' | 'weekly' | 'monthly' | 'yearly';
 

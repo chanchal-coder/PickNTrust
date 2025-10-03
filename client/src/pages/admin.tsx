@@ -37,6 +37,7 @@ import WidgetManagement from '@/components/admin/WidgetManagement';
 import MetaTagsManagement from '@/components/admin/MetaTagsManagement';
 import RSSFeedsManagement from '@/components/admin/RSSFeedsManagement';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import AdRequestsPanel from '@/components/admin/AdRequestsPanel';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -617,7 +618,7 @@ export default function AdminPage() {
               </TabsList>
               
               {/* Second Row */}
-              <TabsList className="grid w-full grid-cols-4 mb-2 bg-transparent p-0">
+              <TabsList className="grid w-full grid-cols-6 mb-2 bg-transparent p-0">
                 <TabsTrigger value="blog" className="flex items-center gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                   <BookOpen className="w-4 h-4" />
                   <span className="hidden sm:inline">Blog</span>
@@ -634,10 +635,19 @@ export default function AdminPage() {
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Automation</span>
                 </TabsTrigger>
+                {/* Moved from third row to balance */}
+                <TabsTrigger value="metatags" className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Meta Tags</span>
+                </TabsTrigger>
+                <TabsTrigger value="rssfeeds" className="flex items-center gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
+                  <Globe className="w-4 h-4" />
+                  <span className="hidden sm:inline">RSS Feeds</span>
+                </TabsTrigger>
               </TabsList>
               
               {/* Third Row */}
-              <TabsList className="grid w-full grid-cols-6 bg-transparent p-0">
+              <TabsList className="grid w-full grid-cols-5 bg-transparent p-0">
                 <TabsTrigger value="widgets" className="flex items-center gap-2 data-[state=active]:bg-violet-500 data-[state=active]:text-white">
                   <Code className="w-4 h-4" />
                   <span className="hidden sm:inline">Widgets</span>
@@ -650,17 +660,13 @@ export default function AdminPage() {
                   <Shield className="w-4 h-4" />
                   <span className="hidden sm:inline">Credentials</span>
                 </TabsTrigger>
-                <TabsTrigger value="metatags" className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
-                  <FileText className="w-4 h-4" />
-                  <span className="hidden sm:inline">Meta Tags</span>
-                </TabsTrigger>
-                <TabsTrigger value="rssfeeds" className="flex items-center gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
-                  <Globe className="w-4 h-4" />
-                  <span className="hidden sm:inline">RSS Feeds</span>
-                </TabsTrigger>
                 <TabsTrigger value="bots" className="flex items-center gap-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white">
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Bot Management</span>
+                </TabsTrigger>
+                <TabsTrigger value="adrequests" className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                  <Megaphone className="w-4 h-4" />
+                  <span className="hidden sm:inline">Ad Requests</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -853,6 +859,11 @@ export default function AdminPage() {
             {/* RSS Feeds Management Tab */}
             <TabsContent value="rssfeeds">
               <RSSFeedsManagement />
+            </TabsContent>
+
+            {/* Ad Requests Tab */}
+            <TabsContent value="adrequests">
+              <AdRequestsPanel />
             </TabsContent>
 
             {/* Bot Management Tab */}

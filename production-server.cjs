@@ -145,6 +145,7 @@ app.get('/api/categories', (req, res) => {
       is_for_ai_apps as isForAIApps,
       display_order as displayOrder
     FROM categories 
+    WHERE is_active = 1
     ORDER BY display_order ASC, name ASC
   `;
   
@@ -163,7 +164,7 @@ app.get('/api/categories/forms/products', (req, res) => {
   const query = `
     SELECT c.name, c.name as id, 0 as count
     FROM categories c
-    WHERE c.is_for_products = 1
+    WHERE c.is_for_products = 1 AND c.is_active = 1
     ORDER BY c.display_order ASC, c.name ASC
   `;
   db.all(query, [], (err, rows) => {
@@ -180,7 +181,7 @@ app.get('/api/categories/forms/services', (req, res) => {
   const query = `
     SELECT c.name, c.name as id, 0 as count
     FROM categories c
-    WHERE c.is_for_services = 1
+    WHERE c.is_for_services = 1 AND c.is_active = 1
     ORDER BY c.display_order ASC, c.name ASC
   `;
   db.all(query, [], (err, rows) => {
@@ -197,7 +198,7 @@ app.get('/api/categories/forms/aiapps', (req, res) => {
   const query = `
     SELECT c.name, c.name as id, 0 as count
     FROM categories c
-    WHERE c.is_for_ai_apps = 1
+    WHERE c.is_for_ai_apps = 1 AND c.is_active = 1
     ORDER BY c.display_order ASC, c.name ASC
   `;
   db.all(query, [], (err, rows) => {
@@ -247,10 +248,10 @@ app.get('/api/categories/browse', (req, res) => {
     LEFT JOIN unified_content uc ON c.name = uc.category 
       AND uc.status = 'active'
       ${typeFilter}
-    WHERE c.id IS NOT NULL
+    WHERE c.id IS NOT NULL AND c.is_active = 1
     GROUP BY c.id, c.name, c.icon, c.color, c.description, c.parent_id, 
              c.is_for_products, c.is_for_services, c.is_for_ai_apps, c.display_order
-    HAVING total_products_count > 0 OR c.is_for_products = 1 OR c.is_for_services = 1 OR c.is_for_ai_apps = 1
+    HAVING total_products_count > 0
     ORDER BY c.display_order ASC, c.name ASC
   `;
   

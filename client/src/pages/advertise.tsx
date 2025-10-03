@@ -393,6 +393,9 @@ const AdvertisePage = () => {
               <p className="text-xl text-gray-200 max-w-2xl mx-auto drop-shadow-md">
                 Choose from high-performing ad placements that deliver results
               </p>
+              <p className="mt-3 text-sm text-gray-300">
+                Your ad will also be shown on the Explore page to reach more people.
+              </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {adPlacements.map((placement, index) => (
@@ -401,6 +404,9 @@ const AdvertisePage = () => {
                     <CardTitle className="text-lg text-white">{placement.name}</CardTitle>
                     <Badge variant="secondary" className="w-fit bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-400">
                       {placement.dimensions}
+                    </Badge>
+                    <Badge variant="secondary" className="w-fit mt-2 bg-gradient-to-r from-green-500 to-teal-600 text-white border-green-400">
+                      Also shown on Explore page
                     </Badge>
                   </CardHeader>
                   <CardContent className="space-y-2">

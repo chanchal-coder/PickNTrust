@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'wouter';
-import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/header';
-import Footer from '@/components/footer';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
-import { getBlogPost } from '@/lib/api';
-import { BlogPost } from '@/types/blog';
+import SmartShareDropdown from '@/components/SmartShareDropdown';
 import { Loader2, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin, Link2, Tag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { toast, useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import PageBanner from '@/components/PageBanner';
 

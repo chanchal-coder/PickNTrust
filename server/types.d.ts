@@ -151,18 +151,20 @@ export interface MappedUnifiedContent {
   sourceType?: string; // Made optional to match UnifiedContent
   sourceId?: string | null; // Already camelCase in UnifiedContent
   affiliatePlatform?: string | null; // Already camelCase in UnifiedContent
-  rating?: string | null;
+  rating?: string | number | null;
   reviewCount?: number | null; // Already camelCase in UnifiedContent
   discount?: number | null;
   currency?: string;
+  // Timer fields for limited-time deals
+  hasTimer?: boolean | number;
+  timerDuration?: number | null; // hours
+  timerStartTime?: number | string | null; // timestamp or ISO string
   gender?: string | null;
   isActive?: boolean | number; // Already camelCase in UnifiedContent
   isFeatured?: boolean | number; // Already camelCase in UnifiedContent
+  isNew?: boolean | number; // New flag to match routes mapping
   displayOrder?: number; // Already camelCase in UnifiedContent
   displayPages?: string; // Already camelCase in UnifiedContent
-  hasTimer?: boolean | number; // Already camelCase in UnifiedContent
-  timerDuration?: number | null; // Already camelCase in UnifiedContent
-  timerStartTime?: number | null; // Already camelCase in UnifiedContent
   createdAt?: number; // Already camelCase in UnifiedContent
   updatedAt?: number; // Already camelCase in UnifiedContent
   // Frontend-specific flags

@@ -167,9 +167,19 @@ export default function Categories() {
                   <h3 className="font-bold text-white text-xs sm:text-sm mb-1 leading-tight drop-shadow-sm line-clamp-2">
                     {category.name}
                   </h3>
-                  <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-2 text-center px-2">
-                    {category.description || 'Explore this category'}
-                  </p>
+                  {(() => {
+                    const desc = (category.description || '').trim();
+                    const fallback = category.isForServices
+                      ? `Professional services for ${category.name}`
+                      : (category.isForAIApps
+                          ? `AI apps and tools for ${category.name}`
+                          : `Products and tools for ${category.name}`);
+                    return (
+                      <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-2 text-center px-2">
+                        {desc || fallback}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Hover effect overlay */}

@@ -151,8 +151,12 @@ router.post('/api/admin/banners', (req, res) => {
   }
 });
 
+// Reorder banners (define BEFORE :id routes to avoid route-capture)
+// (Moved reorder route above to avoid :id capture)
+
 // Update banner
-router.put('/api/admin/banners/:id', (req, res) => {
+// Force numeric :id so '/reorder' does not match this route
+router.put('/api/admin/banners/:id(\\d+)', (req, res) => {
   try {
     const { id } = req.params;
     const { 
@@ -301,7 +305,8 @@ router.post('/api/admin/banners/import-static', (req, res) => {
 });
 
 // Delete banner
-router.delete('/api/admin/banners/:id', (req, res) => {
+// Force numeric :id for delete route as well
+router.delete('/api/admin/banners/:id(\\d+)', (req, res) => {
   try {
     const { password } = req.body;
     
@@ -329,7 +334,8 @@ router.delete('/api/admin/banners/:id', (req, res) => {
 });
 
 // Toggle banner active status
-router.patch('/api/admin/banners/:id/toggle', (req, res) => {
+// Force numeric :id for toggle route
+router.patch('/api/admin/banners/:id(\\d+)/toggle', (req, res) => {
   try {
     const { id } = req.params;
     const db = new Database(dbPath);
@@ -361,28 +367,51 @@ router.patch('/api/admin/banners/:id/toggle', (req, res) => {
 // Reorder banners
 router.put('/api/admin/banners/reorder', (req, res) => {
   try {
+    console.log('>>> reorder route hit with body:', req.body);
     const { banners } = req.body; // Array of { id, display_order }
-    
+
     if (!Array.isArray(banners)) {
       return res.status(400).json({ success: false, error: 'Banners array is required' });
     }
-    
+
     const db = new Database(dbPath);
+
+    // Validate that all banner IDs exist before attempting updates
+    const existsStmt = db.prepare('SELECT id FROM banners WHERE id = ?');
+    const missingIds: number[] = [];
+
+    for (const b of banners) {
+      const idNum = Number(b?.id);
+      if (!Number.isFinite(idNum)) {
+        missingIds.push(idNum);
+        continue;
+      }
+      const row = existsStmt.get(idNum) as any;
+      if (!row || !row.id) {
+        missingIds.push(idNum);
+      }
+    }
+
+    if (missingIds.length > 0) {
+      db.close();
+      return res.status(404).json({ success: false, error: 'Banner not found', missingIds });
+    }
+
     const updateStmt = db.prepare(`
       UPDATE banners 
       SET display_order = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `);
-    
+
     const transaction = db.transaction(() => {
       for (const banner of banners) {
-        updateStmt.run(banner.display_order, banner.id);
+        updateStmt.run(Number(banner.display_order), Number(banner.id));
       }
     });
-    
+
     transaction();
     db.close();
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error reordering banners:', error);

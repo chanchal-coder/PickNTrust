@@ -666,19 +666,41 @@ export default function BannerManagement() {
   // Reorder banners mutation
   const reorderBannersMutation = useMutation({
     mutationFn: async (bannerOrders: { id: number; displayOrder: number }[]) => {
+      // Filter out any invalid/non-numeric IDs defensively
+      const safeOrders = bannerOrders.filter((b) => Number.isFinite(Number(b.id)));
+      // Backend expects payload: { banners: [{ id, display_order }] }
+      const normalized = safeOrders.map((b) => ({
+        id: Number(b.id),
+        display_order: Number(b.displayOrder),
+      }));
+
       const response = await fetch('/api/admin/banners/reorder', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ bannerOrders }),
+        body: JSON.stringify({ banners: normalized }),
       });
-      
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to reorder banners');
+        // Be tolerant to non-JSON error bodies
+        let errorMsg = 'Failed to reorder banners';
+        try {
+          const error = await response.json();
+          if (error && Array.isArray(error.missingIds) && error.missingIds.length > 0) {
+            errorMsg = `Banner not found: ${error.missingIds.join(', ')}`;
+          } else {
+            errorMsg = (error && (error.error || error.message)) || errorMsg;
+          }
+        } catch {
+          try {
+            const text = await response.text();
+            if (text && text.length > 0) errorMsg = text;
+          } catch {}
+        }
+        throw new Error(errorMsg);
       }
-      
+
       return response.json();
     },
     onSuccess: () => {

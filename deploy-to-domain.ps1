@@ -11,20 +11,20 @@ Push-Location "client"
 npm run build
 Pop-Location
 
-# 2) Create tarball of built assets
+# 2) Create tarball of built assets (client outputs to ../dist/public)
 Write-Host "Creating client artifact..." -ForegroundColor Yellow
 $tarPath = "pickntrust-client.tar.gz"
 if (Test-Path $tarPath) { Remove-Item $tarPath -Force }
-tar -czf $tarPath -C client/dist .
+tar -czf $tarPath -C dist/public .
 
 # 3) Ensure remote directories and permissions
 Write-Host "Preparing remote directories..." -ForegroundColor Yellow
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-user/pickntrust/client/dist/public && sudo chown -R ec2-user:ec2-user /home/ec2-user/pickntrust"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-user/pickntrust/dist/public && sudo chown -R ec2-user:ec2-user /home/ec2-user/pickntrust"
 
 # 4) Upload and extract client build into public directory
 Write-Host "Uploading client artifact..." -ForegroundColor Yellow
-scp -i $SSH_KEY -o StrictHostKeyChecking=no $tarPath "$SERVER:/home/ec2-user/pickntrust/"
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "set -e; cd /home/ec2-user/pickntrust && tar -xzf pickntrust-client.tar.gz -C client/dist/public && rm -f pickntrust-client.tar.gz; sudo nginx -t && sudo systemctl reload nginx"
+scp -i $SSH_KEY -o StrictHostKeyChecking=no $tarPath "${SERVER}:/home/ec2-user/pickntrust/"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "set -e; cd /home/ec2-user/pickntrust && tar -xzf pickntrust-client.tar.gz -C dist/public && rm -f pickntrust-client.tar.gz; sudo nginx -t && sudo systemctl reload nginx"
 
 # 5) Verify HTTPS endpoints from local machine
 Write-Host "Verifying HTTPS endpoints..." -ForegroundColor Yellow

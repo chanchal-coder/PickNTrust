@@ -47,19 +47,19 @@ const fromUnixTimestamp = (timestamp: number): Date => new Date(timestamp * 1000
 const validateProduct = (product: any): void => {
   if (!product.name?.trim()) throw new Error('Product name is required');
   
-  // For services, price validation is more flexible
-  if (product.isService) {
-    // Services can be free or have flexible pricing
+  // For services and AI apps, price validation is more flexible
+  if (product.isService || product.isAIApp) {
+    // Services/Apps can be free or have flexible pricing
     if (product.isFree) {
       // Free services don't need price validation
     } else {
-      // Non-free services should have some pricing information
+      // Non-free services/apps should have some pricing information
       const parsedPrice = typeof product.price === 'string' ? parseFloat(product.price.replace(/[^\d.]/g, '')) : product.price;
       const hasMonthlyPrice = product.monthlyPrice && parseFloat(product.monthlyPrice.toString()) > 0;
       const hasYearlyPrice = product.yearlyPrice && parseFloat(product.yearlyPrice.toString()) > 0;
       
       if (!hasMonthlyPrice && !hasYearlyPrice && (isNaN(parsedPrice) || parsedPrice < 0)) {
-        throw new Error('Services must have valid pricing information (price, monthly price, or yearly price)');
+        throw new Error('Services/Apps must have valid pricing (price, monthly, or yearly)');
       }
     }
   } else {
@@ -1069,16 +1069,121 @@ export class DatabaseStorage implements IStorage {
       // Derive content_type based on flags to ensure proper filtering in routes
       const derivedContentType = isServiceProduct ? 'service' : (isAIAppProduct ? 'ai-app' : 'product');
 
+      // Helper to generate a simple, user-friendly category description when missing
+      const generateCategoryDescription = (name: string, opts: { isService: boolean; isAIApp: boolean }): string => {
+        const base = name.trim();
+        if (!base) return 'Explore products';
+        if (opts.isService) return `Professional services for ${base}`;
+        if (opts.isAIApp) return `AI apps and tools for ${base}`;
+        return `Products and tools for ${base}`;
+      };
+
+      // Ensure category hierarchy exists and is active; upsert parent and optional child (subcategory)
+      try {
+        const parentName = (product.category || '').trim();
+        const subcatName = (product.subcategory || '').trim();
+
+        let parentId: number | null = null;
+
+        if (parentName) {
+          const existingParent = this.sqliteDb.prepare(`
+            SELECT id, is_for_products, is_for_services, is_for_ai_apps FROM categories WHERE name = ?
+          `).get(parentName);
+
+          if (!existingParent) {
+            const parentDesc = generateCategoryDescription(parentName, { isService: Boolean(isServiceProduct), isAIApp: Boolean(isAIAppProduct) });
+            const insertParent = this.sqliteDb.prepare(`
+              INSERT INTO categories (
+                name, description, icon, color, display_order,
+                is_for_products, is_for_services, is_for_ai_apps,
+                is_active, parent_id
+              ) VALUES (?, ?, 'mdi-tag', '#888888', 0, ?, ?, ?, 1, NULL)
+            `).run(
+              parentName,
+              parentDesc,
+              (isServiceProduct || isAIAppProduct) ? 0 : 1,
+              isServiceProduct ? 1 : 0,
+              isAIAppProduct ? 1 : 0
+            );
+            parentId = Number(insertParent.lastInsertRowid);
+            console.log(`Upsert: created parent category "${parentName}" (id=${parentId}) and marked active.`);
+          } else {
+            const setProducts = existingParent.is_for_products ? 1 : ((isServiceProduct || isAIAppProduct) ? 0 : 1);
+            const setServices = existingParent.is_for_services ? 1 : (isServiceProduct ? 1 : 0);
+            const setApps = existingParent.is_for_ai_apps ? 1 : (isAIAppProduct ? 1 : 0);
+
+            this.sqliteDb.prepare(`
+              UPDATE categories 
+              SET is_active = 1,
+                  is_for_products = ?,
+                  is_for_services = ?,
+                  is_for_ai_apps = ?
+              WHERE id = ?
+            `).run(setProducts, setServices, setApps, existingParent.id);
+            parentId = Number(existingParent.id);
+            console.log(`Upsert: activated parent category "${parentName}" (id=${parentId}) and updated type flags.`);
+          }
+        }
+
+        if (subcatName) {
+          const existingChild = this.sqliteDb.prepare(`
+            SELECT id, parent_id, is_for_products, is_for_services, is_for_ai_apps FROM categories WHERE name = ?
+          `).get(subcatName);
+
+          if (!existingChild) {
+            const childDesc = generateCategoryDescription(subcatName, { isService: Boolean(isServiceProduct), isAIApp: Boolean(isAIAppProduct) });
+            const insertChild = this.sqliteDb.prepare(`
+              INSERT INTO categories (
+                name, description, icon, color, display_order,
+                is_for_products, is_for_services, is_for_ai_apps,
+                is_active, parent_id
+              ) VALUES (?, ?, 'mdi-tag', '#888888', 0, ?, ?, ?, 1, ?)
+            `).run(
+              subcatName,
+              childDesc,
+              (isServiceProduct || isAIAppProduct) ? 0 : 1,
+              isServiceProduct ? 1 : 0,
+              isAIAppProduct ? 1 : 0,
+              parentId
+            );
+            console.log(`Upsert: created subcategory "${subcatName}" (parent_id=${parentId}) and marked active.`);
+          } else {
+            const setProducts = existingChild.is_for_products ? 1 : ((isServiceProduct || isAIAppProduct) ? 0 : 1);
+            const setServices = existingChild.is_for_services ? 1 : (isServiceProduct ? 1 : 0);
+            const setApps = existingChild.is_for_ai_apps ? 1 : (isAIAppProduct ? 1 : 0);
+            this.sqliteDb.prepare(`
+              UPDATE categories 
+              SET is_active = 1,
+                  is_for_products = ?,
+                  is_for_services = ?,
+                  is_for_ai_apps = ?,
+                  parent_id = COALESCE(parent_id, ?)
+              WHERE id = ?
+            `).run(setProducts, setServices, setApps, parentId, existingChild.id);
+            console.log(`Upsert: activated subcategory "${subcatName}" and linked to parent_id=${parentId}.`);
+          }
+        }
+      } catch (catErr) {
+        console.error('Category upsert error (non-blocking):', catErr);
+      }
+
       // Use raw SQL to insert into unified_content table - matching actual column names
+      // Determine discount percentage for unified_content (prefer explicit value, fallback to computed)
+      const discountPercentageForUnified = (product.discount !== undefined && product.discount !== null && product.discount !== '')
+        ? parseInt(product.discount.toString())
+        : (originalPrice && price && originalPrice > price
+            ? Math.round(((originalPrice - price) / originalPrice) * 100)
+            : null);
+
       const result = this.sqliteDb.prepare(`
         INSERT INTO unified_content (
           title, description, content_type, source_platform,
-          affiliate_url, category, status, visibility, page_type,
+          affiliate_url, category, subcategory, status, visibility, page_type,
           created_at, updated_at, processing_status, display_pages,
-          price, original_price, image_url, affiliate_urls,
+          price, original_price, discount, image_url, affiliate_urls,
           is_featured, is_service, is_ai_app, is_active,
           pricing_type, monthly_price, yearly_price, is_free, price_description
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         unifiedContentData.title,
         unifiedContentData.description,
@@ -1086,6 +1191,7 @@ export class DatabaseStorage implements IStorage {
         unifiedContentData.source_platform,
         unifiedContentData.affiliate_urls ? JSON.parse(unifiedContentData.affiliate_urls)[0] : null,
         unifiedContentData.category,
+        (product.subcategory ? String(product.subcategory).trim() : null),
         'active',
         unifiedContentData.visibility,
         'product',
@@ -1095,6 +1201,7 @@ export class DatabaseStorage implements IStorage {
         unifiedContentData.display_pages,
         (price || 0).toString(),
         originalPrice ? originalPrice.toString() : null,
+        discountPercentageForUnified,
         unifiedContentData.image_url,
         unifiedContentData.affiliate_urls,
         product.isFeatured !== undefined ? (product.isFeatured ? 1 : 0) : 0,

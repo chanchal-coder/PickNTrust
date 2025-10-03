@@ -53,6 +53,38 @@ router.get('/placements', (req: Request, res: Response) => {
   }
 });
 
+// Public: List active advertisements (ad creatives with active campaigns)
+// This endpoint is safe for public consumption and exposes only necessary fields.
+router.get('/public/ads', (req: Request, res: Response) => {
+  try {
+    const ads = sqliteDb.prepare(`
+      SELECT 
+        cr.id AS id,
+        cr.ad_title AS title,
+        cr.ad_description AS description,
+        cr.image_url AS imageUrl,
+        cr.click_url AS clickUrl,
+        cr.ad_size AS size,
+        cr.ad_type AS type,
+        c.campaign_name AS campaignName,
+        c.start_date AS startDate,
+        c.end_date AS endDate
+      FROM ad_creatives cr
+      JOIN ad_campaigns c ON cr.campaign_id = c.id
+      WHERE cr.status = 'active'
+        AND (c.status IS NULL OR c.status = 'active')
+        AND (c.start_date IS NULL OR c.start_date <= date('now'))
+        AND (c.end_date IS NULL OR c.end_date >= date('now'))
+      ORDER BY c.start_date DESC, cr.id DESC
+    `).all();
+
+    res.json(ads);
+  } catch (error) {
+    console.error('Public ads listing error:', error);
+    res.status(500).json({ error: 'Failed to fetch advertisements' });
+  }
+});
+
 // Register new advertiser
 router.post('/register', async (req: Request, res: Response) => {
   try {

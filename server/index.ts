@@ -30,6 +30,7 @@ import advertiserRoutes from './advertiser-routes.js';
 import paymentRoutes from './payment-routes.js';
 import pagesRoutes from './routes/pages-routes.js';
 import widgetRoutes from './widget-routes.js';
+import adRequestRoutes from './ad-request-routes.js';
 
 
 
@@ -207,6 +208,7 @@ app.use((req, res, next) => {
   app.use('/api/payments', paymentRoutes); // Payment and checkout routes
   app.use('/api/pages', pagesRoutes); // Dynamic pages API routes
   app.use(widgetRoutes); // Widget management and retrieval routes
+  app.use(adRequestRoutes); // Ad requests + Explore ads config routes
   console.log('🔐 Credential management routes initialized');
   console.log('🏷️ Meta tags management routes initialized');
   console.log('📡 RSS feeds management routes initialized');

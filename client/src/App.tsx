@@ -7,6 +7,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import MetaTags from "@/components/meta-tags";
 import MetaTagsInjector from "@/components/MetaTagsInjector";
+import GlobalTitleTooltip from "@/components/ui/global-title-tooltip";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<
@@ -55,7 +56,7 @@ class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-// Lazy load page components for better code splitting
+// Import Home directly to avoid lazy-load issues on the root route
 const Home = React.lazy(() => import("@/pages/home"));
 const Category = React.lazy(() => import("@/pages/category"));
 const Admin = React.lazy(() => import("@/pages/admin"));
@@ -82,6 +83,7 @@ const Advertise = React.lazy(() => import("@/pages/advertise"));
 const AdvertiseRegister = React.lazy(() => import("@/pages/advertise-register"));
 const AdvertiseCheckout = React.lazy(() => import("@/pages/advertise-checkout"));
 const AdvertiseDashboard = React.lazy(() => import("@/pages/advertise-dashboard"));
+const Explore = React.lazy(() => import("@/pages/explore"));
 const ValuePicks = React.lazy(() => import("@/pages/value-picks"));
 const ClickPicks = React.lazy(() => import("@/pages/click-picks"));
 const DealsHub = React.lazy(() => import("@/pages/deals-hub"));
@@ -141,6 +143,8 @@ function App() {
               <div className="min-h-screen bg-white dark:bg-gray-900" style={{ minHeight: '100vh' }}>
                 <MetaTags />
                 <MetaTagsInjector />
+                {/* Global styled tooltip for any native `title` attributes */}
+                <GlobalTitleTooltip />
                 <React.Suspense fallback={
                   <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -185,6 +189,7 @@ function App() {
                   <Route path="/advertise/checkout" component={AdvertiseCheckout} />
                   <Route path="/advertise/register" component={AdvertiseRegister} />
                   <Route path="/advertise/dashboard" component={AdvertiseDashboard} />
+                  <Route path="/explore" component={Explore} />
                   {/* Dynamic route for custom navigation tabs */}
                   <Route path="/:slug" component={DynamicPage} />
                     <Route>404 - Page Not Found</Route>

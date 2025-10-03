@@ -85,20 +85,30 @@ const AdvertiseDashboardPage = () => {
     clickUrl: '',
     imageUrl: ''
   });
+  // Admin mode support: allow admins to open specific advertiser dashboard
+  const [adminAdvertiserId, setAdminAdvertiserId] = useState<number | null>(null);
 
   // Check for existing login on component mount
   useEffect(() => {
     const token = localStorage.getItem('advertiserToken');
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
-    
+    const params = new URLSearchParams(window.location.search);
+    const adminIdParam = params.get('adminAdvertiserId');
+
     // Allow admin access without login or check for advertiser token
     if (adminAuth === 'active' || token) {
       setIsLoggedIn(true);
       if (token) {
         loadCampaigns(token);
-      } else {
-        // Load sample data for demo purposes
-        loadSampleData();
+      } else if (adminAuth === 'active') {
+        const parsedId = adminIdParam ? parseInt(adminIdParam, 10) : NaN;
+        if (!isNaN(parsedId)) {
+          setAdminAdvertiserId(parsedId);
+          loadAdminCampaigns(parsedId);
+        } else {
+          // Fallback to sample data when admin opens without specific advertiser
+          loadSampleData();
+        }
       }
     }
   }, []);
@@ -207,7 +217,7 @@ const AdvertiseDashboardPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/advertisers/login', {
+      const response = await fetch('/api/advertisers/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -247,7 +257,7 @@ const AdvertiseDashboardPage = () => {
     if (!authToken) return;
 
     try {
-      const response = await fetch('http://localhost:5000/api/advertisers/campaigns', {
+      const response = await fetch('/api/advertisers/campaigns', {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
@@ -275,13 +285,45 @@ const AdvertiseDashboardPage = () => {
     }
   };
 
+  // Admin: load campaigns across advertisers and filter by advertiserId
+  const loadAdminCampaigns = async (advertiserId: number) => {
+    try {
+      const response = await fetch('/api/admin/campaigns', {
+        headers: {
+          'X-Admin-Password': 'pickntrust2025'
+        }
+      });
+
+      if (response.ok) {
+        const campaignsData = await response.json();
+        const filtered = (Array.isArray(campaignsData) ? campaignsData : []).filter((c: any) => c.advertiserId === advertiserId);
+        const formattedCampaigns = filtered.map((campaign: any) => ({
+          id: campaign.id,
+          name: campaign.name || campaign.campaign_name || `Campaign ${campaign.id}`,
+          type: campaign.campaign_type || 'banner',
+          status: campaign.status || 'active',
+          budget: 0,
+          spent: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          startDate: '',
+          endDate: ''
+        }));
+        setCampaigns(formattedCampaigns);
+      }
+    } catch (error) {
+      console.error('Failed to load admin campaigns:', error);
+    }
+  };
+
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       const token = localStorage.getItem('advertiserToken');
-      const response = await fetch('http://localhost:5000/api/advertisers/campaigns', {
+      const response = await fetch('/api/advertisers/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

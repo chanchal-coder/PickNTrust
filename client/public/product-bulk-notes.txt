@@ -1,0 +1,60 @@
+Product Bulk Upload – Field Notes & Valid Page Slugs
+
+Use these notes alongside `product-bulk-template.csv`.
+
+1) Display Pages (page slugs)
+- Use in the `display_pages` column. Comma-separated.
+- If using multiple slugs, wrap the cell in double quotes, e.g. "homepage,prime-picks" so it stays one CSV field.
+- Case-sensitive. Valid values:
+- prime-picks, cue-picks, value-picks, click-picks, global-picks,
+- travel-picks, deals-hub, loot-box, services, apps, homepage
+- Internally stored as a JSON array; CSV comma-separated values are normalized to JSON on import. API uploads may send `["services","homepage"]` directly; for CSV keep comma-separated.
+
+2) Pricing models (services & apps)
+- `pricing_type`: one-time | monthly | yearly | free
+- `is_free`: true/false/1/0/yes/no (all normalized)
+- `monthly_price` / `yearly_price`: numbers or currency-formatted strings (₹199, 199, 199.00)
+- `price_description`: optional free text (e.g., "₹199/mo after trial")
+- Services & AI apps: may omit `price` if using `is_free` or monthly/yearly pricing.
+- Products: must include `price` (MRP in `original_price` optional).
+- `discount` (optional): percentage off MRP. Accepts `30` or `30%`. If omitted, it is auto-computed when both `price` and `original_price` are provided. Stored as an integer percent.
+- Database columns used: `pricing_type`, `monthly_price`, `yearly_price`, `is_free`, `price_description`.
+
+3) Required & recommended fields
+- Required: `name` (or `title`)
+- Products: `price` required
+- Recommended for good cards: `category`, `image_url`, `affiliate_url`, `brand`
+
+4) Booleans
+- `is_featured`, `is_service`, `is_ai_app`, `is_free` accept: true/false/1/0/yes/no
+
+5) Formatting & headers
+- Column names must match exactly. Order does not matter.
+- CSV should be UTF-8, comma-separated.
+- Encoding: save as UTF‑8 (no BOM). Verify the rupee symbol appears as `₹`; if you see `â‚¹`, re-save the CSV as UTF‑8.
+- Currency: optional `currency` column (defaults to `INR`). Keep values consistent per row.
+- Template header includes `discount` placed after `original_price` to align with backend mapping.
+
+6) Notes on slugs
+- A "slug" is a URL-friendly identifier. For product display, use page slugs above in `display_pages`.
+- Blog post slugs are separate and not part of product CSV.
+
+7) Examples
+- Services (monthly): set `is_service=true`, `pricing_type=monthly`, `monthly_price=199`
+- Apps (free): set `is_ai_app=true`, `pricing_type=free`, `is_free=true`
+- Display on homepage and Prime Picks: `display_pages=homepage,prime-picks`
+
+If you need custom pricing details beyond these, consider adding a `price_description` line with concise info.
+
+8) Subcategory & Cookie Duration
+- `subcategory`: optional, placed immediately after `category` in the template.
+- `cookie_duration`: optional, last header in the template. Provide duration in days (e.g., `30`, `60`). It is stored with the product for tracking-window reference.
+
+9) Field name conventions & mapping
+- Use snake_case headers for pricing-related fields: `pricing_type`, `monthly_price`, `yearly_price`, `is_free`, `price_description`.
+- Booleans are stored as 0/1 in the database; text values like yes/no/true/false are normalized on import.
+- Frontend responses use camelCase equivalents automatically (e.g., `monthlyPrice`, `yearlyPrice`, `pricingType`).
+
+10) Validation & normalization (optional)
+- After a bulk import, you can verify mapping with: `node server/check-field-mapping.cjs`.
+- To normalize flags/statuses defensively, you may run: `node normalize-unified-content.cjs`.

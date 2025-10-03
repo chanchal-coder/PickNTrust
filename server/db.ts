@@ -22,6 +22,18 @@ const dbFile = getDatabasePath();
 console.log(`Using SQLite database: ${dbFile}`);
 
 const sqlite = new Database(dbFile);
+// Configure SQLite to reduce lock errors and improve concurrency
+try {
+  // Wait up to 3 seconds when the database is busy instead of failing immediately
+  sqlite.pragma('busy_timeout = 3000');
+  // Ensure WAL mode which is better for concurrent reads/writes
+  sqlite.pragma('journal_mode = WAL');
+  // Keep foreign keys consistent
+  sqlite.pragma('foreign_keys = ON');
+  console.log('SQLite PRAGMAs set: busy_timeout=3000, journal_mode=WAL, foreign_keys=ON');
+} catch (pragmaErr) {
+  console.warn('Failed to set SQLite PRAGMAs:', pragmaErr);
+}
 // Try to load schema dynamically from common locations; fallback to no schema
 let loadedSchema: any | undefined = undefined;
 const tryDynamicImport = async (relPath: string) => {
@@ -398,6 +410,55 @@ try {
   }
 } catch (metaError) {
   console.error('Error ensuring meta_tags table exists:', metaError);
+}
+
+// Ensure widgets table exists (fixes SqliteError: no such table: widgets)
+try {
+  const widgetsTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='widgets'").get();
+  if (!widgetsTable) {
+    console.log('Creating widgets table...');
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS widgets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        code TEXT NOT NULL,
+        target_page TEXT NOT NULL,
+        position TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        display_order INTEGER DEFAULT 0,
+        max_width TEXT,
+        custom_css TEXT,
+        show_on_mobile INTEGER DEFAULT 1,
+        show_on_desktop INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+        updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_widgets_page_position ON widgets(target_page, position);
+      CREATE INDEX IF NOT EXISTS idx_widgets_active ON widgets(is_active);
+    `);
+    console.log('✅ widgets table created');
+  }
+} catch (widgetsError) {
+  console.error('Error ensuring widgets table exists:', widgetsError);
+}
+
+// Ensure external_link column exists on widgets table
+try {
+  const columns = sqlite.prepare("PRAGMA table_info(widgets)").all() as any[];
+  const names = new Set(columns.map((c: any) => c.name));
+  if (!names.has('external_link')) {
+    console.log('Adding external_link column to widgets table...');
+    sqlite.exec(`ALTER TABLE widgets ADD COLUMN external_link TEXT;`);
+    console.log('✅ external_link column added to widgets');
+  }
+  // Add description column if missing for widgets
+  if (!names.has('description')) {
+    console.log('Adding description column to widgets table...');
+    sqlite.exec(`ALTER TABLE widgets ADD COLUMN description TEXT;`);
+    console.log('✅ description column added to widgets');
+  }
+} catch (widgetsColumnError) {
+  console.error('Error ensuring external_link column exists on widgets:', widgetsColumnError);
 }
 
 // Ensure banners table exists (fixes SqliteError: no such table: banners)

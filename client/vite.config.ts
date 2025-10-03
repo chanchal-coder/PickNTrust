@@ -61,13 +61,13 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173,
+    port: 5000,
     strictPort: true,
     host: true,
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -88,9 +88,16 @@ export default defineConfig({
             }
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            proxyReq.setHeader('Origin', 'http://localhost:5173');
+            proxyReq.setHeader('Origin', 'http://localhost:5001');
           });
         },
+      },
+      '/uploads': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+        ws: false,
+        followRedirects: true,
       },
     },
   },

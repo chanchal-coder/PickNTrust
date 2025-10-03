@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1759445822699,
+    "title": "Explore Sponsored: Test",
+    "imageUrl": null,
+    "clickUrl": "https://example.com/sponsored",
+    "type": "banner",
+    "description": "Featured brand on Explore",
+    "companyName": "TestCo",
+    "contactEmail": "ads@example.com",
+    "viewMode": null,
+    "advertiserId": null,
+    "campaignId": null,
+    "status": "approved",
+    "createdAt": "2025-10-02T22:57:02.699Z",
+    "approvedAt": "2025-10-02T23:01:55.683Z",
+    "rejectedAt": "2025-10-02T23:01:06.708Z",
+    "rejectReason": null
+  }
+]

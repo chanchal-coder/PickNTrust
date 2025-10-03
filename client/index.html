@@ -22,7 +22,18 @@
   <body>
     <!-- Optional: Admitad alternative verification via HTML comment in <body> -->
     <!-- verify-admitad: "c22a6605f1" -->
-    <div id="root"></div>
+    <div id="root">
+      <!-- Inline initial loader to prevent blank screen during boot -->
+      <div id="initial-loader" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#ffffff;color:#111">
+        <div style="text-align:center">
+          <div style="margin-bottom:12px;font-weight:600">Loading…</div>
+          <div style="width:40px;height:40px;border-radius:50%;border:3px solid #3b82f6;border-top-color:transparent;animation:spin 0.8s linear infinite"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

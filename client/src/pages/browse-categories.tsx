@@ -126,12 +126,14 @@ export default function BrowseCategories() {
 
   // Group categories by type
   const groupedCategories = {
-    featured: filteredCategories.filter(cat => cat.is_featured),
-    product: filteredCategories.filter(cat => cat.category_type === 'product' || !cat.category_type),
-    service: filteredCategories.filter(cat => cat.category_type === 'service'),
-    app: filteredCategories.filter(cat => cat.category_type === 'app'),
-    'ai-app': filteredCategories.filter(cat => cat.category_type === 'ai-app'),
-    auto: filteredCategories.filter(cat => cat.auto_created)
+    // Backend does not provide featured/auto flags here; keep empty
+    featured: [],
+    // Infer type from backend booleans: isForProducts, isForServices, isForAIApps
+    product: filteredCategories.filter(cat => (cat as any).isForProducts || (!((cat as any).isForServices) && !((cat as any).isForAIApps))),
+    service: filteredCategories.filter(cat => (cat as any).isForServices),
+    app: filteredCategories.filter(cat => (cat as any).isForAIApps),
+    'ai-app': filteredCategories.filter(cat => (cat as any).isForAIApps),
+    auto: []
   };
 
   // Get categories to display based on selected type
@@ -147,9 +149,9 @@ export default function BrowseCategories() {
   // Get category stats
   const categoryStats = {
     total: categories.length,
-    withProducts: categories.filter(cat => cat.has_active_products).length,
-    autoCreated: categories.filter(cat => cat.auto_created).length,
-    featured: categories.filter(cat => cat.is_featured).length
+    withProducts: categories.filter(cat => (cat.total_products_count || 0) > 0).length,
+    autoCreated: 0,
+    featured: 0
   };
 
   useEffect(() => {
@@ -343,20 +345,11 @@ export default function BrowseCategories() {
                           </span>
                         </div>
                         
-                        {/* Show breakdown if multiple sources */}
-                        {(category.prime_picks_count || 0) + (category.click_picks_count || 0) + (category.loot_box_count || 0) + (category.apps_count || 0) + (category.services_count || 0) > 0 && (
+                        {/* Show breakdown for services/apps when present */}
+                        {((category.apps_count || 0) + (category.services_count || 0)) > 0 && (
                           <div className="text-xs text-gray-500 dark:text-gray-500">
-                            {category.prime_picks_count > 0 && <span className="mr-2">Prime: {category.prime_picks_count}</span>}
-                            {category.click_picks_count > 0 && <span className="mr-2">Click: {category.click_picks_count}</span>}
-                            {category.loot_box_count > 0 && (
-                              <span className="mr-2 inline-flex items-center">
-                                <span className="inline-block w-2 h-2 bg-orange-500 rounded-full mr-1"></span>
-                                Wholesale: {category.loot_box_count}
-                              </span>
-                            )}
-                            {category.apps_count > 0 && <span className="mr-2">Apps: {category.apps_count}</span>}
-                            {category.services_count > 0 && <span className="mr-2">Services: {category.services_count}</span>}
-                            {category.top_picks_count > 0 && <span className="mr-2">Top: {category.top_picks_count}</span>}
+                            {(category.apps_count || 0) > 0 && <span className="mr-2">Apps: {category.apps_count}</span>}
+                            {(category.services_count || 0) > 0 && <span className="mr-2">Services: {category.services_count}</span>}
                           </div>
                         )}
                       </div>
@@ -367,12 +360,7 @@ export default function BrowseCategories() {
                         Browse Category
                       </button>
                       
-                      {/* Created info */}
-                      {category.created_by_page && (
-                        <div className="mt-3 text-xs text-white/70 text-center">
-                          Created by: {category.created_by_page}
-                        </div>
-                      )}
+                      {/* Created info removed: field not provided by backend here */}
                     </div>
                   </div>
                 </Link>

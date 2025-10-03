@@ -12,6 +12,12 @@ const sqliteDb = new Database(dbPath);
 
 const router = express.Router();
 
+// Simple admin check aligned with current admin panel flow
+function isAdmin(req: Request): boolean {
+  const headerPwd = (req.headers['x-admin-password'] || (req.headers as any)['X-Admin-Password']) as string | undefined;
+  return headerPwd === 'pickntrust2025';
+}
+
 // Ensure payment_settings table exists for admin-configurable UPI and bank details
 sqliteDb.exec(`
   CREATE TABLE IF NOT EXISTS payment_settings (
@@ -746,6 +752,109 @@ router.post('/proof', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Proof submission error:', error);
     res.status(500).json({ error: 'Failed to submit payment proof' });
+  }
+});
+
+// ---- Admin APIs for Advertiser Payment Summaries ----
+// Get latest payment summary for an advertiser with best-effort plan inference
+router.get('/admin/advertisers/:id/payments/latest', async (req: Request, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+    const advertiserId = Number(req.params.id);
+    if (!advertiserId || Number.isNaN(advertiserId)) {
+      return res.status(400).json({ error: 'Invalid advertiser id' });
+    }
+
+    const payment = sqliteDb.prepare(`
+      SELECT id, advertiser_id, campaign_id, amount, currency, payment_method, transaction_id, payment_status, payment_date
+      FROM advertiser_payments
+      WHERE advertiser_id = ?
+      ORDER BY (CASE WHEN payment_date IS NULL THEN 0 ELSE 1 END) DESC, payment_date DESC, id DESC
+      LIMIT 1
+    `).get(advertiserId) as any;
+
+    if (!payment) {
+      return res.json({ payment: null, plan: null });
+    }
+
+    let plan: { name?: string; duration?: string } | null = null;
+
+    // Try Stripe enrichment: checkout session or payment intent
+    if (String(payment.payment_method).toLowerCase() === 'stripe' && payment.transaction_id) {
+      try {
+        const activeStripe = getActiveGatewayAccount('stripe');
+        const stripeSecret = activeStripe?.secret_key || process.env.STRIPE_SECRET_KEY;
+        if (stripeSecret) {
+          const stripeModule = await import('stripe');
+          const Stripe = stripeModule.default;
+          const stripe = new Stripe(stripeSecret);
+          const txId: string = String(payment.transaction_id);
+          if (txId.startsWith('cs_')) {
+            const session = await stripe.checkout.sessions.retrieve(txId, { expand: ['line_items'] });
+            const li = (session.line_items && (session.line_items as any).data && (session.line_items as any).data[0]) || null;
+            const productName = li?.description || li?.price?.product || null;
+            const md = session.metadata || {} as any;
+            plan = {
+              name: (md.placementName as any) || (typeof productName === 'string' ? productName : undefined),
+              duration: (md.duration as any) || undefined,
+            };
+          } else if (txId.startsWith('pi_')) {
+            const intent = await stripe.paymentIntents.retrieve(txId);
+            const md = intent.metadata || {} as any;
+            plan = {
+              name: (md.placementName as any) || (typeof intent.description === 'string' ? intent.description : undefined),
+              duration: (md.duration as any) || undefined,
+            };
+          }
+        }
+      } catch (e) {
+        // Best-effort; ignore enrichment failures
+        console.warn('Stripe enrichment failed:', e);
+      }
+    }
+
+    // Try Razorpay enrichment: order notes
+    if (!plan && String(payment.payment_method).toLowerCase() === 'razorpay' && payment.transaction_id) {
+      try {
+        const activeRazorpay = getActiveGatewayAccount('razorpay');
+        const keyId = activeRazorpay?.publishable_key || process.env.RAZORPAY_KEY_ID;
+        const keySecret = activeRazorpay?.secret_key || process.env.RAZORPAY_KEY_SECRET;
+        if (keyId && keySecret) {
+          const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+          const resp = await fetch(`https://api.razorpay.com/v1/orders/${payment.transaction_id}`, {
+            method: 'GET',
+            headers: { Authorization: authHeader },
+          } as any);
+          if (resp.ok) {
+            const data: any = await resp.json();
+            const notes = data?.notes || {};
+            plan = {
+              name: notes.placementName || undefined,
+              duration: notes.duration || undefined,
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Razorpay enrichment failed:', e);
+      }
+    }
+
+    // Try manual proof notes
+    if (!plan) {
+      try {
+        const proof = sqliteDb.prepare(`
+          SELECT proof_ref, notes FROM payment_proofs WHERE payment_id = ? ORDER BY created_at DESC LIMIT 1
+        `).get(payment.id) as any;
+        if (proof && proof.notes) {
+          plan = { name: String(proof.notes), duration: undefined };
+        }
+      } catch {}
+    }
+
+    return res.json({ payment, plan });
+  } catch (error) {
+    console.error('Latest payment summary error:', error);
+    res.status(500).json({ error: 'Failed to fetch payment summary' });
   }
 });
 

@@ -921,6 +921,7 @@ export type InsertGlobalPicksProduct = z.infer<typeof insertGlobalPicksProductSc
 export const widgets = sqliteTable("widgets", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(), // Widget display name
+  description: text("description"), // Optional description shown in admin or generated widgets
   code: text("code").notNull(), // HTML/CSS/JS code for the widget
   targetPage: text("target_page").notNull(), // Page where widget should appear
   position: text("position").notNull(), // header, sidebar, footer, content-top, content-bottom
@@ -930,6 +931,7 @@ export const widgets = sqliteTable("widgets", {
   customCss: text("custom_css"), // Additional CSS for styling
   showOnMobile: integer("show_on_mobile", { mode: 'boolean' }).default(true),
   showOnDesktop: integer("show_on_desktop", { mode: 'boolean' }).default(true),
+  externalLink: text("external_link"), // Optional external link to open when widget is clicked
   createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });

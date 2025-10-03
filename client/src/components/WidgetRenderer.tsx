@@ -13,6 +13,7 @@ interface Widget {
   customCss?: string;
   showOnMobile: boolean;
   showOnDesktop: boolean;
+  externalLink?: string;
 }
 
 interface WidgetRendererProps {
@@ -105,10 +106,12 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
         maxWidth: widget.max_width,
         customCss: widget.custom_css,
         showOnMobile: Boolean(widget.show_on_mobile),
-        showOnDesktop: Boolean(widget.show_on_desktop)
+        showOnDesktop: Boolean(widget.show_on_desktop),
+        externalLink: widget.external_link || ''
       }));
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   });
 
@@ -164,59 +167,130 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   return (
     <div className={getPositionStyles(position)}>
       {filteredWidgets.map((widget: Widget) => (
-        <WidgetItem key={widget.id} widget={widget} position={position} />
+        <WidgetItem key={widget.id} widget={widget} position={position} page={page} />
       ))}
     </div>
   );
 }
 
 // Individual widget item component
-function WidgetItem({ widget, position }: { widget: Widget; position: string }) {
+function WidgetItem({ widget, position, page }: { widget: Widget; position: string; page?: string }) {
+  // Execute any scripts in the widget code safely
   useEffect(() => {
-    // Execute any scripts in the widget code
-    const container = document.getElementById(`widget-${widget.id}`);
-    if (container) {
-      // Extract and execute script tags
+    try {
+      const container = document.getElementById(`widget-${widget.id}`);
+      if (!container) return;
       const scripts = container.querySelectorAll('script');
       scripts.forEach((script) => {
-        const newScript = document.createElement('script');
-        
-        // Copy attributes
-        Array.from(script.attributes).forEach((attr) => {
-          newScript.setAttribute(attr.name, attr.value);
-        });
-        
-        // Copy content
-        if (script.src) {
-          newScript.src = script.src;
-        } else {
-          newScript.textContent = script.textContent;
+        try {
+          const newScript = document.createElement('script');
+          // Copy attributes
+          Array.from(script.attributes).forEach((attr) => {
+            newScript.setAttribute(attr.name, attr.value);
+          });
+          // Copy content
+          if (script.src) {
+            newScript.src = script.src;
+          } else {
+            newScript.textContent = script.textContent;
+          }
+          // Replace the old script with the new one
+          script.parentNode?.replaceChild(newScript, script);
+        } catch (err) {
+          console.error(`Widget script execution error (widget ${widget.id}):`, err);
         }
-        
-        // Replace the old script with the new one
-        script.parentNode?.replaceChild(newScript, script);
       });
+    } catch (err) {
+      console.error(`Widget container processing error (widget ${widget.id}):`, err);
     }
   }, [widget.id, widget.code]);
+
+  // Basic click tracking for links inside widget content
+  useEffect(() => {
+    const container = document.getElementById(`widget-${widget.id}`);
+    if (!container) return;
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a') as HTMLAnchorElement | null;
+      if (anchor && anchor.href) {
+        try {
+          const payload = JSON.stringify({
+            widgetId: widget.id,
+            widgetName: widget.name,
+            page: page,
+            position: position,
+            href: anchor.href
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/widgets/track-click', payload);
+          } else {
+            fetch('/api/widgets/track-click', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: payload
+            });
+          }
+        } catch {}
+      }
+    };
+    container.addEventListener('click', handleClick);
+    return () => container.removeEventListener('click', handleClick);
+  }, [widget.id, page, position]);
 
   const containerStyle: React.CSSProperties = {
     maxWidth: widget.maxWidth || 'none',
     width: '100%',
   };
 
+  // Try to detect if widget is ad-like for disclosure badge
+  const isAdLike = /adsbygoogle|ad-slot|Advertisement|Affiliate|Sponsored/i.test(widget.code) || /ad|sponsor/i.test(widget.name);
+
   return (
     <div
       id={`widget-${widget.id}`}
-      className="widget-item mb-4"
-      style={containerStyle}
+      className="widget-item mb-4 relative"
       data-widget-name={widget.name}
       data-widget-position={widget.position}
+      onClick={(e) => {
+        if (!widget.externalLink) return;
+        const target = e.target as HTMLElement;
+        const insideAnchor = target.closest('a');
+        if (insideAnchor) return; // let inner links behave normally
+        try {
+          const payload = JSON.stringify({
+            widgetId: widget.id,
+            widgetName: widget.name,
+            page: page,
+            position: position,
+            href: widget.externalLink
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/widgets/track-click', payload);
+          } else {
+            fetch('/api/widgets/track-click', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: payload
+            });
+          }
+        } catch {}
+        if (widget.externalLink?.startsWith('http')) {
+          window.open(widget.externalLink, '_blank', 'noopener,noreferrer');
+        } else if (widget.externalLink) {
+          window.location.href = widget.externalLink;
+        }
+      }}
+      style={{ ...containerStyle, cursor: widget.externalLink ? 'pointer' : 'auto' }}
     >
       {/* Custom CSS */}
       {widget.customCss && (
         <style>
           {`#widget-${widget.id} { ${widget.customCss} }`}
         </style>
+      )}
+
+      {isAdLike && (
+        <span className="absolute top-2 right-2 z-10 text-xs px-2 py-0.5 rounded-full bg-black/50 text-white border border-white/20 select-none" aria-label="Advertisement">Ad</span>
       )}
       
       {/* Widget Content */}
