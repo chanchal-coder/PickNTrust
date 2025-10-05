@@ -5,11 +5,12 @@ import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { ProductTimer } from "@/components/product-timer";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+// Using canonical header widgets via WidgetRenderer and banners
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from "@/components/PageBanner";
 import PageVideosSection from '@/components/PageVideosSection';
+import WidgetRenderer from '@/components/WidgetRenderer';
+import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
 import EnhancedShare from '@/components/enhanced-share';
@@ -413,7 +414,12 @@ export default function TopPicks() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
-        <Header />
+        {/* Canonical Header Widgets */}
+        <WidgetRenderer page={'top-picks'} position="header-top" className="w-full" />
+        <AnnouncementBanner />
+        <PageBanner page="top-picks" />
+        <WidgetRenderer page={'top-picks'} position="header-bottom" className="w-full" />
+        <div className="header-spacing">
         <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
@@ -442,6 +448,7 @@ export default function TopPicks() {
             </div>
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -449,7 +456,12 @@ export default function TopPicks() {
   if (error || !filteredProducts || filteredProducts.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
-        <Header />
+        {/* Canonical Header Widgets */}
+        <WidgetRenderer page={'top-picks'} position="header-top" className="w-full" />
+        <AnnouncementBanner />
+        <PageBanner page="top-picks" />
+        <WidgetRenderer page={'top-picks'} position="header-bottom" className="w-full" />
+        <div className="header-spacing">
         <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
@@ -491,22 +503,27 @@ export default function TopPicks() {
             </div>
           </div>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <UniversalPageLayout pageId="top-picks">
+    <UniversalPageLayout pageId="top-picks" enableContentOverlays={false} enableFloatingOverlays={false}>
       <div className="min-h-screen bg-white dark:bg-gray-900">
-        {/* Main Header */}
-        <Header />
+        {/* Canonical Header Widgets render below via WidgetRenderer and banners */}
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'top-picks'} position="header-top" className="w-full" />
         
         <AnnouncementBanner />
         
       {/* Amazing Page Banner */}
       <PageBanner page="top-picks" />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'top-picks'} position="header-bottom" className="w-full" />
 
       {/* Top Picks Content Section with Sidebar */}
+      <div className="header-spacing">
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Sidebar */}
         <Sidebar 
@@ -516,8 +533,11 @@ export default function TopPicks() {
           availableCategories={availableCategories}
         />
 
-        {/* Top Picks Grid */}
+        {/* Top Picks Grid with overlay anchor */}
         <div className="flex-1 p-6">
+          <div className="relative">
+          {/* Product Grid Top Widgets */}
+          <SafeWidgetRenderer page={'top-picks'} position={'product-grid-top'} />
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -696,7 +716,20 @@ export default function TopPicks() {
               </div>
             ))}
           </div>
+
+          {/* Product Grid Bottom Widgets */}
+          <SafeWidgetRenderer page={'top-picks'} position={'product-grid-bottom'} />
+          {/* Overlay widgets mirroring Prime Picks placement */}
+          <WidgetRenderer page={'top-picks'} position="content-top" />
+          <WidgetRenderer page={'top-picks'} position="content-middle" />
+          <WidgetRenderer page={'top-picks'} position="content-bottom" />
+          <WidgetRenderer page={'top-picks'} position="floating-top-left" />
+          <WidgetRenderer page={'top-picks'} position="floating-top-right" />
+          <WidgetRenderer page={'top-picks'} position="floating-bottom-left" />
+          <WidgetRenderer page={'top-picks'} position="floating-bottom-right" />
+          </div>
         </div>
+      </div>
       </div>
       
       {/* Top Picks Videos Section */}

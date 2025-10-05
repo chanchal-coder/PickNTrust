@@ -9,6 +9,7 @@ import ScrollNavigation from '@/components/scroll-navigation';
 import PageVideosSection from '@/components/PageVideosSection';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 // Define Category type
 interface Category {
@@ -163,7 +164,11 @@ export default function BrowseCategories() {
     <UniversalPageLayout pageId="browse-categories">
             <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/20 page-container">
               <Header />
+              {/* Header Top above dynamic banner */}
+              <WidgetRenderer page={'browse-categories'} position="header-top" className="w-full" />
               <PageBanner page="browse-categories" />
+              {/* Header Bottom below dynamic banner */}
+              <WidgetRenderer page={'browse-categories'} position="header-bottom" className="w-full" />
               <div className="pt-20 pb-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center py-16">
@@ -180,13 +185,18 @@ export default function BrowseCategories() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/20 page-container">
       <Header />
+      {/* Header Top above dynamic banner */}
+      <WidgetRenderer page={'browse-categories'} position="header-top" className="w-full" />
       
       {/* Page Banner */}
       <PageBanner page="browse-categories" />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'browse-categories'} position="header-bottom" className="w-full" />
       
-      {/* Categories Content Section */}
-      <section className="pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div>
+        {/* Categories Content Section */}
+        <section className="pt-20 pb-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Header with Stats */}
           <div className="text-center mb-12">
@@ -400,6 +410,7 @@ export default function BrowseCategories() {
       />
       
       <ScrollNavigation />
+    </div>
     </div>
   );
 }

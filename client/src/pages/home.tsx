@@ -1,7 +1,6 @@
 import { useLocation } from 'wouter';
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import WidgetRenderer from "@/components/WidgetRenderer";
+import Header from "@/components/header";
 import ScrollNavigation from "@/components/scroll-navigation";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Categories from "@/components/categories";
@@ -21,18 +20,22 @@ export default function Home() {
   
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-gray-950 via-slate-900 to-black">
-      {/* Main Header */}
+      {/* Global Header restored */}
       <Header />
+      {/* Header widgets */}
+      {/* Header Top above dynamic banner */}
+      <WidgetRenderer page={pageId} position="header-top" />
       
       {/* Announcement Banner */}
       <AnnouncementBanner page="home" />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={pageId} position="header-bottom" />
       
-      {/* Content Top Widgets */}
-      <div className="content-top-widgets">
-        <WidgetRenderer page={pageId} position="content-top" />
-      </div>
+      {/* Banner Top Widgets (inside main content flow) */}
+      <WidgetRenderer page={pageId} position="banner-top" />
       
       {/* Main Content - Subtle base with hero-only gradient */}
+      <div className="header-spacing">
       <div className="relative">
         {/* Hero Section with rich gradient, overlays for depth */}
         <section className="relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -53,20 +56,28 @@ export default function Home() {
         <VideosSection />
         <WhyTrustUs />
         <Newsletter />
-      </div>
-      
-      {/* Content Bottom Widgets */}
-      <div className="content-bottom-widgets">
+
+        {/* Content Widgets as overlays (absolute inside relative container) */}
+        <WidgetRenderer page={pageId} position="content-top" />
+        <WidgetRenderer page={pageId} position="content-middle" />
         <WidgetRenderer page={pageId} position="content-bottom" />
+
+        {/* Floating Widgets inside overlay layer to appear below banner */}
+        <WidgetRenderer page={pageId} position="floating-top-left" />
+        <WidgetRenderer page={pageId} position="floating-top-right" />
+        <WidgetRenderer page={pageId} position="floating-bottom-left" />
+        <WidgetRenderer page={pageId} position="floating-bottom-right" />
       </div>
       
-      {/* Footer Widgets */}
-      <div className="footer-widgets">
-        <WidgetRenderer page={pageId} position="footer" />
+      {/* Banner Bottom Widgets (inside main content flow) */}
+      <WidgetRenderer page={pageId} position="banner-bottom" />
       </div>
       
       {/* Main Footer */}
-      <Footer />
+      {/* Footer Top Widgets */}
+      <WidgetRenderer page={pageId} position="footer-top" />
+      {/* Footer Bottom Widgets */}
+      <WidgetRenderer page={pageId} position="footer-bottom" />
       
       {/* Fixed Elements */}
       <ScrollNavigation />

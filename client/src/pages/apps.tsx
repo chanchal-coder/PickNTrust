@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
-import Header from '@/components/header';
-import Footer from '@/components/footer';
+import WidgetRenderer from '@/components/WidgetRenderer';
 import ScrollNavigation from '@/components/scroll-navigation';
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
@@ -393,13 +392,16 @@ export default function AppsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/20">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'apps'} position="header-top" className="w-full" />
         
         <AnnouncementBanner page="apps" />
       
       {/* Amazing Page Banner */}
       <PageBanner page="apps" />
-        <div className="pt-20 pb-16">
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'apps'} position="header-bottom" className="w-full" />
+        <div className="header-spacing pt-20 pb-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
@@ -407,6 +409,9 @@ export default function AppsPage() {
             </div>
           </div>
         </div>
+        {/* Footer Widgets */}
+        <WidgetRenderer page={'apps'} position="footer-top" className="w-full" />
+        <WidgetRenderer page={'apps'} position="footer-bottom" className="w-full" />
       </div>
     );
   }
@@ -414,15 +419,18 @@ export default function AppsPage() {
   return (
     <UniversalPageLayout pageId="apps">
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/20">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'apps'} position="header-top" className="w-full" />
         
         <AnnouncementBanner page="apps" />
       
       {/* Amazing Page Banner */}
       <PageBanner page="apps" />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'apps'} position="header-bottom" className="w-full" />
       
       {/* Apps Content Section with Sidebar */}
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="header-spacing flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Sidebar */}
         <Sidebar 
           onCategoryChange={handleCategoryChange}
@@ -660,6 +668,10 @@ export default function AppsPage() {
         page="apps" 
         title="Apps Videos"
       />
+
+      {/* Footer Widgets */}
+      <WidgetRenderer page={'apps'} position="footer-top" className="w-full" />
+      <WidgetRenderer page={'apps'} position="footer-bottom" className="w-full" />
 
       <ScrollNavigation />
       

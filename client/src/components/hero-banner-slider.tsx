@@ -2,38 +2,41 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from '@tanstack/react-query';
 
-// Fallback banners if database is not available
-export const bannerSlides = [
+// Restore original fallback slides alongside DB banners
+export const bannerSlides: Array<{
+  id: number; title: string; subtitle?: string; description?: string;
+  image?: string; ctaText?: string; ctaLink?: string; bgGradient?: string;
+}> = [
   {
     id: 1,
-    title: "Premium Smartphones",
-    subtitle: "Up to 40% Off Latest Models",
-    description: "Discover the latest flagship phones with cutting-edge technology",
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-    ctaText: "Shop Phones",
-    ctaLink: "/category/Mobiles%20%26%20Accessories",
-    bgGradient: "from-blue-600 to-purple-700"
+    title: "Shop Fashion",
+    subtitle: "Men • Women • Kids",
+    description: "Trending styles, best prices, trusted sellers.",
+    image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=1200&h=400&fit=crop&auto=format&fm=jpg&q=80",
+    ctaText: "Shop Fashion",
+    ctaLink: "/category/Fashion & Clothing",
+    bgGradient: "from-blue-600 to-purple-700",
   },
   {
     id: 2,
-    title: "Home & Kitchen Essentials",
-    subtitle: "Transform Your Living Space",
-    description: "Smart appliances and stylish furniture for modern homes",
-    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-    ctaText: "Browse Home",
-    ctaLink: "/category/Home%20%26%20Kitchen",
-    bgGradient: "from-green-600 to-teal-700"
+    title: "Top Picks",
+    subtitle: "Curated collections for every need",
+    description: "Handpicked products loved by our community.",
+    image: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1200&h=400&fit=crop&auto=format&fm=jpg&q=80",
+    ctaText: "Explore Top Picks",
+    ctaLink: "/top-picks",
+    bgGradient: "from-green-600 to-teal-700",
   },
   {
     id: 3,
-    title: "Fashion & Style",
-    subtitle: "Trending Designs at Best Prices",
-    description: "Curated fashion collection for men, women & kids",
-    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-    ctaText: "Shop Fashion",
-    ctaLink: "/category/Fashion%20Men",
-    bgGradient: "from-pink-600 to-rose-700"
-  }
+    title: "Travel Deals",
+    subtitle: "Flights • Hotels • Packages",
+    description: "Plan smarter with exclusive offers.",
+    image: "https://images.unsplash.com/photo-1502920917128-1aa500764ce7?w=1200&h=400&fit=crop&auto=format&fm=jpg&q=80",
+    ctaText: "View Travel Deals",
+    ctaLink: "/travel-deals",
+    bgGradient: "from-pink-600 to-rose-700",
+  },
 ];
 
 interface Banner {
@@ -55,6 +58,13 @@ export default function HeroBannerSlider() {
   const [showFashionPopup, setShowFashionPopup] = useState(false);
   const [, setLocation] = useLocation();
   const [hiddenBanners, setHiddenBanners] = useState<Set<string>>(new Set());
+  const toProxy = (url: string) => {
+    if (!url) return url;
+    const trimmed = url.trim();
+    return /^https?:\/\//i.test(trimmed)
+      ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}`
+      : trimmed;
+  };
 
   // Listen for localStorage changes
   useEffect(() => {
@@ -123,10 +133,7 @@ export default function HeroBannerSlider() {
                                 .sort((a: Banner, b: Banner) => a.displayOrder - b.displayOrder);
   const dbSlides = convertDbBannersToSlides(activeBanners);
   
-  // Filter out hidden hardcoded banners
-  const visibleBannerSlides = bannerSlides.filter(slide => !hiddenBanners.has(slide.id.toString()));
-  
-  // Combine visible hardcoded banners + database banners
+  const visibleBannerSlides = bannerSlides.filter((slide) => !hiddenBanners.has(slide.title));
   const slides = [...visibleBannerSlides, ...dbSlides];
 
   // Auto-advance only when we have slides
@@ -163,14 +170,17 @@ export default function HeroBannerSlider() {
             index < currentSlide ? '-translate-x-full' : 'translate-x-full'
           }`}
         >
-          {/* Background Image with Overlay */}
+          {/* Background: show image if provided, else gradient-only */}
           <div className="absolute inset-0">
-            <img
-              src={slide.image}
-              alt={slide.title}
-              className="w-full h-full object-cover"
-            />
-            <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient} opacity-80`}></div>
+            {slide.image ? (
+              <img
+                src={toProxy(slide.image)}
+                alt={slide.title}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
+              />
+            ) : null}
+            <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient || 'from-blue-600 to-purple-700'} ${slide.image ? 'opacity-80' : 'opacity-100'}`}></div>
           </div>
 
           {/* Content */}

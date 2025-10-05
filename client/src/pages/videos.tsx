@@ -3,17 +3,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
 import ScrollNavigation from '@/components/scroll-navigation';
-import { AnnouncementBanner } from "@/components/announcement-banner";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import PageBanner from '@/components/PageBanner';
 import { Play, Clock, Calendar, Tag, Search, Filter, Grid, List, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+ 
 
 interface VideoContent {
   id: number;
@@ -264,9 +263,7 @@ export default function VideosPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-      
-      {/* Amazing Page Banner */}
-      <PageBanner page="videos" />
+        
         <div className="pt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="animate-pulse space-y-8">
@@ -287,10 +284,6 @@ export default function VideosPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        
-        <AnnouncementBanner page="videos" />
-        
-        <PageBanner page="videos" />
         <div className="pt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center py-12">
@@ -319,10 +312,6 @@ export default function VideosPage() {
     <UniversalPageLayout pageId="videos">
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20">
         <Header />
-        
-        <AnnouncementBanner />
-        
-        <PageBanner page="videos" />
       <div className="relative">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -20,10 +21,15 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Force single React resolution from client node_modules to avoid duplicates
+      react: path.resolve(__dirname, 'client/node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'client/node_modules/react-dom'),
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
+    // Ensure a single React instance to prevent hooks dispatcher mismatch
+    dedupe: ["react", "react-dom"],
   },
   root: path.resolve(__dirname, "client"),
   build: {

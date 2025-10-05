@@ -1,11 +1,16 @@
-import Header from '@/components/header';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { AnnouncementBanner } from '@/components/announcement-banner';
+import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 export default function TermsOfServicePage() {
   return (
     <UniversalPageLayout pageId="terms-of-service">
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
+            <WidgetRenderer page="terms-of-service" position="header-top" />
+            <AnnouncementBanner />
+            <PageBanner page="terms-of-service" />
+            <WidgetRenderer page="terms-of-service" position="header-bottom" />
             <div className="header-spacing">
               <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <h1 className="text-4xl font-bold text-navy dark:text-blue-400 mb-8">Terms of Service</h1>

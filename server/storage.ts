@@ -38,6 +38,11 @@ import { db, sqliteDb } from "./db.js";
 import { eq, desc, ne, and, lt } from "drizzle-orm";
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-compatible __dirname/__filename shims
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Utility functions for consistent timestamp handling
 const toUnixTimestamp = (date: Date): number => Math.floor(date.getTime() / 1000);

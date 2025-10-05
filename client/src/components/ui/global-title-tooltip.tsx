@@ -1,18 +1,18 @@
 "use client"
 
-import React from "react"
+import { useEffect, useState, useRef } from "react"
 import { createPortal } from "react-dom"
 
 // Global overlay that replaces native browser title tooltips across the app.
 // Detects any element with a `title` attribute on hover, removes it to suppress
 // the native tooltip, and shows a styled tooltip near the cursor.
 export default function GlobalTitleTooltip() {
-  const [visible, setVisible] = React.useState(false)
-  const [text, setText] = React.useState<string>("")
-  const [pos, setPos] = React.useState<{ x: number; y: number }>({ x: 0, y: 0 })
-  const currentElRef = React.useRef<HTMLElement | null>(null)
+  const [visible, setVisible] = useState(false)
+  const [text, setText] = useState<string>("")
+  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const currentElRef = useRef<HTMLElement | null>(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       setPos({ x: e.clientX + 12, y: e.clientY + 12 })
     }

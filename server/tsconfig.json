@@ -25,11 +25,13 @@
   "exclude": [
     "node_modules",
     "dist",
+    "../vite.config.ts",
     "routes-backup.ts",
     "routes-final.ts",
     "*.backup",
     "*.emergency-backup",
     "affiliate-routes.ts",
-    "bot-admin-routes.ts"
+    "bot-admin-routes.ts",
+    "vite.ts"
   ]
 }

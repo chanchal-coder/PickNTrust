@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+import WidgetRenderer from '@/components/WidgetRenderer';
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
@@ -251,14 +250,17 @@ export default function DealsHub() {
   }, [productsError, toast]);
 
   return (
-    <UniversalPageLayout pageId="deals-hub">
+    <UniversalPageLayout pageId="deals-hub" enableContentOverlays={false} enableFloatingOverlays={false}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'deals-hub'} position="header-top" className="w-full" />
         
         <AnnouncementBanner />
         
         {/* Page Banner Slider */}
         <PageBanner page="deals-hub" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'deals-hub'} position="header-bottom" className="w-full" />
       <div className="header-spacing">
 
         {/* Main Content with Sidebar */}
@@ -322,6 +324,7 @@ export default function DealsHub() {
               </p>
             </div>
 
+            <div className="relative">
             {productsLoading ? (
               <div className="text-center py-16">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
@@ -396,6 +399,15 @@ export default function DealsHub() {
                 ))}
               </div>
             )}
+            {/* Overlay widgets mirroring Prime Picks placement */}
+            <WidgetRenderer page={'deals-hub'} position="content-top" />
+            <WidgetRenderer page={'deals-hub'} position="content-middle" />
+            <WidgetRenderer page={'deals-hub'} position="content-bottom" />
+            <WidgetRenderer page={'deals-hub'} position="floating-top-left" />
+            <WidgetRenderer page={'deals-hub'} position="floating-top-right" />
+            <WidgetRenderer page={'deals-hub'} position="floating-bottom-left" />
+            <WidgetRenderer page={'deals-hub'} position="floating-bottom-right" />
+            </div>
           </div>
         </div>
       </div>

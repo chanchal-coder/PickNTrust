@@ -1,10 +1,35 @@
+import { fetch as undiciFetch, Headers as UndiciHeaders, Request as UndiciRequest, Response as UndiciResponse, FormData as UndiciFormData } from "undici";
+// Provide global fetch & Web APIs if missing, and a minimal File shim
+const g = globalThis as any;
+if (!g.fetch) g.fetch = undiciFetch;
+if (!g.Headers) g.Headers = UndiciHeaders;
+if (!g.Request) g.Request = UndiciRequest;
+if (!g.Response) g.Response = UndiciResponse;
+if (!g.FormData) g.FormData = UndiciFormData;
+if (typeof g.File === "undefined") {
+  class FileShim {
+    name: string;
+    lastModified: number;
+    constructor(_bits: any[], name: string, options: any = {}) {
+      this.name = String(name);
+      this.lastModified = options?.lastModified ?? Date.now();
+    }
+  }
+  g.File = FileShim;
+}
+
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { setupRoutes } from "./routes.js";
 import { serveStatic, log } from "./vite.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import './telegram-bot.js'; // Initialize Telegram bot
+// Initialize Telegram bot only when explicitly enabled
+const ENABLE_TELEGRAM_BOT = process.env.ENABLE_TELEGRAM_BOT === 'true';
+if (ENABLE_TELEGRAM_BOT) {
+  // Dynamically import to avoid pulling dependencies when disabled
+  import('./telegram-bot.js');
+}
 import { sqliteDb } from "./db.js";
 
 // Initialize URL Processing Routes for manual URL processing
@@ -316,9 +341,11 @@ const server = app.listen(port, '0.0.0.0', async () => {
   } else {
     // Production mode - serve static files and handle SPA routing
     const fs = await import('fs');
+    // In production, compiled server lives at dist/server/server/index.js
+    // Static client assets live at dist/public. Resolve accordingly.
     const publicPath = process.env.FRONTEND_STATIC_DIR
       ? path.resolve(process.env.FRONTEND_STATIC_DIR)
-      : path.resolve(__dirname, "../public");
+      : path.resolve(__dirname, "../../public");
     console.log(`📁 Frontend static dir resolved to: ${publicPath}`);
     
     if (fs.existsSync(publicPath)) {
@@ -328,12 +355,17 @@ const server = app.listen(port, '0.0.0.0', async () => {
       // Important: Disable default index.html serving so SPA fallback can inject meta tags
       app.use(express.static(publicPath, {
         index: false,
-        maxAge: '1d',
-        setHeaders: (res, path) => {
-          if (path.endsWith('.js') || path.endsWith('.mjs')) {
+        setHeaders: (res, filePath) => {
+          // Content-Type hints to avoid incorrect MIME on some proxies
+          if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
             res.setHeader('Content-Type', 'application/javascript');
-          } else if (path.endsWith('.css')) {
+            // Strong cache for hashed assets to prevent partial update mismatches
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else if (filePath.endsWith('.css')) {
             res.setHeader('Content-Type', 'text/css');
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else if (/[.-](png|jpg|jpeg|gif|webp|svg|ico|woff2|woff|ttf)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
           }
         }
       }));
@@ -368,10 +400,13 @@ const server = app.listen(port, '0.0.0.0', async () => {
               // Handle cases like <head lang="en">
               html = html.replace(/<head[^>]*>/i, (match) => `${match}\n${injection}\n`);
             }
+            // index.html must never be cached to ensure latest hashed assets are referenced
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.setHeader('Cache-Control', 'no-store, must-revalidate');
             return res.send(html);
           } catch (err) {
             console.error('Error injecting meta tags into index.html:', err);
+            res.setHeader('Cache-Control', 'no-store, must-revalidate');
             return res.sendFile(indexPath);
           }
         } else {

@@ -9,11 +9,12 @@
   "scripts": {
     "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build",
+    "build:client": "cd client && vite build",
     "build:server": "tsc -p server/tsconfig.json",
     "build:production": "node build-production.js",
     "start": "cross-env NODE_ENV=production FRONTEND_STATIC_DIR=dist/public node dist/server/server/index.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start:bot": "cross-env NODE_ENV=production ENABLE_TELEGRAM_BOT=true node dist/server/server/telegram-bot.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -55,6 +56,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.29.2",
@@ -70,9 +72,9 @@
     "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^7.0.6",
     "puppeteer": "^24.22.0",
-    "react": "^19.1.1",
+    "react": "^18.3.1",
     "react-day-picker": "^9.11.0",
-    "react-dom": "^19.1.1",
+    "react-dom": "^18.3.1",
     "react-hook-form": "^7.63.0",
     "react-resizable-panels": "^3.0.6",
     "recharts": "^3.2.1",
@@ -85,18 +87,17 @@
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vaul": "^1.1.2",
-    "vite": "^5.0.10",
     "wouter": "^3.7.1",
-    "zod": "^3.22.4",
-    "cross-env": "^7.0.3"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0"
+    "tailwindcss": "^3.4.0",
+    "vite": "^5.4.20"
   }
 }

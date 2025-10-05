@@ -51,17 +51,17 @@ export default function PageLayout({
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header Widgets */}
-      <div className="header-widgets">
-        {/* Extended Header Slots */}
-        <WidgetRenderer page={pageId} position="header-top" />
-        <WidgetRenderer page={pageId} position="header" />
-        <WidgetRenderer page={pageId} position="header-bottom" />
-      </div>
-      
       {/* Main Header */}
       <Header />
       
+      {/* Header Widgets placed around the banner area */}
+      <div className="header-widgets">
+        {/* Header Top should be above the banner */}
+        <WidgetRenderer page={pageId} position="header-top" />
+        {/* Optional header middle slot near main header */}
+        <WidgetRenderer page={pageId} position="header" />
+      </div>
+
       {/* Announcement Banner */}
       <AnnouncementBanner />
 
@@ -71,50 +71,46 @@ export default function PageLayout({
         <WidgetRenderer page={pageId} position="banner-bottom" className="container mx-auto px-4" />
       </div>
       
-      {/* Content Top Widgets */}
-      <div className="content-top-widgets">
-        <WidgetRenderer page={pageId} position="content-top" className="container mx-auto px-4" />
+      {/* Header Bottom should be below the banner */}
+      <div className="header-widgets">
+        <WidgetRenderer page={pageId} position="header-bottom" />
       </div>
       
-      {/* Main Content Area with proper spacing */}
-      <div className="pt-20">
-        <div className={`flex flex-col md:flex-row ${showSidebar ? 'container mx-auto px-4' : ''}`}>
-        {/* Left Sidebar */}
+      {/* Content Top Widgets are rendered inside the main content container below */}
+      
+      {/* Main Content Area with tighter spacing */}
+      <div className="pt-8">
+        <div className={"w-full px-0"}>
+        {/* Overlay Sidebars (do not affect layout width) */}
         {showSidebar && (
-          <aside className="w-64 flex-shrink-0 hidden lg:block">
-            <div className="sticky top-20 space-y-4">
-              {/* Left Sidebar Widgets */}
+          <div className="hidden lg:block">
+            <div className="fixed top-20 left-4 z-40">
               <WidgetRenderer page={pageId} position="sidebar-left" />
-              
-              {/* Custom Sidebar Content */}
-              {sidebarContent}
             </div>
-          </aside>
+          </div>
         )}
-        
-        {/* Main Content */}
-        <main className={`flex-1 ${showSidebar ? 'lg:ml-6' : ''} ${className}`}>
-          {/* Middle Content Widgets */}
-          <WidgetRenderer page={pageId} position="content-middle" className="container mx-auto px-4" />
-          {children}
-        </main>
-        
-        {/* Right Sidebar */}
         {showSidebar && (
-          <aside className="w-64 flex-shrink-0 hidden md:block">
-            <div className="sticky top-20 space-y-4 ml-0 md:ml-6">
-              {/* Right Sidebar Widgets */}
+          <div className="hidden md:block">
+            <div className="fixed top-20 right-4 z-40">
               <WidgetRenderer page={pageId} position="sidebar-right" />
             </div>
-          </aside>
+          </div>
         )}
+        
+        {/* Main Content with overlay layer */}
+        <main className={`flex-1 ${className}`}>
+          <div className="relative">
+            {children}
+            {/* Content Widgets as overlays */}
+            <WidgetRenderer page={pageId} position="content-top" />
+            <WidgetRenderer page={pageId} position="content-middle" />
+            <WidgetRenderer page={pageId} position="content-bottom" />
+          </div>
+        </main>
         </div>
       </div>
       
-      {/* Content Bottom Widgets */}
-      <div className="content-bottom-widgets">
-        <WidgetRenderer page={pageId} position="content-bottom" className="container mx-auto px-4" />
-      </div>
+      {/* Content Bottom Widgets are now inside the main content container */}
       
       {/* Footer Widgets */}
       <div className="footer-widgets">

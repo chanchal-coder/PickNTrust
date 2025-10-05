@@ -99,14 +99,15 @@ router.post('/api/admin/widgets', verifyAdminAccess, async (req: Request, res: R
   try {
     const validatedData = insertWidgetSchema.parse(req.body) as any;
     
-    const result = sqliteDb.prepare(`
+  const result = sqliteDb.prepare(`
       INSERT INTO widgets (
-        name, description, code, target_page, position, is_active, display_order, 
+        name, description, body, code, target_page, position, is_active, display_order, 
         max_width, custom_css, show_on_mobile, show_on_desktop, external_link
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       validatedData.name,
       validatedData.description || null,
+      validatedData.body || null,
       validatedData.code,
       validatedData.targetPage,
       validatedData.position,
@@ -177,6 +178,10 @@ router.put('/api/admin/widgets/:id', verifyAdminAccess, async (req: Request, res
     if (validatedData.customCss !== undefined) {
       updateFields.push('custom_css = ?');
       updateValues.push(validatedData.customCss);
+    }
+    if (validatedData.body !== undefined) {
+      updateFields.push('body = ?');
+      updateValues.push(validatedData.body || null);
     }
     if (validatedData.description !== undefined) {
       updateFields.push('description = ?');

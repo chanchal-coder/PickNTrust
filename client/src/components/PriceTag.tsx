@@ -1,4 +1,4 @@
-import React from 'react';
+// No default React import needed with modern JSX transform
 import { formatPrice as formatCurrencyPrice, type CurrencyCode } from '@/utils/currency';
 
 interface PriceTagProps {

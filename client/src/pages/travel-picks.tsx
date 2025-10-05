@@ -3610,13 +3610,17 @@ export default function TravelPicks() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20">
-      <div className="header-widgets">
-        <WidgetRenderer page="travel-picks" position="header" />
-      </div>
-      
+      {/* Main Header */}
       <Header />
+      {/* Header Top above dynamic banner */}
+      <WidgetRenderer page={'travel-picks'} position="header-top" className="w-full" />
+      
       <AnnouncementBanner />
+      
+      {/* Dynamic Page Banner */}
       <PageBanner page="travel-picks" />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'travel-picks'} position="header-bottom" className="w-full" />
 
       <div className="container mx-auto px-4 py-6">
         <TravelNavigation 

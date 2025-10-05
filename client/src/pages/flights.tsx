@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+// Removed direct Header import; using canonical header widgets via WidgetRenderer
+import WidgetRenderer from '@/components/WidgetRenderer';
+// Removed direct Footer import; using canonical footer widgets via WidgetRenderer
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import PageBanner from '@/components/PageBanner';
@@ -728,13 +729,17 @@ export default function Flights() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
+      {/* Header Top above dynamic banner */}
+      <WidgetRenderer page={'flights'} position="header-top" className="w-full" />
       
       {/* Page Banner */}
       <PageBanner 
         page="flights"
       />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'flights'} position="header-bottom" className="w-full" />
       
+      <div className="header-spacing">
       <main className="pt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Page Header */}
@@ -810,6 +815,7 @@ export default function Flights() {
           )}
         </div>
       </main>
+      </div>
 
       {/* Flight Videos Section */}
       <PageVideosSection 
@@ -817,6 +823,9 @@ export default function Flights() {
         title="Flight Travel Videos"
       />
 
+      {/* Canonical Footer Widgets */}
+      <WidgetRenderer page={'flights'} position="footer-top" />
+      <WidgetRenderer page={'flights'} position="footer-bottom" />
       <ScrollNavigation />
     </div>
   );

@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 
 interface ShareAutomaticallyModalProps {
   isOpen: boolean;
@@ -8,7 +8,7 @@ interface ShareAutomaticallyModalProps {
   platforms: string[];
 }
 
-const ShareAutomaticallyModal: React.FC<ShareAutomaticallyModalProps> = ({
+const ShareAutomaticallyModal: FC<ShareAutomaticallyModalProps> = ({
   isOpen,
   onClose,
   onConfirm,

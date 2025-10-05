@@ -7,11 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 interface CategoryRouteParams {
   category?: string;
 }
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import CategoryNavigation from "@/components/category-navigation";
 import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 import AmazonProductCard from "@/components/amazon-product-card";
 import { BundleProductCard } from "@/components/BundleProductCard";
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
@@ -289,15 +288,17 @@ export default function CategoryPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'categories'} position="header-top" className="w-full" />
         <PageBanner page="categories" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'categories'} position="header-bottom" className="w-full" />
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-300">Loading products...</p>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -305,15 +306,17 @@ export default function CategoryPage() {
   if (!category) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'categories'} position="header-top" className="w-full" />
         <PageBanner page="categories" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'categories'} position="header-bottom" className="w-full" />
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-600 mb-4">Category Not Found</h2>
             <p className="text-gray-500">Please select a valid category.</p>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -321,8 +324,12 @@ export default function CategoryPage() {
   return (
     <UniversalPageLayout pageId="category">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'categories'} position="header-top" className="w-full" />
         <PageBanner page="categories" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'categories'} position="header-bottom" className="w-full" />
+      <div className="header-spacing">
       
       <CategoryNavigation currentCategory={category || ''} />
       
@@ -612,6 +619,8 @@ export default function CategoryPage() {
           </div>
         </div>
       </section>
+      </div>
+      {/* Close outer min-h-screen container */}
       </div>
     </UniversalPageLayout>
   );

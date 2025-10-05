@@ -21,6 +21,7 @@ class ImageProxyService {
   private cacheDir: string;
   private maxCacheSize: number;
   private defaultOptions: ProxyImageOptions;
+  private blockedHosts: Set<string>;
 
   constructor() {
     this.cacheDir = path.join(process.cwd(), 'image-cache');
@@ -32,6 +33,10 @@ class ImageProxyService {
       format: 'webp',
       cache: true
     };
+    this.blockedHosts = new Set([
+      // Block obvious placeholders and known bad domains to avoid noise
+      'example.com'
+    ]);
     
     this.ensureCacheDir();
   }
@@ -69,6 +74,47 @@ class ImageProxyService {
     }
   }
 
+  // Tiny transparent PNG placeholder (1x1)
+  private getTransparentPngBuffer(): Buffer {
+    const transparentPngBase64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+    return Buffer.from(transparentPngBase64, 'base64');
+  }
+
+  // Convert placeholder to requested format and size
+  private async makePlaceholder(finalOptions: ProxyImageOptions): Promise<Buffer> {
+    let img = sharp(this.getTransparentPngBuffer());
+    if (finalOptions.width || finalOptions.height) {
+      img = img.resize(finalOptions.width, finalOptions.height, {
+        fit: 'inside',
+        withoutEnlargement: true,
+        kernel: sharp.kernel.nearest
+      });
+    }
+    switch (finalOptions.format) {
+      case 'jpeg':
+        img = img.jpeg({ quality: finalOptions.quality });
+        break;
+      case 'png':
+        img = img.png({ quality: finalOptions.quality });
+        break;
+      case 'webp':
+      default:
+        img = img.webp({ quality: finalOptions.quality });
+        break;
+    }
+    return img.toBuffer();
+  }
+
+  private isBlockedUrl(imageUrl: string): boolean {
+    try {
+      const { hostname } = new URL(imageUrl);
+      return this.blockedHosts.has(hostname.toLowerCase());
+    } catch {
+      return true; // invalid URLs are considered blocked
+    }
+  }
+
   // Fetch and process image
   async proxyImage(imageUrl: string, options: Partial<ProxyImageOptions> = {}): Promise<Buffer> {
     const finalOptions = { ...this.defaultOptions, ...options };
@@ -79,6 +125,20 @@ class ImageProxyService {
     if (finalOptions.cache && await this.isCached(cacheKey, finalOptions.format!)) {
       console.log(`Products Serving cached image: ${imageUrl}`);
       return await fs.readFile(cachedPath);
+    }
+
+    // Early exit for blocked or invalid URLs
+    if (this.isBlockedUrl(imageUrl)) {
+      console.warn(`Image proxy: blocked or invalid URL, serving placeholder: ${imageUrl}`);
+      const ph = await this.makePlaceholder(finalOptions);
+      if (finalOptions.cache) {
+        try {
+          await fs.writeFile(cachedPath, ph);
+        } catch (e: any) {
+          console.warn(`Warning Failed to cache placeholder: ${e?.message || e}`);
+        }
+      }
+      return ph;
     }
 
     console.log(`Global Fetching and processing image: ${imageUrl}`);
@@ -97,7 +157,7 @@ class ImageProxyService {
           'Sec-Fetch-Mode': 'no-cors',
           'Sec-Fetch-Site': 'cross-site'
         },
-        timeout: 30000
+        timeout: 5000
       });
 
       if (!response.ok) {
@@ -145,9 +205,23 @@ class ImageProxyService {
       
       return finalBuffer;
       
-    } catch (error) {
-      console.error(`Error Failed to proxy image ${imageUrl}:`, error.message);
-      throw error;
+    } catch (error: any) {
+      const msg = String(error?.message || error);
+      // Downgrade expected fetch errors to warnings (404/timeout/etc.)
+      if (/HTTP\s404|timeout|ENOTFOUND|ECONNREFUSED|ECONNRESET/i.test(msg)) {
+        console.warn(`Image proxy warning for ${imageUrl}: ${msg}. Serving placeholder.`);
+      } else {
+        console.error(`Error Failed to proxy image ${imageUrl}:`, msg);
+      }
+      const ph = await this.makePlaceholder(finalOptions);
+      if (finalOptions.cache) {
+        try {
+          await fs.writeFile(cachedPath, ph);
+        } catch (e: any) {
+          console.warn(`Warning Failed to cache placeholder: ${e?.message || e}`);
+        }
+      }
+      return ph;
     }
   }
 
@@ -224,12 +298,14 @@ class ImageProxyService {
         
         res.send(imageBuffer);
         
-      } catch (error) {
-        console.error('Image proxy error:', error.message);
-        // Serve a tiny transparent PNG placeholder to avoid UI breakages
-        const transparentPngBase64 =
-          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
-        const placeholder = Buffer.from(transparentPngBase64, 'base64');
+      } catch (error: any) {
+        const msg = String(error?.message || error);
+        console.warn('Image proxy route warning:', msg);
+        // Fallback placeholder if proxyImage ever throws
+        const placeholder = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+          'base64'
+        );
         res.set({
           'Content-Type': 'image/png',
           'Cache-Control': 'no-cache',

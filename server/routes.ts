@@ -1226,16 +1226,17 @@ export function setupRoutes(app: express.Application) {
   });
 
   // Legacy widget endpoints (placeholder responses)
-  app.get('/api/widgets/home/content-top', (req, res) => {
-    res.json({ content: '', enabled: false });
+  // Pass-through legacy endpoints so the real widget handlers can serve data
+  app.get('/api/widgets/home/content-top', (_req, _res, next) => {
+    return next();
   });
 
-  app.get('/api/widgets/home/content-bottom', (req, res) => {
-    res.json({ content: '', enabled: false });
+  app.get('/api/widgets/home/content-bottom', (_req, _res, next) => {
+    return next();
   });
 
-  app.get('/api/widgets/home/footer', (req, res) => {
-    res.json({ content: '', enabled: false });
+  app.get('/api/widgets/home/footer', (_req, _res, next) => {
+    return next();
   });
 
   // Announcement active endpoint - fetch the most relevant active announcement
@@ -1392,107 +1393,58 @@ export function setupRoutes(app: express.Application) {
   });
 
   // Navigation tabs routes
-  app.get('/api/nav-tabs', async (req, res) => {
+  app.get('/api/nav-tabs', async (_req, res) => {
     try {
-      const tabs = [
-        {
-          id: 1,
-          name: "Prime Picks",
-          slug: "prime-picks",
-          icon: "fas fa-crown",
-          color_from: "#8B5CF6",
-          color_to: "#7C3AED",
-          display_order: 1,
-          is_active: true,
-          is_system: true,
-          description: "Premium curated products"
-        },
-        {
-          id: 2,
-          name: "Cue Picks",
-          slug: "cue-picks",
-          icon: "fas fa-bullseye",
-          color_from: "#06B6D4",
-          color_to: "#0891B2",
-          display_order: 2,
-          is_active: true,
-          is_system: true,
-          description: "Smart selections curated with precision"
-        },
-        {
-          id: 3,
-          name: "Value Picks",
-          slug: "value-picks",
-          icon: "fas fa-gem",
-          color_from: "#F59E0B",
-          color_to: "#D97706",
-          display_order: 3,
-          is_active: true,
-          is_system: true,
-          description: "Best value for money products"
-        },
-        {
-          id: 4,
-          name: "Click Picks",
-          slug: "click-picks",
-          icon: "fas fa-mouse-pointer",
-          color_from: "#3B82F6",
-          color_to: "#1D4ED8",
-          display_order: 4,
-          is_active: true,
-          is_system: true,
-          description: "Most popular and trending products"
-        },
-        {
-          id: 5,
-          name: "Global Picks",
-          slug: "global-picks",
-          icon: "fas fa-globe",
-          color_from: "#10B981",
-          color_to: "#059669",
-          display_order: 5,
-          is_active: true,
-          is_system: true,
-          description: "International products and brands"
-        },
-        {
-          id: 6,
-          name: "Travel Picks",
-          slug: "travel-picks",
-          icon: "fas fa-plane",
-          color_from: "#3B82F6",
-          color_to: "#1D4ED8",
-          display_order: 6,
-          is_active: true,
-          is_system: true,
-          description: "Travel essentials and accessories"
-        },
-        {
-          id: 7,
-          name: "Deals Hub",
-          slug: "deals-hub",
-          icon: "fas fa-fire",
-          color_from: "#EF4444",
-          color_to: "#DC2626",
-          display_order: 7,
-          is_active: true,
-          is_system: true,
-          description: "Hot deals and discounts"
-        },
-        {
-          id: 8,
-          name: "Loot Box",
-          slug: "loot-box",
-          icon: "fas fa-gift",
-          color_from: "#F59E0B",
-          color_to: "#D97706",
-          display_order: 8,
-          is_active: true,
-          is_system: true,
-          description: "Mystery boxes with amazing surprises"
-        }
+      const defaults = [
+        { name: 'Prime Picks', slug: 'prime-picks', icon: 'fas fa-crown', color_from: '#8B5CF6', color_to: '#7C3AED', color_style: 'gradient', description: 'Premium curated products' },
+        { name: 'Cue Picks', slug: 'cue-picks', icon: 'fas fa-bullseye', color_from: '#06B6D4', color_to: '#0891B2', color_style: 'gradient', description: 'Smart selections curated with precision' },
+        { name: 'Value Picks', slug: 'value-picks', icon: 'fas fa-gem', color_from: '#F59E0B', color_to: '#D97706', color_style: 'gradient', description: 'Best value for money products' },
+        { name: 'Click Picks', slug: 'click-picks', icon: 'fas fa-mouse-pointer', color_from: '#3B82F6', color_to: '#1D4ED8', color_style: 'gradient', description: 'Most popular and trending products' },
+        { name: 'Global Picks', slug: 'global-picks', icon: 'fas fa-globe', color_from: '#10B981', color_to: '#059669', color_style: 'gradient', description: 'International products and brands' },
+        { name: 'Travel Picks', slug: 'travel-picks', icon: 'fas fa-plane', color_from: '#3B82F6', color_to: '#1D4ED8', color_style: 'gradient', description: 'Travel essentials and accessories' },
+        { name: 'Deals Hub', slug: 'deals-hub', icon: 'fas fa-fire', color_from: '#EF4444', color_to: '#DC2626', color_style: 'gradient', description: 'Hot deals and discounts' },
+        { name: 'Loot Box', slug: 'loot-box', icon: 'fas fa-gift', color_from: '#F59E0B', color_to: '#D97706', color_style: 'gradient', description: 'Mystery boxes with amazing surprises' }
       ];
-      
+
+      let tabs = sqliteDb.prepare(
+        `SELECT id, name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description
+         FROM nav_tabs
+         WHERE is_active = 1
+         ORDER BY display_order ASC, id ASC`
+      ).all();
+
+      if (!tabs || tabs.length === 0) {
+        tabs = defaults.map((d, i) => ({
+          id: i + 1,
+          name: d.name,
+          slug: d.slug,
+          icon: d.icon,
+          color_from: d.color_from,
+          color_to: d.color_to,
+          color_style: d.color_style,
+          display_order: i + 1,
+          is_active: 1,
+          is_system: 1,
+          description: d.description
+        }));
+      } else {
+        const present = new Set(tabs.map((t: any) => String(t.slug)));
+        const missing = defaults.filter(d => !present.has(d.slug));
+        tabs = tabs.concat(missing.map((d, i) => ({
+          id: 1000 + i,
+          name: d.name,
+          slug: d.slug,
+          icon: d.icon,
+          color_from: d.color_from,
+          color_to: d.color_to,
+          color_style: d.color_style,
+          display_order: (tabs.length + i + 1),
+          is_active: 1,
+          is_system: 1,
+          description: d.description
+        })));
+      }
+
       res.json(tabs);
     } catch (error) {
       console.error('Error fetching nav tabs:', error);
@@ -1501,107 +1453,58 @@ export function setupRoutes(app: express.Application) {
   });
 
   // Navigation tabs endpoint (alternative endpoint)
-  app.get('/api/navigation/tabs', async (req, res) => {
+  app.get('/api/navigation/tabs', async (_req, res) => {
     try {
-      const tabs = [
-        {
-          id: 1,
-          name: "Prime Picks",
-          slug: "prime-picks",
-          icon: "fas fa-crown",
-          color_from: "#8B5CF6",
-          color_to: "#7C3AED",
-          display_order: 1,
-          is_active: true,
-          is_system: true,
-          description: "Premium curated products"
-        },
-        {
-          id: 2,
-          name: "Cue Picks",
-          slug: "cue-picks",
-          icon: "fas fa-bullseye",
-          color_from: "#06B6D4",
-          color_to: "#0891B2",
-          display_order: 2,
-          is_active: true,
-          is_system: true,
-          description: "Smart selections curated with precision"
-        },
-        {
-          id: 3,
-          name: "Value Picks",
-          slug: "value-picks",
-          icon: "fas fa-gem",
-          color_from: "#F59E0B",
-          color_to: "#D97706",
-          display_order: 3,
-          is_active: true,
-          is_system: true,
-          description: "Best value for money products"
-        },
-        {
-          id: 4,
-          name: "Click Picks",
-          slug: "click-picks",
-          icon: "fas fa-mouse-pointer",
-          color_from: "#3B82F6",
-          color_to: "#1D4ED8",
-          display_order: 4,
-          is_active: true,
-          is_system: true,
-          description: "Most popular and trending products"
-        },
-        {
-          id: 5,
-          name: "Global Picks",
-          slug: "global-picks",
-          icon: "fas fa-globe",
-          color_from: "#10B981",
-          color_to: "#059669",
-          display_order: 5,
-          is_active: true,
-          is_system: true,
-          description: "International products and brands"
-        },
-        {
-          id: 6,
-          name: "Travel Picks",
-          slug: "travel-picks",
-          icon: "fas fa-plane",
-          color_from: "#3B82F6",
-          color_to: "#1D4ED8",
-          display_order: 6,
-          is_active: true,
-          is_system: true,
-          description: "Travel essentials and accessories"
-        },
-        {
-          id: 7,
-          name: "Deals Hub",
-          slug: "deals-hub",
-          icon: "fas fa-fire",
-          color_from: "#EF4444",
-          color_to: "#DC2626",
-          display_order: 7,
-          is_active: true,
-          is_system: true,
-          description: "Hot deals and discounts"
-        },
-        {
-          id: 8,
-          name: "Loot Box",
-          slug: "loot-box",
-          icon: "fas fa-gift",
-          color_from: "#F59E0B",
-          color_to: "#D97706",
-          display_order: 8,
-          is_active: true,
-          is_system: true,
-          description: "Mystery boxes with amazing surprises"
-        }
+      const defaults = [
+        { name: 'Prime Picks', slug: 'prime-picks', icon: 'fas fa-crown', color_from: '#8B5CF6', color_to: '#7C3AED', color_style: 'gradient', description: 'Premium curated products' },
+        { name: 'Cue Picks', slug: 'cue-picks', icon: 'fas fa-bullseye', color_from: '#06B6D4', color_to: '#0891B2', color_style: 'gradient', description: 'Smart selections curated with precision' },
+        { name: 'Value Picks', slug: 'value-picks', icon: 'fas fa-gem', color_from: '#F59E0B', color_to: '#D97706', color_style: 'gradient', description: 'Best value for money products' },
+        { name: 'Click Picks', slug: 'click-picks', icon: 'fas fa-mouse-pointer', color_from: '#3B82F6', color_to: '#1D4ED8', color_style: 'gradient', description: 'Most popular and trending products' },
+        { name: 'Global Picks', slug: 'global-picks', icon: 'fas fa-globe', color_from: '#10B981', color_to: '#059669', color_style: 'gradient', description: 'International products and brands' },
+        { name: 'Travel Picks', slug: 'travel-picks', icon: 'fas fa-plane', color_from: '#3B82F6', color_to: '#1D4ED8', color_style: 'gradient', description: 'Travel essentials and accessories' },
+        { name: 'Deals Hub', slug: 'deals-hub', icon: 'fas fa-fire', color_from: '#EF4444', color_to: '#DC2626', color_style: 'gradient', description: 'Hot deals and discounts' },
+        { name: 'Loot Box', slug: 'loot-box', icon: 'fas fa-gift', color_from: '#F59E0B', color_to: '#D97706', color_style: 'gradient', description: 'Mystery boxes with amazing surprises' }
       ];
-      
+
+      let tabs = sqliteDb.prepare(
+        `SELECT id, name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description
+         FROM nav_tabs
+         WHERE is_active = 1
+         ORDER BY display_order ASC, id ASC`
+      ).all();
+
+      if (!tabs || tabs.length === 0) {
+        tabs = defaults.map((d, i) => ({
+          id: i + 1,
+          name: d.name,
+          slug: d.slug,
+          icon: d.icon,
+          color_from: d.color_from,
+          color_to: d.color_to,
+          color_style: d.color_style,
+          display_order: i + 1,
+          is_active: 1,
+          is_system: 1,
+          description: d.description
+        }));
+      } else {
+        const present = new Set(tabs.map((t: any) => String(t.slug)));
+        const missing = defaults.filter(d => !present.has(d.slug));
+        tabs = tabs.concat(missing.map((d, i) => ({
+          id: 1000 + i,
+          name: d.name,
+          slug: d.slug,
+          icon: d.icon,
+          color_from: d.color_from,
+          color_to: d.color_to,
+          color_style: d.color_style,
+          display_order: (tabs.length + i + 1),
+          is_active: 1,
+          is_system: 1,
+          description: d.description
+        })));
+      }
+
       res.json(tabs);
     } catch (error) {
       console.error('Error fetching navigation tabs:', error);
@@ -1609,17 +1512,245 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
-  // Delete product endpoint - handles unified_content table
-  app.delete('/api/admin/products/:id', async (req, res) => {
+  // Admin: Navigation tabs CRUD and reorder
+  app.get('/api/admin/nav-tabs', async (_req, res) => {
     try {
-      const { password } = req.body;
-      
-      if (!await verifyAdminPassword(password)) {
+      const tabs = sqliteDb.prepare(
+        `SELECT id, name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description
+         FROM nav_tabs
+         ORDER BY display_order ASC, id ASC`
+      ).all();
+      res.json(tabs);
+    } catch (error) {
+      handleDatabaseError(error, res, 'fetch navigation tabs');
+    }
+  });
+
+  app.post('/api/admin/nav-tabs', async (req, res) => {
+    try {
+      const passwordHeader = typeof req.headers['x-admin-password'] === 'string' ? String(req.headers['x-admin-password']) : undefined;
+      const passwordBody = req.body?.password as string | undefined;
+      const password = passwordHeader || passwordBody;
+      const isProd = process.env.NODE_ENV === 'production';
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { name, slug, icon = 'fas fa-star', color_from = '#3B82F6', color_to = '#1D4ED8', colorStyle = 'gradient', description = '', is_active = true, is_system = false, display_order } = req.body || {};
+      if (!name) return res.status(400).json({ message: 'Name is required' });
+      const finalSlug = (slug && String(slug).trim().length > 0)
+        ? String(slug).trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+        : String(name).trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+      const maxOrderRow = sqliteDb.prepare(`SELECT MAX(display_order) as maxOrder FROM nav_tabs`).get() as any;
+      const nextOrder = (maxOrderRow?.maxOrder || 0) + 1;
+      const orderToUse = Number(display_order) > 0 ? Number(display_order) : nextOrder;
+
+      try {
+        const result = sqliteDb.prepare(
+          `INSERT INTO nav_tabs (name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+        ).run(String(name), finalSlug, String(icon), String(color_from), String(color_to), String(colorStyle), Number(orderToUse), is_active ? 1 : 0, is_system ? 1 : 0, String(description || ''));
+        const created = sqliteDb.prepare(
+          `SELECT id, name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description FROM nav_tabs WHERE id = ?`
+        ).get(result.lastInsertRowid) as any;
+        return res.json({ message: 'Navigation tab created successfully', tab: created });
+      } catch (err: any) {
+        if (String(err?.message || '').includes('UNIQUE') && String(err?.message || '').includes('slug')) {
+          return res.status(409).json({ message: 'Slug already exists' });
+        }
+        throw err;
+      }
+    } catch (error) {
+      handleDatabaseError(error, res, 'create navigation tab');
+    }
+  });
+
+  app.put('/api/admin/nav-tabs/:id', async (req, res) => {
+    try {
+      const passwordHeader = typeof req.headers['x-admin-password'] === 'string' ? String(req.headers['x-admin-password']) : undefined;
+      const passwordBody = req.body?.password as string | undefined;
+      const password = passwordHeader || passwordBody;
+      const isProd = process.env.NODE_ENV === 'production';
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = Number(req.params.id);
+      const existing = sqliteDb.prepare(`SELECT id, is_system FROM nav_tabs WHERE id = ?`).get(id) as any;
+      if (!existing) return res.status(404).json({ message: 'Navigation tab not found' });
+
+      const { name, slug, icon, color_from, color_to, colorStyle, display_order, is_active, is_system, description } = req.body || {};
+      const finalSlug = (slug && String(slug).trim().length > 0)
+        ? String(slug).trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+        : undefined;
+
+      try {
+        sqliteDb.prepare(
+          `UPDATE nav_tabs SET
+            name = COALESCE(?, name),
+            slug = COALESCE(?, slug),
+            icon = COALESCE(?, icon),
+            color_from = COALESCE(?, color_from),
+            color_to = COALESCE(?, color_to),
+            color_style = COALESCE(?, color_style),
+            display_order = COALESCE(?, display_order),
+            is_active = COALESCE(?, is_active),
+            is_system = COALESCE(?, is_system),
+            description = COALESCE(?, description),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`
+        ).run(
+          name !== undefined ? String(name) : null,
+          finalSlug !== undefined ? finalSlug : null,
+          icon !== undefined ? String(icon) : null,
+          color_from !== undefined ? String(color_from) : null,
+          color_to !== undefined ? String(color_to) : null,
+          colorStyle !== undefined ? String(colorStyle) : null,
+          display_order !== undefined ? Number(display_order) : null,
+          is_active !== undefined ? (is_active ? 1 : 0) : null,
+          is_system !== undefined ? (is_system ? 1 : 0) : null,
+          description !== undefined ? String(description) : null,
+          id
+        );
+        const updated = sqliteDb.prepare(
+          `SELECT id, name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description FROM nav_tabs WHERE id = ?`
+        ).get(id);
+        return res.json({ message: 'Navigation tab updated successfully', tab: updated });
+      } catch (err: any) {
+        if (String(err?.message || '').includes('UNIQUE') && String(err?.message || '').includes('slug')) {
+          return res.status(409).json({ message: 'Slug already exists' });
+        }
+        throw err;
+      }
+    } catch (error) {
+      handleDatabaseError(error, res, 'update navigation tab');
+    }
+  });
+
+  app.delete('/api/admin/nav-tabs/:id', async (req, res) => {
+    try {
+      const passwordHeader = typeof req.headers['x-admin-password'] === 'string' ? String(req.headers['x-admin-password']) : undefined;
+      const passwordBody = req.body?.password as string | undefined;
+      const password = passwordHeader || passwordBody;
+      const isProd = process.env.NODE_ENV === 'production';
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const id = Number(req.params.id);
+      const existing = sqliteDb.prepare(`SELECT id, is_system FROM nav_tabs WHERE id = ?`).get(id) as any;
+      if (!existing) return res.status(404).json({ message: 'Navigation tab not found' });
+      if (existing.is_system) return res.status(400).json({ message: 'System tabs cannot be deleted' });
+
+      const result = sqliteDb.prepare(`DELETE FROM nav_tabs WHERE id = ?`).run(id);
+      if (result.changes > 0) return res.json({ message: 'Navigation tab deleted successfully' });
+      return res.status(404).json({ message: 'Navigation tab not found' });
+    } catch (error) {
+      handleDatabaseError(error, res, 'delete navigation tab');
+    }
+  });
+
+  app.put('/api/admin/nav-tabs/reorder', async (req, res) => {
+    try {
+      const passwordHeader = typeof req.headers['x-admin-password'] === 'string' ? String(req.headers['x-admin-password']) : undefined;
+      const passwordBody = req.body?.password as string | undefined;
+      const password = passwordHeader || passwordBody;
+      const isProd = process.env.NODE_ENV === 'production';
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { tabOrders } = req.body || {};
+      if (!Array.isArray(tabOrders) || tabOrders.length === 0) {
+        return res.status(400).json({ message: 'tabOrders array is required' });
+      }
+
+      const update = sqliteDb.prepare(`UPDATE nav_tabs SET display_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
+      let order = 1;
+      for (const t of tabOrders) {
+        const id = Number(t.id);
+        if (!id || id <= 0) continue;
+        update.run(order, id);
+        order++;
+      }
+      return res.json({ message: 'Navigation tabs reordered successfully' });
+    } catch (error) {
+      handleDatabaseError(error, res, 'reorder navigation tabs');
+    }
+  });
+
+  // Add dedicated travel-products delete endpoint (unified_content)
+  app.delete('/api/admin/travel-products/:id', async (req, res) => {
+    try {
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const bodyPwd = (req.body && (req.body as any).password) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = headerPwd || bodyPwd || queryPwd;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      // In production, password is mandatory; in dev, accept missing password but validate if provided
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
       const productId = req.params.id;
-      console.log(`🗑️ Attempting to delete product: ${productId}`);
+      const result = sqliteDb.prepare('DELETE FROM unified_content WHERE id = ?').run(productId);
+      if (result.changes > 0) {
+        return res.json({ message: 'Travel product deleted successfully' });
+      }
+      return res.status(404).json({ message: 'Travel product not found' });
+    } catch (error) {
+      handleDatabaseError(error, res, 'delete travel product');
+    }
+  });
+
+  // Delete product endpoint - handles unified_content table
+  app.delete('/api/admin/products/:id', async (req, res) => {
+    try {
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const bodyPwd = (req.body && (req.body as any).password) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = headerPwd || bodyPwd || queryPwd;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      // In production, password is mandatory; in dev, accept missing password but validate if provided
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const productId = req.params.id;
+      console.log(`🗑️ Attempting to delete product: ${productId}`, {
+        method: req.method,
+        url: req.url,
+        headerPwdPresent: !!headerPwd,
+        bodyPwdPresent: !!bodyPwd,
+        queryPwdPresent: !!queryPwd,
+        isProd
+      });
       
       let deleted = false;
       const deletionDetails = [];
@@ -1645,6 +1776,7 @@ export function setupRoutes(app: express.Application) {
           productId: productId
         });
       } else {
+        console.warn(`❌ Product ${productId} not found in unified_content`);
         res.status(404).json({ message: 'Product not found' });
       }
     } catch (error) {

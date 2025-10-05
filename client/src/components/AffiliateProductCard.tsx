@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import { ExternalLink, Tag, TrendingUp, Star } from 'lucide-react';
 
 interface AffiliateProduct {
@@ -22,7 +22,7 @@ interface AffiliateProductCardProps {
   onAffiliateClick?: (productId: number, networkId: string, affiliateUrl: string) => void;
 }
 
-const AffiliateProductCard: React.FC<AffiliateProductCardProps> = ({ 
+const AffiliateProductCard: FC<AffiliateProductCardProps> = ({ 
   product, 
   onAffiliateClick 
 }) => {

@@ -439,7 +439,7 @@ export default function Header() {
 
 
         {/* Centered Navigation Row - Mobile Optimized */}
-        <div className="flex justify-center items-center space-x-1 sm:space-x-2 lg:space-x-3 border-t border-gray-100 dark:border-gray-800 pt-2 pb-1 px-1 sm:px-2 lg:px-4 overflow-x-auto scrollbar-hide">
+        <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 lg:gap-3 border-t border-gray-100 dark:border-gray-800 pt-2 pb-1 px-1 sm:px-2 lg:px-4">
           {/* Home */}
           <Link 
             href="/" 

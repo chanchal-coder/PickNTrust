@@ -1,8 +1,7 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+// Using canonical header widgets via WidgetRenderer and banners
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
@@ -13,7 +12,10 @@ import AmazonProductCard from "@/components/amazon-product-card";
 import URLProcessor from "@/components/URLProcessor";
 import { AdminBulkDelete } from "@/components/AdminBulkDelete";
 
+import PrimePicksTestWidget from "@/components/PrimePicksTestWidget";
+
 import WidgetRenderer from '@/components/WidgetRenderer';
+import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 
 import { useToast } from '@/hooks/use-toast';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
@@ -235,12 +237,18 @@ export default function PrimePicks() {
     }
   };
   return (
-    <UniversalPageLayout pageId="prime-picks">
+    <UniversalPageLayout pageId="prime-picks" enableContentOverlays={false} enableFloatingOverlays={false}>
       {/* Consistent header and announcement like other pages */}
-      <Header />
+      {/* Header is rendered via widget positions and banners below */}
+      {/* Header Top should be above dynamic banner area */}
+      <WidgetRenderer page={"prime-picks"} position="header-top" className="w-full" />
       <AnnouncementBanner />
       {/* Page Banner Slider */}
       <PageBanner page="prime-picks" />
+      {/* Test widget: simple card with image to verify placement */}
+      <PrimePicksTestWidget />
+      {/* Header Bottom should appear below dynamic banner area */}
+      <WidgetRenderer page={"prime-picks"} position="header-bottom" className="w-full" />
 
       {/* Main Content */}
       <div className="header-spacing">
@@ -254,6 +262,10 @@ export default function PrimePicks() {
           />
           {/* Products Grid */}
           <div className="flex-1 p-6">
+        {/* Product Grid Top Widgets */}
+        <SafeWidgetRenderer page={"prime-picks"} position="product-grid-top" />
+        {/* Overlay anchor: content and floating widgets should overlay product cards only */}
+        <div className="relative">
         {/* Main content only; sidebar widgets render via UniversalPageLayout */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -355,6 +367,20 @@ export default function PrimePicks() {
                 ))}
               </div>
             )}
+
+            {/* Product Grid Bottom Widgets */}
+            <SafeWidgetRenderer page={"prime-picks"} position="product-grid-bottom" />
+
+            {/* Content and Floating Widgets overlay inside product grid area */}
+            <WidgetRenderer page={"prime-picks"} position="content-top" />
+            <WidgetRenderer page={"prime-picks"} position="content-middle" />
+            <WidgetRenderer page={"prime-picks"} position="content-bottom" />
+            <WidgetRenderer page={"prime-picks"} position="floating-top-left" />
+            <WidgetRenderer page={"prime-picks"} position="floating-top-right" />
+            <WidgetRenderer page={"prime-picks"} position="floating-bottom-left" />
+            <WidgetRenderer page={"prime-picks"} position="floating-bottom-right" />
+
+        </div>
           </div>
         </div>
       </div>

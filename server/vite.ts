@@ -1,9 +1,7 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config.js";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 
@@ -11,7 +9,8 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const viteLogger = createLogger();
+// Lazily load Vite only in development to avoid dev-dependency requirements in production
+let viteLogger: any;
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -26,6 +25,11 @@ export function log(message: string, source = "express") {
 
 export async function setupVite(app: Express, server: Server) {
   try {
+    const { createServer: createViteServer, createLogger } = await import('vite');
+    const configModule: any = await import('../vite.config.js');
+    const viteConfig = configModule.default ?? configModule;
+    viteLogger = createLogger();
+
     const vite = await createViteServer({
       ...viteConfig,
       configFile: false,
@@ -40,7 +44,7 @@ export async function setupVite(app: Express, server: Server) {
       server: {
         middlewareMode: true,
         hmr: {
-          port: 24678, // Use a different port for HMR
+          port: 24678,
           host: 'localhost'
         }
       },
@@ -97,10 +101,25 @@ export function serveStatic(app: Express) {
     throw new Error("Could not find the build directory: " + distPath + ", make sure to build the client first");
   }
 
-  app.use(express.static(distPath));
+  // Serve static with sensible caching
+  app.use(express.static(distPath, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (/[.-](png|jpg|jpeg|gif|webp|svg|ico|woff2|woff|ttf)$/i.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store, must-revalidate');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

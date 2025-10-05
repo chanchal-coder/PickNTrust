@@ -1,11 +1,12 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
+// Use canonical header widgets instead of direct Header
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Sidebar from "@/components/sidebar";
@@ -234,14 +235,17 @@ export default function CuePicks() {
   }, [productsError, toast]);
 
   return (
-    <UniversalPageLayout pageId="cue-picks">
+    <UniversalPageLayout pageId="cue-picks" enableContentOverlays={false} enableFloatingOverlays={false}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'cue-picks'} position="header-top" className="w-full" />
         
         <AnnouncementBanner />
         
         {/* Page Banner Slider */}
         <PageBanner page="cue-picks" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'cue-picks'} position="header-bottom" className="w-full" />
         <div className="header-spacing">
       
               {/* Main Content with Sidebar */}
@@ -254,8 +258,9 @@ export default function CuePicks() {
                   availableCategories={availableCategories}
                 />
       
-                {/* Products Grid */}
+                {/* Products Grid with overlay anchor */}
                 <div className="flex-1 p-6">
+                  <div className="relative">
                   <div className="mb-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -355,6 +360,15 @@ export default function CuePicks() {
                 ))}
               </div>
             )}
+            {/* Overlay widgets mirroring Prime Picks placement */}
+            <WidgetRenderer page={'cue-picks'} position="content-top" />
+            <WidgetRenderer page={'cue-picks'} position="content-middle" />
+            <WidgetRenderer page={'cue-picks'} position="content-bottom" />
+            <WidgetRenderer page={'cue-picks'} position="floating-top-left" />
+            <WidgetRenderer page={'cue-picks'} position="floating-top-right" />
+            <WidgetRenderer page={'cue-picks'} position="floating-bottom-left" />
+            <WidgetRenderer page={'cue-picks'} position="floating-bottom-right" />
+            </div>
           </div>
         </div>
       </div>

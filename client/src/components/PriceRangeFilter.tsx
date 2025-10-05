@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 
 interface PriceRange {
   value: string;
@@ -12,7 +12,7 @@ interface PriceRangeFilterProps {
   className?: string;
 }
 
-const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({
+const PriceRangeFilter: FC<PriceRangeFilterProps> = ({
   selectedCurrency,
   priceRange,
   setPriceRange,

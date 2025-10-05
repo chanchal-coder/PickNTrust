@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+// Removed direct Header import; using canonical header widgets via WidgetRenderer
+import WidgetRenderer from '@/components/WidgetRenderer';
+// Removed direct Footer import; using canonical footer widgets via WidgetRenderer
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
@@ -251,12 +252,15 @@ export default function LootBox() {
   return (
     <UniversalPageLayout pageId="loot-box">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
+            {/* Header Top above dynamic banner */}
+            <WidgetRenderer page={'loot-box'} position="header-top" className="w-full" />
             
             <AnnouncementBanner />
             
             {/* Page Banner Slider */}
             <PageBanner page="loot-box" />
+            {/* Header Bottom below dynamic banner */}
+            <WidgetRenderer page={'loot-box'} position="header-bottom" className="w-full" />
             
             <div className="header-spacing">
       
@@ -403,6 +407,9 @@ export default function LootBox() {
         title="Loot Box Videos"
       />
       
+      {/* Canonical Footer Widgets */}
+      <WidgetRenderer page={'loot-box'} position="footer-top" />
+      <WidgetRenderer page={'loot-box'} position="footer-bottom" />
       <ScrollNavigation />
       </div>
     </UniversalPageLayout>

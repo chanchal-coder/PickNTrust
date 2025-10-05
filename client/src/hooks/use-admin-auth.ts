@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType, createElement } from 'react';
 
 // Admin authentication hook with strict security
 export function useAdminAuth() {
@@ -96,7 +96,7 @@ export function useAdminAuth() {
 }
 
 // Higher-order component to protect admin features
-export function withAdminAuth<T extends object>(Component: React.ComponentType<T>) {
+export function withAdminAuth<T extends object>(Component: ComponentType<T>) {
   return function AdminProtectedComponent(props: T) {
     const { isAdmin, isLoading } = useAdminAuth();
     
@@ -108,7 +108,7 @@ export function withAdminAuth<T extends object>(Component: React.ComponentType<T
       return null; // Don't render admin components for non-admin users
     }
     
-    return React.createElement(Component, props);
+    return createElement(Component, props);
   };
 }
 

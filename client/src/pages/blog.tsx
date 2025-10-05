@@ -1,11 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
@@ -150,14 +149,17 @@ export default function Blog() {
   return (
     <UniversalPageLayout pageId="blog">
       <div className="min-h-screen bg-white dark:bg-gray-900">
-        {/* Main Header */}
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'blog'} position="header-top" className="w-full" />
         
         <AnnouncementBanner page="blog" />
       
       {/* Page Header */}
       {/* Amazing Page Banner */}
         <PageBanner page="blog" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'blog'} position="header-bottom" className="w-full" />
+      <div className="header-spacing">
 
       {/* Blog Posts Grid */}
       <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
@@ -346,6 +348,9 @@ export default function Blog() {
         productName={selectedBlogPost?.title || ''}
         platforms={adminPlatformSettings}
       />
+      {/* Close header-spacing wrapper */}
+      </div>
+      {/* Close outer min-h-screen container */}
       </div>
     </UniversalPageLayout>
   );

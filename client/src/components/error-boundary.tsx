@@ -1,7 +1,7 @@
-import React from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type ErrorBoundaryProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 type ErrorBoundaryState = {
@@ -9,7 +9,7 @@ type ErrorBoundaryState = {
   error?: Error;
 };
 
-export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -19,7 +19,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // eslint-disable-next-line no-console
     console.error("UI crashed:", error, errorInfo);
   }

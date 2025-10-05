@@ -29,7 +29,32 @@
     <link rel="stylesheet" crossorigin href="/assets/style-C_aHJ926.css">
   </head>
   <body>
+    <!-- Diagnostic topbar and loader to avoid blank white screen even if assets fail -->
+    <div id="debug-topbar" style="position:fixed;top:0;left:0;right:0;height:28px;background:#fde047;color:#111;display:flex;align-items:center;justify-content:center;font-weight:600;z-index:10000">Site loading…</div>
+    <div id="initial-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#fff;z-index:9999">
+      <div style="text-align:center">
+        <div style="margin-bottom:12px;font-weight:600">Loading…</div>
+        <div style="width:40px;height:40px;border-radius:50%;border:3px solid #93c5fd;border-top-color:transparent;animation:spin 0.8s linear infinite"></div>
+      </div>
+    </div>
     <div id="root"></div>
+    <style>
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+    <script>
+      // Fallback: if main script doesn't initialize React within a few seconds, show a helpful message
+      (function(){
+        var started = false;
+        var timer = setTimeout(function(){
+          if (started) return;
+          var overlay = document.createElement('div');
+          overlay.style.position='fixed'; overlay.style.inset='0'; overlay.style.background='#0b1220'; overlay.style.color='#fff'; overlay.style.display='flex'; overlay.style.alignItems='center'; overlay.style.justifyContent='center'; overlay.style.zIndex='10001';
+          overlay.innerHTML = '<div style="text-align:center;background:#1f2937;border:1px solid #374151;padding:16px 20px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.35)"><h2 style="margin-bottom:8px;font-weight:700;color:#fca5a5">Service unavailable</h2><div style="font-size:14px;color:#e5e7eb">App failed to initialize. Check dev server and asset paths.</div></div>';
+          document.body.appendChild(overlay);
+        }, 4000);
+        window.addEventListener('load', function(){ started = true; clearTimeout(timer); });
+      })();
+    </script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>

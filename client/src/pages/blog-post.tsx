@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import Header from '@/components/header';
+// Removed direct header import; using header widgets instead
+import WidgetRenderer from '@/components/WidgetRenderer';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import { Loader2, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin, Link2, Tag } from 'lucide-react';
@@ -160,10 +161,16 @@ export default function BlogPostPage() {
     return (
     <UniversalPageLayout pageId="blog-post">
             <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white flex flex-col">
-              <Header />
+              {/* Header Top above dynamic banner */}
+              <WidgetRenderer page={'blog-post'} position="header-top" />
               
               <AnnouncementBanner page="blog-post" />
+              {/* Page Banner */}
+              <PageBanner page="blog" />
+              {/* Header Bottom below dynamic banner */}
+              <WidgetRenderer page={'blog-post'} position="header-bottom" />
               
+              <div className="header-spacing">
               <div className="flex-1 pb-8">
                 <div className="max-w-4xl mx-auto p-8">
                   <div className="text-center">
@@ -177,6 +184,7 @@ export default function BlogPostPage() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
     </UniversalPageLayout>
   );
@@ -186,10 +194,16 @@ export default function BlogPostPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white flex flex-col">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'blog-post'} position="header-top" />
         
         <AnnouncementBanner page="blog-post" />
+        {/* Page Banner */}
+        <PageBanner page="blog" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'blog-post'} position="header-bottom" />
         
+        <div className="header-spacing">
         <div className="flex-1 flex items-center justify-center pt-20 pb-8">
           <div className="max-w-md mx-auto text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg">
             <div className="text-6xl mb-4"><i className="fas fa-frown"></i></div>
@@ -207,6 +221,7 @@ export default function BlogPostPage() {
             </a>
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -215,8 +230,14 @@ export default function BlogPostPage() {
   if (!blogPost) {
     return (
       <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white flex flex-col">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'blog-post'} position="header-top" />
         <AnnouncementBanner page="blog-post" />
+        {/* Page Banner */}
+        <PageBanner page="blog" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'blog-post'} position="header-bottom" />
+        <div className="header-spacing">
         <div className="flex-1 flex items-center justify-center pt-20 pb-8">
           <div className="max-w-md mx-auto text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg">
             <div className="text-6xl mb-4"><i className="fas fa-search-minus"></i></div>
@@ -224,6 +245,7 @@ export default function BlogPostPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">We couldn’t find this article. It may have been removed or the link is incorrect.</p>
             <a href="/blog" className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">← Back to Blog</a>
           </div>
+        </div>
         </div>
       </div>
     );
@@ -234,12 +256,17 @@ export default function BlogPostPage() {
   // Main blog post page
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white flex flex-col">
-      <Header />
+      {/* Header Top above dynamic banner */}
+      <WidgetRenderer page={'blog-post'} position="header-top" />
       
       <AnnouncementBanner page="blog-post" />
+      {/* Header Bottom will be placed after PageBanner below */}
       
       <PageBanner page="blog" />
+      {/* Header Bottom below dynamic banner */}
+      <WidgetRenderer page={'blog-post'} position="header-bottom" />
       
+      <div className="header-spacing">
       <main className="flex-1 pt-20 pb-8">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Hero Section */}
@@ -341,6 +368,7 @@ export default function BlogPostPage() {
           </footer>
         </article>
       </main>
+      </div>
       
     </div>
   );

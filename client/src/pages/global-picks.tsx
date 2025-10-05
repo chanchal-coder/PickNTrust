@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
+// Use canonical header widgets instead of direct Header
+import WidgetRenderer from '@/components/WidgetRenderer';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
@@ -245,14 +246,18 @@ export default function GlobalPicks() {
   }, [productsError, toast]);
 
   return (
-    <UniversalPageLayout pageId="global-picks">
+    <UniversalPageLayout pageId="global-picks" enableContentOverlays={false} enableFloatingOverlays={false}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'global-picks'} position="header-top" className="w-full" />
         
         <AnnouncementBanner />
         
         {/* Page Banner Slider */}
         <PageBanner page="global-picks" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'global-picks'} position="header-bottom" className="w-full" />
+        <div className="header-spacing">
 
         {/* Main Content with Sidebar */}
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -335,61 +340,72 @@ export default function GlobalPicks() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredProducts.map((product: any) => (
-                  <div key={product.id} className="relative">
-                    {/* Checkbox overlay for bulk delete mode */}
-                    {bulkDeleteMode && isAdmin && (
-                      <div className="absolute top-2 right-2 z-20">
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts.includes(`global_picks_${product.id}`)}
-                          onChange={(e) => {
-                            const productId = `global_picks_${product.id}`;
-                            if (e.target.checked) {
-                              setSelectedProducts([...selectedProducts, productId]);
-                            } else {
-                              setSelectedProducts(selectedProducts.filter(id => id !== productId));
-                            }
-                          }}
-                          className="w-5 h-5 text-red-600 bg-white border-2 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
-                        />
-                      </div>
-                    )}
-                    <AmazonProductCard 
-                       key={`${product.source}-${product.id}`} 
-                       product={{
-                       id: product.id,
-                       name: product.name || '',
-                       price: String(product.price || 0),
-                       currency: product.currency || 'INR',
-                       image_url: product.image_url || (product.imageUrl || product.image_url || ""),
-                       affiliate_url: product.affiliate_url || (product.affiliateUrl || product.affiliate_url || ""),
-                       original_url: product.original_url || (product.affiliateUrl || product.affiliate_url || ""),
-                       affiliate_network: product.affiliate_network || product.affiliateNetworkName || 'unknown',
-                       affiliate_tag_applied: product.affiliate_tag_applied || 1,
-                       category: product.category || '',
-                       rating: String(product.rating || 0),
-                       discount: product.discount || 0,
-                       description: product.description || '',
-                       originalPrice: product.originalPrice || product.original_price || '',
-                       reviewCount: product.reviewCount || product.review_count || 0,
-                       // Service-specific pricing fields normalization
-                       priceDescription: product.priceDescription || product.price_description || '',
-                       monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
-                       yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
-                       pricingType: product.pricingType || product.pricing_type,
-                       isFree: product.isFree || product.is_free || false,
-                       isService: product.isService || product.is_service || false,
-                       isAIApp: product.isAIApp || product.is_ai_app || false
-                     }}
-                   />
-                  </div>
-                ))}
+              <div className="relative">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {filteredProducts.map((product: any) => (
+                    <div key={product.id} className="relative">
+                      {/* Checkbox overlay for bulk delete mode */}
+                      {bulkDeleteMode && isAdmin && (
+                        <div className="absolute top-2 right-2 z-20">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.includes(`global_picks_${product.id}`)}
+                            onChange={(e) => {
+                              const productId = `global_picks_${product.id}`;
+                              if (e.target.checked) {
+                                setSelectedProducts([...selectedProducts, productId]);
+                              } else {
+                                setSelectedProducts(selectedProducts.filter(id => id !== productId));
+                              }
+                            }}
+                            className="w-5 h-5 text-red-600 bg-white border-2 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
+                          />
+                        </div>
+                      )}
+                      <AmazonProductCard 
+                         key={`${product.source}-${product.id}`} 
+                         product={{
+                         id: product.id,
+                         name: product.name || '',
+                         price: String(product.price || 0),
+                         currency: product.currency || 'INR',
+                         image_url: product.image_url || (product.imageUrl || product.image_url || ""),
+                         affiliate_url: product.affiliate_url || (product.affiliateUrl || product.affiliate_url || ""),
+                         original_url: product.original_url || (product.affiliateUrl || product.affiliate_url || ""),
+                         affiliate_network: product.affiliate_network || product.affiliateNetworkName || 'unknown',
+                         affiliate_tag_applied: product.affiliate_tag_applied || 1,
+                         category: product.category || '',
+                         rating: String(product.rating || 0),
+                         discount: product.discount || 0,
+                         description: product.description || '',
+                         originalPrice: product.originalPrice || product.original_price || '',
+                         reviewCount: product.reviewCount || product.review_count || 0,
+                         // Service-specific pricing fields normalization
+                         priceDescription: product.priceDescription || product.price_description || '',
+                         monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
+                         yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
+                         pricingType: product.pricingType || product.pricing_type,
+                         isFree: product.isFree || product.is_free || false,
+                         isService: product.isService || product.is_service || false,
+                         isAIApp: product.isAIApp || product.is_ai_app || false
+                       }}
+                     />
+                    </div>
+                  ))}
+                </div>
+                {/* Overlay widgets mirroring Prime Picks placement */}
+                <WidgetRenderer page={'global-picks'} position="content-top" />
+                <WidgetRenderer page={'global-picks'} position="content-middle" />
+                <WidgetRenderer page={'global-picks'} position="content-bottom" />
+                <WidgetRenderer page={'global-picks'} position="floating-top-left" />
+                <WidgetRenderer page={'global-picks'} position="floating-top-right" />
+                <WidgetRenderer page={'global-picks'} position="floating-bottom-left" />
+                <WidgetRenderer page={'global-picks'} position="floating-bottom-right" />
               </div>
             )}
           </div>
         </div>
+      </div>
       </div>
       
       {/* Global Picks Videos Section */}

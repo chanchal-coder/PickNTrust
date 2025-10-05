@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 
 interface CurrencyFilterProps {
   selectedCurrency: string;
@@ -8,7 +8,7 @@ interface CurrencyFilterProps {
   className?: string;
 }
 
-const CurrencyFilter: React.FC<CurrencyFilterProps> = ({
+const CurrencyFilter: FC<CurrencyFilterProps> = ({
   selectedCurrency,
   setSelectedCurrency,
   convertPrices,

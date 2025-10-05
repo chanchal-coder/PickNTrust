@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import Header from '@/components/header';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { AnnouncementBanner } from '@/components/announcement-banner';
+import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 export default function AffiliateTrackerPage() {
   const [selectedNetwork, setSelectedNetwork] = useState<string>('');
@@ -36,8 +38,11 @@ export default function AffiliateTrackerPage() {
   return (
     <UniversalPageLayout pageId="affiliate-tracker">
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
-            <div className="pt-20">
+            <WidgetRenderer page="affiliate-tracker" position="header-top" />
+            <AnnouncementBanner />
+            <PageBanner page="affiliate-tracker" />
+            <WidgetRenderer page="affiliate-tracker" position="header-bottom" />
+            <div className="header-spacing">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <h1 className="text-4xl font-bold text-navy dark:text-blue-400 mb-8">Affiliate Link Generator</h1>
                 

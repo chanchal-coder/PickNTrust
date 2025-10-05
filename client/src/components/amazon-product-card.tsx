@@ -7,6 +7,7 @@ import { CURRENCIES, CurrencyCode } from '@/contexts/CurrencyContext';
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
+import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 import EnhancedPriceTag from '@/components/EnhancedPriceTag';
 
 interface Product {
@@ -368,8 +369,12 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
     );
   };
 
+  const pageId = typeof window !== 'undefined' ? (window.location.pathname.replace(/^\//, '') || 'home') : 'home';
+
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-lg transition-shadow cursor-pointer group max-w-xs">
+      {/* Widget: Product Card Top */}
+      <SafeWidgetRenderer page={pageId} position={'product-card-top'} />
       {/* Product Image */}
       <div className="relative mb-2">
         <img
@@ -488,13 +493,13 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
           </div>
         )}
 
-        {/* Pick Now Button */}
-        <button
-          onClick={() => window.open((product.affiliateUrl || product.affiliate_url || ""), '_blank')}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2.5 px-4 rounded-md text-sm transition-colors"
-        >
-          <i className="fas fa-shopping-bag mr-2"></i>Pick Now
-        </button>
+      {/* Pick Now Button */}
+      <button
+        onClick={() => window.open((product.affiliateUrl || product.affiliate_url || ""), '_blank')}
+        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2.5 px-4 rounded-md text-sm transition-colors"
+      >
+        <i className="fas fa-shopping-bag mr-2"></i>Pick Now
+      </button>
         
         {/* Affiliate Disclaimer */}
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
@@ -665,6 +670,9 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
             </button>
           )}
         </div>
+
+        {/* Widget: Product Card Bottom */}
+        <SafeWidgetRenderer page={pageId} position={'product-card-bottom'} />
       </div>
     </div>
   );

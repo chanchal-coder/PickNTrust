@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import Footer from './footer';
+import Header from './header';
 import WidgetRenderer from './WidgetRenderer';
 import ScrollNavigation from './scroll-navigation';
 
@@ -17,6 +18,8 @@ interface UniversalPageLayoutProps {
   showScrollNav?: boolean;
   showWhatsApp?: boolean;
   showAnnouncement?: boolean;
+  enableContentOverlays?: boolean;
+  enableFloatingOverlays?: boolean;
 }
 
 // Map URL paths to page identifiers for widgets
@@ -56,51 +59,71 @@ export default function UniversalPageLayout({
   showFooter = true,
   showScrollNav = true,
   showWhatsApp = true,
-  showAnnouncement = true
+  showAnnouncement = true,
+  enableContentOverlays = true,
+  enableFloatingOverlays = true,
 }: UniversalPageLayoutProps) {
   const [location] = useLocation();
   const pageId = providedPageId || getPageIdentifier(location);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 page-container">
-      {/* Banner Top Widgets - Full Width Above Everything */}
-      <WidgetRenderer page={pageId} position="banner-top" className="w-full" />
+      {/* Floating Widgets moved below banner into overlay layer */}
+      {/* Global Header */}
+      {showHeader && <Header />}
       
-      {/* Floating Widgets */}
-      <WidgetRenderer page={pageId} position="floating-top-left" />
-      <WidgetRenderer page={pageId} position="floating-top-right" />
-      <WidgetRenderer page={pageId} position="floating-bottom-left" />
-      <WidgetRenderer page={pageId} position="floating-bottom-right" />
+      {/* Header widgets are rendered by each page around its Header component */}
       
-      {/* Header Top Widgets */}
-      <WidgetRenderer page={pageId} position="header-top" className="w-full" />
-      
-      {/* Header Bottom Widgets */}
-      <WidgetRenderer page={pageId} position="header-bottom" className="w-full" />
-      
-      {/* Content Top Widgets (single placement to avoid duplication) */}
-      <WidgetRenderer page={pageId} position="content-top" className="container mx-auto px-4" />
+      {/* Content Top Widgets are rendered inside the main content container below */}
       
       {/* Main Content Area */}
       <div>
-        <div className={`flex flex-col md:flex-row ${showSidebar ? 'container mx-auto px-4' : ''}`}>
-          {/* Left Sidebar */}
+        <div className={"w-full px-0"}>
+          {/* Overlay Sidebars (do not affect layout width) */}
           {showSidebar && (
-            <aside className="w-64 flex-shrink-0 hidden lg:block">
-              <div className="sticky top-20 space-y-4">
-                {/* Left Sidebar Widgets */}
+            <div className="hidden lg:block">
+              <div className="fixed top-20 left-4 z-40">
                 <WidgetRenderer page={pageId} position="sidebar-left" />
-                
-                {/* Custom Sidebar Content */}
-                {sidebarContent}
               </div>
-            </aside>
+            </div>
           )}
-          
+          {showSidebar && showRightSidebar && (
+            <div className="hidden md:block">
+              <div className="fixed top-20 right-4 z-40">
+                <WidgetRenderer page={pageId} position="sidebar-right" />
+              </div>
+            </div>
+          )}
+
           {/* Main Content */}
-          <main className={`flex-1 ${showSidebar ? 'lg:ml-6' : ''} ${className}`}>
-            {/* Content Middle Widgets */}
-            <WidgetRenderer page={pageId} position="content-middle" className="mb-6" />
+          <main className={`flex-1 ${className}`}>
+            {/* Banner Top Widgets (inside main content flow) */}
+            <WidgetRenderer page={pageId} position="banner-top" className="w-full mb-4" />
+
+            {/* Overlay layer below banner: absolute overlays do not take space */}
+            <div className="relative">
+              {/* Children occupy normal flow within this relative container */}
+              {children}
+
+              {/* Content Widgets as overlays (absolute inside relative container) */}
+              {enableContentOverlays && (
+                <>
+                  <WidgetRenderer page={pageId} position="content-top" />
+                  <WidgetRenderer page={pageId} position="content-middle" />
+                  <WidgetRenderer page={pageId} position="content-bottom" />
+                </>
+              )}
+
+              {/* Floating Widgets inside overlay layer to appear below banner */}
+              {enableFloatingOverlays && (
+                <>
+                  <WidgetRenderer page={pageId} position="floating-top-left" />
+                  <WidgetRenderer page={pageId} position="floating-top-right" />
+                  <WidgetRenderer page={pageId} position="floating-bottom-left" />
+                  <WidgetRenderer page={pageId} position="floating-bottom-right" />
+                </>
+              )}
+            </div>
 
             {/* Mobile fallback: show right-sidebar widgets at top of content on small screens */}
             {showSidebar && showRightSidebar && (
@@ -108,22 +131,10 @@ export default function UniversalPageLayout({
                 <WidgetRenderer page={pageId} position="sidebar-right" />
               </div>
             )}
-            
-            {children}
-            
-            {/* Content Bottom Widgets */}
-            <WidgetRenderer page={pageId} position="content-bottom" className="mt-6" />
+
+            {/* Banner Bottom Widgets (inside main content flow) */}
+            <WidgetRenderer page={pageId} position="banner-bottom" className="w-full mt-6" />
           </main>
-          
-          {/* Right Sidebar (if needed) */}
-          {showSidebar && showRightSidebar && (
-            <aside className="w-64 flex-shrink-0 hidden md:block ml-0 md:ml-6">
-              <div className="sticky top-20 space-y-4">
-                {/* Right Sidebar Widgets */}
-                <WidgetRenderer page={pageId} position="sidebar-right" />
-              </div>
-            </aside>
-          )}
         </div>
       </div>
       
@@ -135,9 +146,6 @@ export default function UniversalPageLayout({
       
       {/* Footer Bottom Widgets */}
       <WidgetRenderer page={pageId} position="footer-bottom" className="w-full" />
-      
-      {/* Banner Bottom Widgets - Full Width Below Everything */}
-      <WidgetRenderer page={pageId} position="banner-bottom" className="w-full" />
       
       {/* Additional Components */}
       {showScrollNav && <ScrollNavigation />}

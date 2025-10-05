@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+// Use canonical header widgets instead of direct Header
+import WidgetRenderer from '@/components/WidgetRenderer';
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
@@ -247,14 +247,17 @@ export default function ClickPicks() {
   }, [productsError, toast]);
 
   return (
-    <UniversalPageLayout pageId="click-picks">
+    <UniversalPageLayout pageId="click-picks" enableContentOverlays={false} enableFloatingOverlays={false}>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
+            {/* Header Top above dynamic banner */}
+            <WidgetRenderer page={'click-picks'} position="header-top" className="w-full" />
             
             <AnnouncementBanner />
             
             {/* Page Banner Slider */}
             <PageBanner page="click-picks" />
+            {/* Header Bottom below dynamic banner */}
+            <WidgetRenderer page={'click-picks'} position="header-bottom" className="w-full" />
             <div className="header-spacing">
       
               {/* Main Content with Sidebar */}
@@ -347,41 +350,51 @@ export default function ClickPicks() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredProducts.map((product) => (
-                  <AmazonProductCard 
-                    key={product.id} 
-                    product={{
-                      id: product.id,
-                      name: product.name || '',
-                      price: String(product.price || 0),
-                      originalPrice: product.originalPrice || product.original_price || '',
-                      currency: product.currency || 'INR',
-                      imageUrl: product.imageUrl || product.image_url || '',
-                      affiliateUrl: product.affiliateUrl || product.affiliate_url || '',
-                      category: product.category || '',
-                      rating: String(product.rating || 0),
-                      reviewCount: product.reviewCount || product.review_count || 0,
-                      discount: product.discount || 0,
-                      description: product.description || '',
-                      isNew: product.isNew || false,
-                      isFeatured: product.isFeatured || false,
-                      hasTimer: product.hasTimer || false,
-                      timerDuration: product.timerDuration || null,
-                      timerStartTime: product.timerStartTime || null,
-                      hasLimitedOffer: product.hasLimitedOffer || false,
-                      limitedOfferText: product.limitedOfferText || '',
-                      // Service-specific pricing fields normalization
-                      priceDescription: product.priceDescription || product.price_description || '',
-                      monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
-                      yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
-                      pricingType: product.pricingType || product.pricing_type,
-                      isFree: product.isFree || product.is_free || false,
-                      isService: product.isService || product.is_service || false,
-                      isAIApp: product.isAIApp || product.is_ai_app || false
-                    }}
-                  />
-                ))}
+              <div className="relative">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {filteredProducts.map((product) => (
+                    <AmazonProductCard 
+                      key={product.id} 
+                      product={{
+                        id: product.id,
+                        name: product.name || '',
+                        price: String(product.price || 0),
+                        originalPrice: product.originalPrice || product.original_price || '',
+                        currency: product.currency || 'INR',
+                        imageUrl: product.imageUrl || product.image_url || '',
+                        affiliateUrl: product.affiliateUrl || product.affiliate_url || '',
+                        category: product.category || '',
+                        rating: String(product.rating || 0),
+                        reviewCount: product.reviewCount || product.review_count || 0,
+                        discount: product.discount || 0,
+                        description: product.description || '',
+                        isNew: product.isNew || false,
+                        isFeatured: product.isFeatured || false,
+                        hasTimer: product.hasTimer || false,
+                        timerDuration: product.timerDuration || null,
+                        timerStartTime: product.timerStartTime || null,
+                        hasLimitedOffer: product.hasLimitedOffer || false,
+                        limitedOfferText: product.limitedOfferText || '',
+                        // Service-specific pricing fields normalization
+                        priceDescription: product.priceDescription || product.price_description || '',
+                        monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
+                        yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
+                        pricingType: product.pricingType || product.pricing_type,
+                        isFree: product.isFree || product.is_free || false,
+                        isService: product.isService || product.is_service || false,
+                        isAIApp: product.isAIApp || product.is_ai_app || false
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Overlay widgets mirroring Prime Picks placement */}
+                <WidgetRenderer page={'click-picks'} position="content-top" />
+                <WidgetRenderer page={'click-picks'} position="content-middle" />
+                <WidgetRenderer page={'click-picks'} position="content-bottom" />
+                <WidgetRenderer page={'click-picks'} position="floating-top-left" />
+                <WidgetRenderer page={'click-picks'} position="floating-top-right" />
+                <WidgetRenderer page={'click-picks'} position="floating-bottom-left" />
+                <WidgetRenderer page={'click-picks'} position="floating-bottom-right" />
               </div>
             )}
           </div>

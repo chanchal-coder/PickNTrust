@@ -442,6 +442,68 @@ try {
   console.error('Error ensuring widgets table exists:', widgetsError);
 }
 
+// Ensure nav_tabs table exists for navigation management
+try {
+  const navTabsTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='nav_tabs'").get();
+  if (!navTabsTable) {
+    console.log('Creating nav_tabs table...');
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS nav_tabs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        icon TEXT,
+        color_from TEXT,
+        color_to TEXT,
+        color_style TEXT DEFAULT 'solid',
+        display_order INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        is_system INTEGER DEFAULT 0,
+        description TEXT,
+        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+        updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_nav_tabs_active_order ON nav_tabs(is_active, display_order);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_nav_tabs_slug ON nav_tabs(slug);
+    `);
+    console.log('✅ nav_tabs table created');
+  }
+
+  // Ensure default system tabs exist (idempotent upsert based on slug)
+  try {
+    const defaultTabs = [
+      { name: 'Prime Picks', slug: 'prime-picks', icon: 'fas fa-crown', color_from: '#8B5CF6', color_to: '#7C3AED', color_style: 'gradient', description: 'Premium curated products' },
+      { name: 'Cue Picks', slug: 'cue-picks', icon: 'fas fa-bullseye', color_from: '#06B6D4', color_to: '#0891B2', color_style: 'gradient', description: 'Smart selections curated with precision' },
+      { name: 'Value Picks', slug: 'value-picks', icon: 'fas fa-gem', color_from: '#F59E0B', color_to: '#D97706', color_style: 'gradient', description: 'Best value for money products' },
+      { name: 'Click Picks', slug: 'click-picks', icon: 'fas fa-mouse-pointer', color_from: '#3B82F6', color_to: '#1D4ED8', color_style: 'gradient', description: 'Most popular and trending products' },
+      { name: 'Global Picks', slug: 'global-picks', icon: 'fas fa-globe', color_from: '#10B981', color_to: '#059669', color_style: 'gradient', description: 'International products and brands' },
+      { name: 'Travel Picks', slug: 'travel-picks', icon: 'fas fa-plane', color_from: '#3B82F6', color_to: '#1D4ED8', color_style: 'gradient', description: 'Travel essentials and accessories' },
+      { name: 'Deals Hub', slug: 'deals-hub', icon: 'fas fa-fire', color_from: '#EF4444', color_to: '#DC2626', color_style: 'gradient', description: 'Hot deals and discounts' },
+      { name: 'Loot Box', slug: 'loot-box', icon: 'fas fa-gift', color_from: '#F59E0B', color_to: '#D97706', color_style: 'gradient', description: 'Mystery boxes with amazing surprises' }
+    ];
+
+    const getMaxOrderStmt = sqlite.prepare(`SELECT COALESCE(MAX(display_order), 0) as maxOrder FROM nav_tabs`);
+    const existsStmt = sqlite.prepare(`SELECT id FROM nav_tabs WHERE slug = ?`);
+    const insertStmt = sqlite.prepare(`
+      INSERT INTO nav_tabs (name, slug, icon, color_from, color_to, color_style, display_order, is_active, is_system, description, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, ?, strftime('%s','now'), strftime('%s','now'))
+    `);
+
+    let { maxOrder } = getMaxOrderStmt.get() as any;
+    for (const tab of defaultTabs) {
+      const existing = existsStmt.get(tab.slug) as any;
+      if (!existing) {
+        maxOrder = (maxOrder || 0) + 1;
+        insertStmt.run(tab.name, tab.slug, tab.icon, tab.color_from, tab.color_to, tab.color_style, maxOrder, tab.description || '');
+      }
+    }
+  } catch (seedError) {
+    console.error('Error seeding default nav_tabs:', seedError);
+  }
+} catch (navTabsError) {
+  console.error('Error ensuring nav_tabs table exists:', navTabsError);
+}
+
 // Ensure external_link column exists on widgets table
 try {
   const columns = sqlite.prepare("PRAGMA table_info(widgets)").all() as any[];
@@ -457,8 +519,223 @@ try {
     sqlite.exec(`ALTER TABLE widgets ADD COLUMN description TEXT;`);
     console.log('✅ description column added to widgets');
   }
+  // Add body column if missing for widgets
+  if (!names.has('body')) {
+    console.log('Adding body column to widgets table...');
+    sqlite.exec(`ALTER TABLE widgets ADD COLUMN body TEXT;`);
+    console.log('✅ body column added to widgets');
+  }
 } catch (widgetsColumnError) {
   console.error('Error ensuring external_link column exists on widgets:', widgetsColumnError);
+}
+
+// Seed default widgets if none exist to avoid dev fallbacks
+try {
+  const countRow = sqlite.prepare('SELECT COUNT(*) as count FROM widgets').get() as { count: number };
+  if (countRow.count === 0) {
+    console.log('Seeding default widgets...');
+    const insert = sqlite.prepare(`
+      INSERT INTO widgets (
+        name, description, body, code, target_page, position, is_active, display_order,
+        max_width, custom_css, show_on_mobile, show_on_desktop, external_link,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), strftime('%s','now'))
+    `);
+
+    const defaults = [
+      {
+        name: 'Header Top Welcome',
+        description: 'Simple welcome note on header top',
+        body: '<div style="padding:8px 12px;background:#0ea5e9;color:white;border-radius:8px;font-weight:600">Welcome to PickNTrust</div>',
+        code: '',
+        target_page: 'home',
+        position: 'header-top',
+        is_active: 1,
+        display_order: 0,
+        max_width: null,
+        custom_css: null,
+        show_on_mobile: 1,
+        show_on_desktop: 1,
+        external_link: null,
+      },
+      {
+        name: 'Header Bottom Teaser',
+        description: 'Teaser below banner',
+        body: '<div style="padding:8px 12px;background:#111;color:#fff;border:1px solid #333;border-radius:8px">Latest picks curated daily</div>',
+        code: '',
+        target_page: 'home',
+        position: 'header-bottom',
+        is_active: 1,
+        display_order: 2,
+        max_width: null,
+        custom_css: null,
+        show_on_mobile: 1,
+        show_on_desktop: 1,
+        external_link: null,
+      },
+      {
+        name: 'Banner Top Promo',
+        description: 'Basic banner area promo',
+        body: '<div style="padding:10px;background:#111;color:#fff;border:1px solid #333;border-radius:8px">Discover featured picks below</div>',
+        code: '',
+        target_page: 'home',
+        position: 'banner-top',
+        is_active: 1,
+        display_order: 1,
+        max_width: '1024px',
+        custom_css: null,
+        show_on_mobile: 1,
+        show_on_desktop: 1,
+        external_link: null,
+      },
+      {
+        name: 'Banner Bottom Info',
+        description: 'Info below main content banner area',
+        body: '<div style="padding:10px;background:#0ea5e9;color:#fff;border-radius:8px">Stay tuned for more</div>',
+        code: '',
+        target_page: 'home',
+        position: 'banner-bottom',
+        is_active: 1,
+        display_order: 2,
+        max_width: '1024px',
+        custom_css: null,
+        show_on_mobile: 1,
+        show_on_desktop: 1,
+        external_link: null,
+      },
+      {
+        name: 'Footer Note',
+        description: 'Simple footer note',
+        body: '<div style="padding:8px 12px;background:#0f172a;color:#e2e8f0;border-radius:8px">Trusted picks, curated for you.</div>',
+        code: '',
+        target_page: 'home',
+        position: 'footer-top',
+        is_active: 1,
+        display_order: 0,
+        max_width: null,
+        custom_css: null,
+        show_on_mobile: 1,
+        show_on_desktop: 1,
+        external_link: null,
+      },
+      {
+        name: 'Footer Links',
+        description: 'CTA in footer',
+        body: '<div style="padding:8px 12px;background:#111;color:#fff;border:1px solid #333;border-radius:8px"><a href="/apps" style="color:#93c5fd">Explore apps</a></div>',
+        code: '',
+        target_page: 'home',
+        position: 'footer-bottom',
+        is_active: 1,
+        display_order: 1,
+        max_width: null,
+        custom_css: null,
+        show_on_mobile: 1,
+        show_on_desktop: 1,
+        external_link: '/apps',
+      }
+    ];
+
+    const insertMany = sqlite.transaction((rows: any[]) => {
+      for (const r of rows) {
+        insert.run(
+          r.name,
+          r.description,
+          r.body,
+          r.code,
+          r.target_page,
+          r.position,
+          r.is_active,
+          r.display_order,
+          r.max_width,
+          r.custom_css,
+          r.show_on_mobile,
+          r.show_on_desktop,
+          r.external_link
+        );
+      }
+    });
+    insertMany(defaults);
+    console.log('✅ Default widgets seeded');
+  } else {
+    console.log(`Widgets present: ${countRow.count} rows`);
+  }
+} catch (seedErr) {
+  console.error('Error seeding default widgets:', seedErr);
+}
+
+// Ensure at least one active widget exists for key home positions
+try {
+  const requiredPositions = [
+    'header-top',
+    'header-bottom',
+    'banner-top',
+    'banner-bottom',
+    'footer-top',
+    'footer-bottom'
+  ];
+  const checkStmt = sqlite.prepare('SELECT COUNT(*) as count FROM widgets WHERE target_page = ? AND position = ? AND is_active = 1');
+  const insertStmt = sqlite.prepare(`
+    INSERT INTO widgets (
+      name, description, body, code, target_page, position, is_active, display_order,
+      max_width, custom_css, show_on_mobile, show_on_desktop, external_link,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?, 1, 1, ?, strftime('%s','now'), strftime('%s','now'))
+  `);
+
+  for (const pos of requiredPositions) {
+    const c = checkStmt.get('home', pos) as { count: number };
+    if (c.count === 0) {
+      let body = '';
+      let name = '';
+      let external_link: string | null = null;
+      let max_width: string | null = null;
+
+      switch (pos) {
+        case 'header-top':
+          name = 'Header Top Welcome';
+          body = '<div style="padding:8px 12px;background:#0ea5e9;color:white;border-radius:8px;font-weight:600">Welcome to PickNTrust</div>';
+          break;
+        case 'header-bottom':
+          name = 'Header Bottom Teaser';
+          body = '<div style="padding:8px 12px;background:#111;color:#fff;border:1px solid #333;border-radius:8px">Latest picks curated daily</div>';
+          break;
+        case 'banner-top':
+          name = 'Banner Top Promo';
+          body = '<div style="padding:10px;background:#111;color:#fff;border:1px solid #333;border-radius:8px">Discover featured picks below</div>';
+          max_width = '1024px';
+          break;
+        case 'banner-bottom':
+          name = 'Banner Bottom Info';
+          body = '<div style="padding:10px;background:#0ea5e9;color:#fff;border-radius:8px">Stay tuned for more</div>';
+          max_width = '1024px';
+          break;
+        case 'footer-top':
+          name = 'Footer Note';
+          body = '<div style="padding:8px 12px;background:#0f172a;color:#e2e8f0;border-radius:8px">Trusted picks, curated for you.</div>';
+          break;
+        case 'footer-bottom':
+          name = 'Footer Links';
+          body = '<div style="padding:8px 12px;background:#111;color:#fff;border:1px solid #333;border-radius:8px"><a href="/apps" style="color:#93c5fd">Explore apps</a></div>';
+          external_link = '/apps';
+          break;
+      }
+
+      insertStmt.run(
+        name,
+        `${pos} default`,
+        body,
+        '',
+        'home',
+        pos,
+        max_width,
+        null,
+        external_link
+      );
+      console.log(`✅ Inserted default widget for home/${pos}`);
+    }
+  }
+} catch (ensureErr) {
+  console.error('Error ensuring default widgets per position:', ensureErr);
 }
 
 // Ensure banners table exists (fixes SqliteError: no such table: banners)

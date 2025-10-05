@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2, CheckSquare, Square, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,7 @@ export function AdminBulkDelete({ products, onSelectionChange, pageName = 'page'
     return adminSession === 'active';
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'pickntrust-admin-session') {
         setIsAdmin(e.newValue === 'active');
@@ -141,7 +141,7 @@ export function AdminBulkDelete({ products, onSelectionChange, pageName = 'page'
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (onSelectionChange) {
       onSelectionChange(selectedIds);
     }

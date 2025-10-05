@@ -1,7 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Header from "@/components/header";
 import UniversalPageLayout from "@/components/UniversalPageLayout";
+import { AnnouncementBanner } from "@/components/announcement-banner";
+import PageBanner from "@/components/PageBanner";
+import WidgetRenderer from "@/components/WidgetRenderer";
 
 type PublicAd = {
   id: number;
@@ -135,8 +137,13 @@ export default function Explore() {
 
   return (
     <>
-      <Header />
       <UniversalPageLayout pageId="explore" className="container mx-auto px-4 py-6">
+        <WidgetRenderer page="explore" position="header-top" />
+        <AnnouncementBanner />
+        <PageBanner page="explore" />
+        <WidgetRenderer page="explore" position="header-bottom" />
+
+        <div className="header-spacing"></div>
         {/* Hero header */}
         <section className="relative overflow-hidden rounded-2xl p-8 sm:p-10 mb-8 bg-gradient-to-b from-gray-900/30 to-gray-800/70 dark:from-black/40 dark:to-gray-900">
           <div className="absolute inset-0 pointer-events-none">

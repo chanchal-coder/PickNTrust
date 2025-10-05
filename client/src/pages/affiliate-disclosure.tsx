@@ -1,11 +1,16 @@
-import Header from "@/components/header";
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { AnnouncementBanner } from '@/components/announcement-banner';
+import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 export default function AffiliateDisclosurePage() {
   return (
     <UniversalPageLayout pageId="affiliate-disclosure">
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
+            <WidgetRenderer page="affiliate-disclosure" position="header-top" />
+            <AnnouncementBanner />
+            <PageBanner page="affiliate-disclosure" />
+            <WidgetRenderer page="affiliate-disclosure" position="header-bottom" />
             
             <div className="header-spacing pb-16">
               <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

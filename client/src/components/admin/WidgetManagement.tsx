@@ -16,6 +16,7 @@ interface Widget {
   id: number;
   name: string;
   description?: string;
+  body?: string;
   code: string;
   targetPage: string;
   position: string;
@@ -33,6 +34,7 @@ interface Widget {
 interface WidgetForm {
   name: string;
   description: string;
+  body: string;
   code: string;
   targetPage: string;
   position: string;
@@ -86,6 +88,7 @@ const positions = [
   { value: 'header', label: 'Header (Legacy)' },
   { value: 'header-top', label: 'Header Top (Above Navigation)' },
   { value: 'header-bottom', label: 'Header Bottom (Below Navigation)' },
+  { value: 'body', label: 'Body (Main content flow)' },
   { value: 'content-top', label: 'Content Top (Before Main Content)' },
   { value: 'content-middle', label: 'Content Middle (Between Sections)' },
   { value: 'content-bottom', label: 'Content Bottom (After Main Content)' },
@@ -98,7 +101,11 @@ const positions = [
   { value: 'floating-bottom-left', label: 'Floating Bottom Left' },
   { value: 'floating-bottom-right', label: 'Floating Bottom Right' },
   { value: 'banner-top', label: 'Full Width Banner Top' },
-  { value: 'banner-bottom', label: 'Full Width Banner Bottom' }
+  { value: 'banner-bottom', label: 'Full Width Banner Bottom' },
+  { value: 'product-grid-top', label: 'Product Grid Top (Above cards)' },
+  { value: 'product-grid-bottom', label: 'Product Grid Bottom (Below cards)' },
+  { value: 'product-card-top', label: 'Product Card Top (Inside each card)' },
+  { value: 'product-card-bottom', label: 'Product Card Bottom (Inside each card)' }
 ];
 
 const widgetTemplates = [
@@ -424,6 +431,7 @@ export default function WidgetManagement() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [creationMode, setCreationMode] = useState<'code' | 'form'>('form');
+  const [showPreviewFullscreen, setShowPreviewFullscreen] = useState(false);
   const [formBuilder, setFormBuilder] = useState({
     templateType: 'image-link' as 'image-link' | 'cta-button' | 'announcement-banner' | 'banner-ad' | 'adsense',
     title: '',
@@ -440,6 +448,7 @@ export default function WidgetManagement() {
   const [formData, setFormData] = useState<WidgetForm>({
     name: '',
     description: '',
+    body: '',
     code: '',
     targetPage: '',  // No default - let user select
     position: '',    // No default - let user select
@@ -526,6 +535,7 @@ export default function WidgetManagement() {
         id: widget.id,
         name: widget.name,
         description: widget.description || '',
+        body: widget.body || '',
         code: widget.code,
         targetPage: widget.target_page,
         position: widget.position,
@@ -696,6 +706,7 @@ export default function WidgetManagement() {
     setFormData({
       name: '',
       description: '',
+      body: '',
       code: '',
       targetPage: '',  // No default - let user select
       position: '',    // No default - let user select
@@ -833,6 +844,7 @@ export default function WidgetManagement() {
     setFormData({
       name: widget.name,
       description: widget.description || '',
+      body: widget.body || '',
       code: widget.code,
       targetPage: widget.targetPage,
       position: widget.position,
@@ -1221,6 +1233,20 @@ export default function WidgetManagement() {
                 </div>
               )}
 
+              {/* Body (optional) */}
+              <div>
+                <Label htmlFor="body">Body (optional)</Label>
+                <Textarea
+                  id="body"
+                  value={formData.body}
+                  onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
+                  placeholder="Optional body HTML/text content rendered before code"
+                  rows={6}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">If provided, Body renders before/above Code. Use for simple HTML content or helper text; Code supports full HTML/CSS/JS.</p>
+              </div>
+
               {/* Custom CSS */}
               <div>
                 <Label htmlFor="customCss">Custom CSS (optional)</Label>
@@ -1232,6 +1258,221 @@ export default function WidgetManagement() {
                   rows={4}
                   className="font-mono text-sm"
                 />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Placement Preview</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Page layout preview</div>
+                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className={`p-2 text-xs ${formData.position==='banner-top' ? 'bg-green-50 dark:bg-green-900/20 border-b border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'}`}>
+                          Banner Top
+                          {formData.position==='banner-top' && (
+                            <div className="mt-2 rounded border border-green-300 dark:border-green-700 bg-white dark:bg-gray-900 p-2 text-[11px]" dangerouslySetInnerHTML={{ __html: formData.body || 'Preview content' }} />
+                          )}
+                        </div>
+                        <div className="p-2">
+                          <div className={`p-2 text-xs mb-2 ${formData.position==='content-top' ? 'bg-green-50 dark:bg-green-900/20 rounded border border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700'}`}>
+                            Content Top
+                            {formData.position==='content-top' && (
+                              <div className="mt-2 rounded border border-green-300 dark:border-green-700 bg-white dark:bg-gray-900 p-2 text-[11px]" dangerouslySetInnerHTML={{ __html: formData.body || 'Preview content' }} />
+                            )}
+                          </div>
+                          <div className="h-20 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-600 dark:text-gray-300 mb-2">Main Content</div>
+                          <div className={`p-2 text-xs ${formData.position==='content-bottom' ? 'bg-green-50 dark:bg-green-900/20 rounded border border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700'}`}>
+                            Content Bottom
+                            {formData.position==='content-bottom' && (
+                              <div className="mt-2 rounded border border-green-300 dark:border-green-700 bg-white dark:bg-gray-900 p-2 text-[11px]" dangerouslySetInnerHTML={{ __html: formData.body || 'Preview content' }} />
+                            )}
+                          </div>
+                        </div>
+                        <div className={`p-2 text-xs border-t ${formData.position==='footer' ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                          Footer
+                          {formData.position==='footer' && (
+                            <div className="mt-2 rounded border border-green-300 dark:border-green-700 bg-white dark:bg-gray-900 p-2 text-[11px]" dangerouslySetInnerHTML={{ __html: formData.body || 'Preview content' }} />
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 dark:text-gray-400">Selected Page:</span>
+                          <Badge variant="outline">{formData.targetPage || 'Not selected'}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 dark:text-gray-400">Selected Position:</span>
+                          <Badge variant="outline">{formData.position || 'Not selected'}</Badge>
+                        </div>
+                        <div className="pt-2 flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="default"
+                            onClick={() => {
+                              try {
+                                const payload = {
+                                  name: formData.name || 'Preview Widget',
+                                  body: formData.body || '',
+                                  code: formData.code || '',
+                                  targetPage: formData.targetPage || 'home',
+                                  position: formData.position || 'content-top',
+                                  customCss: formData.customCss || '',
+                                  maxWidth: formData.maxWidth || 'none',
+                                  showOnMobile: formData.showOnMobile,
+                                  showOnDesktop: formData.showOnDesktop,
+                                  externalLink: formData.externalLink || ''
+                                };
+                                localStorage.setItem('widgetPreview', JSON.stringify(payload));
+                                localStorage.setItem('widgetPreviewEnabled', 'true');
+                                localStorage.setItem('widgetPreviewOnly', 'true');
+                                const page = formData.targetPage || 'home';
+                                window.open(`/${page}?preview=1&previewOnly=1`, '_blank');
+                                // Optional toast
+                                // @ts-ignore
+                                toast?.({ title: 'Live Preview', description: 'Opened page with temporary widget preview.' });
+                              } catch {}
+                            }}
+                          >
+                            Open Live Preview
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              try {
+                                localStorage.removeItem('widgetPreview');
+                                localStorage.removeItem('widgetPreviewEnabled');
+                                localStorage.removeItem('widgetPreviewOnly');
+                                // @ts-ignore
+                                toast?.({ title: 'Preview Cleared', description: 'Temporary preview removed.' });
+                              } catch {}
+                            }}
+                          >
+                            Clear Preview
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">Highlighted areas show where this widget will render for the selected page and position.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  {/* Live Page Preview (selected widget only) */}
+  <div className="mt-4 w-full col-span-1 md:col-span-2">
+    <Card>
+      <CardHeader>
+        <CardTitle>Live Page Preview</CardTitle>
+        <CardDescription>Shows only this widget in the selected page and position.</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 mb-3">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              try {
+                const payload = {
+                  name: formData.name || 'Preview Widget',
+                  body: formData.body || '',
+                  code: formData.code || '',
+                  targetPage: formData.targetPage || 'home',
+                  position: formData.position || 'content-top',
+                  customCss: formData.customCss || '',
+                  maxWidth: formData.maxWidth || 'none',
+                  showOnMobile: formData.showOnMobile,
+                  showOnDesktop: formData.showOnDesktop,
+                  externalLink: formData.externalLink || ''
+                };
+                localStorage.setItem('widgetPreview', JSON.stringify(payload));
+                localStorage.setItem('widgetPreviewEnabled', 'true');
+                localStorage.setItem('widgetPreviewOnly', 'true');
+                // @ts-ignore
+                toast?.({ title: 'Live Preview Updated', description: 'Preview payload saved. Iframe refreshed.' });
+                const iframe = document.getElementById('live-preview-iframe') as HTMLIFrameElement | null;
+                if (iframe) {
+                  const base = `/${payload.targetPage}?preview=1&previewOnly=1`;
+                  const ts = Date.now();
+                  iframe.src = `${base}&t=${ts}`;
+                }
+                const full = document.getElementById('live-preview-full-iframe') as HTMLIFrameElement | null;
+                if (full) {
+                  const base = `/${payload.targetPage}?preview=1&previewOnly=1`;
+                  const ts = Date.now();
+                  full.src = `${base}&t=${ts}`;
+                }
+              } catch {}
+            }}
+          >
+            Update Live Preview
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              try {
+                const payload = {
+                  targetPage: formData.targetPage || 'home'
+                };
+                const base = `/${payload.targetPage}?preview=1&previewOnly=1`;
+                const ts = Date.now();
+                const url = `${base}&t=${ts}`;
+                setShowPreviewFullscreen(true);
+                const iframe = document.getElementById('live-preview-full-iframe') as HTMLIFrameElement | null;
+                if (iframe) iframe.src = url;
+              } catch {}
+            }}
+          >
+            Open Fullscreen
+          </Button>
+        </div>
+        <div className="border rounded overflow-auto overflow-x-hidden h-[100vh] bg-white dark:bg-gray-950">
+          <iframe
+            id="live-preview-iframe"
+            title="Selected Page Live Preview"
+            className="w-full h-full"
+            src={`/${formData.targetPage || 'home'}?preview=1&previewOnly=1&t=${Date.now()}`}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+  {/* Fullscreen overlay for Live Preview */}
+  <div id="live-preview-overlay" className={`${showPreviewFullscreen ? '' : 'hidden'} fixed inset-0 z-[100] bg-black/70`}>
+    <div className="h-full w-full flex flex-col">
+      <div className="p-3 flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setShowPreviewFullscreen(false);
+          }}
+        >
+          Close
+        </Button>
+        <a
+          className="text-xs underline text-white"
+          href={`/${formData.targetPage || 'home'}?preview=1&previewOnly=1`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open in new tab
+        </a>
+      </div>
+      <iframe
+        id="live-preview-full-iframe"
+        title="Fullscreen Live Preview"
+        className="h-full w-full bg-white"
+        src={`/${formData.targetPage || 'home'}?preview=1&previewOnly=1&t=${Date.now()}`}
+      />
+    </div>
+  </div>
+                </div>
               </div>
 
               {/* Display Options */}

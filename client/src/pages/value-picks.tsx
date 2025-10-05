@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/header";
+import WidgetRenderer from '@/components/WidgetRenderer';
+import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageBanner from '@/components/PageBanner';
@@ -233,10 +235,14 @@ export default function ValuePicks() {
     <UniversalPageLayout pageId="value-picks">
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Header />
+            {/* Header Top above dynamic banner */}
+            <WidgetRenderer page={'value-picks'} position="header-top" className="w-full" />
             <AnnouncementBanner />
             
             {/* Page Banner Slider */}
             <PageBanner page="value-picks" />
+            {/* Header Bottom below dynamic banner */}
+            <WidgetRenderer page={'value-picks'} position="header-bottom" className="w-full" />
             
             <div className="header-spacing">
       
@@ -251,7 +257,9 @@ export default function ValuePicks() {
                 />
       
                 {/* Products Grid */}
-                <div className="flex-1 p-6">
+                <div className="flex-1 p-6 relative">
+                  {/* Product Grid Top Widgets */}
+                  <SafeWidgetRenderer page={'value-picks'} position={'product-grid-top'} />
                   <div className="mb-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -355,6 +363,16 @@ export default function ValuePicks() {
                 ))}
               </div>
             )}
+            {/* Product Grid Bottom Widgets */}
+            <SafeWidgetRenderer page={'value-picks'} position={'product-grid-bottom'} />
+            {/* Overlay widgets mirroring Prime Picks placement */}
+            <WidgetRenderer page={'value-picks'} position="content-top" />
+            <WidgetRenderer page={'value-picks'} position="content-middle" />
+            <WidgetRenderer page={'value-picks'} position="content-bottom" />
+            <WidgetRenderer page={'value-picks'} position="floating-top-left" />
+            <WidgetRenderer page={'value-picks'} position="floating-top-right" />
+            <WidgetRenderer page={'value-picks'} position="floating-bottom-left" />
+            <WidgetRenderer page={'value-picks'} position="floating-bottom-right" />
           </div>
         </div>
       </div>

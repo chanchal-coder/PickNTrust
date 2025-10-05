@@ -1,10 +1,10 @@
-import React from 'react';
+import type { ReactNode, ComponentType } from 'react';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 
 // Component that completely blocks admin features for non-admin users
 interface AdminProtectionProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
+  children: ReactNode;
+  fallback?: ReactNode;
   requireAuth?: boolean;
 }
 
@@ -30,8 +30,8 @@ export function AdminProtection({
 
 // Higher-order component for admin-only components
 export function withAdminProtection<T extends object>(
-  Component: React.ComponentType<T>,
-  fallback?: React.ReactNode
+  Component: ComponentType<T>,
+  fallback?: ReactNode
 ) {
   return function ProtectedComponent(props: T) {
     return (
@@ -47,15 +47,15 @@ export function useAdminOnly() {
   const { isAdmin, isLoading } = useAdminAuth();
   
   const AdminOnly = ({ children, fallback = null }: { 
-    children: React.ReactNode; 
-    fallback?: React.ReactNode; 
+    children: ReactNode; 
+    fallback?: ReactNode; 
   }) => {
     if (isLoading) return null;
     if (!isAdmin) return <>{fallback}</>;
     return <>{children}</>;
   };
   
-  const PublicOnly = ({ children }: { children: React.ReactNode }) => {
+  const PublicOnly = ({ children }: { children: ReactNode }) => {
     if (isLoading) return null;
     if (isAdmin) return null;
     return <>{children}</>;
@@ -74,8 +74,8 @@ export function ConditionalRender({
   admin, 
   public: publicContent 
 }: { 
-  admin: React.ReactNode; 
-  public: React.ReactNode; 
+  admin: ReactNode; 
+  public: ReactNode; 
 }) {
   const { AdminOnly, PublicOnly } = useAdminOnly();
   

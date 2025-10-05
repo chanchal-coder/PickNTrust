@@ -345,6 +345,14 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
                 const useGradient = !!(banner as any).useGradient;
                 const bgGradient = (banner as any).backgroundGradient as string | undefined;
                 const bgColor = (banner as any).backgroundColor as string | undefined;
+                const toProxy = (url: string) => {
+                  if (!url) return url;
+                  const trimmed = url.trim();
+                  // Only proxy external URLs; keep local/uploads untouched
+                  return /^https?:\/\//i.test(trimmed)
+                    ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}`
+                    : trimmed;
+                };
 
                 // If text-only or explicitly using gradient, render gradient
                 if (imageDisplayType === 'text-only' || useGradient) {
@@ -364,6 +372,7 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
                       alt={banner.title || 'Banner image'}
                       className="w-full h-full object-cover"
                       style={{ opacity }}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
                     />
                   );
                 }
@@ -372,10 +381,11 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
                 if (banner.imageUrl) {
                   return (
                     <img
-                      src={banner.imageUrl}
+                      src={toProxy(banner.imageUrl)}
                       alt={banner.title || 'Banner image'}
                       className="w-full h-full object-cover"
                       style={{ opacity }}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
                     />
                   );
                 }

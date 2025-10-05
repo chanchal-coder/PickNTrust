@@ -922,6 +922,7 @@ export const widgets = sqliteTable("widgets", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(), // Widget display name
   description: text("description"), // Optional description shown in admin or generated widgets
+  body: text("body"), // Optional body HTML/text content for widgets
   code: text("code").notNull(), // HTML/CSS/JS code for the widget
   targetPage: text("target_page").notNull(), // Page where widget should appear
   position: text("position").notNull(), // header, sidebar, footer, content-top, content-bottom

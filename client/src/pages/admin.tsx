@@ -14,7 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import Header from '@/components/header';
 import ScrollNavigation from '@/components/scroll-navigation';
 import { 
   Trash2, Edit, Share2, ExternalLink, Facebook, Twitter, Instagram, MessageCircle, 
@@ -88,6 +87,27 @@ export default function AdminPage() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+  }, []);
+
+  // Sync active tab with URL path segment (e.g., /admin/widgets)
+  useEffect(() => {
+    try {
+      const path = window.location.pathname;
+      if (path.startsWith('/admin')) {
+        const parts = path.split('/');
+        const tab = parts[2] || '';
+        const validTabs = new Set([
+          'dashboard', 'products', 'categories', 'navigation', 'banners',
+          'blog', 'videos', 'announcements', 'automation', 'commission',
+          'widgets', 'credentials', 'metatags', 'rssfeeds', 'adrequests', 'bots'
+        ]);
+        if (tab && validTabs.has(tab)) {
+          setActiveTab(tab);
+        } else {
+          setActiveTab('dashboard');
+        }
+      }
+    } catch {}
   }, []);
 
   const { data: products = [] } = useQuery({
@@ -565,7 +585,6 @@ export default function AdminPage() {
   return (
     <UniversalPageLayout pageId="admin">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
         <div className="pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header Section */}
@@ -591,7 +610,18 @@ export default function AdminPage() {
           </div>
 
           {/* Main Admin Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => {
+          setActiveTab(val);
+          try {
+            // Update URL to reflect current tab for deep linking
+            const newPath = `/admin/${val}`;
+            setLocation(newPath);
+          } catch {}
+        }}
+        className="space-y-6"
+      >
             <div className="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-lg">
               {/* First Row */}
               <TabsList className="grid w-full grid-cols-5 mb-2 bg-transparent p-0">

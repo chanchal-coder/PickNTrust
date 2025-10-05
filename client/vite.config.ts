@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
+  appType: 'spa',
+  root: path.resolve(__dirname, '.'),
   plugins: [react()],
   optimizeDeps: {
     include: [
@@ -17,12 +19,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@shared": path.resolve(__dirname, "../shared"),
     },
+    // Ensure a single React instance across all imports
+    dedupe: ["react", "react-dom"],
   },
   build: {
     outDir: path.resolve(__dirname, "../dist/public"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+      input: path.resolve(__dirname, 'index.html'),
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
@@ -61,13 +66,14 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5000,
+    port: 5173,
     strictPort: true,
     host: true,
     cors: true,
+    fs: { strict: false, deny: [] },
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -88,12 +94,12 @@ export default defineConfig({
             }
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            proxyReq.setHeader('Origin', 'http://localhost:5001');
+            proxyReq.setHeader('Origin', 'http://localhost:5173');
           });
         },
       },
       '/uploads': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: false,

@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+import WidgetRenderer from '@/components/WidgetRenderer';
 import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import PageBanner from '@/components/PageBanner';
@@ -391,14 +390,17 @@ export default function Services() {
   return (
     <UniversalPageLayout pageId="services">
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20">
-        <Header />
+        {/* Header Top above dynamic banner */}
+        <WidgetRenderer page={'services'} position="header-top" className="w-full" />
         
         <AnnouncementBanner />
-        
         {/* Amazing Page Banner */}
         <PageBanner page="services" />
+        {/* Header Bottom below dynamic banner */}
+        <WidgetRenderer page={'services'} position="header-bottom" className="w-full" />
         
         {/* Services Content Section with Sidebar */}
+        <div className="header-spacing">
           <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* Sidebar */}
           <Sidebar 
@@ -599,25 +601,30 @@ export default function Services() {
             </div>
 
           </div>
-        </div>
+          </div>
+        
+        {/* Services Videos Section - Only shows if videos exist for services */}
+        <PageVideosSection 
+          page="services" 
+          title="Services Videos"
+        />
+        
+        {/* Footer Widgets */}
+        <WidgetRenderer page={'services'} position="footer-top" className="w-full" />
+        <WidgetRenderer page={'services'} position="footer-bottom" className="w-full" />
 
-      {/* Services Videos Section - Only shows if videos exist for services */}
-      <PageVideosSection 
-        page="services" 
-        title="Services Videos"
-      />
-
-      <ScrollNavigation />
-      
-      {/* Share Automatically Modal */}
-      <ShareAutomaticallyModal
-        isOpen={shareModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmShare}
-        productName={selectedService?.name || ''}
-        platforms={adminPlatformSettings}
-      />
+        <ScrollNavigation />
+        
+        {/* Share Automatically Modal */}
+        <ShareAutomaticallyModal
+          isOpen={shareModalOpen}
+          onClose={handleCloseModal}
+          onConfirm={handleConfirmShare}
+          productName={selectedService?.name || ''}
+          platforms={adminPlatformSettings}
+        />
         </div>
+      </div>
     </UniversalPageLayout>
   );
 }

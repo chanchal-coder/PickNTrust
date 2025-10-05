@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'wouter';
 
 type GatewayAccount = {
@@ -19,11 +19,11 @@ type GatewayAccount = {
 };
 
 export default function AdminPaymentsPage() {
-  const [accounts, setAccounts] = React.useState<GatewayAccount[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [gateway, setGateway] = React.useState<'stripe' | 'razorpay' | 'bank'>('stripe');
-  const [form, setForm] = React.useState<any>({ name: '' });
+  const [accounts, setAccounts] = useState<GatewayAccount[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [gateway, setGateway] = useState<'stripe' | 'razorpay' | 'bank'>('stripe');
+  const [form, setForm] = useState<any>({ name: '' });
   const [, navigate] = useLocation();
 
   const fetchAccounts = async () => {
@@ -40,7 +40,7 @@ export default function AdminPaymentsPage() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchAccounts();
   }, []);
 
@@ -81,7 +81,7 @@ export default function AdminPaymentsPage() {
     }
   };
 
-  const grouped = React.useMemo(() => {
+  const grouped = useMemo(() => {
     return {
       stripe: accounts.filter(a => a.gateway === 'stripe'),
       razorpay: accounts.filter(a => a.gateway === 'razorpay'),

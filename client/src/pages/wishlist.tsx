@@ -1,13 +1,13 @@
 import { useWishlist } from "@/hooks/use-wishlist";
 import { Link } from "wouter";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+// Using canonical header widgets via WidgetRenderer and banners
 import ScrollNavigation from "@/components/scroll-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PriceTag from '@/components/PriceTag';
 import PageBanner from '@/components/PageBanner';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 export default function WishlistPage() {
@@ -32,12 +32,15 @@ export default function WishlistPage() {
   return (
     <UniversalPageLayout pageId="wishlist">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
+            {/* Header Top above dynamic banner */}
+            <WidgetRenderer page={'wishlist'} position="header-top" className="w-full" />
             
             {/* Amazing Page Banner */}
             <PageBanner page="wishlist" />
+            {/* Header Bottom below dynamic banner */}
+            <WidgetRenderer page={'wishlist'} position="header-bottom" className="w-full" />
             
-            <div className="pt-20 pb-16">
+            <div className="header-spacing">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">

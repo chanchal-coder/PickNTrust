@@ -11,6 +11,7 @@ import AmazonProductCard from "@/components/amazon-product-card";
 import PageVideosSection from "@/components/PageVideosSection";
 import { useToast } from '@/hooks/use-toast';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import WidgetRenderer from '@/components/WidgetRenderer';
 
 interface Product {
   id: number | string;
@@ -276,6 +277,8 @@ export default function DynamicPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 page-container">
       <Header />
+      {/* Header Top above dynamic header */}
+      <WidgetRenderer page={navTab.slug} position="header-top" className="w-full" />
       <AnnouncementBanner />
       <div className="header-spacing">
         {/* Page Header */}
@@ -297,6 +300,9 @@ export default function DynamicPage() {
             </div>
           </div>
         </div>
+
+        {/* Header Bottom below dynamic header */}
+        <WidgetRenderer page={navTab.slug} position="header-bottom" className="w-full" />
 
         {/* Main Content with Sidebar */}
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
