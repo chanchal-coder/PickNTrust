@@ -1,0 +1,78 @@
+PickNTrust deployment reference — commands run and Nginx notes
+
+Scope
+- Summarizes what I did to deploy the client preview guard and how to handle Nginx going forward.
+
+Local change (client)
+- Updated: client/src/components/WidgetRenderer.tsx
+- Purpose: Add a production guard that disables preview on pickntrust.com
+
+Git (push flow — reference)
+- If pushing via git, typical commands:
+  - git add client/src/components/WidgetRenderer.tsx
+  - git commit -m "Disable preview on prod in WidgetRenderer"
+  - git push origin <branch>
+- Note: In this session, I did not use git to deploy; I copied the changed file directly to EC2 and rebuilt there.
+
+EC2 deployment (actual commands executed)
+- Copy updated file to EC2:
+  scp -i "C:\\Users\\sharm\\.ssh\\pnt08.pem" "c:\\Users\\sharm\\OneDrive\\Desktop\\Apps\\PickNTrust\\client\\src\\components\\WidgetRenderer.tsx" ec2-user@51.20.55.153:/home/ec2-user/pickntrust/client/src/components/WidgetRenderer.tsx
+
+- Install and build on EC2:
+  ssh -i "C:\\Users\\sharm\\.ssh\\pnt08.pem" ec2-user@51.20.55.153 'cd ~/pickntrust && npm install && node build-production.js'
+
+- Verify assets and server response:
+  ssh -i "C:\\Users\\sharm\\.ssh\\pnt08.pem" ec2-user@51.20.55.153 'ls -la ~/pickntrust/dist/public'
+  ssh -i "C:\\Users\\sharm\\.ssh\\pnt08.pem" ec2-user@51.20.55.153 'curl -sS http://localhost:5000/prime-picks?preview=1 | head -n 20'
+
+- Notes:
+  - Build outputs: client => ~/pickntrust/dist/public, server => ~/pickntrust/dist/server
+  - Node server already serving dist/public; client-only changes didn’t require a server restart.
+
+Nginx (ngfix) — current state and recommended vhost
+- Current: Default Nginx config (root /usr/share/nginx/html), no custom vhost in /etc/nginx/conf.d or sites-available.
+- Recommendation: Add a dedicated vhost for pickntrust.com to serve SPA assets and handle client-side routing.
+
+Example /etc/nginx/conf.d/pickntrust.conf
+  server {
+    listen 80;
+    server_name pickntrust.com www.pickntrust.com;
+
+    root /home/ec2-user/pickntrust/dist/public;
+    index index.html;
+
+    location / {
+      try_files $uri $uri/ /index.html;
+    }
+  }
+
+Optional: strip preview flag at edge (defense-in-depth)
+  # Strips ?preview=1 from requests in production
+  map $args $ignore_preview {
+    default 0;
+    ~*(^|&)preview=1(&|$) 1;
+  }
+
+  server {
+    listen 80;
+    server_name pickntrust.com www.pickntrust.com;
+    root /home/ec2-user/pickntrust/dist/public;
+    index index.html;
+
+    location / {
+      if ($ignore_preview) { return 301 $scheme://$host$uri; }
+      try_files $uri $uri/ /index.html;
+    }
+  }
+
+Nginx test and reload
+- sudo nginx -t && sudo systemctl reload nginx
+
+Reference paths
+- Client component changed: /home/ec2-user/pickntrust/client/src/components/WidgetRenderer.tsx
+- Built assets: /home/ec2-user/pickntrust/dist/public
+- Server entry: /home/ec2-user/pickntrust/dist/server/server/index.js
+
+Summary
+- Deployed preview guard by copying the updated client file to EC2 and running the production build.
+- Nginx currently default; recommended to add a SPA vhost and optionally strip preview at the edge for extra safety.

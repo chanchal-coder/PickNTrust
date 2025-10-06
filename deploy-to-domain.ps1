@@ -22,17 +22,62 @@ ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-use
 # 4) Upload and extract client build into public directory
 Write-Host "Uploading client artifact..." -ForegroundColor Yellow
 scp -i $SSH_KEY -o StrictHostKeyChecking=no $tarPath "${SERVER}:/home/ec2-user/pickntrust/"
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "set -e; cd /home/ec2-user/pickntrust && mkdir -p dist/public && rm -rf dist/public/* && tar -xzf pickntrust-client.tar.gz -C dist/public && rm -f pickntrust-client.tar.gz"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; cd /home/ec2-user/pickntrust && rm -rf dist/public && mkdir -p dist/public && tar -xzf pickntrust-client.tar.gz -C dist/public && rm -f pickntrust-client.tar.gz && sudo chown -R ec2-user:ec2-user dist/public && find dist/public -type d -exec chmod 755 {} \\; && find dist/public -type f -exec chmod 644 {} \\;'"
 
 # 4b) Push Nginx config with cache headers to avoid stale index caching and reload
 Write-Host "Updating Nginx config (cache headers for index/assets)..." -ForegroundColor Yellow
 scp -i $SSH_KEY -o StrictHostKeyChecking=no "pickntrust.conf" "${SERVER}:/home/ec2-user/pickntrust/pickntrust.conf"
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "sudo cp /home/ec2-user/pickntrust/pickntrust.conf /etc/nginx/conf.d/pickntrust.conf && sudo nginx -t && sudo systemctl reload nginx"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; 
+  sudo cp /home/ec2-user/pickntrust/pickntrust.conf /etc/nginx/conf.d/pickntrust.conf; 
+  sudo rm -f /etc/nginx/conf.d/nginx-pickntrust.conf 2>/dev/null || true; 
+  sudo rm -f /etc/nginx/conf.d/pickntrust-vhost.conf 2>/dev/null || true; 
+  sudo rm -f /etc/nginx/sites-enabled/pickntrust 2>/dev/null || true; 
+  sudo rm -f /etc/nginx/sites-available/pickntrust 2>/dev/null || true; 
+  sudo nginx -t; 
+  sudo systemctl reload nginx; 
+  echo \"---- Active Nginx server_names ----\"; 
+  sudo nginx -T 2>/dev/null | grep -E \"server_name|listen 443|listen 80\" | sed -E \"s/^\\s+//\" | uniq; 
+'"
 
 # 5) Verify HTTPS endpoints from local machine
 Write-Host "Verifying HTTPS endpoints..." -ForegroundColor Yellow
 try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "root check error: $($_.Exception.Message)" -ForegroundColor Red }
 try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/health" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "health check error: $($_.Exception.Message)" -ForegroundColor Red }
+
+# 6) Remote asset presence and index bundle verification
+Write-Host "Verifying remote assets and index bundle..." -ForegroundColor Yellow
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; 
+  cd /home/ec2-user/pickntrust/dist/public; 
+  echo Index exists?; ls -la index.html || (echo index.html missing && exit 1); 
+  echo Find index bundle by filename; 
+  BUNDLE=$(ls assets/index-*.js 2>/dev/null | head -1); 
+  echo Bundle: $BUNDLE; 
+  if [ -z \"$BUNDLE\" ]; then echo Index bundle not found && exit 1; fi; 
+  echo Check bundle file exists; 
+  test -f \"$BUNDLE\" && echo Bundle present || (echo Bundle missing: $BUNDLE && exit 1); 
+  echo List assets directory; ls -la assets | head -20; 
+'"
+
+# 4c) Extract client build tarball on server with safe permissions
+Write-Host "Extracting client build on server..." -ForegroundColor Yellow
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; 
+  cd /home/ec2-user/pickntrust; 
+  rm -rf dist/public; 
+  mkdir -p dist/public; 
+  tar -xzf pickntrust-client.tar.gz -C dist/public; 
+  rm -f pickntrust-client.tar.gz; 
+  sudo chown -R ec2-user:ec2-user dist/public; 
+  find dist/public -type d -exec chmod 755 {} \\;; 
+  find dist/public -type f -exec chmod 644 {} \\;; 
+'"
+
+# 7) End-to-end HTTPS check for canonical apex
+Write-Host "Validating apex over HTTPS..." -ForegroundColor Yellow
+try {
+  $resp = Invoke-WebRequest -Uri "https://pickntrust.com/" -UseBasicParsing -TimeoutSec 20
+  Write-Host "Status: $($resp.StatusCode)"
+  if ($resp.Content -match "assets/index-") { Write-Host "✅ Index references assets bundle" -ForegroundColor Green } else { Write-Host "⚠️ Index bundle reference not detected" -ForegroundColor Yellow }
+} catch { Write-Host "apex check error: $($_.Exception.Message)" -ForegroundColor Red }
 try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/api/status" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "api status error: $($_.Exception.Message)" -ForegroundColor Red }
 
 # 6) Verify live bundle name and ensure test widget string is removed
@@ -42,11 +87,21 @@ try {
   $m = [regex]::Match($html.Content, 'src="/assets/index-([^"]+)"')
   $hash = $m.Groups[1].Value
   $indexUrl = "https://www.pickntrust.com/assets/index-$hash"
-  $idx = Invoke-WebRequest -Uri $indexUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+  Write-Host "Index bundle URL: $indexUrl" -ForegroundColor Cyan
+  $idxResp = Invoke-WebRequest -Uri $indexUrl -UseBasicParsing
+  if ($idxResp.StatusCode -ne 200) { throw "Index bundle fetch failed with status $($idxResp.StatusCode)" }
+  $idx = $idxResp.Content
   $pm = [regex]::Match($idx, 'pages-picks-[A-Za-z0-9_-]+\.js')
-  $bundleUrl = "https://www.pickntrust.com/assets/$($pm.Value)"
-  Write-Host "Bundle URL: $bundleUrl" -ForegroundColor Cyan
-  $content = Invoke-WebRequest -Uri $bundleUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+  if ($pm.Success) {
+    $bundleUrl = "https://www.pickntrust.com/assets/$($pm.Value)"
+    Write-Host "Pages-picks bundle URL: $bundleUrl" -ForegroundColor Cyan
+    $bundleResp = Invoke-WebRequest -Uri $bundleUrl -UseBasicParsing
+    if ($bundleResp.StatusCode -ne 200) { throw "Pages-picks bundle fetch failed with status $($bundleResp.StatusCode)" }
+    $content = $bundleResp.Content
+  } else {
+    Write-Host "No pages-picks bundle reference found; checking index bundle content only." -ForegroundColor Yellow
+    $content = $idx
+  }
   if ($content -match 'Prime Picks Test Widget') { Write-Host '❌ Test widget string still present' -ForegroundColor Red } else { Write-Host '✅ Test widget string removed' -ForegroundColor Green }
 } catch {
   Write-Host "bundle verify error: $($_.Exception.Message)" -ForegroundColor Red

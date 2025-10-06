@@ -19,16 +19,18 @@ interface BannerButton {
 }
 
   interface Banner {
-  id: number;
-  title: string;
-  subtitle?: string;
-  imageUrl: string;
-  linkUrl?: string;
-  buttonText?: string;
-  buttons?: BannerButton[];
-  isActive: boolean;
-  displayOrder: number;
-  page: string;
+    id: number;
+    title: string;
+    subtitle?: string;
+    imageUrl: string;
+    linkUrl?: string;
+    buttonText?: string;
+    showHomeLink?: number;
+    homeLinkText?: string;
+    buttons?: BannerButton[];
+    isActive: boolean;
+    displayOrder: number;
+    page: string;
   // Icon and emoji support
   icon?: string;
   iconType?: 'emoji' | 'fontawesome' | 'none';
@@ -51,14 +53,16 @@ interface BannerButton {
 }
 
   interface BannerForm {
-  title: string;
-  subtitle: string;
-  imageUrl: string;
-  linkUrl: string;
-  buttonText: string;
-  buttons: BannerButton[];
-  page: string;
-  isActive?: boolean;
+    title: string;
+    subtitle: string;
+    imageUrl: string;
+    linkUrl: string;
+    buttonText: string;
+    showHomeLink: boolean;
+    homeLinkText: string;
+    buttons: BannerButton[];
+    page: string;
+    isActive?: boolean;
   // Icon and emoji support
   icon?: string;
   iconType?: 'emoji' | 'fontawesome' | 'none';
@@ -305,6 +309,8 @@ export default function BannerManagement() {
     imageUrl: '',
     linkUrl: '',
     buttonText: '',
+    showHomeLink: true,
+    homeLinkText: 'Back to Home',
     buttons: [{ text: '', url: '', style: 'primary' }],
     page: 'home',
     isActive: true,
@@ -463,6 +469,8 @@ export default function BannerManagement() {
         imageUrl: '',
         linkUrl: '',
         buttonText: '',
+        showHomeLink: true,
+        homeLinkText: 'Back to Home',
         buttons: [{ text: '', url: '', style: 'primary' }],
         page: 'home',
         isActive: true,
@@ -481,6 +489,7 @@ export default function BannerManagement() {
         backgroundGradient: 'bg-gradient-to-r from-blue-600 to-purple-600',
         useGradient: false,
         backgroundStyle: 'solid',
+        backgroundOpacity: 100,
       });
       toast({
         title: 'Success',
@@ -536,6 +545,8 @@ export default function BannerManagement() {
         imageUrl: '',
         linkUrl: '',
         buttonText: '',
+        showHomeLink: true,
+        homeLinkText: 'Back to Home',
         buttons: [{ text: '', url: '', style: 'primary' }],
         page: 'home',
         isActive: true,
@@ -554,6 +565,7 @@ export default function BannerManagement() {
         backgroundGradient: 'bg-gradient-to-r from-blue-600 to-purple-600',
         useGradient: false,
         backgroundStyle: 'solid',
+        backgroundOpacity: 100,
       });
       toast({
         title: 'Success',
@@ -820,6 +832,8 @@ export default function BannerManagement() {
       imageUrl: banner.imageUrl,
       linkUrl: banner.linkUrl || '',
       buttonText: banner.buttonText || '',
+      showHomeLink: Boolean(banner.showHomeLink ?? 1),
+      homeLinkText: banner.homeLinkText || 'Back to Home',
       buttons: banner.buttons || [{ text: banner.buttonText || '', url: banner.linkUrl || '', style: 'primary' }],
       page: banner.page,
       isActive: banner.isActive,
@@ -938,6 +952,8 @@ export default function BannerManagement() {
         subtitle: hardcodedBanner.subtitle || hardcodedBanner.description || '',
         linkUrl: hardcodedBanner.ctaLink || hardcodedBanner.linkUrl || '/',
         buttonText: hardcodedBanner.ctaText || hardcodedBanner.buttonText || 'Learn More',
+        showHomeLink: true,
+        homeLinkText: 'Back to Home',
         buttons: [{ text: hardcodedBanner.ctaText || hardcodedBanner.buttonText || 'Learn More', url: hardcodedBanner.ctaLink || hardcodedBanner.linkUrl || '/', style: 'primary' as const }],
         page: hardcodedBanner.page || selectedPage,
         isActive: true,
@@ -1370,16 +1386,37 @@ export default function BannerManagement() {
                     className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
+              <div>
+                <Label htmlFor="buttonText" className="text-gray-700 dark:text-gray-300">Button Text</Label>
+                <Input
+                  id="buttonText"
+                  value={newBanner.buttonText}
+                  onChange={(e) => setNewBanner({ ...newBanner, buttonText: e.target.value })}
+                  placeholder="Shop Now (optional)"
+                  className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  id="showHomeLink"
+                  type="checkbox"
+                  checked={newBanner.showHomeLink}
+                  onChange={(e) => setNewBanner({ ...newBanner, showHomeLink: e.target.checked })}
+                />
+                <Label htmlFor="showHomeLink" className="text-gray-700 dark:text-gray-300">Show "Back to Home" link</Label>
+              </div>
+              {newBanner.showHomeLink && (
                 <div>
-                  <Label htmlFor="buttonText" className="text-gray-700 dark:text-gray-300">Button Text</Label>
+                  <Label htmlFor="homeLinkText" className="text-gray-700 dark:text-gray-300">Home Link Text</Label>
                   <Input
-                    id="buttonText"
-                    value={newBanner.buttonText}
-                    onChange={(e) => setNewBanner({ ...newBanner, buttonText: e.target.value })}
-                    placeholder="Shop Now (optional)"
+                    id="homeLinkText"
+                    value={newBanner.homeLinkText}
+                    onChange={(e) => setNewBanner({ ...newBanner, homeLinkText: e.target.value })}
+                    placeholder="Back to Home"
                     className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
+              )}
               </div>
 
               <div>
@@ -1982,6 +2019,8 @@ export default function BannerManagement() {
                       imageUrl: '',
                       linkUrl: '',
                       buttonText: '',
+                      showHomeLink: true,
+                      homeLinkText: 'Back to Home',
                       buttons: [{ text: '', url: '', style: 'primary' }],
                       page: 'home',
                       isActive: true,
@@ -2239,18 +2278,33 @@ export default function BannerManagement() {
               </div>
               
               <div className="relative rounded-lg overflow-hidden">
-                <img
-                  src={previewBanner.imageUrl}
-                  alt={previewBanner.title}
-                  className="w-full h-64 object-cover"
-                />
+                {(() => {
+                  const toProxy = (url?: string) => {
+                    if (!url) return '';
+                    const trimmed = url.trim();
+                    return /^https?:\/\//i.test(trimmed)
+                      ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}`
+                      : trimmed;
+                  };
+                  const imgSrc = toProxy(previewBanner.imageUrl);
+                  return (
+                    <img
+                      src={imgSrc}
+                      alt={previewBanner.title || 'Banner image'}
+                      className="w-full h-64 object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
+                    />
+                  );
+                })()}
                 <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                   <div className="text-center text-white">
-                    <h4 className="text-2xl font-bold mb-2">{previewBanner.title}</h4>
-                    {previewBanner.subtitle && (
+                    {previewBanner.title && previewBanner.title.trim().length > 0 && (
+                      <h4 className="text-2xl font-bold mb-2">{previewBanner.title}</h4>
+                    )}
+                    {previewBanner.subtitle && previewBanner.subtitle.trim().length > 0 && (
                       <p className="text-lg mb-4">{previewBanner.subtitle}</p>
                     )}
-                    {previewBanner.buttonText && (
+                    {previewBanner.buttonText && previewBanner.buttonText.trim().length > 0 && (
                       <Button className="bg-white text-black hover:bg-gray-100">
                         {previewBanner.buttonText}
                       </Button>

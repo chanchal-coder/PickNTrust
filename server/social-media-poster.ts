@@ -5,6 +5,11 @@
 
 import { Database } from 'better-sqlite3';
 import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
+import { google } from 'googleapis';
+// Use robust two-pass generator for motion + audio stability
+import { generateShortVideo } from './video-generator-2pass.js';
 
 interface SocialMediaCredentials {
   instagram?: {
@@ -50,6 +55,8 @@ interface PostContent {
 export class SocialMediaPoster {
   private credentials: SocialMediaCredentials;
   private db: Database;
+  // Simple in-memory locks to avoid races on identical captions
+  private telegramPostLocks: Map<string, number> = new Map();
 
   constructor(db: Database, credentials: SocialMediaCredentials) {
     this.db = db;
@@ -222,33 +229,52 @@ export class SocialMediaPoster {
       const { accessToken, pageId } = this.credentials.facebook;
       const fullMessage = `${content.caption}\n\n${content.hashtags}`;
       
-      const response = await fetch(
-        `https://graph.facebook.com/v18.0/${pageId}/posts`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: fullMessage,
-            link: content.imageUrl,
-            access_token: accessToken
-          })
-        }
-      );
-      
-      const data = await response.json() as any;
-      
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `Facebook posting failed: ${data.error?.message || 'Unknown error'}`
-        };
+      // Try creating a feed post first (correct endpoint for text/link posts)
+      const feedPayload: any = {
+        message: fullMessage,
+        access_token: accessToken
+      };
+      if (content.imageUrl) {
+        // Attach link preview if available; some pages require domain whitelisting
+        feedPayload.link = content.imageUrl;
       }
-      
+
+      const feedRes = await fetch(`https://graph.facebook.com/v18.0/${pageId}/feed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(feedPayload)
+      });
+
+      if (feedRes.ok) {
+        const feedData = await feedRes.json() as any;
+        return { success: true, postId: feedData.id };
+      }
+
+      // If feed post fails (permissions or unsupported), fall back to photo upload
+      const feedErr = await feedRes.json().catch(() => ({} as any));
+      const photoPayload: any = {
+        caption: fullMessage,
+        access_token: accessToken
+      };
+      if (content.imageUrl) {
+        photoPayload.url = content.imageUrl;
+      }
+
+      const photoRes = await fetch(`https://graph.facebook.com/v18.0/${pageId}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(photoPayload)
+      });
+
+      if (photoRes.ok) {
+        const photoData = await photoRes.json() as any;
+        return { success: true, postId: photoData.id };
+      }
+
+      const photoErr = await photoRes.json().catch(() => ({} as any));
       return {
-        success: true,
-        postId: data.id
+        success: false,
+        error: `Facebook posting failed: feed=${feedErr?.error?.message || 'unknown'}; photo=${photoErr?.error?.message || 'unknown'}`
       };
       
     } catch (error) {
@@ -387,6 +413,15 @@ export class SocialMediaPoster {
     }
 
     try {
+      // Time-based duplicate safety guard
+      const duplicateGuard = await this.shouldSkipTelegram(content);
+      if (duplicateGuard.skip) {
+        return {
+          success: false,
+          error: duplicateGuard.reason || 'Duplicate detected in dedupe window; skipping Telegram'
+        };
+      }
+
       const { botToken, channelId } = this.credentials.telegram;
       const fullText = `${content.caption}\n\n${content.hashtags}`;
       
@@ -430,6 +465,113 @@ export class SocialMediaPoster {
   }
 
   /**
+   * Decide whether to skip Telegram post based on recent history (time-based safety)
+   * - Checks recent channel_posts (bot activity) and recently 'posted' canva_posts (site activity)
+   * - Uses caption-based fingerprinting without schema changes
+   */
+  private async shouldSkipTelegram(content: PostContent): Promise<{ skip: boolean; reason?: string }> {
+    try {
+      const windowHours = parseInt(process.env.TELEGRAM_DEDUP_WINDOW_HOURS || '24', 10);
+      const nowMs = Date.now();
+      const windowMs = Math.max(1, windowHours) * 60 * 60 * 1000;
+      const cutoffMs = nowMs - windowMs;
+      const cutoffIso = new Date(cutoffMs).toISOString();
+      const cutoffSeconds = Math.floor(cutoffMs / 1000); // channel_posts often stores epoch seconds
+
+      const captionNorm = this.normalizeCaption(content.caption);
+      const urlsInCaption = this.extractUrls(content.caption);
+
+      // In-process short lock to avoid races if multiple items share identical captions
+      const existingLock = this.telegramPostLocks.get(captionNorm);
+      if (existingLock && existingLock > nowMs - 60_000) { // 60s lock
+        return { skip: true, reason: 'Duplicate caption lock (race safety) - skipping' };
+      }
+      // Set lock preemptively; will be naturally overwritten on next calls
+      this.telegramPostLocks.set(captionNorm, nowMs);
+
+      // 1) Check recent channel_posts (bot publishes subset)
+      let recentChannelPosts: Array<{ original_text?: string; processed_text?: string }> = [];
+      try {
+        const stmt = this.db.prepare(`
+          SELECT original_text, processed_text
+          FROM channel_posts
+          WHERE created_at > ?
+          ORDER BY created_at DESC
+          LIMIT 200
+        `);
+        recentChannelPosts = stmt.all(cutoffSeconds) as Array<{ original_text?: string; processed_text?: string }>;
+      } catch (e) {
+        // Table might not exist in some environments; ignore gracefully
+        recentChannelPosts = [];
+      }
+
+      const seenInBot = recentChannelPosts.some(row => {
+        const texts = [row.original_text, row.processed_text].filter(Boolean) as string[];
+        // URL match (preferred) or caption fingerprint match
+        const textContainsUrl = urlsInCaption.length > 0 && texts.some(t => urlsInCaption.some(u => (t || '').includes(u)));
+        const textCaptionMatch = texts.some(t => this.normalizeCaption(t) === captionNorm);
+        return textContainsUrl || textCaptionMatch;
+      });
+      if (seenInBot) {
+        return { skip: true, reason: `Duplicate caption found in Telegram bot history (≤ ${windowHours}h)` };
+      }
+
+      // 2) Check recently posted canva_posts for Telegram (site auto-share)
+      let recentSitePosts: Array<{ caption: string }> = [];
+      try {
+        const stmt2 = this.db.prepare(`
+          SELECT caption
+          FROM canva_posts
+          WHERE platform = 'telegram'
+            AND status = 'posted'
+            AND posted_at IS NOT NULL
+            AND posted_at > ?
+          ORDER BY posted_at DESC
+          LIMIT 200
+        `);
+        recentSitePosts = stmt2.all(cutoffIso) as Array<{ caption: string }>;
+      } catch (e) {
+        recentSitePosts = [];
+      }
+
+      const seenOnSite = recentSitePosts.some(row => {
+        const cap = row.caption || '';
+        const urlHit = urlsInCaption.length > 0 && urlsInCaption.some(u => cap.includes(u));
+        const captionHit = this.normalizeCaption(cap) === captionNorm;
+        return urlHit || captionHit;
+      });
+      if (seenOnSite) {
+        return { skip: true, reason: `Duplicate caption already posted on Telegram by site (≤ ${windowHours}h)` };
+      }
+
+      // No duplicates detected in window
+      return { skip: false };
+    } catch (error) {
+      // On any error in dedupe logic, do not block posting
+      return { skip: false };
+    }
+  }
+
+  /** Normalize caption for fingerprinting */
+  private normalizeCaption(text: string): string {
+    return (text || '')
+      .toLowerCase()
+      .replace(/https?:\/\/\S+/g, '') // drop URLs for robust matching (URL handled separately)
+      .replace(/#[\w_-]+/g, '') // drop hashtags
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ') // remove punctuation/symbols
+      .replace(/\s+/g, ' ') // collapse whitespace
+      .trim();
+  }
+
+  /** Extract URLs from text */
+  private extractUrls(text: string): string[] {
+    if (!text) return [];
+    const matches = text.match(/https?:\/\/\S+/g) || [];
+    // Normalize trivial trailing punctuation
+    return matches.map(m => m.replace(/[\.,;:!\)]*$/, ''));
+  }
+
+  /**
    * Post to YouTube using YouTube Data API v3
    */
   private async postToYouTube(content: PostContent): Promise<{
@@ -442,15 +584,57 @@ export class SocialMediaPoster {
     }
 
     try {
-      // Note: YouTube requires video uploads, not just images
-      // This is a placeholder for YouTube Shorts or Community posts
-      // For actual video uploads, you'd need to implement video creation from image + text
-      
-      return {
-        success: false,
-        error: 'YouTube posting requires video content - image posts not supported'
-      };
-      
+      const { clientId, clientSecret, refreshToken, defaultPrivacy } = this.credentials.youtube;
+      if (!clientId || !clientSecret || !refreshToken) {
+        return { success: false, error: 'YouTube OAuth credentials incomplete' };
+      }
+
+      // 1) Generate a short vertical video from the image
+      if (!content.imageUrl) {
+        return { success: false, error: 'Missing image for YouTube video generation' };
+      }
+
+      const videoPath = await generateShortVideo({
+        imageUrl: content.imageUrl,
+        durationSec: 15,
+        seed: String(content.contentId || ''),
+        withAudio: true
+      });
+
+      // 2) Prepare OAuth2 client
+      const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+      oauth2.setCredentials({ refresh_token: refreshToken });
+      const youtube = google.youtube('v3');
+
+      // 3) Compose metadata
+      const baseUrl = process.env.WEBSITE_URL || 'https://pickntrust.com';
+      const redirectUrl = `${baseUrl}/redirect/${content.contentType}/${content.contentId}`;
+      const title = (content.caption || 'PickNTrust Deal').substring(0, 90);
+      const description = `${content.caption || ''}\n\n${content.hashtags || ''}\n\nGet this deal: ${redirectUrl}`.trim();
+
+      // 4) Upload video
+      const res = await youtube.videos.insert({
+        auth: oauth2,
+        part: ['snippet', 'status'],
+        requestBody: {
+          snippet: { title, description },
+          status: { privacyStatus: defaultPrivacy || 'unlisted' }
+        },
+        media: {
+          body: fs.createReadStream(videoPath)
+        }
+      } as any);
+
+      // Cleanup temporary file
+      try { fs.unlinkSync(videoPath); } catch {}
+
+      const videoId = res?.data?.id as string | undefined;
+      if (!videoId) {
+        return { success: false, error: 'YouTube upload failed: no video ID returned' };
+      }
+
+      return { success: true, postId: videoId };
+
     } catch (error) {
       return {
         success: false,

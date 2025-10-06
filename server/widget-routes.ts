@@ -8,9 +8,12 @@ const router = Router();
 // Middleware to verify admin access (reusing existing pattern)
 const verifyAdminAccess = (req: Request, res: Response, next: any) => {
   // Enhanced admin access for development and production
-  const adminPassword = req.headers['x-admin-password'] as string;
+  const headerPwd = (req.headers['x-admin-password'] || req.headers['X-Admin-Password']) as string | undefined;
+  const bodyPwd = (req.body && typeof req.body === 'object') ? (req.body.password as string | undefined) : undefined;
+  const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+  const adminPassword = headerPwd || bodyPwd || queryPwd;
   const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-  
+
   // Allow multiple admin passwords for flexibility
   const validPasswords = [
     process.env.ADMIN_PASSWORD,
@@ -18,19 +21,19 @@ const verifyAdminAccess = (req: Request, res: Response, next: any) => {
     'admin',
     'widget-admin'
   ].filter(Boolean); // Remove undefined values
-  
+
   // For localhost, be more permissive
   if (isLocalhost && (!adminPassword || validPasswords.includes(adminPassword))) {
     console.log('🔓 Widget admin access granted (localhost)');
     return next();
   }
-  
+
   // For production, require valid password
-  if (validPasswords.includes(adminPassword)) {
+  if (adminPassword && validPasswords.includes(adminPassword)) {
     console.log('🔐 Widget admin access granted');
     return next();
   }
-  
+
   console.log('❌ Widget admin access denied:', { password: adminPassword ? '[PROVIDED]' : '[MISSING]', hostname: req.hostname });
   return res.status(401).json({ error: 'Unauthorized - Admin access required for widget management' });
 };

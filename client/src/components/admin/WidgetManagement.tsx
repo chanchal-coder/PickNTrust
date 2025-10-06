@@ -425,6 +425,20 @@ console.log('Custom widget loaded');
   }
 ];
 
+// Centralized admin password/header helper
+const getAdminPassword = () => {
+  return (
+    localStorage.getItem('pickntrust-admin-password') ||
+    localStorage.getItem('adminPassword') ||
+    'pickntrust2025'
+  );
+};
+
+const adminHeaders = (extra: Record<string, string> = {}) => ({
+  ...extra,
+  'x-admin-password': getAdminPassword(),
+});
+
 export default function WidgetManagement() {
   const [isAddingWidget, setIsAddingWidget] = useState(true);
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
@@ -523,11 +537,12 @@ export default function WidgetManagement() {
     queryKey: ['/api/admin/widgets'],
     queryFn: async () => {
       const response = await fetch('/api/admin/widgets', {
-        headers: {
-          'x-admin-password': localStorage.getItem('pickntrust-admin-password') || localStorage.getItem('adminPassword') || 'pickntrust2025'
-        }
+        headers: adminHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to fetch widgets');
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to fetch widgets');
+        throw new Error(msg || 'Failed to fetch widgets');
+      }
       const rawWidgets = await response.json();
       
       // Transform snake_case API response to camelCase for frontend
@@ -559,11 +574,12 @@ export default function WidgetManagement() {
     queryKey: ['/api/admin/widgets/stats'],
     queryFn: async () => {
       const response = await fetch('/api/admin/widgets/stats', {
-        headers: {
-          'x-admin-password': localStorage.getItem('pickntrust-admin-password') || localStorage.getItem('adminPassword') || 'pickntrust2025'
-        }
+        headers: adminHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to fetch widget stats');
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to fetch widget stats');
+        throw new Error(msg || 'Failed to fetch widget stats');
+      }
       return response.json();
     }
   });
@@ -574,13 +590,13 @@ export default function WidgetManagement() {
       // API accepts camelCase directly - no transformation needed
       const response = await fetch('/api/admin/widgets', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-password': localStorage.getItem('pickntrust-admin-password') || localStorage.getItem('adminPassword') || 'pickntrust2025'
-        },
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(widgetData)
       });
-      if (!response.ok) throw new Error('Failed to create widget');
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to create widget');
+        throw new Error(msg || 'Failed to create widget');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -604,13 +620,13 @@ export default function WidgetManagement() {
       // API accepts camelCase directly - no transformation needed
       const response = await fetch(`/api/admin/widgets/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-password': localStorage.getItem('pickntrust-admin-password') || localStorage.getItem('adminPassword') || 'pickntrust2025'
-        },
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to update widget');
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to update widget');
+        throw new Error(msg || 'Failed to update widget');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -634,11 +650,12 @@ export default function WidgetManagement() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/widgets/${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-password': localStorage.getItem('pickntrust-admin-password') || localStorage.getItem('adminPassword') || 'pickntrust2025'
-        }
+        headers: adminHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to delete widget');
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to delete widget');
+        throw new Error(msg || 'Failed to delete widget');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -659,11 +676,12 @@ export default function WidgetManagement() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/widgets/${id}/toggle`, {
         method: 'PATCH',
-        headers: {
-          'x-admin-password': localStorage.getItem('pickntrust-admin-password') || localStorage.getItem('adminPassword') || 'pickntrust2025'
-        }
+        headers: adminHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to toggle widget');
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to toggle widget');
+        throw new Error(msg || 'Failed to toggle widget');
+      }
       return response.json();
     },
     onSuccess: () => {

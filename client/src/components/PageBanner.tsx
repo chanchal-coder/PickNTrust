@@ -10,6 +10,8 @@ interface Banner {
   imageUrl: string;
   linkUrl?: string;
   buttonText?: string;
+  showHomeLink?: number;
+  homeLinkText?: string;
   isActive: boolean;
   display_order: number;
   page: string;
@@ -350,7 +352,7 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
                   const trimmed = url.trim();
                   // Only proxy external URLs; keep local/uploads untouched
                   return /^https?:\/\//i.test(trimmed)
-                    ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}`
+                    ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}&width=1280&height=400&quality=90&format=webp`
                     : trimmed;
                 };
 
@@ -422,41 +424,47 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
                   </div>
                 )}
                 
-                {/* Title with Side Icons */}
-                <h1 className="text-3xl md:text-5xl font-bold mb-2 text-shadow-lg flex items-center justify-center gap-4">
-                  {/* Left Icon */}
-                  {(() => {
-                    const resolvedIcon = resolveFaIconClass(banner.icon, page);
-                    return resolvedIcon && ((banner.iconPosition || 'top') === 'left');
-                  })() && (
-                    <span className="flex-shrink-0">
-                      <i className={`${resolveFaIconClass(banner.icon, page)} text-2xl md:text-4xl text-white`}></i>
-                    </span>
-                  )}
-                  
-                  <span>{banner.title || 'Welcome'}</span>
-                  
-                  {/* Right Icon */}
-                  {(() => {
-                    const resolvedIcon = resolveFaIconClass(banner.icon, page);
-                    return resolvedIcon && ((banner.iconPosition || 'top') === 'right');
-                  })() && (
-                    <span className="flex-shrink-0">
-                      <i className={`${resolveFaIconClass(banner.icon, page)} text-2xl md:text-4xl text-white`}></i>
-                    </span>
-                  )}
-                </h1>
-                <p className="text-xl md:text-2xl font-semibold mb-4 text-yellow-300">
-                  {banner.subtitle || 'Discover amazing products and services'}
-                </p>
+                {/* Title with Side Icons (hide when empty) */}
+                {banner.title && banner.title.trim().length > 0 && (
+                  <h1 className="text-3xl md:text-5xl font-bold mb-2 text-shadow-lg flex items-center justify-center gap-4">
+                    {/* Left Icon */}
+                    {(() => {
+                      const resolvedIcon = resolveFaIconClass(banner.icon, page);
+                      return resolvedIcon && ((banner.iconPosition || 'top') === 'left');
+                    })() && (
+                      <span className="flex-shrink-0">
+                        <i className={`${resolveFaIconClass(banner.icon, page)} text-2xl md:text-4xl text-white`}></i>
+                      </span>
+                    )}
+
+                    <span>{banner.title}</span>
+
+                    {/* Right Icon */}
+                    {(() => {
+                      const resolvedIcon = resolveFaIconClass(banner.icon, page);
+                      return resolvedIcon && ((banner.iconPosition || 'top') === 'right');
+                    })() && (
+                      <span className="flex-shrink-0">
+                        <i className={`${resolveFaIconClass(banner.icon, page)} text-2xl md:text-4xl text-white`}></i>
+                      </span>
+                    )}
+                  </h1>
+                )}
+                {banner.subtitle && banner.subtitle.trim().length > 0 && (
+                  <p className="text-xl md:text-2xl font-semibold mb-4 text-yellow-300">
+                    {banner.subtitle}
+                  </p>
+                )}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-                  <a 
-                    href="/"
-                    className="inline-flex items-center px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <i className="fas fa-arrow-left mr-2"></i>
-                    Back to Home
-                  </a>
+                  {(banner.showHomeLink ?? 1) ? (
+                    <a
+                      href="/"
+                      className="inline-flex items-center px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <i className="fas fa-arrow-left mr-2"></i>
+                      {banner.homeLinkText || 'Back to Home'}
+                    </a>
+                  ) : null}
                   {banner.buttonText && (
                     <button
                       onClick={() => handleButtonClick(banner)}

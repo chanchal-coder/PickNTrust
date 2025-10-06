@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Edit, Plus, Save, X, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { getAdminPassword } from '@/config/admin';
 
 const colorPalette = [
   // Theme Colors (Row 1)
@@ -82,12 +83,19 @@ export default function NavigationManagement() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-password': getAdminPassword(),
           },
           mode: 'cors'
         });
       } catch (error) {
         console.log('Direct call failed, trying proxy...');
-        response = await fetch('/api/admin/nav-tabs');
+        response = await fetch('/api/admin/nav-tabs', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': getAdminPassword(),
+          },
+        });
       }
       
       if (!response.ok) {
@@ -108,9 +116,10 @@ export default function NavigationManagement() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-password': getAdminPassword(),
           },
           mode: 'cors',
-          body: JSON.stringify(tabData),
+          body: JSON.stringify({ ...tabData, password: getAdminPassword() }),
         });
       } catch (error) {
         console.log('Direct call failed, trying proxy...');
@@ -118,8 +127,9 @@ export default function NavigationManagement() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-password': getAdminPassword(),
           },
-          body: JSON.stringify(tabData),
+          body: JSON.stringify({ ...tabData, password: getAdminPassword() }),
         });
       }
       
@@ -173,8 +183,9 @@ export default function NavigationManagement() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-password': getAdminPassword(),
         },
-        body: JSON.stringify(tabData),
+        body: JSON.stringify({ ...tabData, password: getAdminPassword() }),
       });
       
       if (!response.ok) {
@@ -219,7 +230,9 @@ export default function NavigationManagement() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-password': getAdminPassword(),
         },
+        body: JSON.stringify({ password: getAdminPassword() }),
       });
       
       if (!response.ok) {
@@ -261,6 +274,7 @@ export default function NavigationManagement() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-password': getAdminPassword(),
         },
         body: JSON.stringify({ tabOrders, password }),
       });
@@ -394,10 +408,12 @@ export default function NavigationManagement() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-password': getAdminPassword(),
           },
           mode: 'cors',
           body: JSON.stringify({
-            is_active: !tab.is_active
+            is_active: !tab.is_active,
+            password: getAdminPassword(),
           }),
         });
       } catch (error) {
@@ -406,9 +422,11 @@ export default function NavigationManagement() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-password': getAdminPassword(),
           },
           body: JSON.stringify({
-            is_active: !tab.is_active
+            is_active: !tab.is_active,
+            password: getAdminPassword(),
           }),
         });
       }

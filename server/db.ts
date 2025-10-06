@@ -531,9 +531,10 @@ try {
 
 // Seed default widgets if none exist to avoid dev fallbacks
 try {
+  const allowSeeding = (process.env.SEED_DEFAULT_WIDGETS === 'true') || (process.env.NODE_ENV !== 'production');
   const countRow = sqlite.prepare('SELECT COUNT(*) as count FROM widgets').get() as { count: number };
-  if (countRow.count === 0) {
-    console.log('Seeding default widgets...');
+  if (allowSeeding && countRow.count === 0) {
+    console.log('Seeding default widgets (env-controlled)...');
     const insert = sqlite.prepare(`
       INSERT INTO widgets (
         name, description, body, code, target_page, position, is_active, display_order,
@@ -657,7 +658,7 @@ try {
     insertMany(defaults);
     console.log('✅ Default widgets seeded');
   } else {
-    console.log(`Widgets present: ${countRow.count} rows`);
+    console.log(`Widgets present: ${countRow.count} rows; seeding allowed=${allowSeeding}`);
   }
 } catch (seedErr) {
   console.error('Error seeding default widgets:', seedErr);
@@ -665,6 +666,10 @@ try {
 
 // Ensure at least one active widget exists for key home positions
 try {
+  const allowEnsureDefaults = (process.env.ENSURE_DEFAULT_WIDGETS === 'true') || (process.env.NODE_ENV !== 'production');
+  if (!allowEnsureDefaults) {
+    console.log('Skipping default widget ensures in production (set ENSURE_DEFAULT_WIDGETS=true to enable)');
+  }
   const requiredPositions = [
     'header-top',
     'header-bottom',
@@ -684,7 +689,7 @@ try {
 
   for (const pos of requiredPositions) {
     const c = checkStmt.get('home', pos) as { count: number };
-    if (c.count === 0) {
+    if (allowEnsureDefaults && c.count === 0) {
       let body = '';
       let name = '';
       let external_link: string | null = null;
@@ -751,6 +756,8 @@ try {
         imageUrl TEXT NOT NULL,
         linkUrl TEXT,
         buttonText TEXT DEFAULT 'Learn More',
+        showHomeLink INTEGER DEFAULT 1,
+        homeLinkText TEXT DEFAULT 'Back to Home',
         page TEXT NOT NULL,
         display_order INTEGER DEFAULT 1,
         isActive INTEGER DEFAULT 1,
@@ -798,6 +805,12 @@ try {
   }
   if (!names.has('unsplashQuery')) {
     addColumn("ALTER TABLE banners ADD COLUMN unsplashQuery TEXT", 'unsplashQuery');
+  }
+  if (!names.has('showHomeLink')) {
+    addColumn("ALTER TABLE banners ADD COLUMN showHomeLink INTEGER DEFAULT 1", 'showHomeLink');
+  }
+  if (!names.has('homeLinkText')) {
+    addColumn("ALTER TABLE banners ADD COLUMN homeLinkText TEXT DEFAULT 'Back to Home'", 'homeLinkText');
   }
 } catch (styleErr) {
   console.error('Error ensuring banners style columns exist:', styleErr);

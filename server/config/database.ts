@@ -25,15 +25,33 @@ export const DATABASE_CONFIG = {
       }
       return path.isAbsolute(envUrl) ? envUrl : path.join(process.cwd(), envUrl);
     }
-    // Default to cwd database
-    if (cwdPath) {
-      return cwdPath;
+    // Candidate locations prioritized to avoid creating DB inside dist
+    const candidates = [
+      // Project root relative to compiled server (dist/server/server -> project root)
+      path.join(__dirname, '..', '..', '..', 'database.sqlite'), // dist/database.sqlite
+      path.join(__dirname, '..', '..', 'database.sqlite'),       // dist/server/database.sqlite
+      cwdPath,                                                   // current working directory
+      path.join(process.cwd(), '..', 'database.sqlite'),         // parent directory
+    ];
+
+    for (const p of candidates) {
+      try {
+        // Prefer an existing database file
+        const fs = require('fs');
+        if (fs.existsSync(p)) {
+          return p;
+        }
+      } catch {}
     }
-    // Fallbacks for compiled environments
-    const distServerPath = path.join(__dirname, '..', '..', 'database.sqlite'); // dist/server/database.sqlite
-    const distRootPath = path.join(__dirname, '..', '..', '..', 'database.sqlite'); // dist/database.sqlite
-    // Prefer dist/server over dist root if present
-    return distServerPath || distRootPath;
+
+    // As a last resort, default to cwd. Avoid placing DB inside dist subpaths in production.
+    const isProd = process.env.NODE_ENV === 'production';
+    const inDist = __dirname.includes(path.sep + 'dist' + path.sep);
+    if (isProd && inDist) {
+      // Redirect to project root database path when running from dist
+      return path.join(__dirname, '..', '..', '..', 'database.sqlite');
+    }
+    return cwdPath;
   },
 
   // Connection options

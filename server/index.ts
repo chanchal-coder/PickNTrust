@@ -19,6 +19,9 @@ if (typeof g.File === "undefined") {
 }
 
 import express, { type Request, Response, NextFunction } from "express";
+import dotenv from 'dotenv';
+// Load environment variables from .env for both dev and prod
+dotenv.config();
 import cors from "cors";
 import { setupRoutes } from "./routes.js";
 import { serveStatic, log } from "./vite.js";
@@ -56,6 +59,7 @@ import paymentRoutes from './payment-routes.js';
 import pagesRoutes from './routes/pages-routes.js';
 import widgetRoutes from './widget-routes.js';
 import adRequestRoutes from './ad-request-routes.js';
+import { setupSocialMediaRoutes } from './social-media-routes.js';
 
 
 
@@ -106,7 +110,9 @@ app.use(cors({
     "X-HTTP-Method-Override",
     "If-Modified-Since",
     "X-Forwarded-For",
-    "X-Real-IP"
+    "X-Real-IP",
+    "x-admin-password",
+    "X-Admin-Password"
   ],
   exposedHeaders: ["Content-Length", "X-Foo", "X-Bar"],
   credentials: true,
@@ -128,7 +134,7 @@ app.use((req, res, next) => {
   
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH,HEAD');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin, Cache-Control, X-File-Name, X-HTTP-Method-Override, If-Modified-Since, X-Forwarded-For, X-Real-IP');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin, Cache-Control, X-File-Name, X-HTTP-Method-Override, If-Modified-Since, X-Forwarded-For, X-Real-IP, x-admin-password, X-Admin-Password');
   res.header('Access-Control-Expose-Headers', 'Content-Length, X-Foo, X-Bar');
   res.header('Access-Control-Max-Age', '86400');
   
@@ -172,6 +178,47 @@ app.use(express.urlencoded({
 app.use('/api/admin/auth', (req: any, _res, next) => {
   if (typeof req.body !== 'string' && typeof (req as any).__rawBody === 'string' && (req as any).__rawBody.length > 0) {
     req.body = (req as any).__rawBody;
+  }
+  next();
+});
+
+// Tolerant body parsing for admin nav-tabs to avoid JSON SyntaxError
+// Only parse JSON payloads as text so urlencoded requests remain handled by express.urlencoded
+app.use('/api/admin/nav-tabs', express.text({ type: 'application/json', limit: '1mb' }));
+app.use('/api/admin/nav-tabs', (req: any, _res, next) => {
+  try {
+    if (typeof req.body === 'string' && req.body.length > 0) {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {
+        // If parsing fails, fall back to rawBody if available
+        const raw = (req as any).__rawBody;
+        if (typeof raw === 'string' && raw.length > 0) {
+          try {
+            req.body = JSON.parse(raw);
+          } catch {
+            req.body = {};
+          }
+        } else {
+          req.body = {};
+        }
+      }
+    } else if (typeof req.body !== 'object') {
+      // When body is not an object, attempt to parse rawBody
+      const raw = (req as any).__rawBody;
+      if (typeof raw === 'string' && raw.length > 0) {
+        try {
+          req.body = JSON.parse(raw);
+        } catch {
+          req.body = {};
+        }
+      } else {
+        req.body = {};
+      }
+    }
+  } catch {
+    // Ensure body is an object so route handlers don't crash
+    req.body = {};
   }
   next();
 });
@@ -234,6 +281,10 @@ app.use((req, res, next) => {
   app.use('/api/pages', pagesRoutes); // Dynamic pages API routes
   app.use(widgetRoutes); // Widget management and retrieval routes
   app.use(adRequestRoutes); // Ad requests + Explore ads config routes
+  
+  // Admin routes for social media posting and credential checks
+  setupSocialMediaRoutes(app);
+  console.log('📣 Social media admin routes initialized');
   console.log('🔐 Credential management routes initialized');
   console.log('🏷️ Meta tags management routes initialized');
   console.log('📡 RSS feeds management routes initialized');
@@ -465,11 +516,11 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // Handle uncaught exceptions and rejections
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  process.exit(1);
+  // Do not exit; keep server alive to avoid downtime
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  // Do not exit; keep server alive to avoid downtime
 });
 })();

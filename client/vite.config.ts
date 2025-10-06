@@ -20,7 +20,13 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "../shared"),
     },
     // Ensure a single React instance across all imports
-    dedupe: ["react", "react-dom"],
+    // Include jsx runtime modules which can otherwise get bundled separately
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+    ],
   },
   build: {
     outDir: path.resolve(__dirname, "../dist/public"),
@@ -30,7 +36,8 @@ export default defineConfig({
       input: path.resolve(__dirname, 'index.html'),
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
+          // Make sure React and its runtimes are isolated into a single vendor chunk
+          vendor: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
           query: ['@tanstack/react-query'],
           radix: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
           utils: ['date-fns', 'clsx', 'class-variance-authority'],

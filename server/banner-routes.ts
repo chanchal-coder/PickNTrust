@@ -21,7 +21,8 @@ router.get('/api/banners/:page', (req, res) => {
     const banners = db.prepare(`
       SELECT id, title, subtitle, imageUrl, linkUrl, buttonText, page, display_order, isActive,
              icon, iconType, iconPosition,
-             useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery
+             useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery,
+             showHomeLink, homeLinkText
       FROM banners 
       WHERE page = ? AND isActive = 1
       ORDER BY display_order ASC
@@ -60,7 +61,8 @@ router.get('/api/admin/banners', (req, res) => {
     const banners = db.prepare(`
       SELECT id, title, subtitle, imageUrl, linkUrl, buttonText, page, display_order, isActive,
              icon, iconType, iconPosition, created_at, updated_at,
-             useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery
+             useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery,
+             showHomeLink, homeLinkText
       FROM banners 
       ORDER BY page ASC, display_order ASC
     `).all();
@@ -88,7 +90,8 @@ router.post('/api/admin/banners', (req, res) => {
     const { 
       title, subtitle, imageUrl, linkUrl, buttonText, page, display_order,
       icon, iconType, iconPosition,
-      useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery
+      useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery,
+      showHomeLink, homeLinkText
     } = req.body;
     
     // Coerce potentially undefined fields to safe defaults
@@ -96,7 +99,7 @@ router.post('/api/admin/banners', (req, res) => {
     const _subtitle = typeof subtitle === 'string' ? subtitle : '';
     const _imageUrl = typeof imageUrl === 'string' ? imageUrl : '';
     const _linkUrl = typeof linkUrl === 'string' ? linkUrl : '';
-    const _buttonText = (typeof buttonText === 'string' && buttonText.length > 0) ? buttonText : 'Learn More';
+    const _buttonText = (typeof buttonText === 'string') ? buttonText : '';
     const _page = typeof page === 'string' ? page : '';
     const _displayOrder = typeof display_order === 'number' ? display_order : 1;
     const _icon = typeof icon === 'string' ? icon : '';
@@ -107,6 +110,8 @@ router.post('/api/admin/banners', (req, res) => {
     const _backgroundOpacity = typeof backgroundOpacity === 'number' ? backgroundOpacity : 100;
     const _imageDisplayType = typeof imageDisplayType === 'string' ? imageDisplayType : 'image';
     const _unsplashQuery = typeof unsplashQuery === 'string' ? unsplashQuery : '';
+    const _showHomeLink = (typeof showHomeLink === 'boolean' || typeof showHomeLink === 'number') ? (Number(showHomeLink) ? 1 : 0) : 1;
+    const _homeLinkText = typeof homeLinkText === 'string' ? homeLinkText : 'Back to Home';
     
     if (!_page) {
       return res.status(400).json({ 
@@ -119,17 +124,19 @@ router.post('/api/admin/banners', (req, res) => {
     
     const result = db.prepare(`
       INSERT INTO banners (
-        title, subtitle, imageUrl, linkUrl, buttonText, page, display_order, isActive,
+        title, subtitle, imageUrl, linkUrl, buttonText, showHomeLink, homeLinkText, page, display_order, isActive,
         icon, iconType, iconPosition,
         useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       _title, 
       _subtitle, 
       _imageUrl, 
       _linkUrl, 
-      _buttonText, 
+      _buttonText,
+      _showHomeLink,
+      _homeLinkText,
       _page, 
       _displayOrder,
       _icon,
@@ -159,20 +166,22 @@ router.post('/api/admin/banners', (req, res) => {
 router.put('/api/admin/banners/:id(\\d+)', (req, res) => {
   try {
     const { id } = req.params;
-    const { 
+  const { 
       title, subtitle, imageUrl, linkUrl, buttonText, page, display_order, isActive,
       icon, iconType, iconPosition,
-      useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery
+      useGradient, backgroundGradient, backgroundOpacity, imageDisplayType, unsplashQuery,
+      showHomeLink, homeLinkText
     } = req.body;
     
     const db = new Database(dbPath);
     
-    const result = db.prepare(`
+  const result = db.prepare(`
       UPDATE banners 
       SET title = ?, subtitle = ?, imageUrl = ?, linkUrl = ?, buttonText = ?, 
           page = ?, display_order = ?, isActive = ?, 
           icon = ?, iconType = ?, iconPosition = ?,
           useGradient = ?, backgroundGradient = ?, backgroundOpacity = ?, imageDisplayType = ?, unsplashQuery = ?,
+          showHomeLink = ?, homeLinkText = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
@@ -192,6 +201,8 @@ router.put('/api/admin/banners/:id(\\d+)', (req, res) => {
       (typeof backgroundOpacity === 'number' ? backgroundOpacity : 100),
       imageDisplayType || 'image',
       unsplashQuery || '',
+      (typeof showHomeLink === 'boolean' || typeof showHomeLink === 'number') ? (Number(showHomeLink) ? 1 : 0) : 1,
+      typeof homeLinkText === 'string' ? homeLinkText : 'Back to Home',
       id
     );
     

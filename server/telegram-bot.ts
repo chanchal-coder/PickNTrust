@@ -56,10 +56,10 @@ class TelegramBotManager {
       return;
     }
 
-    console.log('🤖 Initializing Telegram bot...');
+    console.log('🤖 Initializing Telegram bot (webhook-only mode)...');
     
-    // Bot configuration - ONLY MASTER BOT TOKEN
-    const BOT_TOKEN = process.env.MASTER_BOT_TOKEN || '8433200963:AAFE8umMtF23xgE7pBZA6wjIVg-o-2GeEvE';
+    // Bot configuration - ONLY MASTER BOT TOKEN (no default fallback)
+    const BOT_TOKEN = process.env.MASTER_BOT_TOKEN;
     
     if (!BOT_TOKEN) {
       console.error('❌ MASTER_BOT_TOKEN not found in environment variables');
@@ -84,8 +84,34 @@ class TelegramBotManager {
         webHook: false
       });
       
-      console.log('✅ Telegram bot initialized successfully in polling mode');
+      console.log('✅ Telegram bot initialized successfully in webhook mode (polling disabled)');
       this.isInitialized = true;
+
+      // Ensure master webhook is configured
+      try {
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://www.pickntrust.com';
+        const webhookUrl = `${baseUrl}/webhook/master/${BOT_TOKEN}`;
+        console.log(`🔗 Ensuring webhook is set: ${webhookUrl}`);
+
+        // Clear any existing webhook to avoid conflicts
+        await this.bot.deleteWebHook();
+
+        // Set webhook to master endpoint
+        await this.bot.setWebHook(webhookUrl, {
+          allowed_updates: ['message', 'channel_post', 'edited_channel_post']
+        });
+
+        // Verify webhook status
+        const info = await this.bot.getWebHookInfo();
+        console.log('📊 Webhook info', {
+          url: (info as any).url,
+          pending_update_count: (info as any).pending_update_count,
+          has_custom_certificate: (info as any).has_custom_certificate,
+          max_connections: (info as any).max_connections,
+        });
+      } catch (err: any) {
+        console.warn('⚠️ Failed to configure master webhook:', err?.message || err);
+      }
 
       // Setup event handlers
       this.setupEventHandlers();
@@ -175,8 +201,12 @@ class TelegramBotManager {
 // Initialize singleton instance
 const botManager = TelegramBotManager.getInstance();
 
-// Initialize bot
-await botManager.initializeBot();
+// Initialize bot (guarded so failures never impact website/server startup)
+try {
+  await botManager.initializeBot();
+} catch (err) {
+  console.error('⚠️ Bot initialization encountered an error but will not affect website:', err);
+}
 
 // Get bot instance
 const bot = botManager.getBot();
@@ -930,7 +960,7 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
       1, // is_active
       categorization.isFeatured ? 1 : 0, // Smart featured detection
       0, // display_order
-      JSON.stringify(categorization.displayPages), // Smart page assignments
+      JSON.stringify(Array.from(new Set([channelConfig.pageSlug, ...categorization.displayPages]))), // Ensure channel page appears
       0, // has_timer
       null, // timer_duration
       null, // timer_start_time

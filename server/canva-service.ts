@@ -1,12 +1,56 @@
 import { CanvaSettings, CanvaPost, CanvaTemplate } from '../shared/sqlite-schema.js';
 import { CanvaTokenManager } from './CanvaTokenManager.js';
 import { backendTemplateEngine } from './backend-template-engine.js';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// create singleton (outside class)
-const canvaTokens = new CanvaTokenManager({
-  clientId: process.env.CANVA_CLIENT_ID!,          // keep these in .env
-  clientSecret: process.env.CANVA_CLIENT_SECRET!,
-});
+// Resolve Canva credentials: prefer canva_settings (UI), fallback to env
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+type CanvaCreds = { clientId?: string; clientSecret?: string };
+
+function loadCanvaCreds(): CanvaCreds {
+  // Fallback to env first to avoid DB hits if already configured
+  const envClientId = process.env.CANVA_CLIENT_ID;
+  const envClientSecret = process.env.CANVA_CLIENT_SECRET;
+  if (envClientId && envClientSecret) {
+    return { clientId: envClientId, clientSecret: envClientSecret };
+  }
+  // Try reading from canva_settings table (UI fields: api_key, api_secret)
+  try {
+    const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+    const db = new Database(dbPath);
+    const row = db.prepare('SELECT api_key, api_secret FROM canva_settings LIMIT 1').get() as { api_key?: string; api_secret?: string } | undefined;
+    db.close();
+    if (row?.api_key && row?.api_secret) {
+      return { clientId: row.api_key, clientSecret: row.api_secret };
+    }
+  } catch (e) {
+    // Ignore DB errors and fall back to env
+  }
+  return { clientId: envClientId, clientSecret: envClientSecret };
+}
+
+let lastCreds: CanvaCreds = {};
+let canvaTokens: CanvaTokenManager | null = null;
+
+function ensureCanvaTokens(): CanvaTokenManager {
+  const creds = loadCanvaCreds();
+  const changed = creds.clientId !== lastCreds.clientId || creds.clientSecret !== lastCreds.clientSecret;
+  if (!canvaTokens || changed) {
+    if (!creds.clientId || !creds.clientSecret) {
+      console.warn('Canva credentials not configured in env or canva_settings');
+    }
+    canvaTokens = new CanvaTokenManager({
+      clientId: creds.clientId || '',
+      clientSecret: creds.clientSecret || '',
+    });
+    lastCreds = creds;
+  }
+  return canvaTokens!;
+}
 
 export interface CanvaDesignData {
   title: string;
@@ -58,8 +102,9 @@ export class CanvaService {
 
   constructor() {
     // Token management is now handled by CanvaTokenManager singleton
-    if (!process.env.CANVA_CLIENT_ID || !process.env.CANVA_CLIENT_SECRET) {
-      console.warn('Canva API credentials not found. Please add CANVA_CLIENT_ID and CANVA_CLIENT_SECRET to your .env file.');
+    const creds = loadCanvaCreds();
+    if (!creds.clientId || !creds.clientSecret) {
+      console.warn('Canva credentials missing. Set in env (CANVA_CLIENT_ID/SECRET) or UI canva_settings (api_key/api_secret).');
     }
   }
 
@@ -67,7 +112,8 @@ export class CanvaService {
   // before: getAccessToken()/getHeaders doing manual POSTs or client_credentials
   // after:
   private async getHeaders(): Promise<Record<string,string>> {
-    return await canvaTokens.authHeaders();
+    const tokens = ensureCanvaTokens();
+    return await tokens.authHeaders();
   }
 
   // Create a design from template

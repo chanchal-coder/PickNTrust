@@ -32,10 +32,13 @@ function toProxiedImage(url) {
 
 // In production, serve static files from the built frontend
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/dist')));
-  app.use(express.static(path.join(__dirname, 'dist')));
-  app.use(express.static(path.join(__dirname, 'public')));
-  app.use(express.static(path.join(__dirname, 'server')));
+  // Primary Vite build output
+  app.use(express.static(path.join(__dirname, 'dist', 'public'), { index: false }));
+  // Legacy fallbacks
+  app.use(express.static(path.join(__dirname, 'client', 'dist'), { index: false }));
+  app.use(express.static(path.join(__dirname, 'dist'), { index: false }));
+  app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+  app.use(express.static(path.join(__dirname, 'server'), { index: false }));
 }
 
 // API Routes
@@ -341,10 +344,11 @@ if (process.env.NODE_ENV === 'production') {
       return res.status(404).json({ error: 'Not found' });
     }
     const possiblePaths = [
-      path.join(__dirname, 'client/dist/index.html'),
-      path.join(__dirname, 'public/index.html'),
-      path.join(__dirname, 'dist/index.html'),
-      path.join(__dirname, 'server/index.html'),
+      path.join(__dirname, 'dist', 'public', 'index.html'), // Vite output
+      path.join(__dirname, 'client', 'dist', 'index.html'),
+      path.join(__dirname, 'public', 'index.html'),
+      path.join(__dirname, 'dist', 'index.html'),
+      path.join(__dirname, 'server', 'index.html'),
       path.join(__dirname, 'index.html')
     ];
     for (const filePath of possiblePaths) {

@@ -9,6 +9,8 @@ interface Banner {
   imageUrl: string;
   linkUrl?: string;
   buttonText?: string;
+  showHomeLink?: number;
+  homeLinkText?: string;
   isActive: boolean;
   display_order: number;
   page: string;
@@ -152,7 +154,7 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
   const fallbackBanner = getFallbackBanner();
   const isFallbackBannerHidden = hiddenBanners.has(`fallback-${page}`);
   
-  const fallbackBanners = fallbackBanner && !isFallbackBannerHidden ? [{
+  const fallbackBanners: Banner[] = fallbackBanner && !isFallbackBannerHidden ? [{
     id: 0,
     title: fallbackBanner.title,
     subtitle: fallbackBanner.subtitle,
@@ -286,13 +288,15 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
                   {banner.subtitle || 'Discover amazing products and services'}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-                  <a 
-                    href="/"
-                    className="inline-flex items-center px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <i className="fas fa-arrow-left mr-2"></i>
-                    Back to Home
-                  </a>
+                  {(banner.showHomeLink ?? 1) ? (
+                    <a
+                      href="/"
+                      className="inline-flex items-center px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <i className="fas fa-arrow-left mr-2"></i>
+                      {banner.homeLinkText || 'Back to Home'}
+                    </a>
+                  ) : null}
                   {banner.buttonText && (
                     <button
                       onClick={() => handleButtonClick(banner)}

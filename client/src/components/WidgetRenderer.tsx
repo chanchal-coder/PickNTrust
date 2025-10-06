@@ -88,6 +88,8 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   };
 
   const widgetPage = getWidgetPage(page);
+  // Temporary production safeguard: disable widgets on prime-picks to eliminate stray test widgets
+  const disableWidgetsOnPrimeInProd = isProductionDomain && widgetPage === 'prime-picks';
 
   // Fetch widgets for this page and position (including fallback to parent pages)
   const { data: widgets = [], isLoading, error } = useQuery<Widget[]>({
@@ -159,6 +161,7 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
+    enabled: !disableWidgetsOnPrimeInProd,
   });
 
   // Filter widgets based on device type
@@ -218,7 +221,7 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   }
 
   // If no real widgets and preview not enabled, inject a dev-only fallback (localhost)
-  if (!previewEnabled && finalWidgets.length === 0) {
+  if (!previewEnabled && (finalWidgets.length === 0 || disableWidgetsOnPrimeInProd)) {
     // Suppress dev fallback boxes; keep UI clean
     return null;
   }

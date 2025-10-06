@@ -218,13 +218,25 @@ function App() {
                   <Route path="/" component={Home} />
                   <Route path="/category/:category" component={Category} />
                   <Route path="/admin" component={Admin} />
+                  {/* Map all admin tabs to Admin component to prevent 404s */}
+                  <Route path="/admin/dashboard" component={Admin} />
                   <Route path="/admin/blog" component={Admin} />
                   <Route path="/admin/announcements" component={Admin} />
                   <Route path="/admin/banners" component={Admin} />
                   <Route path="/admin/categories" component={Admin} />
                   <Route path="/admin/products" component={Admin} />
+                  <Route path="/admin/navigation" component={Admin} />
                   <Route path="/admin/widgets" component={Admin} />
+                  {/* Support both hyphenated and non-hyphenated meta tags paths */}
                   <Route path="/admin/meta-tags" component={Admin} />
+                  <Route path="/admin/metatags" component={Admin} />
+                  <Route path="/admin/videos" component={Admin} />
+                  <Route path="/admin/automation" component={Admin} />
+                  <Route path="/admin/commission" component={Admin} />
+                  <Route path="/admin/credentials" component={Admin} />
+                  <Route path="/admin/rssfeeds" component={Admin} />
+                  <Route path="/admin/adrequests" component={Admin} />
+                  <Route path="/admin/bots" component={Admin} />
                   <Route path="/admin/payments" component={AdminPaymentsPage} />
                   <Route path="/bot-admin" component={BotAdmin} />
                   <Route path="/wishlist" component={Wishlist} />
@@ -257,7 +269,8 @@ function App() {
                   <Route path="/__safe" component={SafePage} />
                   {/* Dynamic route for custom navigation tabs */}
                   <Route path="/:slug" component={DynamicPage} />
-                    <Route>404 - Page Not Found</Route>
+                  {/* Catch-all fallback to a styled NotFound page instead of raw 404 text */}
+                  <Route component={lazy(() => import('@/pages/not-found'))} />
                   </Switch>
                 </Suspense>
                 {/* Temporary: render Home directly to bypass router in case of route mismatch */}

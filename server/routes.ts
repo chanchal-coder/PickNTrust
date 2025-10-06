@@ -24,6 +24,12 @@ const app = express();
 // Admin password verification
 async function verifyAdminPassword(password: string): Promise<boolean> {
   try {
+    // Allow environment-configured admin password (production compatibility)
+    const envPassword = process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD;
+    if (envPassword && password === envPassword) {
+      return true;
+    }
+
     // For localhost development, allow simple password
     if (password === 'pickntrust2025' || password === 'admin' || password === 'delete') {
       return true;
@@ -427,10 +433,19 @@ export function setupRoutes(app: express.Application) {
       let query = '';
       const params: any[] = [];
       
-      // Query unified_content table for all pages
+      // Query unified_content table for all pages with inclusive filters
+      // Avoid overly strict is_active dependency since bot inserts may not set it
       query = `
         SELECT * FROM unified_content 
-        WHERE is_active = 1
+        WHERE (
+          status = 'active' OR status = 'published' OR status IS NULL
+        )
+        AND (
+          visibility = 'public' OR visibility IS NULL
+        )
+        AND (
+          processing_status != 'archived' OR processing_status IS NULL
+        )
       `;
       
       // Apply page-specific filtering
@@ -450,10 +465,11 @@ export function setupRoutes(app: express.Application) {
           JSON_EXTRACT(display_pages, '$') LIKE '%' || ? || '%' OR
           display_pages LIKE '%' || ? || '%' OR
           display_pages = ? OR
+          page_type = ? OR
           (display_pages IS NULL AND ? = 'prime-picks') OR
           (display_pages = '' AND ? = 'prime-picks')
         )`;
-        params.push(page, page, page, page, page);
+        params.push(page, page, page, page, page, page);
       }
       
       if (category && category !== 'all') {
@@ -737,7 +753,12 @@ export function setupRoutes(app: express.Application) {
           )
           AND category IS NOT NULL
           AND category != ''
-          AND is_active = 1
+          AND (
+            status = 'active' OR status = 'published' OR status IS NULL
+          )
+          AND (
+            visibility = 'public' OR visibility IS NULL
+          )
         `).all(page, page, page);
       });
       
@@ -2385,7 +2406,7 @@ export function setupRoutes(app: express.Application) {
     try {
       const { token } = req.params;
       const update: any = req.body;
-      
+
       console.log('🤖 Master bot webhook received:', {
         token: token.substring(0, 10) + '...',
         updateType: update.channel_post ? 'channel_post' : update.message ? 'message' : 'other',
@@ -2393,44 +2414,57 @@ export function setupRoutes(app: express.Application) {
         chatId: update.channel_post?.chat?.id || update.message?.chat?.id,
         chatTitle: update.channel_post?.chat?.title || update.message?.chat?.title
       });
-      
-      // Verify token matches master bot token
+
+      // Verify token against master or additional allowed bot tokens
       const expectedToken = process.env.MASTER_BOT_TOKEN;
-      if (token !== expectedToken) {
-        console.error('❌ Invalid webhook token for master bot');
+      const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '').split(',').map(t => t.trim()).filter(Boolean);
+      const isAuthorized = token === expectedToken || allowedTokensEnv.includes(token);
+
+      if (!isAuthorized) {
+        console.error('❌ Invalid webhook token: not in allowed list');
         return res.status(401).json({ error: 'Invalid token' });
       }
-      
-      // Process webhook through TelegramBotManager
-      try {
-        console.log('🔄 Importing telegram-bot module...');
-        const telegramBot = await import('./telegram-bot');
-        console.log('🔄 Getting TelegramBotManager instance...');
-        const botManager = telegramBot.TelegramBotManager.getInstance();
-        
-        // Handle channel posts and messages
-        if (update.channel_post) {
-          console.log('🔄 Processing channel post...');
-          await botManager.processChannelPost(update.channel_post);
-          console.log('✅ Channel post processed');
-        } else if (update.message) {
-          console.log('🔄 Processing message...');
-          await botManager.processMessage(update.message);
-          console.log('✅ Message processed');
-        } else {
-          console.log('⚠️ No channel_post or message found in update');
-        }
-        
-        console.log('✅ Master bot webhook processed successfully');
-      } catch (error) {
-        console.error('❌ Failed to process master bot webhook update:', error);
-        console.error('Error stack:', error.stack);
-      }
-      
+
+      console.log('✅ Authorized webhook token', {
+        tokenPrefix: token.substring(0, 10) + '...',
+        type: token === expectedToken ? 'master' : 'additional'
+      });
+
+      // Immediately acknowledge to Telegram to avoid retries, then process asynchronously
       res.status(200).json({ ok: true });
+
+      // Defer processing so any errors never impact the HTTP response
+      setImmediate(async () => {
+        try {
+          console.log('🔄 Importing telegram-bot module...');
+          const telegramBot = await import('./telegram-bot');
+          console.log('🔄 Getting TelegramBotManager instance...');
+          const botManager = telegramBot.TelegramBotManager.getInstance();
+
+          if (update.channel_post) {
+            console.log('🔄 Processing channel post (async)...');
+            await botManager.processChannelPost(update.channel_post);
+            console.log('✅ Channel post processed');
+          } else if (update.message) {
+            console.log('🔄 Processing message (async)...');
+            await botManager.processMessage(update.message);
+            console.log('✅ Message processed');
+          } else {
+            console.log('⚠️ No channel_post or message found in update');
+          }
+
+          console.log('✅ Master bot webhook processed successfully (async)');
+        } catch (error: any) {
+          console.error('❌ Failed to process master bot webhook update:', error);
+          if (error && error.stack) console.error('Error stack:', error.stack);
+        }
+      });
     } catch (error) {
       console.error('❌ Master bot webhook error:', error);
-      res.status(500).json({ error: 'Webhook processing failed' });
+      // Never crash the site due to webhook issues
+      try {
+        res.status(200).json({ ok: true });
+      } catch {}
     }
   });
 

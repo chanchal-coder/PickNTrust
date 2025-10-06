@@ -9,32 +9,32 @@ export const bannerSlides: Array<{
 }> = [
   {
     id: 1,
-    title: "Shop Fashion",
-    subtitle: "Men • Women • Kids",
-    description: "Trending styles, best prices, trusted sellers.",
-    image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=1200&h=400&fit=crop&auto=format&fm=jpg&q=80",
-    ctaText: "Shop Fashion",
-    ctaLink: "/category/Fashion & Clothing",
+    title: "Premium Smartphones",
+    subtitle: "Best deals on top brands",
+    description: "Flagship phones and smart picks at trusted stores.",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1200&h=400&fit=crop&auto=format&q=80",
+    ctaText: "Shop Smartphones",
+    ctaLink: "/category/Electronics & Gadgets",
     bgGradient: "from-blue-600 to-purple-700",
   },
   {
     id: 2,
-    title: "Top Picks",
-    subtitle: "Curated collections for every need",
-    description: "Handpicked products loved by our community.",
-    image: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1200&h=400&fit=crop&auto=format&fm=jpg&q=80",
-    ctaText: "Explore Top Picks",
-    ctaLink: "/top-picks",
+    title: "Home & Kitchen Essentials",
+    subtitle: "Daily-use appliances and must-haves",
+    description: "Quality cookware, storage, and appliances for every home.",
+    image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=1200&h=400&fit=crop&auto=format&q=80",
+    ctaText: "Shop Home & Kitchen",
+    ctaLink: "/category/Home & Kitchen",
     bgGradient: "from-green-600 to-teal-700",
   },
   {
     id: 3,
-    title: "Travel Deals",
-    subtitle: "Flights • Hotels • Packages",
-    description: "Plan smarter with exclusive offers.",
-    image: "https://images.unsplash.com/photo-1502920917128-1aa500764ce7?w=1200&h=400&fit=crop&auto=format&fm=jpg&q=80",
-    ctaText: "View Travel Deals",
-    ctaLink: "/travel-deals",
+    title: "Fashion & Style",
+    subtitle: "Men • Women • Accessories",
+    description: "Trending outfits, footwear, and accessories.",
+    image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=1200&h=400&fit=crop&auto=format&q=80",
+    ctaText: "Shop Fashion",
+    ctaLink: "/category/Fashion & Clothing",
     bgGradient: "from-pink-600 to-rose-700",
   },
 ];
@@ -62,7 +62,7 @@ export default function HeroBannerSlider() {
     if (!url) return url;
     const trimmed = url.trim();
     return /^https?:\/\//i.test(trimmed)
-      ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}`
+      ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}&width=1280&height=400&quality=90&format=webp`
       : trimmed;
   };
 
@@ -131,10 +131,9 @@ export default function HeroBannerSlider() {
   // Combine database banners with hardcoded fallback banners
   const activeBanners = dbBanners.filter((banner: Banner) => banner.isActive)
                                 .sort((a: Banner, b: Banner) => a.displayOrder - b.displayOrder);
-  const dbSlides = convertDbBannersToSlides(activeBanners);
-  
+  // Show only static home banners (no DB merge on homepage)
   const visibleBannerSlides = bannerSlides.filter((slide) => !hiddenBanners.has(slide.title));
-  const slides = [...visibleBannerSlides, ...dbSlides];
+  const slides = visibleBannerSlides;
 
   // Auto-advance only when we have slides
   useEffect(() => {

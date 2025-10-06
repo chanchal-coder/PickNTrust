@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import Footer from './footer';
 import Header from './header';
 import WidgetRenderer from './WidgetRenderer';
+import SafeWidgetRenderer from './SafeWidgetRenderer';
 import ScrollNavigation from './scroll-navigation';
 
 interface UniversalPageLayoutProps {
@@ -108,19 +109,19 @@ export default function UniversalPageLayout({
               {/* Content Widgets as overlays (absolute inside relative container) */}
               {enableContentOverlays && (
                 <>
-                  <WidgetRenderer page={pageId} position="content-top" />
-                  <WidgetRenderer page={pageId} position="content-middle" />
-                  <WidgetRenderer page={pageId} position="content-bottom" />
+                  <SafeWidgetRenderer page={pageId} position="content-top" />
+                  <SafeWidgetRenderer page={pageId} position="content-middle" />
+                  <SafeWidgetRenderer page={pageId} position="content-bottom" />
                 </>
               )}
 
               {/* Floating Widgets inside overlay layer to appear below banner */}
               {enableFloatingOverlays && (
                 <>
-                  <WidgetRenderer page={pageId} position="floating-top-left" />
-                  <WidgetRenderer page={pageId} position="floating-top-right" />
-                  <WidgetRenderer page={pageId} position="floating-bottom-left" />
-                  <WidgetRenderer page={pageId} position="floating-bottom-right" />
+                  <SafeWidgetRenderer page={pageId} position="floating-top-left" />
+                  <SafeWidgetRenderer page={pageId} position="floating-top-right" />
+                  <SafeWidgetRenderer page={pageId} position="floating-bottom-left" />
+                  <SafeWidgetRenderer page={pageId} position="floating-bottom-right" />
                 </>
               )}
             </div>
