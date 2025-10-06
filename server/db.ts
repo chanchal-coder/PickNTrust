@@ -34,6 +34,80 @@ try {
 } catch (pragmaErr) {
   console.warn('Failed to set SQLite PRAGMAs:', pragmaErr);
 }
+
+// Ensure required tables exist to avoid runtime 500s when DB is missing or incomplete
+try {
+  // unified_content table (minimal schema covering active routes)
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS unified_content (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      price REAL,
+      original_price REAL,
+      image_url TEXT,
+      affiliate_url TEXT,
+      affiliate_urls TEXT,
+      content_type TEXT,
+      page_type TEXT,
+      category TEXT,
+      subcategory TEXT,
+      tags TEXT,
+      brand TEXT,
+      source_platform TEXT,
+      media_urls TEXT,
+      is_active INTEGER DEFAULT 1,
+      is_featured INTEGER DEFAULT 0,
+      is_service INTEGER DEFAULT 0,
+      is_ai_app INTEGER DEFAULT 0,
+      display_pages TEXT DEFAULT '["home"]',
+      status TEXT,
+      visibility TEXT,
+      processing_status TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // categories table used by browse endpoints
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      slug TEXT,
+      icon TEXT,
+      color TEXT DEFAULT '#3B82F6',
+      description TEXT,
+      parent_id INTEGER,
+      is_for_products INTEGER DEFAULT 1,
+      is_for_services INTEGER DEFAULT 0,
+      is_for_ai_apps INTEGER DEFAULT 0,
+      display_order INTEGER DEFAULT 0,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+      FOREIGN KEY (parent_id) REFERENCES categories(id)
+    );
+  `);
+
+  // Add missing columns on unified_content if DB exists with older schema
+  const colExists = (name: string) => {
+    const rows = sqlite.prepare("PRAGMA table_info(unified_content)").all();
+    return rows.some((r: any) => r.name === name);
+  };
+  const alterIfMissing = (name: string, def: string) => {
+    if (!colExists(name)) {
+      sqlite.exec(`ALTER TABLE unified_content ADD COLUMN ${def}`);
+    }
+  };
+  alterIfMissing('processing_status', 'processing_status TEXT');
+  alterIfMissing('visibility', 'visibility TEXT');
+  alterIfMissing('is_service', 'is_service INTEGER DEFAULT 0');
+  alterIfMissing('is_ai_app', 'is_ai_app INTEGER DEFAULT 0');
+
+  console.log('Database schema ensured: unified_content and categories present');
+} catch (schemaErr) {
+  console.warn('Failed to ensure database schema:', schemaErr);
+}
 // Try to load schema dynamically from common locations; fallback to no schema
 let loadedSchema: any | undefined = undefined;
 const tryDynamicImport = async (relPath: string) => {
