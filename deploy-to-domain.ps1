@@ -1,4 +1,4 @@
-# Deploy PickNTrust static client to EC2 safely (no Nginx changes)
+# Deploy PickNTrust static client to EC2 safely (ec2-user path only)
 Write-Host "Deploying PickNTrust client to pickntrust.com..." -ForegroundColor Green
 
 # SSH key and server
@@ -22,13 +22,35 @@ ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-use
 # 4) Upload and extract client build into public directory
 Write-Host "Uploading client artifact..." -ForegroundColor Yellow
 scp -i $SSH_KEY -o StrictHostKeyChecking=no $tarPath "${SERVER}:/home/ec2-user/pickntrust/"
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "set -e; cd /home/ec2-user/pickntrust && mkdir -p dist/public && rm -rf dist/public/* && tar -xzf pickntrust-client.tar.gz -C dist/public && rm -f pickntrust-client.tar.gz && sudo nginx -t && sudo systemctl reload nginx"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "set -e; cd /home/ec2-user/pickntrust && mkdir -p dist/public && rm -rf dist/public/* && tar -xzf pickntrust-client.tar.gz -C dist/public && rm -f pickntrust-client.tar.gz"
+
+# 4b) Push Nginx config with cache headers to avoid stale index caching and reload
+Write-Host "Updating Nginx config (cache headers for index/assets)..." -ForegroundColor Yellow
+scp -i $SSH_KEY -o StrictHostKeyChecking=no "pickntrust.conf" "${SERVER}:/home/ec2-user/pickntrust/pickntrust.conf"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "sudo cp /home/ec2-user/pickntrust/pickntrust.conf /etc/nginx/conf.d/pickntrust.conf && sudo nginx -t && sudo systemctl reload nginx"
 
 # 5) Verify HTTPS endpoints from local machine
 Write-Host "Verifying HTTPS endpoints..." -ForegroundColor Yellow
 try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "root check error: $($_.Exception.Message)" -ForegroundColor Red }
 try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/health" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "health check error: $($_.Exception.Message)" -ForegroundColor Red }
 try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/api/status" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "api status error: $($_.Exception.Message)" -ForegroundColor Red }
+
+# 6) Verify live bundle name and ensure test widget string is removed
+Write-Host "Verifying live bundle contents..." -ForegroundColor Yellow
+try {
+  $html = Invoke-WebRequest -Uri 'https://www.pickntrust.com/prime-picks' -UseBasicParsing
+  $m = [regex]::Match($html.Content, 'src="/assets/index-([^"]+)"')
+  $hash = $m.Groups[1].Value
+  $indexUrl = "https://www.pickntrust.com/assets/index-$hash"
+  $idx = Invoke-WebRequest -Uri $indexUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+  $pm = [regex]::Match($idx, 'pages-picks-[A-Za-z0-9_-]+\.js')
+  $bundleUrl = "https://www.pickntrust.com/assets/$($pm.Value)"
+  Write-Host "Bundle URL: $bundleUrl" -ForegroundColor Cyan
+  $content = Invoke-WebRequest -Uri $bundleUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+  if ($content -match 'Prime Picks Test Widget') { Write-Host '❌ Test widget string still present' -ForegroundColor Red } else { Write-Host '✅ Test widget string removed' -ForegroundColor Green }
+} catch {
+  Write-Host "bundle verify error: $($_.Exception.Message)" -ForegroundColor Red
+}
 
 Write-Host "✅ Client deployment completed without altering Nginx or backend." -ForegroundColor Green
 

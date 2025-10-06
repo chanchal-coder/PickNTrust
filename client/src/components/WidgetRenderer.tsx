@@ -29,6 +29,9 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   // Global safe-mode: disable overlay widgets that might cover the page
   const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const isDevEnv = import.meta.env.DEV === true;
+  const isProdEnv = import.meta.env.PROD === true;
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isProductionDomain = /pickntrust\.com$/i.test(hostname);
   const widgetsSafeMode = (urlParams.get('widgetsSafeMode') === '1') || (typeof window !== 'undefined' && localStorage.getItem('widgetsSafeMode') === 'true');
   const widgetsSafeModeFull = (urlParams.get('widgetsSafeModeFull') === '1') || (typeof window !== 'undefined' && localStorage.getItem('widgetsSafeModeFull') === 'true');
   const isOverlayPosition = position.startsWith('content-') || position.startsWith('floating-') || position === 'sidebar-left' || position === 'sidebar-right';
@@ -45,7 +48,12 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   useEffect(() => {
     try {
       const wantsPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
-      if (!wantsPreview) {
+      // In production on the live domain, force-disable and clear any preview flags
+      if (isProdEnv && isProductionDomain) {
+        localStorage.removeItem('widgetPreview');
+        localStorage.removeItem('widgetPreviewEnabled');
+        localStorage.removeItem('widgetPreviewOnly');
+      } else if (!wantsPreview) {
         localStorage.removeItem('widgetPreview');
         localStorage.removeItem('widgetPreviewEnabled');
         localStorage.removeItem('widgetPreviewOnly');
@@ -128,18 +136,7 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
 
         allWidgets = primaryWidgets;
 
-        // If no widgets exist for this new page, optionally fall back to prime-picks
-        // Skip fallback for admin pages to keep the admin panel clean
-        const isAdminPage = widgetPage === 'admin' || widgetPage.startsWith('admin');
-        if ((!primaryWidgets || primaryWidgets.length === 0) && widgetPage !== 'prime-picks' && !isAdminPage) {
-          try {
-            const fallbackResponse = await fetch(`/api/widgets/prime-picks/${position}`);
-            if (fallbackResponse.ok) {
-              const primeWidgets = await fallbackResponse.json();
-              allWidgets = primeWidgets;
-            }
-          } catch {}
-        }
+        // Do not fall back to other pages; only render widgets for the current page
       }
       
       // Transform snake_case API response to camelCase for frontend
@@ -172,8 +169,12 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   });
 
   // Inject localStorage-based live preview widget when enabled and matching
-  const previewEnabled = urlParams.get('preview') === '1' || localStorage.getItem('widgetPreviewEnabled') === 'true';
-  const previewOnly = urlParams.get('previewOnly') === '1' || localStorage.getItem('widgetPreviewOnly') === 'true';
+  // Block preview mode in production on the live domain
+  const previewEnabledRaw = urlParams.get('preview') === '1' || localStorage.getItem('widgetPreviewEnabled') === 'true';
+  const previewOnlyRaw = urlParams.get('previewOnly') === '1' || localStorage.getItem('widgetPreviewOnly') === 'true';
+  // Hard-disable preview on production domain regardless of build env
+  const previewEnabled = isProductionDomain ? false : previewEnabledRaw;
+  const previewOnly = isProductionDomain ? false : previewOnlyRaw;
   const forceDebug = urlParams.get('forceWidgetDebug') === '1';
   const positionHash = Array.from(position).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   const isFloating = position.startsWith('floating-');
@@ -276,8 +277,17 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
 
 // Individual widget item component
 function WidgetItem({ widget, position, page }: { widget: Widget; position: string; page?: string }) {
-  // Execute any scripts in the widget code safely
+  // Execute inline widget scripts only when explicitly allowed in dev.
+  // In production, avoid running arbitrary scripts to prevent React hook misuse outside render.
+  const allowWidgetScripts = (import.meta.env.DEV && (
+    new URLSearchParams(window.location.search).get('allowWidgetScripts') === '1' ||
+    localStorage.getItem('widgetAllowScripts') === 'true'
+  ));
+
   useEffect(() => {
+    if (!allowWidgetScripts) {
+      return; // Skip executing scripts unless explicitly enabled in dev
+    }
     try {
       const container = document.getElementById(`widget-${widget.id}`);
       if (!container) return;
@@ -285,17 +295,14 @@ function WidgetItem({ widget, position, page }: { widget: Widget; position: stri
       scripts.forEach((script) => {
         try {
           const newScript = document.createElement('script');
-          // Copy attributes
           Array.from(script.attributes).forEach((attr) => {
             newScript.setAttribute(attr.name, attr.value);
           });
-          // Copy content
           if (script.src) {
             newScript.src = script.src;
           } else {
             newScript.textContent = script.textContent;
           }
-          // Replace the old script with the new one
           script.parentNode?.replaceChild(newScript, script);
         } catch (err) {
           console.error(`Widget script execution error (widget ${widget.id}):`, err);
@@ -304,7 +311,7 @@ function WidgetItem({ widget, position, page }: { widget: Widget; position: stri
     } catch (err) {
       console.error(`Widget container processing error (widget ${widget.id}):`, err);
     }
-  }, [widget.id, widget.code, widget.body]);
+  }, [widget.id, widget.code, widget.body, allowWidgetScripts]);
 
   // Basic click tracking for links inside widget content
   useEffect(() => {

@@ -12,7 +12,6 @@ import AmazonProductCard from "@/components/amazon-product-card";
 import URLProcessor from "@/components/URLProcessor";
 import { AdminBulkDelete } from "@/components/AdminBulkDelete";
 
-import PrimePicksTestWidget from "@/components/PrimePicksTestWidget";
 
 import WidgetRenderer from '@/components/WidgetRenderer';
 import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
@@ -245,10 +244,9 @@ export default function PrimePicks() {
       <AnnouncementBanner />
       {/* Page Banner Slider */}
       <PageBanner page="prime-picks" />
-      {/* Test widget: simple card with image to verify placement */}
-      <PrimePicksTestWidget />
-      {/* Header Bottom should appear below dynamic banner area */}
-      <WidgetRenderer page={"prime-picks"} position="header-bottom" className="w-full" />
+      {/* Test widget removed: was a temporary verification component */}
+      {/* Header Bottom removed per request to delete test widget */}
+      {/* <WidgetRenderer page={"prime-picks"} position="header-bottom" className="w-full" /> */}
 
       {/* Main Content */}
       <div className="header-spacing">
