@@ -396,7 +396,6 @@ export default function Header() {
               <button
                 onClick={() => setShowAdminLogin(true)}
                 className="absolute -bottom-1 -right-1 w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full opacity-30 hover:opacity-100 transition-opacity"
-                title="Admin"
               />
             )}
           </div>
@@ -427,7 +426,6 @@ export default function Header() {
                 <Link 
                   href="/admin" 
                   className="text-red-500 hover:text-red-600 transition-colors"
-                  title="Admin Panel"
                 >
                   <i className="fas fa-cog text-sm"></i>
                 </Link>
@@ -628,6 +626,8 @@ export default function Header() {
                   <TooltipTrigger asChild>
                     <a
                       href="https://store.pickntrust.com/?utm_source=pickntrust_site&utm_medium=header_cta&utm_campaign=store_cta&utm_content=gold_capsule"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="group relative inline-flex w-full sm:w-auto items-center justify-between gap-3 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 text-black px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg hover:shadow-amber-500/30 transition-all duration-300 transform active:translate-y-px active:scale-[0.99] ring-1 ring-black/10 ring-inset shadow-inner min-h-[56px] sm:min-h-[64px] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-amber-200"
                       aria-label="Shop Now — Open PickNTrust Store"
                       onClick={(e) => {

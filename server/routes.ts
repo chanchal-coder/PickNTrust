@@ -825,17 +825,46 @@ export function setupRoutes(app: express.Application) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      const result = sqliteDb.prepare(`
-        INSERT INTO categories (name, description, display_order, is_active)
-        VALUES (?, ?, ?, ?)
-      `).run(
-        categoryData.name,
-        categoryData.description || '',
-        categoryData.displayOrder || 0,
-        categoryData.isActive !== false ? 1 : 0
-      );
+      // Normalize name and prevent empty
+      const normalizedName = String(categoryData.name || '').trim();
+      if (!normalizedName) {
+        return res.status(400).json({ message: 'Category name is required' });
+      }
 
-      res.json({ id: result.lastInsertRowid, ...categoryData });
+      // Check for duplicate (case-insensitive, trimmed)
+      const existing = sqliteDb.prepare(
+        `SELECT id, name FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1`
+      ).get(normalizedName) as any;
+      if (existing) {
+        return res.status(409).json({ message: 'Category already exists', existingId: existing.id, existingName: existing.name });
+      }
+
+      try {
+        // Provide defaults for icon/color/description to satisfy stricter schemas
+        const defaultIcon = categoryData.icon || '📦';
+        const defaultColor = categoryData.color || '#3B82F6';
+        const defaultDescription = categoryData.description || '';
+
+        const result = sqliteDb.prepare(`
+          INSERT INTO categories (name, icon, color, description, display_order, is_active)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          normalizedName,
+          defaultIcon,
+          defaultColor,
+          defaultDescription,
+          categoryData.displayOrder || 0,
+          categoryData.isActive !== false ? 1 : 0
+        );
+        return res.json({ id: result.lastInsertRowid, ...categoryData, name: normalizedName, icon: defaultIcon, color: defaultColor, description: defaultDescription });
+      } catch (dbErr: any) {
+        // Handle unique constraint violations gracefully
+        const code = dbErr?.code || '';
+        if (code === 'SQLITE_CONSTRAINT' || /UNIQUE/i.test(String(dbErr?.message))) {
+          return res.status(409).json({ message: 'Category already exists' });
+        }
+        return handleDatabaseError(dbErr, res, 'create category');
+      }
     } catch (error) {
       console.error('Error creating category:', error);
       res.status(500).json({ message: 'Failed to create category' });
@@ -851,19 +880,49 @@ export function setupRoutes(app: express.Application) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      sqliteDb.prepare(`
-        UPDATE categories 
-        SET name = ?, description = ?, display_order = ?, is_active = ?
-        WHERE id = ?
-      `).run(
-        categoryData.name,
-        categoryData.description || '',
-        categoryData.displayOrder || 0,
-        categoryData.isActive !== false ? 1 : 0,
-        id
-      );
+      // Normalize name and prevent empty
+      const normalizedName = String(categoryData.name || '').trim();
+      if (!normalizedName) {
+        return res.status(400).json({ message: 'Category name is required' });
+      }
 
-      res.json({ id, ...categoryData });
+      // Check for duplicate against other records
+      const dup = sqliteDb.prepare(
+        `SELECT id, name FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND id <> ? LIMIT 1`
+      ).get(normalizedName, id) as any;
+      if (dup) {
+        return res.status(409).json({ message: 'Category already exists', existingId: dup.id, existingName: dup.name });
+      }
+
+      try {
+        // Update icon/color/description if provided; keep others unchanged
+        sqliteDb.prepare(`
+          UPDATE categories 
+          SET 
+            name = ?,
+            description = COALESCE(?, description),
+            icon = COALESCE(?, icon),
+            color = COALESCE(?, color),
+            display_order = ?,
+            is_active = ?
+          WHERE id = ?
+        `).run(
+          normalizedName,
+          categoryData.description ?? null,
+          categoryData.icon ?? null,
+          categoryData.color ?? null,
+          categoryData.displayOrder || 0,
+          categoryData.isActive !== false ? 1 : 0,
+          id
+        );
+        return res.json({ id, ...categoryData, name: normalizedName });
+      } catch (dbErr: any) {
+        const code = dbErr?.code || '';
+        if (code === 'SQLITE_CONSTRAINT' || /UNIQUE/i.test(String(dbErr?.message))) {
+          return res.status(409).json({ message: 'Category already exists' });
+        }
+        return handleDatabaseError(dbErr, res, 'update category');
+      }
     } catch (error) {
       console.error('Error updating category:', error);
       res.status(500).json({ message: 'Failed to update category' });
@@ -887,13 +946,22 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
-  // Get all categories from categories table
+  // Get all categories with flags and metadata (used by admin forms)
   app.get('/api/categories', async (req, res) => {
     try {
       const categories = sqliteDb.prepare(`
-        SELECT name, name as id
+        SELECT 
+          id,
+          name,
+          icon,
+          color,
+          description,
+          parent_id as parentId,
+          COALESCE(is_for_products, 1) as isForProducts,
+          COALESCE(is_for_services, 0) as isForServices,
+          COALESCE(is_for_ai_apps, 0) as isForAIApps,
+          display_order as displayOrder
         FROM categories 
-        WHERE is_active = 1
         ORDER BY display_order ASC, name ASC
       `).all();
       
@@ -904,24 +972,70 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
-  // Browse categories endpoint - only shows categories with products
+  // Browse categories endpoint - show ALL parent categories and counts
   app.get('/api/categories/browse', async (req, res) => {
     try {
       console.log('🔍 Browse categories API called with query:', req.query);
       const { type } = req.query;
       
-      let typeFilter = '';
-      
-      // Add type filtering if specified
-      if (type && type !== 'all') {
-        if (type === 'products') {
-          typeFilter = ` AND (uc.is_service IS NULL OR uc.is_service = 0) AND (uc.is_ai_app IS NULL OR uc.is_ai_app = 0)`;
-        } else if (type === 'services') {
-          typeFilter = ` AND uc.is_service = 1`;
-        } else if (type === 'aiapps') {
-          typeFilter = ` AND uc.is_ai_app = 1`;
-        }
-      }
+      // We include all parent categories regardless of whether content exists.
+      // Type affects counts only, not whether a category is included.
+      // Restrict visible parent categories to a canonical whitelist and enforce custom order.
+      const CANONICAL_PARENT_CATEGORIES = [
+        'Fashion',
+        'Accessories',
+        'Home & Living',
+        'Electronics & Gadgets',
+        'Health',
+        'Beauty',
+        'Sports & Fitness',
+        'Baby & Kids',
+        'Automotive',
+        'Books & Education',
+        'Pet Supplies',
+        'Office & Productivity',
+        'Travel',
+        'Services',
+        'Apps & AI Apps',
+      ];
+      const allowedSet = new Set(CANONICAL_PARENT_CATEGORIES.map(n => n.toLowerCase()));
+      const orderMap = new Map(CANONICAL_PARENT_CATEGORIES.map((n, i) => [n.toLowerCase(), i]));
+      // Map common DB variants to canonical display names so we don't hide valid categories
+      const SYNONYMS_TO_CANONICAL: Record<string, string> = {
+        // Electronics
+        'electronics': 'Electronics & Gadgets',
+        'tech': 'Electronics & Gadgets',
+        'technology': 'Electronics & Gadgets',
+        'tech & electronics': 'Electronics & Gadgets',
+        'electronics & gadgets': 'Electronics & Gadgets',
+        // Fashion
+        'fashion & clothing': 'Fashion',
+        'fashion': 'Fashion',
+        // Accessories
+        'jewelry & watches': 'Accessories',
+        'footwear & accessories': 'Accessories',
+        'accessories': 'Accessories',
+        // Home
+        'home & kitchen': 'Home & Living',
+        'home & living': 'Home & Living',
+        // Health / Beauty
+        'health & beauty': 'Beauty', // Show under Beauty (can split later)
+        'health': 'Health',
+        'beauty': 'Beauty',
+        'beauty & personal care': 'Beauty',
+        'beauty & grooming': 'Beauty',
+        // Office
+        'office supplies': 'Office & Productivity',
+        'office & productivity': 'Office & Productivity',
+        // Travel
+        'travel & luggage': 'Travel',
+        'travel': 'Travel',
+        // Apps & AI Apps
+        'ai apps': 'Apps & AI Apps',
+        'ai apps & services': 'Apps & AI Apps',
+        'apps': 'Apps & AI Apps',
+        'apps & ai apps': 'Apps & AI Apps',
+      };
       
       const query = `
         SELECT 
@@ -935,11 +1049,71 @@ export function setupRoutes(app: express.Application) {
           c.is_for_services as isForServices,
           c.is_for_ai_apps as isForAIApps,
           c.display_order as displayOrder,
-          COUNT(uc.id) as total_products_count,
-          COUNT(CASE WHEN uc.is_service = 1 THEN 1 END) as services_count,
-          COUNT(CASE WHEN uc.is_ai_app = 1 THEN 1 END) as apps_count
+          -- Counts are computed only for valid content rows
+          SUM(
+            CASE 
+              WHEN uc.id IS NOT NULL
+               AND (
+                 uc.processing_status = 'completed' 
+                 OR uc.processing_status = 'active' 
+                 OR uc.processing_status IS NULL
+               )
+               AND (
+                 uc.visibility = 'public' 
+                 OR uc.visibility IS NULL
+               )
+               AND (
+                 uc.status = 'active' 
+                 OR uc.status = 'published' 
+                 OR uc.status IS NULL
+               )
+               THEN 1 ELSE 0
+            END
+          ) as total_products_count,
+          SUM(
+            CASE 
+              WHEN uc.id IS NOT NULL
+               AND uc.is_service = 1
+               AND (
+                 uc.processing_status = 'completed' 
+                 OR uc.processing_status = 'active' 
+                 OR uc.processing_status IS NULL
+               )
+               AND (
+                 uc.visibility = 'public' 
+                 OR uc.visibility IS NULL
+               )
+               AND (
+                 uc.status = 'active' 
+                 OR uc.status = 'published' 
+                 OR uc.status IS NULL
+               )
+               THEN 1 ELSE 0
+            END
+          ) as services_count,
+          SUM(
+            CASE 
+              WHEN uc.id IS NOT NULL
+               AND uc.is_ai_app = 1
+               AND (
+                 uc.processing_status = 'completed' 
+                 OR uc.processing_status = 'active' 
+                 OR uc.processing_status IS NULL
+               )
+               AND (
+                 uc.visibility = 'public' 
+                 OR uc.visibility IS NULL
+               )
+               AND (
+                 uc.status = 'active' 
+                 OR uc.status = 'published' 
+                 OR uc.status IS NULL
+               )
+               THEN 1 ELSE 0
+            END
+          ) as apps_count
         FROM categories c
-        INNER JOIN unified_content uc ON (
+        LEFT JOIN unified_content uc ON (
           uc.category = c.name 
           OR uc.category = REPLACE(c.name, 's', '')
           OR uc.category = c.name || 's'
@@ -949,31 +1123,35 @@ export function setupRoutes(app: express.Application) {
         )
         WHERE c.parent_id IS NULL
           AND c.is_active = 1
-          AND (
-            uc.processing_status = 'completed' 
-            OR uc.processing_status = 'active' 
-            OR uc.processing_status IS NULL
-          )
-          AND (
-            uc.visibility = 'public' 
-            OR uc.visibility IS NULL
-          )
-          AND (
-            uc.status = 'active' 
-            OR uc.status = 'published' 
-            OR uc.status IS NULL
-          )
-          ${typeFilter}
         GROUP BY c.id, c.name, c.icon, c.color, c.description, c.parent_id, c.is_for_products, c.is_for_services, c.is_for_ai_apps, c.display_order
-        HAVING COUNT(uc.id) > 0
         ORDER BY c.display_order ASC, c.name ASC
       `;
       
       console.log('🔍 Executing query:', query);
       const categories = sqliteDb.prepare(query).all();
-      console.log('🔍 Query result:', categories);
-      
-      res.json(categories);
+      // Map to canonical display names via synonyms, then dedupe by name
+      const seen = new Set<string>();
+      const withCanonical = categories.map((c: any) => {
+        const nameLower = String(c.name || '').toLowerCase();
+        const canonical = SYNONYMS_TO_CANONICAL[nameLower] || c.name;
+        return { ...c, name: canonical };
+      });
+
+      const uniqueCategories = withCanonical.filter((c: any) => {
+        const key = String(c.name || '').toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // Sort by DB display_order then name
+      uniqueCategories.sort((a: any, b: any) => {
+        if ((a.displayOrder ?? 0) !== (b.displayOrder ?? 0)) return (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+
+      console.log('🔍 Query result (db-only unique):', uniqueCategories);
+      res.json(uniqueCategories);
     } catch (error) {
       console.error('Error fetching browse categories:', error);
       res.status(500).json({ message: 'Failed to fetch browse categories' });
@@ -1079,64 +1257,85 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
-  // Form category endpoints - return ALL categories regardless of content
+  // Form category endpoints - DB-only parents (instant reflection of admin edits/deletions)
   app.get('/api/categories/forms/products', async (req, res) => {
     try {
-      const categories = sqliteDb.prepare(`
-        SELECT 
-          c.name, 
-          c.name as id, 
-          0 as count
+      const rows = sqliteDb.prepare(`
+        SELECT c.name, c.name as id, c.display_order as displayOrder
         FROM categories c
-        WHERE (c.is_for_products = 1 OR c.is_for_products IS NULL)
-          AND c.is_active = 1
+        WHERE c.parent_id IS NULL
+          AND c.is_for_products = 1
         ORDER BY c.display_order ASC, c.name ASC
-      `).all();
-      
-      res.json(categories);
+      `).all() as { name: string, id: string, displayOrder: number }[];
+
+      res.json(rows.map(({ name, id }) => ({ name, id, count: 0 })));
     } catch (error) {
       console.error('Error fetching form product categories:', error);
-      res.status(500).json({ message: 'Failed to fetch form product categories' });
+      handleDatabaseError(error, res, 'fetch form product categories');
     }
   });
 
   app.get('/api/categories/forms/services', async (req, res) => {
     try {
-      const categories = sqliteDb.prepare(`
-        SELECT 
-          c.name, 
-          c.name as id, 
-          0 as count
+      const rows = sqliteDb.prepare(`
+        SELECT c.name, c.name as id, c.display_order as displayOrder
         FROM categories c
-        WHERE (c.is_for_services = 1 OR c.is_for_services IS NULL)
-          AND c.is_active = 1
+        WHERE c.parent_id IS NULL
+          AND c.is_for_services = 1
         ORDER BY c.display_order ASC, c.name ASC
-      `).all();
-      
-      res.json(categories);
+      `).all() as { name: string, id: string, displayOrder: number }[];
+
+      res.json(rows.map(({ name, id }) => ({ name, id, count: 0 })));
     } catch (error) {
       console.error('Error fetching form service categories:', error);
-      res.status(500).json({ message: 'Failed to fetch form service categories' });
+      handleDatabaseError(error, res, 'fetch form service categories');
     }
   });
 
   app.get('/api/categories/forms/aiapps', async (req, res) => {
     try {
-      const categories = sqliteDb.prepare(`
-        SELECT 
-          c.name, 
-          c.name as id, 
-          0 as count
+      const rows = sqliteDb.prepare(`
+        SELECT c.name, c.name as id, c.display_order as displayOrder
         FROM categories c
-        WHERE (c.is_for_ai_apps = 1 OR c.is_for_ai_apps IS NULL)
-          AND c.is_active = 1
+        WHERE c.parent_id IS NULL
+          AND c.is_for_ai_apps = 1
         ORDER BY c.display_order ASC, c.name ASC
-      `).all();
-      
-      res.json(categories);
+      `).all() as { name: string, id: string, displayOrder: number }[];
+
+      res.json(rows.map(({ name, id }) => ({ name, id, count: 0 })));
     } catch (error) {
       console.error('Error fetching form AI app categories:', error);
-      res.status(500).json({ message: 'Failed to fetch form AI app categories' });
+      handleDatabaseError(error, res, 'fetch form AI app categories');
+    }
+  });
+
+  // Subcategories for a given parent category name
+  app.get('/api/categories/subcategories', async (req, res) => {
+    try {
+      const { parent } = req.query as { parent?: string };
+      if (!parent || !parent.trim()) {
+        return res.json([]);
+      }
+
+      const parentRow = sqliteDb.prepare(`
+        SELECT id FROM categories WHERE name = ? LIMIT 1
+      `).get(parent) as { id?: number } | undefined;
+
+      if (!parentRow || !parentRow.id) {
+        return res.json([]);
+      }
+
+      const subcats = sqliteDb.prepare(`
+        SELECT name, name as id
+        FROM categories
+        WHERE parent_id = ?
+        ORDER BY display_order ASC, name ASC
+      `).all(parentRow.id);
+
+      res.json(subcats);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      handleDatabaseError(error, res, 'fetch subcategories');
     }
   });
 
@@ -1717,6 +1916,333 @@ export function setupRoutes(app: express.Application) {
   });
 
   // Add dedicated travel-products delete endpoint (unified_content)
+  // Create travel-products insert endpoint (unified_content)
+  app.post('/api/admin/travel-products', async (req, res) => {
+    try {
+      // Admin password handling consistent with delete endpoints
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const bodyPwd = (req.body && (req.body as any).password) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = headerPwd || bodyPwd || queryPwd;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const data = req.body || {};
+      const title = (data.name ?? data.title ?? '').toString();
+      if (!title) {
+        return res.status(400).json({ message: 'Name/title is required' });
+      }
+
+      const description = data.description ?? null;
+      const price = data.price ?? null;
+      const original_price = data.original_price ?? data.originalPrice ?? null;
+      const currency = data.currency ?? 'INR';
+      const image_url = data.image_url ?? data.imageUrl ?? null;
+      const affiliate_url = data.affiliate_url ?? data.affiliateUrl ?? null;
+      const category = (data.category ?? '').toString();
+      const subcategory = data.subcategory ?? null;
+
+      // Display pages: include travel and the category slug for broader matching
+      const displayPagesArr: string[] = Array.isArray(data.displayPages)
+        ? data.displayPages
+        : ['travel', category].filter((v) => v && v.length > 0);
+      const display_pages = JSON.stringify(displayPagesArr.length > 0 ? displayPagesArr : ['travel']);
+
+      // Basic flags and metadata; align with browse filters used elsewhere
+      const is_featured = data.is_featured ?? (data.section_type === 'featured' ? 1 : 0);
+      const is_active = data.is_active ?? 1;
+      const content_type = data.content_type ?? 'travel';
+      const page_type = data.page_type ?? 'travel-picks';
+      const status = data.status ?? 'published';
+      const visibility = data.visibility ?? 'public';
+      const processing_status = data.processing_status ?? 'active';
+
+      // Pack additional travel-specific fields into tags JSON for future use without schema changes
+      const extraFields = {
+        section_type: data.section_type ?? data.sectionType ?? undefined,
+        route_type: data.route_type ?? data.routeType ?? undefined,
+        airline: data.airline ?? undefined,
+        departure: data.departure ?? undefined,
+        arrival: data.arrival ?? undefined,
+        departure_time: data.departure_time ?? data.departureTime ?? undefined,
+        arrival_time: data.arrival_time ?? data.arrivalTime ?? undefined,
+        duration: data.duration ?? undefined,
+        flight_class: data.flight_class ?? data.flightClass ?? undefined,
+        stops: data.stops ?? undefined,
+        location: data.location ?? undefined,
+        hotel_type: data.hotel_type ?? data.hotelType ?? undefined,
+        room_type: data.room_type ?? data.roomType ?? undefined,
+        amenities: data.amenities ?? undefined,
+        rating: data.rating ?? undefined,
+        cancellation: data.cancellation ?? undefined,
+        destinations: data.destinations ?? undefined,
+        inclusions: data.inclusions ?? undefined,
+        tour_type: data.tour_type ?? data.tourType ?? undefined,
+        group_size: data.group_size ?? data.groupSize ?? undefined,
+        difficulty: data.difficulty ?? undefined,
+        cruise_line: data.cruise_line ?? data.cruiseLine ?? undefined,
+        route: data.route ?? undefined,
+        cabin_type: data.cabin_type ?? data.cabinType ?? undefined,
+        ports: data.ports ?? undefined,
+        operator: data.operator ?? undefined,
+        bus_type: data.bus_type ?? data.busType ?? undefined,
+        train_operator: data.train_operator ?? undefined,
+        train_type: data.train_type ?? undefined,
+        train_number: data.train_number ?? undefined,
+        package_type: data.package_type ?? undefined,
+        valid_till: data.valid_till ?? data.validTill ?? undefined,
+        car_type: data.car_type ?? undefined,
+        features: data.features ?? undefined,
+        fuel_type: data.fuel_type ?? undefined,
+        transmission: data.transmission ?? undefined,
+        taxes_amount: data.taxes_amount ?? undefined,
+        gst_amount: data.gst_amount ?? undefined,
+        brand_badge: data.brand_badge ?? undefined,
+        flight_price: data.flight_price ?? undefined,
+        flight_route: data.flight_route ?? undefined,
+        flight_details: data.flight_details ?? undefined,
+        card_background_color: data.card_background_color ?? undefined,
+        field_colors: data.field_colors ?? undefined,
+        field_styles: data.field_styles ?? undefined,
+        source: data.source ?? 'admin_form'
+      };
+      const tags = JSON.stringify(extraFields);
+
+      // Insert into unified_content (using only schema-guaranteed columns)
+      const insert = sqliteDb.prepare(`
+        INSERT INTO unified_content (
+          title, description, price, original_price, currency,
+          image_url, affiliate_url, content_type, page_type,
+          category, subcategory, tags, is_active, is_featured,
+          display_pages, status, visibility, processing_status,
+          created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          datetime('now'), datetime('now')
+        )
+      `);
+
+      const result = insert.run(
+        title,
+        description,
+        price,
+        original_price,
+        currency,
+        image_url,
+        affiliate_url,
+        content_type,
+        page_type,
+        category || null,
+        subcategory,
+        tags,
+        is_active ? 1 : 0,
+        is_featured ? 1 : 0,
+        display_pages,
+        status,
+        visibility,
+        processing_status
+      );
+
+      const newItem = sqliteDb.prepare(`SELECT * FROM unified_content WHERE id = ?`).get(result.lastInsertRowid) as any;
+      // Map DB field names for client convenience; guard unknown types and cast explicitly
+      const mapped: any = {
+        ...(((newItem as any) ?? {}) as Record<string, any>),
+        name: (newItem as any)?.title,
+      };
+      return res.status(201).json({ message: 'Travel product added successfully', product: mapped });
+    } catch (error) {
+      handleDatabaseError(error, res, 'create travel product');
+    }
+  });
+
+  // Bulk delete travel products by category (place BEFORE :id route to avoid shadowing)
+  app.delete('/api/admin/travel-products/bulk-delete', async (req, res) => {
+    try {
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const bodyPwd = (req.body && (req.body as any).password) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = headerPwd || bodyPwd || queryPwd;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const categoryRaw = (req.body && (req.body as any).category) || (req.query && (req.query as any).category) || '';
+      const category = (categoryRaw || '').toString().toLowerCase();
+
+      if (!category) {
+        return res.status(400).json({ message: 'Category is required' });
+      }
+
+      let whereClause = '';
+      if (category === 'all') {
+        whereClause = `(
+          category LIKE '%flight%' OR title LIKE '%flight%' OR display_pages LIKE '%flight%' OR
+          category LIKE '%hotel%' OR title LIKE '%hotel%' OR display_pages LIKE '%hotel%' OR content_type = 'hotel' OR
+          category LIKE '%tour%' OR title LIKE '%tour%' OR display_pages LIKE '%tour%' OR
+          category LIKE '%cruise%' OR title LIKE '%cruise%' OR display_pages LIKE '%cruise%' OR
+          category LIKE '%bus%' OR title LIKE '%bus%' OR display_pages LIKE '%bus%' OR
+          category LIKE '%train%' OR title LIKE '%train%' OR display_pages LIKE '%train%' OR
+          category LIKE '%package%' OR title LIKE '%package%' OR title LIKE '%holiday%' OR display_pages LIKE '%package%' OR
+          category LIKE '%car%' OR title LIKE '%car%' OR title LIKE '%rental%' OR title LIKE '%taxi%' OR display_pages LIKE '%car%' OR
+          page_type = 'travel-picks' OR display_pages LIKE '%travel%'
+        )`;
+      } else {
+        switch (category) {
+          case 'flights':
+            whereClause = `(category LIKE '%flight%' OR title LIKE '%flight%' OR display_pages LIKE '%flight%')`;
+            break;
+          case 'hotels':
+            whereClause = `(category LIKE '%hotel%' OR title LIKE '%hotel%' OR display_pages LIKE '%hotel%' OR content_type = 'hotel')`;
+            break;
+          case 'tours':
+            whereClause = `(category LIKE '%tour%' OR title LIKE '%tour%' OR display_pages LIKE '%tour%')`;
+            break;
+          case 'cruises':
+            whereClause = `(category LIKE '%cruise%' OR title LIKE '%cruise%' OR display_pages LIKE '%cruise%')`;
+            break;
+          case 'bus':
+            whereClause = `(category LIKE '%bus%' OR title LIKE '%bus%' OR display_pages LIKE '%bus%')`;
+            break;
+          case 'train':
+            whereClause = `(category LIKE '%train%' OR title LIKE '%train%' OR display_pages LIKE '%train%')`;
+            break;
+          case 'packages':
+            whereClause = `(category LIKE '%package%' OR title LIKE '%package%' OR title LIKE '%holiday%' OR display_pages LIKE '%package%')`;
+            break;
+          case 'car-rental':
+            whereClause = `(category LIKE '%car%' OR title LIKE '%car%' OR title LIKE '%rental%' OR title LIKE '%taxi%' OR display_pages LIKE '%car%')`;
+            break;
+          default:
+            whereClause = `(category LIKE '%' || ? || '%' OR title LIKE '%' || ? || '%' OR display_pages LIKE '%' || ? || '%')`;
+            break;
+        }
+      }
+
+      const baseDelete = `
+        DELETE FROM unified_content
+        WHERE ${whereClause}
+          AND (processing_status = 'active' OR processing_status IS NULL)
+          AND (status = 'active' OR status = 'published' OR status IS NULL)
+          AND (visibility = 'public' OR visibility IS NULL)
+      `;
+
+      let result;
+      if (whereClause.includes('?')) {
+        result = sqliteDb.prepare(baseDelete).run(category, category, category);
+      } else {
+        result = sqliteDb.prepare(baseDelete).run();
+      }
+
+      const deletedCount = (result && typeof result.changes === 'number') ? result.changes : 0;
+      return res.json({ message: 'Bulk delete completed', deletedCount });
+    } catch (error) {
+      handleDatabaseError(error, res, 'bulk delete travel products');
+    }
+  });
+
+  // Seed sample travel products across categories and sections
+  app.post('/api/admin/travel-products/seed', async (req, res) => {
+    try {
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const bodyPwd = (req.body && (req.body as any).password) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = headerPwd || bodyPwd || queryPwd;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const categories = ['flights','hotels','tours','cruises','bus','train','packages','car-rental'];
+      const sections = ['featured','trending','standard'];
+      const created: any[] = [];
+
+      const insert = sqliteDb.prepare(`
+        INSERT INTO unified_content (
+          title, description, price, original_price,
+          image_url, affiliate_url, content_type, page_type,
+          category, subcategory, tags, is_active, is_featured,
+          display_pages, status, visibility, processing_status,
+          created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          datetime('now'), datetime('now')
+        )
+      `);
+
+      for (const cat of categories) {
+        for (const sec of sections) {
+          const title = `${cat[0].toUpperCase()}${cat.slice(1)} - ${sec}`;
+          const description = `Sample ${cat} deal in ${sec} section`;
+          const price = '4999';
+          const original_price = '5999';
+          const image_url = '/api/placeholder/600/400';
+          const affiliate_url = '';
+          const content_type = 'travel';
+          const page_type = 'travel-picks';
+          const category = cat;
+          const subcategory = null;
+          const tags = JSON.stringify({ section_type: sec, route_type: 'domestic', rating: 4.5 });
+          const is_active = 1;
+          const is_featured = sec === 'featured' ? 1 : 0;
+          const display_pages = JSON.stringify(['travel', cat]);
+          const status = 'published';
+          const visibility = 'public';
+          const processing_status = 'active';
+
+          const result = insert.run(
+            title,
+            description,
+            price,
+            original_price,
+            image_url,
+            affiliate_url,
+            content_type,
+            page_type,
+            category,
+            subcategory,
+            tags,
+            is_active,
+            is_featured,
+            display_pages,
+            status,
+            visibility,
+            processing_status
+          );
+          const row = sqliteDb.prepare(`SELECT * FROM unified_content WHERE id = ?`).get(result.lastInsertRowid) as any;
+          const safeRow: any = (row && typeof row === 'object') ? (row as any) : {};
+          created.push({ ...safeRow, name: (row as any)?.title });
+        }
+      }
+
+      return res.json({ message: 'Seeded sample travel products', count: created.length, products: created });
+    } catch (error) {
+      handleDatabaseError(error, res, 'seed travel products');
+    }
+  });
   app.delete('/api/admin/travel-products/:id', async (req, res) => {
     try {
       const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
@@ -1742,6 +2268,101 @@ export function setupRoutes(app: express.Application) {
       return res.status(404).json({ message: 'Travel product not found' });
     } catch (error) {
       handleDatabaseError(error, res, 'delete travel product');
+    }
+  });
+
+  // Bulk delete travel products by category (unified_content)
+  app.delete('/api/admin/travel-products/bulk-delete', async (req, res) => {
+    try {
+      const headerPwd = (req.headers['x-admin-password'] as string) || undefined;
+      const bodyPwd = (req.body && (req.body as any).password) || undefined;
+      const queryPwd = typeof req.query?.password === 'string' ? (req.query.password as string) : undefined;
+      const password = headerPwd || bodyPwd || queryPwd;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      // In production, password is mandatory; in dev, accept missing password but validate if provided
+      if (isProd) {
+        if (!password || !(await verifyAdminPassword(password))) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } else if (password && !(await verifyAdminPassword(password))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const categoryRaw = (req.body && (req.body as any).category) || (req.query && (req.query as any).category) || '';
+      const category = (categoryRaw || '').toString().toLowerCase();
+
+      if (!category) {
+        return res.status(400).json({ message: 'Category is required' });
+      }
+
+      // Build inclusive filters per category (mirrors /api/travel-products/:category)
+      let whereClause = '';
+      if (category === 'all') {
+        // Delete ALL travel-related content across known travel categories/pages
+        whereClause = `(
+          category LIKE '%flight%' OR title LIKE '%flight%' OR display_pages LIKE '%flight%' OR
+          category LIKE '%hotel%' OR title LIKE '%hotel%' OR display_pages LIKE '%hotel%' OR content_type = 'hotel' OR
+          category LIKE '%tour%' OR title LIKE '%tour%' OR display_pages LIKE '%tour%' OR
+          category LIKE '%cruise%' OR title LIKE '%cruise%' OR display_pages LIKE '%cruise%' OR
+          category LIKE '%bus%' OR title LIKE '%bus%' OR display_pages LIKE '%bus%' OR
+          category LIKE '%train%' OR title LIKE '%train%' OR display_pages LIKE '%train%' OR
+          category LIKE '%package%' OR title LIKE '%package%' OR title LIKE '%holiday%' OR display_pages LIKE '%package%' OR
+          category LIKE '%car%' OR title LIKE '%car%' OR title LIKE '%rental%' OR title LIKE '%taxi%' OR display_pages LIKE '%car%' OR
+          page_type = 'travel-picks' OR display_pages LIKE '%travel%'
+        )`;
+      } else {
+        switch (category) {
+          case 'flights':
+            whereClause = `(category LIKE '%flight%' OR title LIKE '%flight%' OR display_pages LIKE '%flight%')`;
+            break;
+          case 'hotels':
+            whereClause = `(category LIKE '%hotel%' OR title LIKE '%hotel%' OR display_pages LIKE '%hotel%' OR content_type = 'hotel')`;
+            break;
+          case 'tours':
+            whereClause = `(category LIKE '%tour%' OR title LIKE '%tour%' OR display_pages LIKE '%tour%')`;
+            break;
+          case 'cruises':
+            whereClause = `(category LIKE '%cruise%' OR title LIKE '%cruise%' OR display_pages LIKE '%cruise%')`;
+            break;
+          case 'bus':
+            whereClause = `(category LIKE '%bus%' OR title LIKE '%bus%' OR display_pages LIKE '%bus%')`;
+            break;
+          case 'train':
+            whereClause = `(category LIKE '%train%' OR title LIKE '%train%' OR display_pages LIKE '%train%')`;
+            break;
+          case 'packages':
+            whereClause = `(category LIKE '%package%' OR title LIKE '%package%' OR title LIKE '%holiday%' OR display_pages LIKE '%package%')`;
+            break;
+          case 'car-rental':
+            whereClause = `(category LIKE '%car%' OR title LIKE '%car%' OR title LIKE '%rental%' OR title LIKE '%taxi%' OR display_pages LIKE '%car%')`;
+            break;
+          default:
+            // Broad match on provided category keyword
+            whereClause = `(category LIKE '%' || ? || '%' OR title LIKE '%' || ? || '%' OR display_pages LIKE '%' || ? || '%')`;
+            break;
+        }
+      }
+
+      const baseDelete = `
+        DELETE FROM unified_content
+        WHERE ${whereClause}
+          AND (processing_status = 'active' OR processing_status IS NULL)
+          AND (status = 'active' OR status = 'published' OR status IS NULL)
+          AND (visibility = 'public' OR visibility IS NULL)
+      `;
+
+      let result;
+      if (whereClause.includes('?')) {
+        result = sqliteDb.prepare(baseDelete).run(category, category, category);
+      } else {
+        result = sqliteDb.prepare(baseDelete).run();
+      }
+
+      const deletedCount = (result && typeof result.changes === 'number') ? result.changes : 0;
+      return res.json({ message: 'Bulk delete completed', deletedCount });
+    } catch (error) {
+      handleDatabaseError(error, res, 'bulk delete travel products');
     }
   });
 
