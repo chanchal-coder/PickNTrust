@@ -37,7 +37,8 @@ export default function SafeWidgetRenderer({ page, position, className = '' }: P
   const widgetPage = page;
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const isProductionDomain = /pickntrust\.com$/i.test(hostname);
-  const disableWidgetsOnPrimeInProd = isProductionDomain && widgetPage === 'prime-picks';
+  // Hard safeguard: disable all widgets on prime-picks regardless of domain
+  const disableWidgetsOnPrimeInProd = widgetPage === 'prime-picks';
 
   const { data: widgets = [], isLoading, error } = useQuery<Widget[]>({
     queryKey: [`/api/widgets/${widgetPage}/${position}`, widgetPage, position],

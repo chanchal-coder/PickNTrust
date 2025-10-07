@@ -22,22 +22,36 @@ ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-use
 # 4) Upload and extract client build into public directory
 Write-Host "Uploading client artifact..." -ForegroundColor Yellow
 scp -i $SSH_KEY -o StrictHostKeyChecking=no $tarPath "${SERVER}:/home/ec2-user/pickntrust/"
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; cd /home/ec2-user/pickntrust && rm -rf dist/public && mkdir -p dist/public && tar -xzf pickntrust-client.tar.gz -C dist/public && rm -f pickntrust-client.tar.gz && sudo chown -R ec2-user:ec2-user dist/public && find dist/public -type d -exec chmod 755 {} \\; && find dist/public -type f -exec chmod 644 {} \\;'"
+${remoteClientExtract} = @'
+set -e
+umask 022
+cd /home/ec2-user/pickntrust
+rm -rf dist/public
+mkdir -p dist/public
+tar -xzf pickntrust-client.tar.gz -C dist/public
+rm -f pickntrust-client.tar.gz
+sudo chown -R ec2-user:ec2-user dist/public
+find dist/public -type d -exec chmod 755 {} \;
+find dist/public -type f -exec chmod 644 {} \;
+'@
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteClientExtract\""
 
 # 4b) Push Nginx config with cache headers to avoid stale index caching and reload
 Write-Host "Updating Nginx config (cache headers for index/assets)..." -ForegroundColor Yellow
 scp -i $SSH_KEY -o StrictHostKeyChecking=no "pickntrust.conf" "${SERVER}:/home/ec2-user/pickntrust/pickntrust.conf"
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; 
-  sudo cp /home/ec2-user/pickntrust/pickntrust.conf /etc/nginx/conf.d/pickntrust.conf; 
-  sudo rm -f /etc/nginx/conf.d/nginx-pickntrust.conf 2>/dev/null || true; 
-  sudo rm -f /etc/nginx/conf.d/pickntrust-vhost.conf 2>/dev/null || true; 
-  sudo rm -f /etc/nginx/sites-enabled/pickntrust 2>/dev/null || true; 
-  sudo rm -f /etc/nginx/sites-available/pickntrust 2>/dev/null || true; 
-  sudo nginx -t; 
-  sudo systemctl reload nginx; 
-  echo \"---- Active Nginx server_names ----\"; 
-  sudo nginx -T 2>/dev/null | grep -E \"server_name|listen 443|listen 80\" | sed -E \"s/^\\s+//\" | uniq; 
-'"
+${remoteNginxReload} = @'
+set -e
+sudo cp /home/ec2-user/pickntrust/pickntrust.conf /etc/nginx/conf.d/pickntrust.conf
+sudo rm -f /etc/nginx/conf.d/nginx-pickntrust.conf 2>/dev/null || true
+sudo rm -f /etc/nginx/conf.d/pickntrust-vhost.conf 2>/dev/null || true
+sudo rm -f /etc/nginx/sites-enabled/pickntrust 2>/dev/null || true
+sudo rm -f /etc/nginx/sites-available/pickntrust 2>/dev/null || true
+sudo nginx -t
+sudo systemctl reload nginx
+echo "---- Active Nginx server_names ----"
+sudo nginx -T 2>/dev/null | grep -E "server_name|listen 443|listen 80" | sed -E "s/^\s+//" | uniq
+'@
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteNginxReload\""
 
 # 5) Verify HTTPS endpoints from local machine
 Write-Host "Verifying HTTPS endpoints..." -ForegroundColor Yellow
@@ -46,56 +60,72 @@ try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/health" -UseBasicParsi
 
 # 6) Remote asset presence and index bundle verification
 Write-Host "Verifying remote assets and index bundle..." -ForegroundColor Yellow
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; 
-  cd /home/ec2-user/pickntrust/dist/public; 
-  echo Index exists?; ls -la index.html || (echo index.html missing && exit 1); 
-  echo Find index bundle by filename; 
-  BUNDLE=$(ls assets/index-*.js 2>/dev/null | head -1); 
-  echo Bundle: $BUNDLE; 
-  if [ -z \"$BUNDLE\" ]; then echo Index bundle not found && exit 1; fi; 
-  echo Check bundle file exists; 
-  test -f \"$BUNDLE\" && echo Bundle present || (echo Bundle missing: $BUNDLE && exit 1); 
-  echo List assets directory; ls -la assets | head -20; 
-'"
+${remoteVerifyAssets} = @'
+set -e
+cd /home/ec2-user/pickntrust/dist/public
+echo Index exists?
+ls -la index.html || (echo index.html missing && exit 1)
+echo Extract asset path from index.html
+REF=$(grep -Eo 'src="/assets/[^"]+\.js"' index.html | head -1)
+if [ -z "$REF" ]; then echo "Asset script src not found in index.html" && exit 1; fi
+BUNDLE=${REF#src="/}
+echo Bundle: $BUNDLE
+echo Check bundle file exists
+test -f "$BUNDLE" && echo Bundle present || (echo "Bundle missing: $BUNDLE" && exit 1)
+echo List assets directory
+ls -la assets | head -20
+echo HTTP check for bundle via Nginx
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://pickntrust.com/$BUNDLE" || true)
+echo "HTTP status for $BUNDLE: $CODE"
+if [ "$CODE" != "200" ]; then echo "Bundle not served over HTTPS (status $CODE)" && exit 1; fi
+'@
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteVerifyAssets\""
 
-# 4c) Extract client build tarball on server with safe permissions
-Write-Host "Extracting client build on server..." -ForegroundColor Yellow
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc 'set -e; 
-  cd /home/ec2-user/pickntrust; 
-  rm -rf dist/public; 
-  mkdir -p dist/public; 
-  tar -xzf pickntrust-client.tar.gz -C dist/public; 
-  rm -f pickntrust-client.tar.gz; 
-  sudo chown -R ec2-user:ec2-user dist/public; 
-  find dist/public -type d -exec chmod 755 {} \\;; 
-  find dist/public -type f -exec chmod 644 {} \\;; 
-'"
+# 4c) (Removed) Redundant re-extraction step
 
 # 7) End-to-end HTTPS check for canonical apex
 Write-Host "Validating apex over HTTPS..." -ForegroundColor Yellow
 try {
-  $resp = Invoke-WebRequest -Uri "https://pickntrust.com/" -UseBasicParsing -TimeoutSec 20
+  $headers = @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+  $resp = Invoke-WebRequest -Uri "https://pickntrust.com/" -Headers $headers -UseBasicParsing -TimeoutSec 20
   Write-Host "Status: $($resp.StatusCode)"
   if ($resp.Content -match "assets/index-") { Write-Host "✅ Index references assets bundle" -ForegroundColor Green } else { Write-Host "⚠️ Index bundle reference not detected" -ForegroundColor Yellow }
 } catch { Write-Host "apex check error: $($_.Exception.Message)" -ForegroundColor Red }
-try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/api/status" -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "api status error: $($_.Exception.Message)" -ForegroundColor Red }
+try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/api/status" -Headers $headers -UseBasicParsing -TimeoutSec 20).StatusCode | Out-Host } catch { Write-Host "api status error: $($_.Exception.Message)" -ForegroundColor Red }
+
+# 7b) Direct asset 200 check from apex index
+Write-Host "Checking assets/index-*.js returns 200 over HTTPS..." -ForegroundColor Yellow
+try {
+  $headers = @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+  $root = Invoke-WebRequest -Uri 'https://pickntrust.com/' -Headers $headers -UseBasicParsing -TimeoutSec 20
+  $match = Select-String -InputObject $root.Content -Pattern 'assets/index-[^"]+\.js'
+  if (-not $match) { throw 'No index bundle reference found in root HTML' }
+  $assetPath = $match.Matches[0].Value
+  $assetUrl = "https://pickntrust.com/$assetPath"
+  Write-Host "Asset URL: $assetUrl" -ForegroundColor Cyan
+  $assetResp = Invoke-WebRequest -Uri $assetUrl -Headers $headers -UseBasicParsing -TimeoutSec 20
+  if ($assetResp.StatusCode -eq 200) { Write-Host '✅ Asset served with 200' -ForegroundColor Green } else { throw "Asset status $($assetResp.StatusCode)" }
+} catch {
+  Write-Host "asset check error: $($_.Exception.Message)" -ForegroundColor Red
+}
 
 # 6) Verify live bundle name and ensure test widget string is removed
 Write-Host "Verifying live bundle contents..." -ForegroundColor Yellow
 try {
-  $html = Invoke-WebRequest -Uri 'https://www.pickntrust.com/prime-picks' -UseBasicParsing
+  $headers = @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+  $html = Invoke-WebRequest -Uri 'https://www.pickntrust.com/prime-picks' -Headers $headers -UseBasicParsing
   $m = [regex]::Match($html.Content, 'src="/assets/index-([^"]+)"')
   $hash = $m.Groups[1].Value
   $indexUrl = "https://www.pickntrust.com/assets/index-$hash"
   Write-Host "Index bundle URL: $indexUrl" -ForegroundColor Cyan
-  $idxResp = Invoke-WebRequest -Uri $indexUrl -UseBasicParsing
+  $idxResp = Invoke-WebRequest -Uri $indexUrl -Headers $headers -UseBasicParsing
   if ($idxResp.StatusCode -ne 200) { throw "Index bundle fetch failed with status $($idxResp.StatusCode)" }
   $idx = $idxResp.Content
   $pm = [regex]::Match($idx, 'pages-picks-[A-Za-z0-9_-]+\.js')
   if ($pm.Success) {
     $bundleUrl = "https://www.pickntrust.com/assets/$($pm.Value)"
     Write-Host "Pages-picks bundle URL: $bundleUrl" -ForegroundColor Cyan
-    $bundleResp = Invoke-WebRequest -Uri $bundleUrl -UseBasicParsing
+    $bundleResp = Invoke-WebRequest -Uri $bundleUrl -Headers $headers -UseBasicParsing
     if ($bundleResp.StatusCode -ne 200) { throw "Pages-picks bundle fetch failed with status $($bundleResp.StatusCode)" }
     $content = $bundleResp.Content
   } else {
@@ -138,7 +168,8 @@ if (-not ($serverBundleA -or $serverBundleB)) {
 
 # Remote setup: pin Node 18, extract dist, start via PM2, enable logrotate and boot start
 Write-Host "Configuring EC2 runtime and starting backend..." -ForegroundColor Yellow
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER 'bash -lc "set -e
+${remoteBackend} = @'
+set -e
 cd /home/ec2-user/pickntrust
 
 # Install system Node.js 18 (avoid NVM)
@@ -202,6 +233,7 @@ curl -s -o /dev/null -w "Local /health: %{http_code}\n" http://127.0.0.1:5000/he
 ss -tulpn | grep -E ":5000" || echo no-5000
 pm2 status || true
 pm2 logs pickntrust-backend --lines 50 || pm2 logs pickntrust --lines 50 || true
-"'
-  Write-Host "✅ Backend+frontend dist deployed, Node 18 pinned, PM2 persisted." -ForegroundColor Green
+'@
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteBackend\""
+Write-Host "✅ Backend+frontend dist deployed, Node 18 pinned, PM2 persisted." -ForegroundColor Green
 }

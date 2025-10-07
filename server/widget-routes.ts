@@ -57,6 +57,11 @@ router.get('/api/widgets/:page/:position', async (req: Request, res: Response) =
   try {
     const { page, position } = req.params;
 
+    // Hard block: do not serve any widgets on prime-picks
+    if (page === 'prime-picks') {
+      return res.json([]);
+    }
+
     // Normalize legacy/synonym positions to avoid mismatches across layouts
     let positionsToQuery: string[] = [position];
 
@@ -84,6 +89,10 @@ router.get('/api/widgets/:page/:position', async (req: Request, res: Response) =
 router.get('/api/widgets/:page', async (req: Request, res: Response) => {
   try {
     const { page } = req.params;
+    // Hard block: do not serve any widgets on prime-picks
+    if (page === 'prime-picks') {
+      return res.json([]);
+    }
     const pageWidgets = sqliteDb.prepare(`
       SELECT * FROM widgets 
       WHERE target_page = ? AND is_active = 1

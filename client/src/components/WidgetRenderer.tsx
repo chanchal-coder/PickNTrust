@@ -88,8 +88,9 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   };
 
   const widgetPage = getWidgetPage(page);
-  // Temporary production safeguard: disable widgets on prime-picks to eliminate stray test widgets
-  const disableWidgetsOnPrimeInProd = isProductionDomain && widgetPage === 'prime-picks';
+  // Hard safeguard: disable all widgets on prime-picks to eliminate stray test widgets
+  // This applies regardless of domain until the widget system is cleaned up.
+  const disableWidgetsOnPrimeInProd = widgetPage === 'prime-picks';
 
   // Fetch widgets for this page and position (including fallback to parent pages)
   const { data: widgets = [], isLoading, error } = useQuery<Widget[]>({
