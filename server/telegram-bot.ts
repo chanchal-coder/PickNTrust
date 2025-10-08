@@ -787,6 +787,14 @@ function convertUrls(urls: string[], config: any): string[] {
   for (const url of urls) {
     console.log(`🔄 Converting URL: ${url}`);
     
+    // Loot Box requirement: do NOT convert links, keep exactly as posted
+    // Only bypass conversion for loot-box page
+    if (config?.pageSlug === 'loot-box') {
+      console.log('🎁 Loot Box page detected — bypassing affiliate conversion, preserving original URL');
+      convertedUrls.push(url);
+      continue;
+    }
+
     // Check if URL is already an affiliate URL
     if (isAffiliateUrl(url)) {
       console.log(`🔍 Detected affiliate URL, cleaning and converting to user's affiliate`);

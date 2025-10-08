@@ -74,5 +74,10 @@ Write-Host "Frontend is integrated with backend" -ForegroundColor Cyan
 Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
 Write-Host ""
 
-# Start the development server
-npm run dev
+# Force dev server to bind to port 5000 unless already set
+if (-not $Env:PORT) {
+    $Env:PORT = "5000"
+}
+
+# Start the development server on the selected port
+npm run dev:5000

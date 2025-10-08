@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch server/index.ts",
+    "dev:5000": "cross-env PORT=5000 tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && vite build",
     "build:server": "tsc -p server/tsconfig.json",

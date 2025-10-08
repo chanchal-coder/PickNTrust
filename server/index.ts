@@ -402,7 +402,7 @@ const server = app.listen(port, '0.0.0.0', async () => {
       try {
         await setupVite(app, server);
         console.log('✅ Vite development server configured');
-        console.log('🌐 Frontend available at: http://localhost:5000');
+        console.log(`🌐 Frontend available at: http://localhost:${port}`);
         console.log('🔧 For separate frontend dev server, run: cd client && npm run dev');
       } catch (error) {
         console.error('❌ Failed to setup Vite:', error);

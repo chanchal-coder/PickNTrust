@@ -254,3 +254,14 @@ curl -s -o /dev/null -w "PrimePicks header widgets: %{http_code}\n" https://pick
 ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteBackend\""
 Write-Host "✅ Backend+frontend dist deployed, Node 18 pinned, PM2 persisted." -ForegroundColor Green
 }
+
+# 8) Seed canonical form categories (Products/Services/Apps & AI) and verify counts
+Write-Host "Seeding canonical form categories on EC2 and verifying..." -ForegroundColor Yellow
+$DbPath = "/home/ec2-user/pickntrust/database.sqlite"
+try {
+  powershell -ExecutionPolicy Bypass -File "scripts\deploy-seed-form-flags.ps1" -Server $SERVER -KeyPath $SSH_KEY -DbPath $DbPath -ApiBase "https://www.pickntrust.com"
+  Write-Host "✅ Form categories seeded and verified (13/19/16)." -ForegroundColor Green
+} catch {
+  Write-Host "❌ Form category seeding failed: $($_.Exception.Message)" -ForegroundColor Red
+  throw
+}

@@ -86,13 +86,19 @@ bot.on('message', (msg) => {
         
         if (urls.length > 0) {
           console.log(`🔗 Found ${urls.length} URLs to process`);
-          urls.forEach(url => {
-            // Simple affiliate conversion (replace with your actual logic)
-            const affiliateUrl = url.includes('amazon') ? 
-              url + '?tag=youraffid' : 
-              `https://youraffiliatelink.com/redirect?url=${encodeURIComponent(url)}`;
-            processedText = processedText.replace(url, affiliateUrl);
-          });
+          // Loot Box requirement: do NOT convert links; keep exactly as posted
+          if (channelName === 'Loot Box') {
+            console.log('🎁 Loot Box channel detected — bypassing affiliate conversion, preserving original URLs');
+            // Leave processedText unchanged to preserve original URLs
+          } else {
+            urls.forEach(url => {
+              // Simple affiliate conversion (replace with your actual logic)
+              const affiliateUrl = url.includes('amazon') ? 
+                url + '?tag=youraffid' : 
+                `https://youraffiliatelink.com/redirect?url=${encodeURIComponent(url)}`;
+              processedText = processedText.replace(url, affiliateUrl);
+            });
+          }
         }
         
         // Update as processed
@@ -125,9 +131,13 @@ bot.on('message', (msg) => {
         const imageMatch = text.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/i);
         const imageUrl = imageMatch ? imageMatch[0] : null;
         
-        // Get affiliate URL (first processed URL or original URL)
-        const affiliateUrl = urls.length > 0 ? 
-          processedText.match(/(https?:\/\/[^\s]+)/)?.[0] : null;
+        // Get affiliate URL
+        // Loot Box: use original first URL; others: use first processed URL
+        const affiliateUrl = urls.length > 0 ? (
+          channelName === 'Loot Box' 
+            ? urls[0] 
+            : processedText.match(/(https?:\/\/[^\s]+)/)?.[0]
+        ) : null;
         
         const contentResult = insertContent.run(
           title,

@@ -647,7 +647,17 @@ export function setupRoutes(app: express.Application) {
             try {
               const affiliateUrls = JSON.parse(product.affiliate_urls);
               if (Array.isArray(affiliateUrls) && affiliateUrls.length > 0) {
-                transformedProduct.affiliateUrl = affiliateUrls[0];
+                transformedProduct.affiliateUrl = String(affiliateUrls[0]);
+              } else if (affiliateUrls && typeof affiliateUrls === 'object') {
+                // If stored as an object, pick a sensible first value
+                const candidates = (Object.values(affiliateUrls)
+                  .filter((u: unknown) => typeof u === 'string' && (u as string).trim()) as string[]);
+                // Prefer an external/raw link over internal go links
+                const external = candidates.find((u: string) => !/https?:\/\/[^\/]*pickntrust\.com\/go\//i.test(u));
+                const selected: string | null = external || (candidates.length > 0 ? candidates[0] : null);
+                if (selected) {
+                  transformedProduct.affiliateUrl = selected;
+                }
               }
             } catch (e) {
               console.warn(`Failed to parse affiliate_urls for product ${product.id}:`, e);
@@ -657,6 +667,41 @@ export function setupRoutes(app: express.Application) {
           // Fallback to affiliateUrl field if affiliate_urls is not available
           if (!transformedProduct.affiliateUrl && product.affiliateUrl) {
             transformedProduct.affiliateUrl = product.affiliateUrl;
+          }
+
+          // Loot-box page should serve raw external links (no affiliate/go redirects)
+          if ((page || '').toLowerCase() === 'loot-box') {
+            try {
+              // Try to extract a raw/product URL from content JSON if present
+              let rawFromContent: string | undefined;
+              const c = (product as any).content;
+              if (c) {
+                try {
+                  const obj = typeof c === 'string' ? JSON.parse(c) : c;
+                  const candidates = [
+                    obj?.originalUrl,
+                    obj?.productUrl,
+                    obj?.sourceUrl,
+                    obj?.url,
+                    obj?.link,
+                    obj?.product_link,
+                    obj?.productLink
+                  ];
+                  rawFromContent = (candidates as any[]).find((u: any) => typeof u === 'string' && String(u).trim());
+                } catch {}
+              }
+
+              const isInternalGo = (u?: string | null) => !!u && /https?:\/\/[^\/]*pickntrust\.com\/go\//i.test(String(u));
+
+              // Prefer raw link from content; otherwise drop internal go links
+              if (rawFromContent) {
+                transformedProduct.affiliateUrl = rawFromContent;
+              } else if (isInternalGo(transformedProduct.affiliateUrl)) {
+                transformedProduct.affiliateUrl = null;
+              }
+            } catch (e) {
+              console.warn(`Loot-box affiliateUrl override failed for product ${product.id}:`, e);
+            }
           }
 
           return transformedProduct;

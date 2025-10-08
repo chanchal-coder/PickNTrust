@@ -118,7 +118,18 @@ export function serveStatic(app: Express) {
   }));
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  app.use("*", (req, res, next) => {
+    // Do NOT serve SPA for API or health endpoints
+    const url = req.originalUrl || req.url || "";
+    if (url.startsWith('/api/') || url === '/api' || url === '/health') {
+      return next();
+    }
+
+    // Skip static files (files with extensions)
+    if (path.extname(req.path)) {
+      return next();
+    }
+
     res.setHeader('Cache-Control', 'no-store, must-revalidate');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
