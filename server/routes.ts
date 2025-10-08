@@ -14,6 +14,8 @@ import currencyRouter from './routes/currency.js';
 import canvaAdminRouter from './canva-admin-routes.js';
 import multer from 'multer';
 import { commissionRateManager } from './commission-rate-manager.js';
+import { botWebhookGuard } from './bot-webhook-guard.js';
+import botProcessingController from './bot-processing-controller.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -3068,7 +3070,7 @@ export function setupRoutes(app: express.Application) {
   });
 
   // Master Bot Telegram Webhook Endpoint
-  app.post('/webhook/master/:token', express.json(), async (req: Request, res: Response) => {
+  app.post('/webhook/master/:token', express.json({ limit: '200kb' }), botWebhookGuard, async (req: Request, res: Response) => {
     try {
       const { token } = req.params;
       const update: any = req.body;
@@ -3109,6 +3111,17 @@ export function setupRoutes(app: express.Application) {
         tokenPrefix: token.substring(0, 10) + '...',
         type: token === expectedToken ? 'master' : 'additional'
       });
+
+      // If global bot processing is disabled, acknowledge and skip processing
+      try {
+        const state = botProcessingController.getState();
+        if (!state.enabled) {
+          console.log('⏸️ Bot processing disabled via admin toggle; acknowledging without processing.');
+          return res.status(200).json({ ok: true, processing: 'disabled' });
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to read bot processing state, proceeding to process update:', e);
+      }
 
       // Immediately acknowledge to Telegram to avoid retries, then process asynchronously
       res.status(200).json({ ok: true });

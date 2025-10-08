@@ -1294,6 +1294,17 @@ export function setupRoutes(app) {
                 console.error('❌ Invalid webhook token for master bot');
                 return res.status(401).json({ error: 'Invalid token' });
             }
+            // Check global processing toggle; if disabled, acknowledge and skip
+            try {
+                const ctrl = await import('./server/bot-processing-controller.js');
+                const isEnabled = (ctrl?.botProcessingController?.isEnabled?.() ?? ctrl?.default?.isEnabled?.()) ?? true;
+                if (!isEnabled) {
+                    console.log('⏸️ Bot processing is currently disabled. Skipping update.');
+                    return res.status(200).json({ ok: true, skipped: true });
+                }
+            } catch (toggleErr) {
+                console.warn('⚠️ Could not load bot-processing-controller; proceeding by default:', toggleErr?.message || toggleErr);
+            }
             // Process webhook through TelegramBotManager
             try {
                 console.log('🔄 Importing telegram-bot module...');

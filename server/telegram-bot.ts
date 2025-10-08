@@ -45,6 +45,11 @@ class TelegramBotManager {
     return this.bot;
   }
 
+  // Lightweight status accessor to avoid exposing internals
+  public getStatus(): { initialized: boolean } {
+    return { initialized: this.isInitialized };
+  }
+
   public async initializeBot(): Promise<void> {
     if (this.isInitialized) {
       console.log('🤖 Bot already initialized, skipping...');

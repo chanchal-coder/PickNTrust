@@ -1,0 +1,15 @@
+BEGIN;
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Fashion', NULL, 1, 0, 0, 1, 1);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Accessories', NULL, 1, 0, 0, 1, 2);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Home & Living', NULL, 1, 0, 0, 1, 3);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Electronics & Gadgets', NULL, 1, 0, 0, 1, 4);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Health', NULL, 1, 0, 0, 1, 5);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Beauty', NULL, 1, 0, 0, 1, 6);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Sports & Fitness', NULL, 1, 0, 0, 1, 7);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Baby & Kids', NULL, 1, 0, 0, 1, 8);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Automotive', NULL, 1, 0, 0, 1, 9);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Books & Education', NULL, 1, 0, 0, 1, 10);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Pet Supplies', NULL, 1, 0, 0, 1, 11);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Office & Productivity', NULL, 1, 0, 0, 1, 12);
+INSERT OR IGNORE INTO categories (name, parent_id, is_for_products, is_for_services, is_for_ai_apps, is_active, display_order) VALUES ('Travel', NULL, 1, 0, 0, 1, 13);
+COMMIT;

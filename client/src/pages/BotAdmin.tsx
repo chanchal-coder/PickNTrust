@@ -92,6 +92,61 @@ const BotAdmin: React.FC = () => {
     }
   };
 
+  // Global bot processing toggle state
+  const [processingEnabled, setProcessingEnabled] = useState<boolean>(true);
+  const [processingLastChangedAt, setProcessingLastChangedAt] = useState<string | undefined>(undefined);
+  const [adminPassword, setAdminPassword] = useState<string>('');
+  const [processingLoading, setProcessingLoading] = useState<boolean>(false);
+  const [masterBotStatus, setMasterBotStatus] = useState<{ initialized?: boolean; webhook?: { url?: string; pending_update_count?: number } } | null>(null);
+
+  const fetchProcessingStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/bot/processing');
+      const data = await res.json();
+      if (typeof data.enabled === 'boolean') {
+        setProcessingEnabled(data.enabled);
+        setProcessingLastChangedAt(data.lastChangedAt);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bot processing status:', err);
+    }
+  };
+
+  const fetchMasterBotStatus = async () => {
+    try {
+      const res = await fetch('/api/bot/status');
+      const data = await res.json();
+      setMasterBotStatus(data);
+    } catch (err) {
+      console.error('Failed to fetch master bot status:', err);
+    }
+  };
+
+  const toggleProcessing = async (enabled: boolean) => {
+    try {
+      setProcessingLoading(true);
+      const res = await fetch('/api/admin/bot/processing', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminPassword ? { 'x-admin-password': adminPassword } : {}),
+        },
+        body: JSON.stringify({ enabled, password: adminPassword || undefined }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Failed to update' }));
+        alert(`Failed to update processing: ${err.message || res.status}`);
+        return;
+      }
+      const data = await res.json();
+      setProcessingEnabled(!!data.enabled);
+    } catch (err) {
+      console.error('Failed to toggle processing:', err);
+    } finally {
+      setProcessingLoading(false);
+    }
+  };
+
   const fetchAffiliateTags = async () => {
     try {
       const response = await fetch('/api/admin/bots/affiliate-tags');
@@ -317,6 +372,11 @@ const BotAdmin: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    fetchProcessingStatus();
+    fetchMasterBotStatus();
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -330,36 +390,86 @@ const BotAdmin: React.FC = () => {
     <UniversalPageLayout pageId="botadmin">
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">8-Bot System Admin Panel</h1>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                  // Use proper navigation instead of direct window.location
-                  window.location.href = '/';
-                }}
-              className="flex items-center gap-2"
-            >
-              <i className="fas fa-home"></i> Home
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                  // Use proper navigation instead of direct window.location
-                  window.location.href = '/admin';
-                }}
-              className="flex items-center gap-2"
-            >
-              🎛️ Admin Panel
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold">8-Bot System Admin Panel</h1>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                    // Use proper navigation instead of direct window.location
+                    window.location.href = '/';
+                  }}
+                className="flex items-center gap-2"
+              >
+                <i className="fas fa-home"></i> Home
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                    // Use proper navigation instead of direct window.location
+                    window.location.href = '/admin';
+                  }}
+                className="flex items-center gap-2"
+              >
+                🎛️ Admin Panel
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 p-3 border rounded-md">
+              <Label htmlFor="processing-toggle" className="text-sm">Master Bot Processing</Label>
+              <Switch
+                id="processing-toggle"
+                checked={processingEnabled}
+                disabled={processingLoading}
+                onCheckedChange={(checked) => toggleProcessing(checked)}
+              />
+              <Input
+                type="password"
+                placeholder="Admin password (prod)"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="h-8 text-xs w-56"
+              />
+            </div>
+            <Button onClick={initializeAllBots} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Initialize All Bots
             </Button>
           </div>
         </div>
-        <Button onClick={initializeAllBots} className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Initialize All Bots
-        </Button>
-      </div>
+
+        {/* Master Bot Status Panel */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Master Bot Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-sm">
+                <div className="font-semibold">Initialized</div>
+                <div>{masterBotStatus?.initialized ? 'Yes' : 'No'}</div>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold">Webhook URL</div>
+                <div className="truncate text-blue-700">{masterBotStatus?.webhook?.url || 'N/A'}</div>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold">Pending Updates</div>
+                <div>{typeof masterBotStatus?.webhook?.pending_update_count === 'number' ? masterBotStatus?.webhook?.pending_update_count : 'N/A'}</div>
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-gray-600">
+              Processing: <span className={processingEnabled ? 'text-green-600' : 'text-red-600'}>{processingEnabled ? 'ON' : 'OFF'}</span>
+              {processingLastChangedAt ? (
+                <span className="ml-2">(changed {new Date(processingLastChangedAt).toLocaleString()})</span>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
 
       {/* System Health Overview */}
       {systemHealth && (

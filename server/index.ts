@@ -66,6 +66,8 @@ import pagesRoutes from './routes/pages-routes.js';
 import widgetRoutes from './widget-routes.js';
 import adRequestRoutes from './ad-request-routes.js';
 import { setupSocialMediaRoutes } from './social-media-routes.js';
+import botStatusRoutes from './bot-status-routes.js';
+import botProcessingRoutes from './bot-processing-routes.js';
 
 
 
@@ -287,6 +289,8 @@ app.use((req, res, next) => {
   app.use('/api/pages', pagesRoutes); // Dynamic pages API routes
   app.use(widgetRoutes); // Widget management and retrieval routes
   app.use(adRequestRoutes); // Ad requests + Explore ads config routes
+  app.use(botStatusRoutes); // Bot status monitoring endpoint
+  app.use(botProcessingRoutes); // Admin toggle for global bot processing
   
   // Admin routes for social media posting and credential checks
   setupSocialMediaRoutes(app);
@@ -298,6 +302,8 @@ app.use((req, res, next) => {
   console.log('💳 Payment routes initialized');
   console.log('📄 Pages routes initialized');
   console.log('🧩 Widget routes initialized');
+  console.log('🤖 Bot status route initialized');
+  console.log('⚙️ Bot processing admin routes initialized');
 
   // Setup image proxy routes for authentic product images
   imageProxyService.setupRoutes(app);
