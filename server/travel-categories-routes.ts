@@ -462,4 +462,76 @@ router.get('/travel-products/flights', (req, res) => {
   }
 });
 
+// Generic travel products endpoint to support all subcategories
+// GET /api/travel-products/:category - Get travel-related products by category
+router.get('/travel-products/:category', (req, res) => {
+  try {
+    const { category } = req.params;
+    const cat = (category || '').toLowerCase();
+
+    const db = new Database(dbPath);
+
+    // Build inclusive filters per category to avoid empty results across legacy data
+    let whereClause = '';
+    switch (cat) {
+      case 'flights':
+        whereClause = `(category LIKE '%flight%' OR title LIKE '%flight%' OR display_pages LIKE '%flight%')`;
+        break;
+      case 'hotels':
+        whereClause = `(category LIKE '%hotel%' OR title LIKE '%hotel%' OR display_pages LIKE '%hotel%' OR content_type = 'hotel')`;
+        break;
+      case 'tours':
+        whereClause = `(category LIKE '%tour%' OR title LIKE '%tour%' OR display_pages LIKE '%tour%')`;
+        break;
+      case 'cruises':
+        whereClause = `(category LIKE '%cruise%' OR title LIKE '%cruise%' OR display_pages LIKE '%cruise%')`;
+        break;
+      case 'bus':
+        whereClause = `(category LIKE '%bus%' OR title LIKE '%bus%' OR display_pages LIKE '%bus%')`;
+        break;
+      case 'train':
+        whereClause = `(category LIKE '%train%' OR title LIKE '%train%' OR display_pages LIKE '%train%')`;
+        break;
+      case 'packages':
+        // Include "holiday" to capture package-like content
+        whereClause = `(category LIKE '%package%' OR title LIKE '%package%' OR title LIKE '%holiday%' OR display_pages LIKE '%package%')`;
+        break;
+      case 'car-rental':
+        whereClause = `(category LIKE '%car%' OR title LIKE '%car%' OR title LIKE '%rental%' OR title LIKE '%taxi%' OR display_pages LIKE '%car%')`;
+        break;
+      default:
+        // Fallback to a broad match on category keyword
+        whereClause = `(category LIKE '%' || ? || '%' OR title LIKE '%' || ? || '%' OR display_pages LIKE '%' || ? || '%')`;
+        break;
+    }
+
+    const baseQuery = `
+      SELECT * FROM unified_content
+      WHERE ${whereClause}
+        AND (processing_status = 'active' OR processing_status IS NULL)
+        AND (status = 'active' OR status = 'published' OR status IS NULL)
+        AND (visibility = 'public' OR visibility IS NULL)
+      ORDER BY created_at DESC
+    `;
+
+    const products = (whereClause.includes('?')
+      ? db.prepare(baseQuery).all(cat, cat, cat)
+      : db.prepare(baseQuery).all()) as any[];
+
+    db.close();
+
+    // Map database field names to frontend-expected names where helpful
+    const mapped = products.map((p: any) => ({
+      ...p,
+      // Ensure name is available (frontend often uses `name`)
+      name: p.name ?? p.title,
+    }));
+
+    res.json(mapped);
+  } catch (error) {
+    console.error('Error fetching travel products by category:', error);
+    res.status(500).json({ error: 'Failed to fetch travel products' });
+  }
+});
+
 export default router;

@@ -1041,15 +1041,17 @@ export default function TravelPicks() {
       };
       // Determine gradient and colors based on transport type and operator
         const getTransportStyle = (dealName: string, category: string) => {
+          const safeName = String(dealName || '');
+          const nameLower = safeName.toLowerCase();
           if (category === 'bus') {
-            if (dealName.toLowerCase().includes('brs') || dealName.toLowerCase().includes('travels')) {
+            if (nameLower.includes('brs') || nameLower.includes('travels')) {
               return {
                 gradient: 'bg-gradient-to-r from-green-600 via-blue-600 to-blue-700',
                 icon: 'fas fa-bus',
                 tagline: 'Safe. Reliable. Comfortable.',
                 operatorName: 'BRS Travels'
               };
-            } else if (dealName.toLowerCase().includes('redbus') || dealName.toLowerCase().includes('red bus')) {
+            } else if (nameLower.includes('redbus') || nameLower.includes('red bus')) {
               return {
                 gradient: 'bg-gradient-to-r from-red-500 via-red-600 to-red-700',
                 icon: 'fas fa-bus',
@@ -1065,14 +1067,14 @@ export default function TravelPicks() {
               };
             }
           } else if (category === 'train') {
-             if (dealName.toLowerCase().includes('irctc') || dealName.toLowerCase().includes('indian railways')) {
+             if (nameLower.includes('irctc') || nameLower.includes('indian railways')) {
                return {
                  gradient: 'bg-gradient-to-r from-orange-600 via-green-600 to-blue-600',
                  icon: 'fas fa-train',
                  tagline: 'Lifeline of the Nation',
                  operatorName: 'Indian Railways'
                };
-             } else if (dealName.toLowerCase().includes('rajdhani') || dealName.toLowerCase().includes('express')) {
+             } else if (nameLower.includes('rajdhani') || nameLower.includes('express')) {
                return {
                  gradient: 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600',
                  icon: 'fas fa-train',
@@ -1088,28 +1090,28 @@ export default function TravelPicks() {
                };
              }
            } else if (category === 'car-rental') {
-             if (dealName.toLowerCase().includes('ola') || dealName.toLowerCase().includes('ola cabs')) {
+             if (nameLower.includes('ola') || nameLower.includes('ola cabs')) {
                return {
                  gradient: 'bg-gradient-to-r from-green-500 via-lime-500 to-green-600',
                  icon: 'fas fa-car',
                  tagline: deal.description || 'Moving India Forward',
                  operatorName: deal.name || 'Ola'
                };
-             } else if (dealName.toLowerCase().includes('uber')) {
+             } else if (nameLower.includes('uber')) {
                return {
                  gradient: 'bg-gradient-to-r from-black via-gray-800 to-black',
                  icon: 'fas fa-car',
                  tagline: deal.description || 'Move the way you want',
                  operatorName: deal.name || 'Uber'
                };
-             } else if (dealName.toLowerCase().includes('zoomcar') || dealName.toLowerCase().includes('zoom car')) {
+             } else if (nameLower.includes('zoomcar') || nameLower.includes('zoom car')) {
                return {
                  gradient: 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600',
                  icon: 'fas fa-car',
                  tagline: deal.description || 'Self Drive Car Rental',
                  operatorName: deal.name || 'Zoomcar'
                };
-             } else if (dealName.toLowerCase().includes('revv')) {
+             } else if (nameLower.includes('revv')) {
                return {
                  gradient: 'bg-gradient-to-r from-orange-500 via-red-500 to-orange-600',
                  icon: 'fas fa-car',
@@ -1125,21 +1127,21 @@ export default function TravelPicks() {
                };
              }
            } else if (category === 'cruises') {
-             if (dealName.toLowerCase().includes('stardream') || dealName.toLowerCase().includes('star dream')) {
+             if (nameLower.includes('stardream') || nameLower.includes('star dream')) {
                return {
                  gradient: 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600',
                  icon: 'fas fa-ship',
                  tagline: `Starting from ${displayPrice}`,
                  operatorName: 'StarDream Cruises'
                };
-             } else if (dealName.toLowerCase().includes('cordelia')) {
+             } else if (nameLower.includes('cordelia')) {
                return {
                  gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600',
                  icon: 'fas fa-ship',
                  tagline: deal.description || `Starting from ${displayPrice}`,
                  operatorName: deal.name || 'Cordelia'
                };
-             } else if (dealName.toLowerCase().includes('royal caribbean') || dealName.toLowerCase().includes('royal')) {
+             } else if (nameLower.includes('royal caribbean') || nameLower.includes('royal')) {
                return {
                  gradient: 'bg-gradient-to-r from-blue-600 via-navy-600 to-blue-700',
                  icon: 'fas fa-ship',
@@ -1155,28 +1157,28 @@ export default function TravelPicks() {
                };
              }
            } else if (category === 'hotels') {
-             if (dealName.toLowerCase().includes('taj') || dealName.toLowerCase().includes('mahal')) {
+             if (nameLower.includes('taj') || nameLower.includes('mahal')) {
                return {
                  gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600',
                  icon: 'fas fa-crown',
                  tagline: 'Luxury Redefined',
                  operatorName: 'Taj Hotels'
                };
-             } else if (dealName.toLowerCase().includes('marriott')) {
+             } else if (nameLower.includes('marriott')) {
                return {
                  gradient: 'bg-gradient-to-r from-red-500 via-orange-500 to-red-600',
                  icon: 'fas fa-hotel',
                  tagline: 'Wonderful Hospitality',
                  operatorName: 'Marriott'
                };
-             } else if (dealName.toLowerCase().includes('hilton')) {
+             } else if (nameLower.includes('hilton')) {
                return {
                  gradient: 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600',
                  icon: 'fas fa-hotel',
                  tagline: 'Be Hospitable',
                  operatorName: 'Hilton'
                };
-             } else if (dealName.toLowerCase().includes('itc') || dealName.toLowerCase().includes('grand')) {
+             } else if (nameLower.includes('itc') || nameLower.includes('grand')) {
                return {
                  gradient: 'bg-gradient-to-r from-green-500 via-teal-500 to-green-600',
                  icon: 'fas fa-crown',
@@ -1188,33 +1190,33 @@ export default function TravelPicks() {
                  gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600',
                  icon: 'fas fa-hotel',
                  tagline: 'Premium Hospitality',
-                 operatorName: deal.name.split(' ')[0] || 'Luxury Hotels'
+                 operatorName: String(deal.name || '').split(' ')[0] || 'Luxury Hotels'
                };
              }
            } else {
            // Flight operators
-           if (dealName.toLowerCase().includes('airasia') || dealName.toLowerCase().includes('air asia')) {
+           if (nameLower.includes('airasia') || nameLower.includes('air asia')) {
              return {
                gradient: 'bg-gradient-to-r from-blue-500 via-purple-500 to-purple-600',
                icon: 'fas fa-plane',
                tagline: 'Now Everyone Can Fly',
                operatorName: 'AirAsia'
              };
-           } else if (dealName.toLowerCase().includes('cathay') || dealName.toLowerCase().includes('pacific')) {
+           } else if (nameLower.includes('cathay') || nameLower.includes('pacific')) {
              return {
                gradient: 'bg-gradient-to-r from-teal-500 via-green-500 to-green-600',
                icon: 'fas fa-plane',
                tagline: 'Life Well Travelled',
                operatorName: 'Cathay Pacific'
              };
-           } else if (dealName.toLowerCase().includes('emirates')) {
+           } else if (nameLower.includes('emirates')) {
              return {
                gradient: 'bg-gradient-to-r from-red-500 via-red-600 to-orange-600',
                icon: 'fas fa-plane',
                tagline: 'Fly Better',
                operatorName: 'Emirates'
              };
-           } else if (dealName.toLowerCase().includes('indigo')) {
+           } else if (nameLower.includes('indigo')) {
              return {
                gradient: 'bg-gradient-to-r from-indigo-500 via-blue-500 to-blue-600',
                icon: 'fas fa-plane',
@@ -1226,7 +1228,7 @@ export default function TravelPicks() {
                gradient: 'bg-gradient-to-r from-blue-500 via-purple-500 to-purple-600',
                icon: 'fas fa-plane',
                tagline: 'Discover Amazing Deals',
-               operatorName: deal.airline || deal.name.split(' - ')[0] || deal.name
+               operatorName: deal.airline || String(deal.name || '').split(' - ')[0] || deal.name || 'Airline'
              };
            }
          }
@@ -2764,30 +2766,31 @@ export default function TravelPicks() {
        const price = Math.round(convertPrice(parseFloat(deal.price?.replace(/,/g, '') || '0') || 0, (deal.currency || 'INR') as any, selectedCurrency));
        // Use specific images for each destination based on category
        const getDestinationImage = (dealName: string) => {
+         const nameLower = String(dealName || '').toLowerCase();
          if (selectedCategory === 'hotels') {
            // Hotel-specific images
-           if (dealName.toLowerCase().includes('goa')) {
+           if (nameLower.includes('goa')) {
              return 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=200&h=200&fit=crop&auto=format&q=80'; // Goa beach resort
-           } else if (dealName.toLowerCase().includes('mumbai')) {
+           } else if (nameLower.includes('mumbai')) {
              return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&h=200&fit=crop&auto=format&q=80'; // Mumbai luxury hotel
-           } else if (dealName.toLowerCase().includes('delhi')) {
+           } else if (nameLower.includes('delhi')) {
              return 'https://images.unsplash.com/photo-1578774204375-8f9d5e6e4e6e?w=200&h=200&fit=crop&auto=format&q=80'; // Delhi heritage hotel
            }
            return 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=200&h=200&fit=crop&auto=format&q=80'; // Default hotel
          } else {
            // Destination images for other categories
-           if (dealName.toLowerCase().includes('goa')) {
+           if (nameLower.includes('goa')) {
              return 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=200&h=200&fit=crop&auto=format&q=80'; // Goa beaches
-           } else if (dealName.toLowerCase().includes('kerala')) {
+           } else if (nameLower.includes('kerala')) {
              return 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=200&h=200&fit=crop&auto=format&q=80'; // Kerala backwaters
-           } else if (dealName.toLowerCase().includes('rajasthan')) {
+           } else if (nameLower.includes('rajasthan')) {
              return 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=200&h=200&fit=crop&auto=format&q=80'; // Rajasthan palace
            }
            return 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=200&h=200&fit=crop&auto=format&q=80'; // Default
          }
        };
        
-       const destinationImage = getDestinationImage(deal.name);
+       const destinationImage = getDestinationImage(deal.name || deal.route || '');
        
        // Handle different display formats based on category
        let displayTitle = '';
@@ -3163,13 +3166,42 @@ export default function TravelPicks() {
           console.warn('Failed to parse travel_type data for deal:', deal.id);
         }
       }
+
+      // Merge tags JSON (saved by backend) into travelTypeData so
+      // section-specific fields render on cards without schema changes
+      try {
+        if ((deal as any).tags) {
+          const tagsObj = typeof (deal as any).tags === 'string'
+            ? JSON.parse((deal as any).tags)
+            : (deal as any).tags;
+          travelTypeData = {
+            ...travelTypeData,
+            ...(tagsObj || {})
+          };
+        }
+      } catch (e) {
+        console.warn('Failed to parse tags JSON for deal:', deal.id, e);
+      }
       
       // Map backend field names to frontend field names - COMPREHENSIVE MAPPING
       // Now we can access section_type from travelTypeData
       const mappedDeal = {
         ...deal,
         ...travelTypeData, // Merge travel_type data first so we have access to section_type
-        
+
+        // Normalize price fields to strings to avoid runtime errors on replace()
+        price: typeof (deal as any).price === 'string'
+          ? (deal as any).price
+          : (deal as any).price != null
+            ? String((deal as any).price)
+            : '',
+        original_price: typeof (deal as any).original_price === 'string'
+          ? (deal as any).original_price
+          : (deal as any).original_price != null
+            ? String((deal as any).original_price)
+            : ((deal as any).originalPrice != null ? String((deal as any).originalPrice) : ''),
+        currency: (deal as any).currency || 'INR',
+
         // Core section and display fields - section_type now available from travelTypeData
         sectionType: travelTypeData.section_type || deal.section_type || deal.sectionType || 'standard',
         originalPrice: deal.original_price || deal.originalPrice,
@@ -3260,19 +3292,43 @@ export default function TravelPicks() {
         console.warn('Failed to parse nested field colors/styles for deal:', mappedDeal.id, e);
       }
 
+      // Safely parse price fields to avoid runtime errors when price is missing
+      const priceStr = typeof (mappedDeal as any).price === 'string'
+        ? (mappedDeal as any).price
+        : (mappedDeal as any).price != null
+          ? String((mappedDeal as any).price)
+          : '';
+
+      const basePrice = priceStr
+        ? parseFloat(priceStr.replace(/,/g, '')) || 0
+        : 0;
+
+      const origStr = typeof (mappedDeal as any).originalPrice === 'string'
+        ? (mappedDeal as any).originalPrice
+        : (mappedDeal as any).originalPrice != null
+          ? String((mappedDeal as any).originalPrice)
+          : '';
+
+      const baseOrigPrice = origStr
+        ? parseFloat(origStr.replace(/,/g, '')) || 0
+        : 0;
+
       return {
         ...mappedDeal,
         // Override with properly parsed nested fields
         field_colors: parsedFieldColors,
         field_styles: parsedFieldStyles,
-        displayPrice: convertPrice(parseFloat(mappedDeal.price.replace(/,/g, '')) || 0, (mappedDeal.currency || 'INR') as any, selectedCurrency),
-        displayOriginalPrice: mappedDeal.originalPrice ? convertPrice(parseFloat(mappedDeal.originalPrice.replace(/,/g, '')) || 0, (mappedDeal.currency || 'INR') as any, selectedCurrency) : null
+        displayPrice: convertPrice(basePrice, (mappedDeal.currency || 'INR') as any, selectedCurrency),
+        displayOriginalPrice: origStr ? convertPrice(baseOrigPrice, (mappedDeal.currency || 'INR') as any, selectedCurrency) : null
       };
     });
   }, [realTravelDeals, selectedCategory, selectedCurrency, convertPrice, priceRange]);
 
   const currentCategoryConfig = categorySectionConfig[selectedCategory as keyof typeof categorySectionConfig] || { sections: [], hasFilter: false };
   const uses3SectionSystem = currentCategoryConfig.sections.length > 0;
+
+  // Disable automatic fallback population: sections only show real deals
+  const enableSectionFallback = false;
 
   const categorizeDeals = (deals: TravelDeal[]) => {
     const trending = deals.filter(deal => deal.sectionType === 'trending');
@@ -3309,8 +3365,36 @@ export default function TravelPicks() {
       }
     });
 
+    // Fallback: populate empty sections so UI always shows Section 1/2/3
+    // Determine required section types for current category from config
+    const requiredSectionTypes = (currentCategoryConfig.sections || []).map(s => s.type);
+
+    if (requiredSectionTypes.length > 0 && enableSectionFallback) {
+      const remaining = [...categoryDeals];
+
+      requiredSectionTypes.forEach((type) => {
+        const current = categorized[type] || [];
+        if (current.length === 0) {
+          // Choose a sensible number of items per section
+          const maxItems = type === 'featured' ? 8 : 12;
+
+          // Prefer unused items; if none remain, reuse from the full pool to ensure population
+          let filler: TravelDeal[] = [];
+          if (remaining.length > 0) {
+            filler = remaining.slice(0, Math.min(maxItems, remaining.length));
+            // Remove used items to reduce duplication across subsequent sections
+            remaining.splice(0, filler.length);
+          } else {
+            filler = categoryDeals.slice(0, Math.min(maxItems, categoryDeals.length));
+          }
+
+          categorized[type] = filler;
+        }
+      });
+    }
+
     return categorized;
-  }, [categoryDeals]);
+  }, [categoryDeals, currentCategoryConfig]);
 
   // Generate smart filter options based on available data
    const getSmartFilterOptions = useMemo(() => {
@@ -3404,6 +3488,14 @@ export default function TravelPicks() {
    // Apply route filter to categorized deals
    if (currentCategoryConfig.hasFilter && routeFilter !== 'all') {
     Object.keys(categorizedDeals).forEach(key => {
+      // Preserve non-route-based sections so they always show content
+      if (
+        (selectedCategory === 'flights' && key === 'destinations') ||
+        (selectedCategory === 'packages' && (key === 'destinations' || key === 'cities'))
+      ) {
+        return; // skip filtering for these sections
+      }
+
       categorizedDeals[key as keyof typeof categorizedDeals] = categorizedDeals[key as keyof typeof categorizedDeals].filter(
         (deal: TravelDeal) => {
           if (selectedCategory === 'flights') {
@@ -3780,11 +3872,8 @@ export default function TravelPicks() {
               {categoryDeals.length > 0 ? (
                 categoryDeals.map(deal => renderTravelCard(deal, 'standard'))
               ) : (
-                <div className="col-span-full text-center py-12">
-                  <i className="fas fa-plane text-6xl text-gray-300 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-500 mb-2">No travel deals found</h3>
-                  <p className="text-gray-400">Try selecting a different category.</p>
-                </div>
+                // No empty message when there are no products; render nothing
+                null
               )}
             </div>
           )}

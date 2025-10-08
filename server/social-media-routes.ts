@@ -5,12 +5,9 @@
 
 import { Request, Response, Express } from 'express';
 import { createSocialMediaPoster } from './social-media-poster.js';
-import Database from 'better-sqlite3';
-import path from 'path';
+import { sqliteDb as db } from './db.js';
 
-// Create database connection
-const dbPath = path.join(process.cwd(), 'database.sqlite');
-const db = new Database(dbPath);
+// Use shared database connection to ensure consistent path resolution
 
 // Admin password verification (same as in routes.ts)
 async function verifyAdminPassword(password: string): Promise<boolean> {

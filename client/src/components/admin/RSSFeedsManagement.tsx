@@ -48,20 +48,20 @@ interface RSSFeed {
   updatedAt: string;
 }
 
-const commonCategories = [
-  { value: 'Deals', label: 'Deals & Discounts' },
-  { value: 'Technology', label: 'Technology' },
-  { value: 'Fashion', label: 'Fashion & Clothing' },
-  { value: 'Electronics', label: 'Electronics' },
-  { value: 'Home', label: 'Home & Garden' },
-  { value: 'Travel', label: 'Travel & Tourism' },
-  { value: 'Food', label: 'Food & Dining' },
-  { value: 'Health', label: 'Health & Beauty' },
-  { value: 'Sports', label: 'Sports & Fitness' },
-  { value: 'Books', label: 'Books & Media' },
-  { value: 'Automotive', label: 'Automotive' },
-  { value: 'General', label: 'General' },
-];
+// Browse categories from DB for unified taxonomy
+const useBrowseCategories = () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['/api/categories/browse'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories/browse');
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      const json = await res.json();
+      const list = Array.isArray(json) ? json : json.categories || [];
+      return list.map((c: any) => ({ id: c.id || c.slug || c.name, name: c.name || c.title || c.slug }));
+    },
+  });
+  return { categories: data || [], isLoading, error };
+};
 
 const updateFrequencyOptions = [
   { value: 5, label: '5 minutes' },
@@ -86,7 +86,7 @@ export default function RSSFeedsManagement() {
       name: '',
       url: '',
       description: '',
-      category: 'General',
+      category: '',
       updateFrequency: 60,
       isActive: true,
       autoImport: true,
@@ -94,6 +94,9 @@ export default function RSSFeedsManagement() {
       affiliateReplace: false,
     },
   });
+
+  // Fetch browse categories for dropdown
+  const { categories: browseCategories, isLoading: categoriesLoading } = useBrowseCategories();
 
   // Fetch RSS feeds
   const { data: rssFeeds, isLoading } = useQuery({
@@ -374,14 +377,15 @@ export default function RSSFeedsManagement() {
                   <Select
                     value={form.watch('category')}
                     onValueChange={(value) => form.setValue('category', value)}
+                    disabled={categoriesLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={categoriesLoading ? 'Loading categories...' : 'Select category'} />
                     </SelectTrigger>
                     <SelectContent>
-                      {commonCategories.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
+                      {browseCategories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

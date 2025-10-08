@@ -14,6 +14,10 @@ import { travelPicksBot } from './travel-picks-bot.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Admin alert chat configuration (set one of these in env)
+// Prefer a private admin chat/channel to avoid spamming public channels
+const ALERT_CHAT_ID = process.env.BOT_ALERT_CHAT_ID || process.env.MASTER_ADMIN_CHAT_ID || '';
+
 // Singleton pattern to prevent multiple bot instances
 class TelegramBotManager {
   private static instance: TelegramBotManager | null = null;
@@ -118,6 +122,26 @@ class TelegramBotManager {
 
       // Initialize travel bot
       await travelPicksBot.initialize();
+
+      // Send initialization alert to admin chat if configured
+      try {
+        if (ALERT_CHAT_ID) {
+          const me = await this.bot.getMe();
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://www.pickntrust.com';
+          const info = await this.bot.getWebHookInfo();
+          const msg = `✅ <b>Bot Initialized</b>\n` +
+            `• Bot: <code>${me.username}</code> (ID: ${me.id})\n` +
+            `• Mode: webhook-only\n` +
+            `• Webhook: <code>${(info as any).url || baseUrl}</code>\n` +
+            `• Pending: ${(info as any).pending_update_count || 0}\n` +
+            `• Env: <code>${process.env.NODE_ENV || 'unknown'}</code>`;
+          await this.bot.sendMessage(ALERT_CHAT_ID, msg, { parse_mode: 'HTML' });
+        } else {
+          console.log('ℹ️ No ALERT_CHAT_ID configured; skipping init alert');
+        }
+      } catch (alertErr) {
+        console.warn('⚠️ Failed to send initialization alert:', (alertErr as any)?.message || alertErr);
+      }
 
       // Setup graceful shutdown
       this.setupGracefulShutdown();
@@ -233,6 +257,26 @@ const sendTelegramNotification = async (channelId: string, message: string, opti
     return false;
   }
 };
+
+// Internal helper to send admin alerts safely
+async function notifyAdmin(message: string, options: any = {}) {
+  try {
+    if (!ALERT_CHAT_ID) {
+      console.log('ℹ️ ALERT_CHAT_ID not set; admin alert:', message);
+      return false;
+    }
+    const currentBot = botManager.getBot();
+    if (!currentBot) {
+      console.error('❌ Bot not initialized; cannot send admin alert');
+      return false;
+    }
+    await currentBot.sendMessage(ALERT_CHAT_ID, message, { parse_mode: 'HTML', ...options });
+    return true;
+  } catch (err) {
+    console.warn('⚠️ Failed to send admin alert:', (err as any)?.message || err);
+    return false;
+  }
+}
 
 // Channel mappings with their respective configurations
 const CHANNEL_CONFIGS = {
@@ -818,7 +862,8 @@ async function extractImageUrl(msg: any): Promise<string | null> {
 // Save message to channel_posts table first
 async function saveToChannelPosts(msg: any, channelConfig: any, messageText: string, extractedUrls: string[], imageUrl: string | null = null) {
   try {
-    const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+    // Use the same database path convention as other server modules
+    const dbPath = path.join(__dirname, '..', 'database.sqlite');
     const sqliteDb = new Database(dbPath);
     
     // Updated SQL to match actual table schema
@@ -860,7 +905,8 @@ async function saveToChannelPosts(msg: any, channelConfig: any, messageText: str
 // Update channel_posts record after processing
 async function updateChannelPostStatus(channelPostId: number, isProcessed: boolean, isPosted: boolean, error?: string) {
   try {
-    const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+    // Use the project root database file like other services
+    const dbPath = path.join(__dirname, '..', 'database.sqlite');
     const sqliteDb = new Database(dbPath);
     
     const updateSQL = `
@@ -969,7 +1015,8 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
     ];
     
     // Execute raw SQL using the database connection
-    const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+    // Align DB path with storage/db modules (server/../database.sqlite)
+    const dbPath = path.join(__dirname, '..', 'database.sqlite');
     const sqliteDb = new Database(dbPath);
     
     const result = sqliteDb.prepare(insertSQL).run(...values);
@@ -1052,6 +1099,11 @@ async function processMessage(msg) {
   
   if (!channelPostId) {
     console.error('❌ Failed to save message to channel_posts, aborting...');
+    await notifyAdmin(
+      `❌ <b>Channel Post Save Failed</b>\n` +
+      `• Channel: <code>${channelConfig.pageName}</code> (${chatId})\n` +
+      `• Message ID: <code>${msg.message_id}</code>`
+    );
     return;
   }
   
@@ -1171,6 +1223,14 @@ async function processMessage(msg) {
     
     // Update channel_posts status to show processing error
     await updateChannelPostStatus(Number(channelPostId), false, false, error.message);
+
+    // Notify admin about processing/upload failure
+    await notifyAdmin(
+      `❌ <b>Processing Failed</b>\n` +
+      `• Channel: <code>${channelConfig.pageName}</code> (${chatId})\n` +
+      `• Message ID: <code>${msg.message_id}</code>\n` +
+      `• Error: <code>${error.message || 'unknown error'}</code>`
+    );
   }
 }
 

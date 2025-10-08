@@ -4,11 +4,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import fs from 'fs';
+import { getDatabasePath, getDatabaseOptions } from './config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, 'database.sqlite');
-const sqliteDb = new Database(dbPath);
+// Use centralized database resolution to avoid placing DB inside dist
+const sqliteDb = new Database(getDatabasePath(), getDatabaseOptions());
 
 const router = express.Router();
 

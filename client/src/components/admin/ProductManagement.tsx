@@ -300,7 +300,10 @@ export default function ProductManagement() {
       return response.json();
     },
     retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0,
+    gcTime: 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
   });
 
   // Fetch service-specific categories for forms (all categories)
@@ -314,7 +317,10 @@ export default function ProductManagement() {
       return response.json();
     },
     retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0,
+    gcTime: 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
   });
 
   // Fetch AI app-specific categories for forms (all categories)
@@ -328,23 +334,26 @@ export default function ProductManagement() {
       return response.json();
     },
     retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0,
+    gcTime: 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
   });
 
-  // Fetch all subcategories (not filtered by selected category)
-  const { data: allSubcategories = [] } = useQuery({
-    queryKey: ['/api/categories/all-subcategories'],
+  // Fetch subcategories for selected category
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ['/api/categories/subcategories', newProduct.category || ''],
     queryFn: async () => {
-      const response = await fetch('/api/categories');
+      if (!newProduct.category) return [];
+      const response = await fetch(`/api/categories/subcategories?parent=${encodeURIComponent(newProduct.category)}`);
       if (!response.ok) {
         return [];
       }
-      const allCategories = await response.json();
-      // Filter to get only subcategories (those with parentId)
-      return allCategories.filter((cat: any) => cat.parentId !== null && cat.parentId !== undefined);
+      return response.json();
     },
     retry: 1,
-    staleTime: 0, // Real-time updates
+    staleTime: 0,
+    enabled: !!newProduct.category,
   });
 
   // Add product mutation
@@ -1103,10 +1112,28 @@ export default function ProductManagement() {
 
   // Get categories based on active tab - use dynamic categories from API
   const getAvailableCategories = () => {
+    // Helper to normalize only top-level categories (exclude subcategories)
+    const mapTopLevel = (list: any[]) => {
+      // Preserve order while deduping and exclude misformatted names
+      const seen = new Set<string>();
+      const result: string[] = [];
+      for (const cat of list) {
+        const name = (cat?.name ?? cat) as string;
+        if (!name || typeof name !== 'string') continue;
+        // Skip subcategories and malformed names like "Beauty > Tools"
+        if (cat?.parentId || name.includes('>')) continue;
+        if (!seen.has(name)) {
+          seen.add(name);
+          result.push(name);
+        }
+      }
+      return result;
+    };
+
     if (activeTab === 'services') {
       // For services, use service-specific categories from API
       if (serviceCategories.length > 0) {
-        return serviceCategories.map((cat: any) => cat.name || cat);
+        return mapTopLevel(serviceCategories);
       }
       // Fallback service categories only if API fails
       return [
@@ -1116,7 +1143,7 @@ export default function ProductManagement() {
     } else if (activeTab === 'apps') {
       // For Apps (including AI Apps), use AI app-specific categories from API
       if (aiAppCategories.length > 0) {
-        return aiAppCategories.map((cat: any) => cat.name || cat);
+        return mapTopLevel(aiAppCategories);
       }
       // Fallback AI app categories only if API fails
       return [
@@ -1127,7 +1154,7 @@ export default function ProductManagement() {
     } else {
       // For products, use product-specific categories from API
       if (productCategories.length > 0) {
-        return productCategories.map((cat: any) => cat.name || cat);
+        return mapTopLevel(productCategories);
       }
       // Fallback product categories only if API fails
       return [
@@ -1425,8 +1452,8 @@ export default function ProductManagement() {
                   )}
                 </div>
                 
-                {/* Subcategory field - show all available subcategories */}
-                {allSubcategories.length > 0 && (
+                {/* Subcategory field - dependent on selected category */}
+                {newProduct.category && subcategories.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium mb-2 text-blue-300">Subcategory (Optional)</label>
                     <select
@@ -1435,7 +1462,7 @@ export default function ProductManagement() {
                       className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
                     >
                       <option value="">Select Subcategory (Optional)</option>
-                      {allSubcategories.map((subcat: any) => (
+                      {subcategories.map((subcat: any) => (
                         <option key={subcat.id} value={subcat.name}>{subcat.name}</option>
                       ))}
                     </select>

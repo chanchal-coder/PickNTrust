@@ -3038,8 +3038,22 @@ export function setupRoutes(app: express.Application) {
 
       // Verify token against master or additional allowed bot tokens
       const expectedToken = process.env.MASTER_BOT_TOKEN;
-      const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '').split(',').map(t => t.trim()).filter(Boolean);
-      const isAuthorized = token === expectedToken || allowedTokensEnv.includes(token);
+      const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '')
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+      const additionalEnvTokens = [
+        process.env.VALUE_PICKS_BOT_TOKEN,
+        process.env.PRIME_PICKS_BOT_TOKEN,
+        process.env.CUE_PICKS_BOT_TOKEN,
+        process.env.CLICK_PICKS_BOT_TOKEN,
+        process.env.GLOBAL_PICKS_BOT_TOKEN,
+        process.env.DEALS_HUB_BOT_TOKEN,
+        process.env.LOOT_BOX_BOT_TOKEN,
+        process.env.TRAVEL_PICKS_BOT_TOKEN
+      ].filter(Boolean) as string[];
+      const allowedTokensSet = new Set<string>([...allowedTokensEnv, ...additionalEnvTokens]);
+      const isAuthorized = token === expectedToken || allowedTokensSet.has(token);
 
       if (!isAuthorized) {
         console.error('❌ Invalid webhook token: not in allowed list');

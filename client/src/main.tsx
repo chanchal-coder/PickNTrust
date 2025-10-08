@@ -18,15 +18,23 @@ function showErrorOverlay(message: string) {
 }
 
 // Catch global runtime errors so users never see a blank page
+// Catch global runtime errors conservatively: only block pre-mount critical failures
 window.addEventListener("error", (event) => {
+  const msg = (event.error && (event.error.message || String(event.error))) || String(event.message || "");
+  const isBenignError = /ResizeObserver loop limit exceeded|Script error\.|ERR_ABORTED|Image proxy error|HTTP 404/i.test(msg);
   console.error("Global error:", event.error || event.message);
-  showErrorOverlay("A critical error occurred while loading the page.");
+  // Ignore known benign errors and avoid blocking the UI after mount
+  if (isBenignError) {
+    console.warn("Ignored benign error:", msg);
+    return;
+  }
+  // Only show overlay if the app has not mounted yet (critical boot-time failure)
+  if (!mounted) {
+    showErrorOverlay("A critical error occurred while loading the page.");
+  }
 });
 
-window.addEventListener("unhandledrejection", (event) => {
-  console.error("Unhandled promise rejection:", event.reason);
-  showErrorOverlay("A critical error occurred while initializing the app.");
-});
+// Remove aggressive rejection overlay; handle with conservative boot-time logic below
 // Be conservative: only show overlay for critical boot-time failures
 window.addEventListener("unhandledrejection", (e: PromiseRejectionEvent) => {
   const msg = (e.reason && (e.reason.message || String(e.reason))) || "Unhandled promise rejection.";
@@ -131,6 +139,7 @@ if (forceSafeApp) {
     })
     .catch((err) => {
       console.error("Failed to load App:", err);
-      showErrorOverlay("Failed to load application module.");
+      const msg = (err && (err.message || String(err))) || "Failed to load application module.";
+      showErrorOverlay(msg);
     });
 }

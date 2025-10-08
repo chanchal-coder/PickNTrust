@@ -57,10 +57,7 @@ router.get('/api/widgets/:page/:position', async (req: Request, res: Response) =
   try {
     const { page, position } = req.params;
 
-    // Hard block: do not serve any widgets on prime-picks
-    if (page === 'prime-picks') {
-      return res.json([]);
-    }
+    // Serve widgets for all pages, including prime-picks
 
     // Normalize legacy/synonym positions to avoid mismatches across layouts
     let positionsToQuery: string[] = [position];
@@ -74,7 +71,11 @@ router.get('/api/widgets/:page/:position', async (req: Request, res: Response) =
     const placeholders = positionsToQuery.map(() => '?').join(', ');
     const pageWidgets = sqliteDb.prepare(`
       SELECT * FROM widgets 
-      WHERE target_page = ? AND position IN (${placeholders}) AND is_active = 1
+      WHERE target_page = ? 
+        AND position IN (${placeholders}) 
+        AND is_active = 1
+        AND LOWER(name) NOT LIKE '%test%'
+        AND (description IS NULL OR LOWER(description) NOT LIKE '%test%')
       ORDER BY display_order
     `).all(page, ...positionsToQuery);
     
@@ -89,13 +90,13 @@ router.get('/api/widgets/:page/:position', async (req: Request, res: Response) =
 router.get('/api/widgets/:page', async (req: Request, res: Response) => {
   try {
     const { page } = req.params;
-    // Hard block: do not serve any widgets on prime-picks
-    if (page === 'prime-picks') {
-      return res.json([]);
-    }
+    // Serve widgets for all pages, including prime-picks
     const pageWidgets = sqliteDb.prepare(`
       SELECT * FROM widgets 
-      WHERE target_page = ? AND is_active = 1
+      WHERE target_page = ? 
+        AND is_active = 1
+        AND LOWER(name) NOT LIKE '%test%'
+        AND (description IS NULL OR LOWER(description) NOT LIKE '%test%')
       ORDER BY position, display_order
     `).all(page);
     

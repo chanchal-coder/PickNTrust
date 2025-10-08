@@ -88,9 +88,8 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
   };
 
   const widgetPage = getWidgetPage(page);
-  // Hard safeguard: disable all widgets on prime-picks to eliminate stray test widgets
-  // This applies regardless of domain until the widget system is cleaned up.
-  const disableWidgetsOnPrimeInProd = widgetPage === 'prime-picks';
+  // Allow widgets on prime-picks again
+  const disableWidgetsOnPrimeInProd = false;
 
   // Fetch widgets for this page and position (including fallback to parent pages)
   const { data: widgets = [], isLoading, error } = useQuery<Widget[]>({
@@ -162,7 +161,7 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
-    enabled: !disableWidgetsOnPrimeInProd,
+    enabled: true,
   });
 
   // Filter widgets based on device type

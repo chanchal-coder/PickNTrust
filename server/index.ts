@@ -27,11 +27,17 @@ import { setupRoutes } from "./routes.js";
 import { serveStatic, log } from "./vite.js";
 import path from "path";
 import { fileURLToPath } from "url";
-// Initialize Telegram bot only when explicitly enabled
-const ENABLE_TELEGRAM_BOT = process.env.ENABLE_TELEGRAM_BOT === 'true';
+// Initialize Telegram bot in production or when explicitly enabled
+const ENABLE_TELEGRAM_BOT = process.env.ENABLE_TELEGRAM_BOT === 'true' || process.env.NODE_ENV === 'production';
 if (ENABLE_TELEGRAM_BOT) {
   // Dynamically import to avoid pulling dependencies when disabled
-  import('./telegram-bot.js');
+  import('./telegram-bot.js').then(() => {
+    console.log('🤖 Telegram bot module loaded');
+  }).catch(err => {
+    console.warn('⚠️ Failed to load Telegram bot module:', err?.message || err);
+  });
+} else {
+  console.log('🤖 Telegram bot module not loaded (ENABLE_TELEGRAM_BOT not set and not production)');
 }
 import { sqliteDb } from "./db.js";
 
@@ -324,6 +330,21 @@ app.get('/api/status', (_req: Request, res: Response) => {
   });
 });
 
+// Debug: list mounted routes for troubleshooting
+app.get('/api/debug/routes', (_req: Request, res: Response) => {
+  const routes: Array<{ method: string; path: string }> = [];
+  const stack = (app as any)._router?.stack || [];
+  for (const layer of stack) {
+    if (layer.route && layer.route.path) {
+      const methods = Object.keys(layer.route.methods || {});
+      for (const m of methods) {
+        routes.push({ method: m.toUpperCase(), path: layer.route.path });
+      }
+    }
+  }
+  res.json({ count: routes.length, routes });
+});
+
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const isJsonParseError = err instanceof SyntaxError && (err as any).status === 400 && 'body' in err;
   const status = isJsonParseError ? 400 : (err.status || err.statusCode || 500);
@@ -343,6 +364,8 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
 // Environment configuration
 const isDevelopment = process.env.NODE_ENV !== 'production';
+// Enable background services (cleanup, RSS aggregation) only in production unless explicitly enabled
+const ENABLE_BACKGROUND_SERVICES = process.env.ENABLE_BACKGROUND_SERVICES === 'true' || process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 5000;
 const FRONTEND_URL = process.env.FRONTEND_URL || (isDevelopment ? 'http://localhost:5173' : '');
 
@@ -469,22 +492,26 @@ const server = app.listen(port, '0.0.0.0', async () => {
     }
   }
 
-  // Initialize Category Cleanup Service for automatic category management
-  try {
-    console.log('Cleanup Starting Category Cleanup Service...');
-    CategoryCleanupService.initializeOnServerStart();
-    console.log('Success Category cleanup service initialized with 1-minute intervals for immediate updates');
-  } catch (error) {
-    console.error('Error Failed to initialize Category Cleanup Service:', error);
-  }
+  if (ENABLE_BACKGROUND_SERVICES) {
+    // Initialize Category Cleanup Service for automatic category management
+    try {
+      console.log('Cleanup Starting Category Cleanup Service...');
+      CategoryCleanupService.initializeOnServerStart();
+      console.log('Success Category cleanup service initialized');
+    } catch (error) {
+      console.error('Error Failed to initialize Category Cleanup Service:', error);
+    }
 
-  // Initialize RSS Aggregation Service for automatic RSS feed processing
-  try {
-    console.log('📡 Starting RSS Aggregation Service...');
-    aggregationService.start();
-    console.log('✅ RSS aggregation service initialized with automatic scheduling');
-  } catch (error) {
-    console.error('❌ Failed to initialize RSS Aggregation Service:', error);
+    // Initialize RSS Aggregation Service for automatic RSS feed processing
+    try {
+      console.log('📡 Starting RSS Aggregation Service...');
+      aggregationService.start();
+      console.log('✅ RSS aggregation service initialized with automatic scheduling');
+    } catch (error) {
+      console.error('❌ Failed to initialize RSS Aggregation Service:', error);
+    }
+  } else {
+    console.log('⏸️ Skipping background services in development (set ENABLE_BACKGROUND_SERVICES=true to enable).');
   }
 });
 

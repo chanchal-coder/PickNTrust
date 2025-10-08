@@ -207,15 +207,16 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
       console.log(`API call status: ${response.status}`);
       
       if (!response.ok) {
-        console.error(`Failed to fetch banners for ${page}:`, response.status, response.statusText);
-        throw new Error('Failed to fetch banners');
+        console.warn(`Banner API not available for ${page}. Rendering without banners.`);
+        return [];
       }
       const data = await response.json();
       console.log(`Banners fetched for ${page}:`, data);
       return data.banners || [];
     },
-    staleTime: 0, // Always fetch fresh data
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
   // Use API data for all pages
@@ -542,11 +543,13 @@ export function useBanners(page: string) {
     queryFn: async () => {
       const response = await fetch(`/api/banners/${page}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch banners');
+        return [];
       }
       const data = await response.json();
       return data.banners || [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }

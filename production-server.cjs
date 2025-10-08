@@ -143,12 +143,11 @@ app.get('/api/categories', (req, res) => {
       color,
       description,
       parent_id as parentId,
-      is_for_products as isForProducts,
-      is_for_services as isForServices,
-      is_for_ai_apps as isForAIApps,
+      COALESCE(is_for_products, 1) as isForProducts,
+      COALESCE(is_for_services, 0) as isForServices,
+      COALESCE(is_for_ai_apps, 0) as isForAIApps,
       display_order as displayOrder
     FROM categories 
-    WHERE is_active = 1
     ORDER BY display_order ASC, name ASC
   `;
   
@@ -167,7 +166,8 @@ app.get('/api/categories/forms/products', (req, res) => {
   const query = `
     SELECT c.name, c.name as id, 0 as count
     FROM categories c
-    WHERE c.is_for_products = 1 AND c.is_active = 1
+    WHERE (c.is_for_products = 1 OR c.is_for_products IS NULL)
+      AND (c.parent_id IS NULL)
     ORDER BY c.display_order ASC, c.name ASC
   `;
   db.all(query, [], (err, rows) => {
@@ -184,7 +184,8 @@ app.get('/api/categories/forms/services', (req, res) => {
   const query = `
     SELECT c.name, c.name as id, 0 as count
     FROM categories c
-    WHERE c.is_for_services = 1 AND c.is_active = 1
+    WHERE (c.is_for_services = 1 OR c.is_for_services IS NULL)
+      AND (c.parent_id IS NULL)
     ORDER BY c.display_order ASC, c.name ASC
   `;
   db.all(query, [], (err, rows) => {
@@ -201,7 +202,8 @@ app.get('/api/categories/forms/aiapps', (req, res) => {
   const query = `
     SELECT c.name, c.name as id, 0 as count
     FROM categories c
-    WHERE c.is_for_ai_apps = 1 AND c.is_active = 1
+    WHERE (c.is_for_ai_apps = 1 OR c.is_for_ai_apps IS NULL)
+      AND (c.parent_id IS NULL)
     ORDER BY c.display_order ASC, c.name ASC
   `;
   db.all(query, [], (err, rows) => {
@@ -384,5 +386,37 @@ process.on('SIGINT', () => {
       console.log('Database connection closed');
     }
     process.exit(0);
+  });
+});
+// Subcategories for a given parent category name
+app.get('/api/categories/subcategories', (req, res) => {
+  const { parent } = req.query;
+  if (!parent || String(parent).trim() === '') {
+    return res.json([]);
+  }
+
+  const parentQuery = `SELECT id FROM categories WHERE name = ? LIMIT 1`;
+  db.get(parentQuery, [parent], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (!row || !row.id) {
+      return res.json([]);
+    }
+    const q = `
+      SELECT name, name as id
+      FROM categories
+      WHERE parent_id = ?
+      ORDER BY display_order ASC, name ASC
+    `;
+    db.all(q, [row.id], (err2, rows) => {
+      if (err2) {
+        console.error('Database error:', err2);
+        res.status(500).json({ error: 'Database error' });
+      } else {
+        res.json(rows || []);
+      }
+    });
   });
 });

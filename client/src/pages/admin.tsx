@@ -71,6 +71,21 @@ export default function AdminPage() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractUrl, setExtractUrl] = useState('');
 
+  // Debug mount to investigate white screen issues
+  useEffect(() => {
+    console.log('🧭 AdminPage mounted. isAuthenticated =', isAuthenticated);
+  }, [isAuthenticated]);
+
+  // Diagnostic: allow forcing a minimal admin baseline UI via URL
+  const forceAdminBaseline = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('forceAdminBaseline') === '1';
+    } catch {
+      return false;
+    }
+  })();
+
   // Check if admin session exists on page load and handle reset token from URL
   useEffect(() => {
     const adminSession = localStorage.getItem('pickntrust-admin-session');
@@ -326,7 +341,7 @@ export default function AdminPage() {
       originalPrice: '',
       imageUrl: '',
       affiliateUrl: '',
-      category: 'Electronics & Gadgets',
+      category: '',
       rating: '4.5',
       reviewCount: '100',
       discount: '',
@@ -415,9 +430,25 @@ export default function AdminPage() {
     window.location.href = '/';
   };
 
+  // Render minimal baseline to isolate layout issues
+  if (forceAdminBaseline) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0b1220', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>Admin Baseline</div>
+        <div style={{ fontSize: 14, opacity: 0.9 }}>Admin route renders without layout/providers.</div>
+        <a href="/admin" style={{ color: '#93c5fd', textDecoration: 'underline', fontSize: 14 }}>Return to full admin</a>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
-    <UniversalPageLayout pageId="admin">
+    <UniversalPageLayout pageId="admin" enableContentOverlays={false} enableFloatingOverlays={false} showSidebar={false} showRightSidebar={false}>
+            {import.meta.env.DEV && (
+              <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 99999, background: '#fff', color: '#111', padding: '4px 8px', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                Admin Debug: Login view rendering
+              </div>
+            )}
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
               <div className="max-w-md w-full">
                 <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
@@ -583,7 +614,12 @@ export default function AdminPage() {
   }
 
   return (
-    <UniversalPageLayout pageId="admin">
+    <UniversalPageLayout pageId="admin" enableContentOverlays={false} enableFloatingOverlays={false} showSidebar={false} showRightSidebar={false}>
+      {import.meta.env.DEV && (
+        <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 99999, background: '#fff', color: '#111', padding: '4px 8px', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+          Admin Debug: Authenticated view rendering
+        </div>
+      )}
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

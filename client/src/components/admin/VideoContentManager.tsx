@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectSeparator } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +69,40 @@ export default function VideoContentManager() {
     ctaText: '',
     ctaUrl: ''
   });
+
+  // Load ALL categories from DB for video categorization (no filtering)
+  const { data: uiCategories = [] } = useQuery<any[]>({
+    queryKey: ['/api/categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) throw new Error('Failed to load categories');
+      const list = await res.json();
+      return (Array.isArray(list) ? list : []).map((c: any) => ({
+        id: c.id || c.name,
+        name: c.name,
+        isForProducts: c.isForProducts,
+        isForServices: c.isForServices,
+        isForAIApps: c.isForAIApps,
+      }));
+    },
+    // Always refetch on mount to reflect latest flags
+    staleTime: 0,
+    retry: 1,
+  });
+
+  // Group categories by type (Products, Services, AI Apps, General)
+  const groupedVideoCategories = (uiCategories || []).reduce((groups: Record<string, any[]>, cat: any) => {
+    const add = (label: string) => {
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(cat);
+    };
+    if ((cat as any).isForProducts) add('Products');
+    if ((cat as any).isForServices) add('Services');
+    if ((cat as any).isForAIApps) add('AI Apps');
+    if (!(cat as any).isForProducts && !(cat as any).isForServices && !(cat as any).isForAIApps) add('General');
+    return groups;
+  }, {} as Record<string, any[]>);
+  const videoCategoryGroupOrder = ['Products', 'Services', 'AI Apps', 'General'];
 
   // Platform configurations
   const platforms = [
@@ -676,10 +710,16 @@ export default function VideoContentManager() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
-                    {['Entertainment', 'Education', 'Technology', 'Music', 'Gaming', 'Sports', 'News', 'Comedy', 'Tutorial', 'Review'].map(cat => (
-                      <SelectItem key={cat} value={cat} className="text-white hover:bg-gray-700">
-                        {cat}
-                      </SelectItem>
+                    {videoCategoryGroupOrder.filter(label => groupedVideoCategories[label]?.length).map((label, idx, arr) => (
+                      <SelectGroup key={label}>
+                        <div className="px-2 py-1 text-xs uppercase tracking-wide font-bold text-white">{label}</div>
+                        {groupedVideoCategories[label].map((cat: any) => (
+                          <SelectItem key={cat.id ?? cat.name} value={cat.name} className="text-white hover:bg-gray-700">
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                        {idx < arr.length - 1 && <SelectSeparator className="bg-gray-700" />}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>

@@ -24,13 +24,13 @@ console.log(`Using SQLite database: ${dbFile}`);
 const sqlite = new Database(dbFile);
 // Configure SQLite to reduce lock errors and improve concurrency
 try {
-  // Wait up to 3 seconds when the database is busy instead of failing immediately
-  sqlite.pragma('busy_timeout = 3000');
+  // Wait up to 10 seconds when the database is busy instead of failing immediately
+  sqlite.pragma('busy_timeout = 10000');
   // Ensure WAL mode which is better for concurrent reads/writes
   sqlite.pragma('journal_mode = WAL');
   // Keep foreign keys consistent
   sqlite.pragma('foreign_keys = ON');
-  console.log('SQLite PRAGMAs set: busy_timeout=3000, journal_mode=WAL, foreign_keys=ON');
+  console.log('SQLite PRAGMAs set: busy_timeout=10000, journal_mode=WAL, foreign_keys=ON');
 } catch (pragmaErr) {
   console.warn('Failed to set SQLite PRAGMAs:', pragmaErr);
 }
@@ -89,6 +89,17 @@ try {
     );
   `);
 
+  // Enforce case-insensitive uniqueness on category names to prevent duplicates
+  try {
+    sqlite.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_name_nocase
+      ON categories(name COLLATE NOCASE);
+    `);
+    console.log('Ensured case-insensitive unique index on categories.name');
+  } catch (idxErr) {
+    console.warn('Failed to ensure NOCASE unique index for categories.name:', idxErr);
+  }
+
   // Add missing columns on unified_content if DB exists with older schema
   const colExists = (name: string) => {
     const rows = sqlite.prepare("PRAGMA table_info(unified_content)").all();
@@ -107,6 +118,43 @@ try {
   console.log('Database schema ensured: unified_content and categories present');
 } catch (schemaErr) {
   console.warn('Failed to ensure database schema:', schemaErr);
+}
+// Ensure social media posting tables exist and have required columns
+try {
+  // Create canva_posts base table if missing
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS canva_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content_type TEXT NOT NULL,
+      content_id INTEGER NOT NULL,
+      canva_design_id TEXT,
+      template_id TEXT,
+      caption TEXT,
+      hashtags TEXT,
+      platforms TEXT,
+      post_urls TEXT,
+      status TEXT DEFAULT 'pending',
+      scheduled_at INTEGER,
+      posted_at INTEGER,
+      expires_at INTEGER,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+    );
+  `);
+
+  const canvaCols = sqlite.prepare("PRAGMA table_info(canva_posts)").all().map((c: any) => c.name);
+  const ensureCol = (name: string, ddl: string) => {
+    if (!canvaCols.includes(name)) {
+      sqlite.exec(`ALTER TABLE canva_posts ADD COLUMN ${ddl}`);
+    }
+  };
+  ensureCol('social_media_post_id', 'social_media_post_id TEXT');
+  ensureCol('error_message', 'error_message TEXT');
+  ensureCol('platform', 'platform TEXT');
+  ensureCol('image_url', 'image_url TEXT');
+  console.log('Ensured canva_posts table and columns for social media features');
+} catch (canvaEnsureErr) {
+  console.warn('Failed to ensure canva_posts table/columns:', canvaEnsureErr);
 }
 // Try to load schema dynamically from common locations; fallback to no schema
 let loadedSchema: any | undefined = undefined;
@@ -348,6 +396,27 @@ try {
           created_at INTEGER DEFAULT (strftime('%s', 'now'))
         );
       `);
+
+      // Ensure canva_posts has required columns used by social-media modules
+      try {
+        const canvaCols = sqlite.prepare("PRAGMA table_info(canva_posts)").all().map((c: any) => c.name);
+        const ensureCol = (name: string, ddl: string) => {
+          if (!canvaCols.includes(name)) {
+            sqlite.exec(`ALTER TABLE canva_posts ADD COLUMN ${ddl}`);
+          }
+        };
+        // Add tracking and error fields
+        ensureCol('social_media_post_id', 'social_media_post_id TEXT');
+        ensureCol('error_message', 'error_message TEXT');
+        // Add platform and image reference fields expected by poster/routes
+        ensureCol('platform', 'platform TEXT');
+        ensureCol('image_url', 'image_url TEXT');
+        // posted_at exists as INTEGER in some DBs; allow TEXT if missing (kept if present)
+        // Note: SQLite is type-flexible; we keep existing posted_at if present.
+        console.log('Ensured canva_posts columns for social media: platform, image_url, social_media_post_id, error_message');
+      } catch (canvaEnsureErr) {
+        console.warn('Failed to ensure canva_posts columns:', canvaEnsureErr);
+      }
       
       // Insert default Canva settings if they don't exist
       try {

@@ -10,8 +10,10 @@ import { BundleProductCard } from "@/components/BundleProductCard";
 import AmazonProductCard from "@/components/amazon-product-card";
 import PageVideosSection from "@/components/PageVideosSection";
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import WidgetRenderer from '@/components/WidgetRenderer';
+import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 
 interface Product {
   id: number | string;
@@ -151,6 +153,9 @@ export default function DynamicPage() {
     enabled: !!slug,
     staleTime: 0,
   });
+
+  // Detect if this page has any active widgets visible for the current device
+  const { data: hasWidgets } = useHasActiveWidgets(navTab?.slug || slug || '');
 
   // Fetch available categories for this page
   const { data: availableCategories = [] } = useQuery<string[]>({
@@ -304,6 +309,9 @@ export default function DynamicPage() {
         {/* Header Bottom below dynamic header */}
         <WidgetRenderer page={navTab.slug} position="header-bottom" className="w-full" />
 
+        {/* Banner Top Widgets (inside main content flow) */}
+        <WidgetRenderer page={navTab.slug} position="banner-top" className="w-full mb-4" />
+
         {/* Main Content with Sidebar */}
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* Sidebar */}
@@ -313,98 +321,139 @@ export default function DynamicPage() {
             onRatingChange={handleRatingChange}
             availableCategories={availableCategories}
           />
+          {/* Left Sidebar Widgets below filters */}
+          <div className="hidden lg:block w-64 p-4">
+            <WidgetRenderer page={navTab.slug} position="sidebar-left" />
+          </div>
 
           {/* Products Grid */}
           <div className="flex-1 p-6">
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Results ({filteredProducts.length})
-                </h2>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {filteredProducts.length} of {allProducts.length} products
-                </div>
-              </div>
+            {/* Mobile fallback: show right-sidebar widgets at top of content on small screens */}
+            <div className="block md:hidden mb-4">
+              <WidgetRenderer page={navTab.slug} position="sidebar-right" />
             </div>
 
-            {productsLoading ? (
-              <div className="text-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  Loading {navTab.name}...
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  Finding the best products for you.
-                </p>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  {allProducts.length === 0 ? `No ${navTab.name} available` : 'No products found'}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  {allProducts.length === 0 
-                    ? `Products will appear here when added to ${navTab.name} via admin panel.` 
-                    : 'Try adjusting your filters to see more results.'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredProducts.map((product) => {
-                  // Check if product is part of a bundle (multiple products)
-                  const isBundle = product.totalInGroup && Number(product.totalInGroup) > 1;
-                  
-                  if (isBundle) {
-                    return (
-                      <BundleProductCard 
-                        key={product.id} 
-                        product={product} 
-                        source={slug || 'dynamic'} 
-                      />
-                    );
-                  } else {
-                    return (
-                      <AmazonProductCard 
-                        key={product.id} 
-                        product={{
-                          id: product.id,
-                          name: product.name,
-                          description: product.description || '',
-                          price: product.price,
-                          originalPrice: product.originalPrice || product.original_price,
-                          currency: product.currency || 'INR',
-                          imageUrl: product.imageUrl || product.image_url,
-                          affiliateUrl: product.affiliateUrl || product.affiliate_url,
-                          category: product.category,
-                          rating: product.rating,
-                          reviewCount: product.reviewCount,
-                          discount: product.discount,
-                          isNew: product.isNew,
-                          isFeatured: product.isFeatured,
-                          affiliate_network: product.affiliate_network || product.networkBadge,
-                          networkBadge: product.networkBadge,
-                          affiliateNetwork: product.affiliateNetworkName || 'Dynamic Network',
-                          sourceType: slug || 'dynamic',
-                          source: slug || 'dynamic',
-                          displayPages: [slug || 'dynamic'],
-                          // Service-specific pricing fields normalization
-                          priceDescription: product.priceDescription || product.price_description || '',
-                          monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
-                          yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
-                          pricingType: product.pricingType || product.pricing_type,
-                          isFree: product.isFree || product.is_free || false,
-                          isService: product.isService || product.is_service || false,
-                          isAIApp: product.isAIApp || product.is_ai_app || false
-                        }}
-                      />
-                    );
-                  }
-                })}
+            {/* Body Widgets in main content flow */}
+            <SafeWidgetRenderer page={navTab.slug} position="body" />
+
+            {!(hasWidgets && allProducts.length === 0) && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Results ({filteredProducts.length})
+                  </h2>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {filteredProducts.length} of {allProducts.length} products
+                  </div>
+                </div>
               </div>
             )}
+            {/* Overlay anchor: widgets overlay inside product grid area */}
+            <div className="relative">
+              {/* Product Grid Top Widgets */}
+              <SafeWidgetRenderer page={navTab.slug} position="product-grid-top" />
+
+              {productsLoading ? (
+                <div className="text-center py-16">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Loading {navTab.name}...
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-500">
+                    Finding the best products for you.
+                  </p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                hasWidgets && allProducts.length === 0 ? null : (
+                  <div className="text-center py-16">
+                    <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                    <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                      {allProducts.length === 0 ? `No ${navTab.name} available` : 'No products found'}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-500">
+                      {allProducts.length === 0 
+                        ? `Products will appear here when added to ${navTab.name} via admin panel.` 
+                        : 'Try adjusting your filters to see more results.'}
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {filteredProducts.map((product) => {
+                    // Check if product is part of a bundle (multiple products)
+                    const isBundle = product.totalInGroup && Number(product.totalInGroup) > 1;
+                    
+                    if (isBundle) {
+                      return (
+                        <BundleProductCard 
+                          key={product.id} 
+                          product={product} 
+                          source={slug || 'dynamic'} 
+                        />
+                      );
+                    } else {
+                      return (
+                        <AmazonProductCard 
+                          key={product.id} 
+                          product={{
+                            id: product.id,
+                            name: product.name,
+                            description: product.description || '',
+                            price: product.price,
+                            originalPrice: product.originalPrice || product.original_price,
+                            currency: product.currency || 'INR',
+                            imageUrl: product.imageUrl || product.image_url,
+                            affiliateUrl: product.affiliateUrl || product.affiliate_url,
+                            category: product.category,
+                            rating: product.rating,
+                            reviewCount: product.reviewCount,
+                            discount: product.discount,
+                            isNew: product.isNew,
+                            isFeatured: product.isFeatured,
+                            affiliate_network: product.affiliate_network || product.networkBadge,
+                            networkBadge: product.networkBadge,
+                            affiliateNetwork: product.affiliateNetworkName || 'Dynamic Network',
+                            sourceType: slug || 'dynamic',
+                            source: slug || 'dynamic',
+                            displayPages: [slug || 'dynamic'],
+                            // Service-specific pricing fields normalization
+                            priceDescription: product.priceDescription || product.price_description || '',
+                            monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
+                            yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
+                            pricingType: product.pricingType || product.pricing_type,
+                            isFree: product.isFree || product.is_free || false,
+                            isService: product.isService || product.is_service || false,
+                            isAIApp: product.isAIApp || product.is_ai_app || false
+                          }}
+                        />
+                      );
+                    }
+                  })}
+                </div>
+              )}
+
+              {/* Product Grid Bottom Widgets */}
+              <SafeWidgetRenderer page={navTab.slug} position="product-grid-bottom" />
+
+              {/* Content and Floating Widgets overlay inside product grid area */}
+              <WidgetRenderer page={navTab.slug} position="content-top" />
+              <WidgetRenderer page={navTab.slug} position="content-middle" />
+              <WidgetRenderer page={navTab.slug} position="content-bottom" />
+              <WidgetRenderer page={navTab.slug} position="floating-top-left" />
+              <WidgetRenderer page={navTab.slug} position="floating-top-right" />
+              <WidgetRenderer page={navTab.slug} position="floating-bottom-left" />
+              <WidgetRenderer page={navTab.slug} position="floating-bottom-right" />
+            </div>
+          </div>
+
+          {/* Right Sidebar Widgets */}
+          <div className="hidden xl:block w-80 p-4">
+            <WidgetRenderer page={navTab.slug} position="sidebar-right" />
           </div>
         </div>
+
+        {/* Banner Bottom Widgets (inside main content flow) */}
+        <WidgetRenderer page={navTab.slug} position="banner-bottom" className="w-full mt-6" />
 
         {/* Page-specific Videos Section - Only shows if videos exist for this page */}
         {navTab && (
@@ -414,7 +463,11 @@ export default function DynamicPage() {
           />
         )}
       </div>
+      {/* Footer Top Widgets */}
+      <WidgetRenderer page={navTab.slug} position="footer-top" className="w-full" />
       <Footer />
+      {/* Footer Bottom Widgets */}
+      <WidgetRenderer page={navTab.slug} position="footer-bottom" className="w-full" />
       <ScrollNavigation />
     </div>
   );

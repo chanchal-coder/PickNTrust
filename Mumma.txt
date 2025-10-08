@@ -1,0 +1,65 @@
+Mumma Deployment Guide — PickNTrust
+
+Overview
+- Goal: Safe, zero-404 deployments to EC2 with services auto-started and isolated so crashes never break the website.
+- Scope: Frontend static assets, backend API, Telegram bot, and automation triggers (autosharing/Canva).
+
+Deployment Flow (deploy-to-domain.ps1)
+- Build: `npm run build` produces `dist/public` (client) and `dist/server` (backend).
+- Client publish (atomic): uploads a tarball, extracts to `public_new`, then swaps to `public` in one move to avoid 404s.
+- Nginx: config is refreshed and validated; SPA and cache headers keep assets visible after swaps.
+- Backend: uploads `dist` and `ecosystem.config.cjs`, installs prod deps, then starts via PM2.
+- Bot isolation: the Telegram bot runs as a separate PM2 app so its crash cannot affect the website.
+- Health checks: verifies `/health`, bundles, and widgets; logs are tailed to confirm startup.
+
+PM2 Management
+- Start/refresh: `pm2 start ecosystem.config.cjs` or `pm2 restart pickntrust-backend`.
+- Bot: `pm2 restart pickntrust-bot` is included; runs independently from the website.
+- Persist across reboot: `pm2 save` and `pm2 startup systemd -u ec2-user` are executed.
+- Log rotation: `pm2 install pm2-logrotate` with sane defaults to keep logs tidy.
+
+Services and Isolation
+- Website (Nginx + static assets): serves `/home/ec2-user/pickntrust/public`. Atomic swaps avoid intermediate 404s.
+- Backend API (`pickntrust-backend`): listens on port `5000`, uses SQLite at `./database.sqlite`.
+- Telegram bot (`pickntrust-bot`): independent PM2 process; crashes do not affect the website.
+- Autosharing/Canva: implemented in backend services; they ride with the backend. Backend crashes are auto-restarted by PM2; failures won’t break static site.
+
+PrimePicks Fallback Widget
+- Purpose: Always show at least one widget in PrimePicks header.
+- Script: `scripts/fix-fallback-widget.cjs` inserts/ensures an active header widget for `prime-picks` and enables mobile/desktop flags.
+- Integration: The deploy script uploads then runs this script; an API check confirms header widgets are available.
+
+Credential Persistence
+- Priority: backend reads credentials from Admin panel (database). Falls back to environment variables if database is empty.
+- PM2 restarts preserve environment unless updated; after deployment, credentials remain until changed via Admin.
+
+Canva Automation
+- Controls: backend Admin Settings API (`PUT /api/admin/canva/settings`) must be fixed to enable automation.
+- Current: automation can be disabled at the database level; manual social posting still works.
+- Impact: Even if automation fails, website remains functional; PM2 isolates and restarts backend on crash.
+
+Health Checks
+- Website: `https://pickntrust.com/` returns 200 and contains `assets/index-*.js`.
+- API: `https://www.pickntrust.com/health` and `https://www.pickntrust.com/api/status` return 200.
+- Assets: `https://pickntrust.com/assets/index-*.js` returns 200.
+- Widgets: `https://pickntrust.com/api/widgets/prime-picks/header` returns non-empty JSON.
+
+Troubleshooting
+- 404 assets during deploy: atomic swap avoids this; if seen, re-run deploy to rebuild `public_new` and swap.
+- Backend not starting: check `pm2 status` then `pm2 logs pickntrust-backend --lines 100`; confirm Node 18 installed.
+- Bot token issues: ensure `MASTER_BOT_TOKEN` in environment; restart with `pm2 restart pickntrust-bot`.
+- Widgets missing: run `node scripts/fix-fallback-widget.cjs` in `/home/ec2-user/pickntrust`.
+- Nginx errors: validate with `sudo nginx -t` and reload with `sudo systemctl reload nginx`.
+
+EC2 Runtime Notes
+- Node.js 18 is installed system-wide (dnf/yum/apt) to avoid NVM surprises.
+- A 2GB swapfile is created if none exists to reduce OOM on small instances.
+- Ownership enforced on `/home/ec2-user/pickntrust` to keep deployments smooth.
+
+Redeploy Checklist
+- `npm run build` succeeds locally.
+- Run `deploy-to-domain.ps1`.
+- Verify site root and `/prime-picks` load; check `/health`, asset bundles, and header widgets.
+- Confirm `pm2 status` shows both apps online; logs show no immediate errors.
+
+That’s all — this covers the exact deployment process, auto-start behavior, isolation guarantees, and fallback measures.

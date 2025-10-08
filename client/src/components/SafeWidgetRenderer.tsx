@@ -37,8 +37,8 @@ export default function SafeWidgetRenderer({ page, position, className = '' }: P
   const widgetPage = page;
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const isProductionDomain = /pickntrust\.com$/i.test(hostname);
-  // Hard safeguard: disable all widgets on prime-picks regardless of domain
-  const disableWidgetsOnPrimeInProd = widgetPage === 'prime-picks';
+  // Enable widgets on prime-picks; no hard disable in any environment
+  const disableWidgetsOnPrimeInProd = false;
 
   const { data: widgets = [], isLoading, error } = useQuery<Widget[]>({
     queryKey: [`/api/widgets/${widgetPage}/${position}`, widgetPage, position],
@@ -72,7 +72,7 @@ export default function SafeWidgetRenderer({ page, position, className = '' }: P
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
-    enabled: !disableWidgetsOnPrimeInProd,
+    enabled: true,
   });
 
   const filteredWidgets = widgets.filter((w) => {
@@ -81,7 +81,7 @@ export default function SafeWidgetRenderer({ page, position, className = '' }: P
     return true;
   });
 
-  if (isLoading || error || filteredWidgets.length === 0 || disableWidgetsOnPrimeInProd) {
+  if (isLoading || error || filteredWidgets.length === 0) {
     return null;
   }
 
@@ -153,7 +153,13 @@ function SafeWidgetItem({ widget, position, page }: { widget: Widget; position: 
         const sanitized = DOMPurify.sanitize(rawHtml, {
           USE_PROFILES: { html: true },
           FORBID_TAGS: ['script'],
-          ALLOWED_ATTR: ['href','src','alt','title','target','rel','class','style','data-*','aria-*'],
+          // Allow safe iframe embeds for whitelisted widget content
+          ADD_TAGS: ['iframe'],
+          ALLOWED_ATTR: [
+            'href','src','alt','title','target','rel','class','style','data-*','aria-*',
+            // Common iframe attributes
+            'width','height','loading','referrerpolicy','sandbox','frameborder','allow','allowfullscreen'
+          ],
         } as any);
         return (
           <div dangerouslySetInnerHTML={{ __html: sanitized }} className="widget-content" />

@@ -17,6 +17,7 @@ import WidgetRenderer from '@/components/WidgetRenderer';
 import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 interface Product {
@@ -99,6 +100,7 @@ export default function PrimePicks() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const { data: hasWidgets } = useHasActiveWidgets('prime-picks');
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -265,6 +267,7 @@ export default function PrimePicks() {
         {/* Overlay anchor: content and floating widgets should overlay product cards only */}
         <div className="relative">
         {/* Main content only; sidebar widgets render via UniversalPageLayout */}
+        {!(hasWidgets && allPrimeProducts.length === 0) && (
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -316,6 +319,7 @@ export default function PrimePicks() {
             Showing {filteredProducts.length} of {allPrimeProducts.length} products
           </div>
         </div>
+        )}
 
             {productsLoading ? (
               <div className="text-center py-16">
@@ -328,17 +332,19 @@ export default function PrimePicks() {
                 </p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  {allPrimeProducts.length === 0 ? 'No Prime Picks available' : 'No products found'}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  {allPrimeProducts.length === 0 
-                    ? 'Products will appear here when added to Prime Picks via admin panel.' 
-                    : 'Try adjusting your filters to see more results.'}
-                </p>
-              </div>
+              hasWidgets && allPrimeProducts.length === 0 ? null : (
+                <div className="text-center py-16">
+                  <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    {allPrimeProducts.length === 0 ? 'No Prime Picks available' : 'No products found'}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-500">
+                    {allPrimeProducts.length === 0 
+                      ? 'Products will appear here when added to Prime Picks via admin panel.' 
+                      : 'Try adjusting your filters to see more results.'}
+                  </p>
+                </div>
+              )
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredProducts.map((product) => (

@@ -11,7 +11,7 @@ async function debugWebhookProcessing() {
     console.log('✅ Server is running:', healthResponse.status);
 
     console.log('\n2️⃣ Checking database before webhook...');
-    const dbPath = path.join(__dirname, 'database.db');
+    const dbPath = path.join(__dirname, 'database.sqlite');
     const db = new Database(dbPath);
     
     const beforeChannelPosts = db.prepare("SELECT COUNT(*) as count FROM channel_posts").get();

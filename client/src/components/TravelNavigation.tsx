@@ -442,9 +442,9 @@ export default function TravelNavigation({ selectedCategory, onCategoryChange, i
                         )}
                       </div>
                     
-                    {/* Category Name with Count */}
+                    {/* Category Name (no count) */}
                     <span className="text-white text-sm font-medium text-center min-w-[80px]">
-                      {category.name} ({count})
+                      {category.name}
                     </span>
                   </button>
 

@@ -57,7 +57,7 @@ const CHANNEL_TYPE_MAPPING: { [key: string]: Partial<ProductTypeDetection> } = {
 };
 
 // Service categories
-const SERVICE_CATEGORIES: CategoryMapping[] = [
+export const SERVICE_CATEGORIES: CategoryMapping[] = [
   {
     keywords: ['credit card', 'banking', 'loan', 'finance', 'investment', 'trading', 'cryptocurrency'],
     category: 'Financial Services',
@@ -96,7 +96,7 @@ const SERVICE_CATEGORIES: CategoryMapping[] = [
 ];
 
 // AI/App categories
-const AI_APP_CATEGORIES: CategoryMapping[] = [
+export const AI_APP_CATEGORIES: CategoryMapping[] = [
   {
     keywords: ['ai writing', 'content generation', 'copywriting', 'text generator', 'gpt'],
     category: 'AI Writing Tools',

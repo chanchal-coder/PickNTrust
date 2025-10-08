@@ -10,6 +10,7 @@ import Sidebar from "@/components/sidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 interface Product {
@@ -92,6 +93,7 @@ export default function ClickPicks() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const { data: hasWidgets } = useHasActiveWidgets('click-picks');
 
   // Check admin status
   useEffect(() => {
@@ -271,61 +273,63 @@ export default function ClickPicks() {
                 />
       
                 {/* Products Grid */}
-                 <div className="flex-1 p-6">
-              <div className="mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Results ({filteredProducts.length})
-                    </h2>
-                        {/* Bulk Delete Icon - Admin Only */}
-                        {isAdmin && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
-                              className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                              title="Bulk delete options"
-                            >
-                              <i className="fas fa-trash text-sm" />
-                            </button>
-                            
-                            {bulkDeleteMode && (
-                              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {selectedProducts.length} selected
-                                </span>
-                                <button
-                                  onClick={() => handleBulkDelete(false)}
-                                  disabled={selectedProducts.length === 0}
-                                  className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
-                                >
-                                  Delete Selected
-                                </button>
-                                <button
-                                  onClick={() => handleBulkDelete(true)}
-                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                                >
-                                  Delete All
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setBulkDeleteMode(false);
-                              setSelectedProducts([]);
-                            }}
-                            className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                          >
-                            <i className="fas fa-times" />
-                          </button>
+                <div className="flex-1 p-6">
+                  {!(hasWidgets && allClickProducts.length === 0) && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Results ({filteredProducts.length})
+                          </h2>
+                          {/* Bulk Delete Icon - Admin Only */}
+                          {isAdmin && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
+                                className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                title="Bulk delete options"
+                              >
+                                <i className="fas fa-trash text-sm" />
+                              </button>
+                              {bulkDeleteMode && (
+                                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {selectedProducts.length} selected
+                                  </span>
+                                  <button
+                                    onClick={() => handleBulkDelete(false)}
+                                    disabled={selectedProducts.length === 0}
+                                    className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                                  >
+                                    Delete Selected
+                                  </button>
+                                  <button
+                                    onClick={() => handleBulkDelete(true)}
+                                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                                  >
+                                    Delete All
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setBulkDeleteMode(false);
+                                      setSelectedProducts([]);
+                                    }}
+                                    className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                                  >
+                                    <i className="fas fa-times" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Showing {filteredProducts.length} of {allClickProducts.length} products
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {filteredProducts.length} of {allClickProducts.length} products
-                </div>
-              </div>
-            </div>
 
             {productsLoading ? (
               <div className="text-center py-16">
@@ -338,17 +342,19 @@ export default function ClickPicks() {
                 </p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  {allClickProducts.length === 0 ? 'No Click Picks available' : 'No products found'}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  {allClickProducts.length === 0 
-                    ? 'Products will appear here when added to Click Picks via admin panel.' 
-                    : 'Try adjusting your filters to see more results.'}
-                </p>
-              </div>
+              hasWidgets && allClickProducts.length === 0 ? null : (
+                <div className="text-center py-16">
+                  <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    {allClickProducts.length === 0 ? 'No Click Picks available' : 'No products found'}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-500">
+                    {allClickProducts.length === 0 
+                      ? 'Products will appear here when added to Click Picks via admin panel.' 
+                      : 'Try adjusting your filters to see more results.'}
+                  </p>
+                </div>
+              )
             ) : (
               <div className="relative">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -408,7 +414,6 @@ export default function ClickPicks() {
       />
       
       <ScrollNavigation />
-      </div>
     </UniversalPageLayout>
   );
 }

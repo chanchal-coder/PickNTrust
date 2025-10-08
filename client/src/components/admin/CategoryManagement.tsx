@@ -225,7 +225,8 @@ export default function CategoryManagement() {
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategory.name.trim()) {
+    const name = newCategory.name.trim();
+    if (!name) {
       toast({
         title: 'Error',
         description: 'Category name is required',
@@ -233,7 +234,22 @@ export default function CategoryManagement() {
       });
       return;
     }
-    addCategoryMutation.mutate(newCategory);
+    // Client-side duplicate prevention (case-insensitive, trimmed)
+    try {
+      const existingNames = (categories as any[])
+        .map((c: any) => (typeof c === 'string' ? c : c?.name))
+        .filter(Boolean)
+        .map((n: any) => String(n).trim().toLowerCase());
+      if (existingNames.includes(name.toLowerCase())) {
+        toast({
+          title: 'Duplicate Category',
+          description: 'A category with this name already exists.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } catch {}
+    addCategoryMutation.mutate({ ...newCategory, name });
   };
 
   const handleEditCategory = (category: Category) => {
@@ -265,6 +281,23 @@ export default function CategoryManagement() {
       });
       return;
     }
+    // Client-side duplicate prevention on update
+    try {
+      const name = newCategory.name.trim();
+      const existingNames = (categories as any[])
+        .filter((c: any) => (typeof c === 'string' ? true : c?.id !== editingCategory.id))
+        .map((c: any) => (typeof c === 'string' ? c : c?.name))
+        .filter(Boolean)
+        .map((n: any) => String(n).trim().toLowerCase());
+      if (existingNames.includes(name.toLowerCase())) {
+        toast({
+          title: 'Duplicate Category',
+          description: 'Another category with this name already exists.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } catch {}
     updateCategoryMutation.mutate({
       categoryId: editingCategory.id,
       categoryData: newCategory

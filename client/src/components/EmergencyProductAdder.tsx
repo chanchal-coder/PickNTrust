@@ -4,8 +4,8 @@
  * Admin-only component for critical situations
  */
 
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 interface EmergencyProductData {
@@ -49,17 +49,27 @@ export default function EmergencyProductAdder({ isVisible, onClose }: EmergencyP
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Categories for dropdown
-  const categories = [
-    'Electronics & Gadgets',
-    'Fashion & Clothing',
-    'Home & Kitchen',
-    'Health & Beauty',
-    'Sports & Fitness',
-    'Books & Media',
-    'Toys & Games',
-    'Automotive'
-  ];
+  // Categories (DB-driven) for dropdown
+  const { data: productCategories = [], isLoading: categoriesLoading } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['/api/categories/forms/products'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories/forms/products');
+      if (!res.ok) throw new Error('Failed to load categories');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  // Ensure selected category remains valid once categories load
+  useEffect(() => {
+    if (productCategories.length) {
+      const names = productCategories.map(c => c.name);
+      if (!names.includes(formData.category)) {
+        setFormData(prev => ({ ...prev, category: names[0] }));
+      }
+    }
+  }, [productCategories]);
 
   // Target pages for dropdown
   const targetPages = [
@@ -316,8 +326,11 @@ export default function EmergencyProductAdder({ isVisible, onClose }: EmergencyP
                 onChange={(e) => handleInputChange('category', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {categoriesLoading && (
+                  <option value="">Loading categories...</option>
+                )}
+                {!categoriesLoading && productCategories.map(cat => (
+                  <option key={cat.id ?? cat.name} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
             </div>

@@ -17,7 +17,7 @@ tar -czf $tarPath -C dist/public .
 
 # 3) Ensure remote directories and permissions
 Write-Host "Preparing remote directories..." -ForegroundColor Yellow
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-user/pickntrust/dist/public && sudo chown -R ec2-user:ec2-user /home/ec2-user/pickntrust"
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER "sudo mkdir -p /home/ec2-user/pickntrust/public && sudo chown -R ec2-user:ec2-user /home/ec2-user/pickntrust"
 
 # 4) Upload and extract client build into public directory
 Write-Host "Uploading client artifact..." -ForegroundColor Yellow
@@ -26,13 +26,16 @@ ${remoteClientExtract} = @'
 set -e
 umask 022
 cd /home/ec2-user/pickntrust
-rm -rf dist/public
-mkdir -p dist/public
-tar -xzf pickntrust-client.tar.gz -C dist/public
+# Atomic publish: extract to public_new, then swap
+rm -rf public_new
+mkdir -p public_new
+tar -xzf pickntrust-client.tar.gz -C public_new
 rm -f pickntrust-client.tar.gz
-sudo chown -R ec2-user:ec2-user dist/public
-find dist/public -type d -exec chmod 755 {} \;
-find dist/public -type f -exec chmod 644 {} \;
+sudo chown -R ec2-user:ec2-user public_new
+find public_new -type d -exec chmod 755 {} \;
+find public_new -type f -exec chmod 644 {} \;
+if [ -d public ]; then mv public public_old && rm -rf public_old & disown; fi
+mv -f public_new public
 '@
 ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteClientExtract\""
 
@@ -62,7 +65,7 @@ try { (Invoke-WebRequest -Uri "https://www.pickntrust.com/health" -UseBasicParsi
 Write-Host "Verifying remote assets and index bundle..." -ForegroundColor Yellow
 ${remoteVerifyAssets} = @'
 set -e
-cd /home/ec2-user/pickntrust/dist/public
+cd /home/ec2-user/pickntrust/public
 echo Index exists?
 ls -la index.html || (echo index.html missing && exit 1)
 echo Extract asset path from index.html
@@ -145,15 +148,15 @@ Write-Host "\nAugmenting deploy: uploading backend+frontend dist and hardening r
 # Paths
 $DistTar = "dist-full.tar.gz"
 
-# Ensure full dist artifact exists (frontend+backend)
-if (!(Test-Path $DistTar)) {
-  if (Test-Path "dist") {
-    Write-Host "Creating full dist artifact..." -ForegroundColor Yellow
-    tar -czf $DistTar dist
-  } else {
-    Write-Host "dist folder missing; run build before deploy." -ForegroundColor Red
-    throw "Missing dist folder"
-  }
+# Recreate full dist artifact (frontend+backend) from current build to avoid stale overwrites
+if (Test-Path $DistTar) { Remove-Item $DistTar -Force }
+if (Test-Path "dist") {
+  Write-Host "Rebuilding full dist artifact from current build..." -ForegroundColor Yellow
+  # Pack only public and server subfolders to produce a clean archive
+  tar -czf $DistTar -C dist public server
+} else {
+  Write-Host "dist folder missing; run build before deploy." -ForegroundColor Red
+  throw "Missing dist folder"
 }
 
 # Upload ecosystem and dist (only if server build exists)
@@ -162,15 +165,18 @@ $serverBundleB = Test-Path "dist/server/index.js"
 if (-not ($serverBundleA -or $serverBundleB)) {
   Write-Host "Server bundle not found. Skipping backend deploy augmentation." -ForegroundColor Yellow
 } else {
-  Write-Host "Uploading dist and ecosystem config..." -ForegroundColor Yellow
+Write-Host "Uploading dist and ecosystem config..." -ForegroundColor Yellow
   scp -i $SSH_KEY -o StrictHostKeyChecking=no $DistTar "${SERVER}:/home/ec2-user/pickntrust/"
   scp -i $SSH_KEY -o StrictHostKeyChecking=no "ecosystem.config.cjs" "${SERVER}:/home/ec2-user/pickntrust/"
+  # Upload fallback fix script
+  if (Test-Path "scripts\fix-fallback-widget.cjs") { scp -i $SSH_KEY -o StrictHostKeyChecking=no "scripts\fix-fallback-widget.cjs" "${SERVER}:/home/ec2-user/pickntrust/scripts/" }
 
 # Remote setup: pin Node 18, extract dist, start via PM2, enable logrotate and boot start
 Write-Host "Configuring EC2 runtime and starting backend..." -ForegroundColor Yellow
 ${remoteBackend} = @'
 set -e
 cd /home/ec2-user/pickntrust
+sudo chown -R ec2-user:ec2-user /home/ec2-user/pickntrust || true
 
 # Install system Node.js 18 (avoid NVM)
 if command -v dnf >/dev/null 2>&1; then
@@ -196,9 +202,11 @@ npm -v || { echo "ERROR: npm not installed"; exit 1; }
 sudo npm i -g pm2 || npm i -g pm2 || true
 
 # Extract dist (frontend+backend)
-rm -rf dist || true
-mkdir -p dist
-tar -xzf dist-full.tar.gz -C .
+sudo rm -rf dist || true
+sudo mkdir -p dist
+# Unpack into dist/ since archive contains dist contents; avoid owner restoration
+sudo tar --no-same-owner -xzf dist-full.tar.gz -C dist
+sudo chown -R ec2-user:ec2-user dist || true
 if [ ! -f dist/server/server/index.js ] && [ ! -f dist/server/index.js ]; then
   echo "ERROR: server bundle missing after extraction (checked dist/server/server/index.js and dist/server/index.js)"; ls -la dist/server || true; exit 1
 fi
@@ -212,6 +220,9 @@ npm ci --omit=dev || npm i --omit=dev
 pm2 start ecosystem.config.cjs || pm2 restart pickntrust-backend --update-env || pm2 start dist/server/index.js --name pickntrust-backend --update-env || pm2 start dist/server/server/index.js --name pickntrust-backend --update-env
 pm2 save || true
 sudo env PATH="$PATH" pm2 startup systemd -u ec2-user --hp /home/ec2-user || true
+
+# Ensure bot process is started separately (isolation from website)
+pm2 restart pickntrust-bot --update-env || pm2 start dist/server/server/telegram-bot.js --name pickntrust-bot --update-env || true
 
 # PM2 log rotation
 pm2 install pm2-logrotate || true
@@ -233,6 +244,12 @@ curl -s -o /dev/null -w "Local /health: %{http_code}\n" http://127.0.0.1:5000/he
 ss -tulpn | grep -E ":5000" || echo no-5000
 pm2 status || true
 pm2 logs pickntrust-backend --lines 50 || pm2 logs pickntrust --lines 50 || true
+
+# Post-deploy: ensure PrimePicks fallback widget exists and verify API
+if [ -f scripts/fix-fallback-widget.cjs ]; then
+  node scripts/fix-fallback-widget.cjs || true
+fi
+curl -s -o /dev/null -w "PrimePicks header widgets: %{http_code}\n" https://pickntrust.com/api/widgets/prime-picks/header || true
 '@
 ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${SERVER} "bash -lc \"$remoteBackend\""
 Write-Host "✅ Backend+frontend dist deployed, Node 18 pinned, PM2 persisted." -ForegroundColor Green

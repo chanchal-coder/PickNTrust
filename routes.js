@@ -497,11 +497,21 @@ export function setupRoutes(app) {
             res.status(500).json({ message: 'Failed to delete category' });
         }
     });
-    // Get all categories from categories table
+    // Get all categories with flags and metadata (used by admin forms)
     app.get('/api/categories', async (req, res) => {
         try {
             const categories = sqliteDb.prepare(`
-        SELECT name, name as id
+        SELECT 
+          id,
+          name,
+          icon,
+          color,
+          description,
+          parent_id as parentId,
+          COALESCE(is_for_products, 1) as isForProducts,
+          COALESCE(is_for_services, 0) as isForServices,
+          COALESCE(is_for_ai_apps, 0) as isForAIApps,
+          display_order as displayOrder
         FROM categories 
         ORDER BY display_order ASC, name ASC
       `).all();

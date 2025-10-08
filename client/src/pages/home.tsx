@@ -2,6 +2,7 @@ import { useLocation } from 'wouter';
 import WidgetRenderer from "@/components/WidgetRenderer";
 import Header from "@/components/header";
 import ScrollNavigation from "@/components/scroll-navigation";
+import Footer from "@/components/footer";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import Categories from "@/components/categories";
 import FeaturedProducts from "@/components/featured-products";
@@ -78,6 +79,9 @@ export default function Home() {
       <WidgetRenderer page={pageId} position="footer-top" />
       {/* Footer Bottom Widgets */}
       <WidgetRenderer page={pageId} position="footer-bottom" />
+
+      {/* Branded Footer */}
+      <Footer />
       
       {/* Fixed Elements */}
       <ScrollNavigation />

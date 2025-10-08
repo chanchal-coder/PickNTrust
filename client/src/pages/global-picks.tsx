@@ -10,6 +10,7 @@ import { BundleProductCard } from "@/components/BundleProductCard";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 interface Product {
@@ -92,6 +93,8 @@ export default function GlobalPicks() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  // Determine if there are active widgets for this page (respecting Rules of Hooks)
+  const { data: hasWidgets } = useHasActiveWidgets('global-picks');
 
   // Check admin status
   useEffect(() => {
@@ -271,6 +274,7 @@ export default function GlobalPicks() {
 
           {/* Products Grid */}
           <div className="flex-1 p-6">
+            {!(hasWidgets && allGlobalProducts.length === 0) && (
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -316,6 +320,7 @@ export default function GlobalPicks() {
                 </div>
               </div>
             </div>
+            )}
 
             {productsLoading ? (
               <div className="text-center py-16">
@@ -328,17 +333,19 @@ export default function GlobalPicks() {
                 </p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4"><i className="fas fa-globe text-gray-400"></i></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  {allGlobalProducts.length === 0 ? 'No Global Picks available' : 'No products found'}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  {allGlobalProducts.length === 0 
-                    ? 'Universal products from any e-commerce site will appear here when posted to Global Picks channel.' 
-                    : 'Try adjusting your filters to see more results.'}
-                </p>
-              </div>
+              hasWidgets && allGlobalProducts.length === 0 ? null : (
+                <div className="text-center py-16">
+                  <div className="text-6xl mb-4"><i className="fas fa-globe text-gray-400"></i></div>
+                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    {allGlobalProducts.length === 0 ? 'No Global Picks available' : 'No products found'}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-500">
+                    {allGlobalProducts.length === 0 
+                      ? 'Universal products from any e-commerce site will appear here when posted to Global Picks channel.' 
+                      : 'Try adjusting your filters to see more results.'}
+                  </p>
+                </div>
+              )
             ) : (
               <div className="relative">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

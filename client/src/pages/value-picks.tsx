@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/header";
 import WidgetRenderer from '@/components/WidgetRenderer';
 import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 import Footer from "@/components/footer";
@@ -15,6 +14,7 @@ import Sidebar from "@/components/sidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 interface Product {
@@ -97,6 +97,7 @@ export default function ValuePicks() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const { data: hasWidgets } = useHasActiveWidgets('value-picks');
 
   // Check admin status
   useEffect(() => {
@@ -234,7 +235,6 @@ export default function ValuePicks() {
   return (
     <UniversalPageLayout pageId="value-picks">
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Header />
             {/* Header Top above dynamic banner */}
             <WidgetRenderer page={'value-picks'} position="header-top" className="w-full" />
             <AnnouncementBanner />
@@ -257,63 +257,65 @@ export default function ValuePicks() {
                 />
       
                 {/* Products Grid */}
-                <div className="flex-1 p-6 relative">
+                <div className="flex-1 p-6">
                   {/* Product Grid Top Widgets */}
                   <SafeWidgetRenderer page={'value-picks'} position={'product-grid-top'} />
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Results ({filteredProducts.length})
-                        </h2>
-                        {/* Bulk Delete Icon - Admin Only */}
-                        {isAdmin && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
-                              className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                              title="Bulk delete options"
-                            >
-                              <i className="fas fa-trash text-sm" />
-                            </button>
-                            
-                            {bulkDeleteMode && (
-                              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {selectedProducts.length} selected
-                                </span>
-                                <button
-                                  onClick={() => handleBulkDelete(false)}
-                                  disabled={selectedProducts.length === 0}
-                                  className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
-                                >
-                                  Delete Selected
-                                </button>
-                                <button
-                                  onClick={() => handleBulkDelete(true)}
-                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                                >
-                                  Delete All
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setBulkDeleteMode(false);
-                              setSelectedProducts([]);
-                            }}
-                            className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                          >
-                            <i className="fas fa-times" />
-                          </button>
+                  {hasWidgets && allValueProducts.length === 0 ? null : (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Results ({filteredProducts.length})
+                          </h2>
+                          {/* Bulk Delete Icon - Admin Only */}
+                          {isAdmin && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
+                                className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                title="Bulk delete options"
+                              >
+                                <i className="fas fa-trash text-sm" />
+                              </button>
+                              {bulkDeleteMode && (
+                                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {selectedProducts.length} selected
+                                  </span>
+                                  <button
+                                    onClick={() => handleBulkDelete(false)}
+                                    disabled={selectedProducts.length === 0}
+                                    className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                                  >
+                                    Delete Selected
+                                  </button>
+                                  <button
+                                    onClick={() => handleBulkDelete(true)}
+                                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                                  >
+                                    Delete All
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setBulkDeleteMode(false);
+                                      setSelectedProducts([]);
+                                    }}
+                                    className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                                  >
+                                    <i className="fas fa-times" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Showing {filteredProducts.length} of {allValueProducts.length} products
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {filteredProducts.length} of {allValueProducts.length} products
-                </div>
-              </div>
-            </div>
 
             {productsLoading ? (
               <div className="text-center py-16">
@@ -326,19 +328,22 @@ export default function ValuePicks() {
                 </p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  {allValueProducts.length === 0 ? 'No Value Picks available' : 'No products found'}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  {allValueProducts.length === 0 
-                    ? 'Products will appear here when added to Value Picks via admin panel.' 
-                    : 'Try adjusting your filters to see more results.'}
-                </p>
-              </div>
+              hasWidgets && allValueProducts.length === 0 ? null : (
+                <div className="text-center py-16">
+                  <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    {allValueProducts.length === 0 ? 'No Value Picks available' : 'No products found'}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-500">
+                    {allValueProducts.length === 0 
+                      ? 'Products will appear here when added to Value Picks via admin panel.' 
+                      : 'Try adjusting your filters to see more results.'}
+                  </p>
+                </div>
+              )
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="relative">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="relative">
                     {/* Checkbox overlay for bulk delete mode */}
@@ -361,18 +366,19 @@ export default function ValuePicks() {
                     <AmazonProductCard product={product} />
                   </div>
                 ))}
+                </div>
+                {/* Product Grid Bottom Widgets */}
+                <SafeWidgetRenderer page={'value-picks'} position={'product-grid-bottom'} />
+                {/* Overlay widgets mirroring Prime Picks placement */}
+                <WidgetRenderer page={'value-picks'} position="content-top" />
+                <WidgetRenderer page={'value-picks'} position="content-middle" />
+                <WidgetRenderer page={'value-picks'} position="content-bottom" />
+                <WidgetRenderer page={'value-picks'} position="floating-top-left" />
+                <WidgetRenderer page={'value-picks'} position="floating-top-right" />
+                <WidgetRenderer page={'value-picks'} position="floating-bottom-left" />
+                <WidgetRenderer page={'value-picks'} position="floating-bottom-right" />
               </div>
             )}
-            {/* Product Grid Bottom Widgets */}
-            <SafeWidgetRenderer page={'value-picks'} position={'product-grid-bottom'} />
-            {/* Overlay widgets mirroring Prime Picks placement */}
-            <WidgetRenderer page={'value-picks'} position="content-top" />
-            <WidgetRenderer page={'value-picks'} position="content-middle" />
-            <WidgetRenderer page={'value-picks'} position="content-bottom" />
-            <WidgetRenderer page={'value-picks'} position="floating-top-left" />
-            <WidgetRenderer page={'value-picks'} position="floating-top-right" />
-            <WidgetRenderer page={'value-picks'} position="floating-bottom-left" />
-            <WidgetRenderer page={'value-picks'} position="floating-bottom-right" />
           </div>
         </div>
       </div>
@@ -384,7 +390,6 @@ export default function ValuePicks() {
       />
       
         <ScrollNavigation />
-      </div>
     </UniversalPageLayout>
   );
 }

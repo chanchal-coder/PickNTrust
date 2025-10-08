@@ -13,6 +13,7 @@ import Sidebar from "@/components/sidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 interface Product {
@@ -190,6 +191,9 @@ export default function LootBox() {
     staleTime: 0, // Real-time updates
   });
 
+  // Check if there are any active widgets for this page
+  const { data: hasWidgets } = useHasActiveWidgets('loot-box');
+
   // Apply client-side filtering for price and rating
   const filteredProducts = allLootProducts.filter(product => {
     // Filter by price range
@@ -276,6 +280,7 @@ export default function LootBox() {
       
                 {/* Products Grid */}
                 <div className="flex-1 p-6">
+                  {!(hasWidgets && allLootProducts.length === 0) && (
                   <div className="mb-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -321,6 +326,7 @@ export default function LootBox() {
                       </div>
                     </div>
                   </div>
+                  )}
       
                   {productsLoading ? (
                     <div className="text-center py-16">
@@ -333,17 +339,19 @@ export default function LootBox() {
                       </p>
                     </div>
                   ) : filteredProducts.length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                      <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                        {allLootProducts.length === 0 ? 'No DeoDap products available' : 'No products found'}
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-500">
-                        {allLootProducts.length === 0 
-                          ? 'DeoDap digital products, services, and courses will appear here when posted to Loot Box channel.' 
-                          : 'Try adjusting your filters to see more results.'}
-                      </p>
-                    </div>
+                    hasWidgets && allLootProducts.length === 0 ? null : (
+                      <div className="text-center py-16">
+                        <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                        <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                          {allLootProducts.length === 0 ? 'No DeoDap products available' : 'No products found'}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-500">
+                          {allLootProducts.length === 0 
+                            ? 'DeoDap digital products, services, and courses will appear here when posted to Loot Box channel.' 
+                            : 'Try adjusting your filters to see more results.'}
+                        </p>
+                      </div>
+                    )
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {filteredProducts.map((product: any) => (

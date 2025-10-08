@@ -105,8 +105,8 @@ const CHANNEL_PRODUCTS = {
 // Create bot instance
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
-// Database connection
-const dbPath = path.join(process.cwd(), 'pickntrust.db');
+// Database connection (use the main database.sqlite)
+const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new Database(dbPath);
 
 function createMessage(channelId, product) {
@@ -211,11 +211,11 @@ async function checkDatabaseUpdates() {
         console.log('\n📊 CHECKING DATABASE UPDATES');
         console.log('=============================');
         
-        // Check recent channel_posts
+        // Check recent channel_posts (created_at stored as epoch seconds)
         const recentPosts = db.prepare(`
             SELECT channel_name, COUNT(*) as count 
             FROM channel_posts 
-            WHERE created_at > datetime('now', '-2 minutes')
+            WHERE created_at > (strftime('%s','now') - 120)
             GROUP BY channel_name
             ORDER BY count DESC
         `).all();
@@ -229,14 +229,29 @@ async function checkDatabaseUpdates() {
             });
         }
         
-        // Check recent unified_content
+        // Check recent unified_content (created_at stored as epoch seconds)
         const recentProducts = db.prepare(`
             SELECT page_type, COUNT(*) as count 
             FROM unified_content 
-            WHERE created_at > datetime('now', '-2 minutes')
+            WHERE created_at > (strftime('%s','now') - 120)
             GROUP BY page_type
             ORDER BY count DESC
         `).all();
+
+        // Verify per-page display mapping using display_pages JSON
+        const pageChecks = [
+            'prime-picks','cue-picks','value-picks','click-picks',
+            'global-picks','travel-picks','deals-hub','loot-box'
+        ];
+        console.log('\n🗂️ Products by page (last 2 minutes):');
+        for (const slug of pageChecks) {
+            const row = db.prepare(`
+                SELECT COUNT(*) as count FROM unified_content 
+                WHERE created_at > (strftime('%s','now') - 120)
+                  AND display_pages LIKE '%' || ? || '%'
+            `).get(slug);
+            console.log(`   ${slug}: ${row.count} products`);
+        }
         
         console.log('\n📦 Recent products (last 2 minutes):');
         if (recentProducts.length === 0) {

@@ -13,6 +13,7 @@ import Sidebar from "@/components/sidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
+import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 
 interface Product {
@@ -95,6 +96,7 @@ export default function CuePicks() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const { data: hasWidgets } = useHasActiveWidgets('cue-picks');
 
   // Check admin status
   useEffect(() => {
@@ -261,60 +263,62 @@ export default function CuePicks() {
                 {/* Products Grid with overlay anchor */}
                 <div className="flex-1 p-6">
                   <div className="relative">
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Results ({filteredProducts.length})
-                        </h2>
-                        {/* Bulk Delete Icon - Admin Only */}
-                        {isAdmin && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
-                              className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                              title="Bulk delete options"
-                            >
-                              <i className="fas fa-trash text-sm" />
-                            </button>
-                            
-                            {bulkDeleteMode && (
-                              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {selectedProducts.length} selected
-                                </span>
-                                <button
-                                  onClick={() => handleBulkDelete(false)}
-                                  disabled={selectedProducts.length === 0}
-                                  className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
-                                >
-                                  Delete Selected
-                                </button>
-                                <button
-                                  onClick={() => handleBulkDelete(true)}
-                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                                >
-                                  Delete All
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setBulkDeleteMode(false);
-                              setSelectedProducts([]);
-                            }}
-                            className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                          >
-                            <i className="fas fa-times" />
-                          </button>
+                  {hasWidgets && allCueProducts.length === 0 ? null : (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Results ({filteredProducts.length})
+                          </h2>
+                          {/* Bulk Delete Icon - Admin Only */}
+                          {isAdmin && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
+                                className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                title="Bulk delete options"
+                              >
+                                <i className="fas fa-trash text-sm" />
+                              </button>
+                              {bulkDeleteMode && (
+                                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg px-3 py-2 shadow-sm">
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {selectedProducts.length} selected
+                                  </span>
+                                  <button
+                                    onClick={() => handleBulkDelete(false)}
+                                    disabled={selectedProducts.length === 0}
+                                    className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                                  >
+                                    Delete Selected
+                                  </button>
+                                  <button
+                                    onClick={() => handleBulkDelete(true)}
+                                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                                  >
+                                    Delete All
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setBulkDeleteMode(false);
+                                      setSelectedProducts([]);
+                                    }}
+                                    className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                                  >
+                                    <i className="fas fa-times" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Showing {filteredProducts.length} of {allCueProducts.length} products
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {filteredProducts.length} of {allCueProducts.length} products
-                </div>
-              </div>
-            </div>
 
             {productsLoading ? (
               <div className="text-center py-16">
@@ -327,15 +331,18 @@ export default function CuePicks() {
                 </p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                  <div className="text-6xl mb-4 text-red-500">
-                    <i className="fas fa-bullseye"></i>
+              hasWidgets && allCueProducts.length === 0 ? null : (
+                <div className="text-center py-16">
+                    <div className="text-6xl mb-4 text-red-500">
+                      <i className="fas fa-bullseye"></i>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-600 mb-4">No Cue Picks Found</h3>
+                    <p className="text-gray-500">We're working on adding more CueLinks products to this collection.</p>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-600 mb-4">No Cue Picks Found</h3>
-                  <p className="text-gray-500">We're working on adding more CueLinks products to this collection.</p>
-                </div>
+              )
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="relative">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="relative">
                     {/* Checkbox overlay for bulk delete mode */}
@@ -358,16 +365,17 @@ export default function CuePicks() {
                     <AmazonProductCard product={product} />
                   </div>
                 ))}
+                </div>
+                {/* Overlay widgets mirroring Prime Picks placement */}
+                <WidgetRenderer page={'cue-picks'} position="content-top" />
+                <WidgetRenderer page={'cue-picks'} position="content-middle" />
+                <WidgetRenderer page={'cue-picks'} position="content-bottom" />
+                <WidgetRenderer page={'cue-picks'} position="floating-top-left" />
+                <WidgetRenderer page={'cue-picks'} position="floating-top-right" />
+                <WidgetRenderer page={'cue-picks'} position="floating-bottom-left" />
+                <WidgetRenderer page={'cue-picks'} position="floating-bottom-right" />
               </div>
             )}
-            {/* Overlay widgets mirroring Prime Picks placement */}
-            <WidgetRenderer page={'cue-picks'} position="content-top" />
-            <WidgetRenderer page={'cue-picks'} position="content-middle" />
-            <WidgetRenderer page={'cue-picks'} position="content-bottom" />
-            <WidgetRenderer page={'cue-picks'} position="floating-top-left" />
-            <WidgetRenderer page={'cue-picks'} position="floating-top-right" />
-            <WidgetRenderer page={'cue-picks'} position="floating-bottom-left" />
-            <WidgetRenderer page={'cue-picks'} position="floating-bottom-right" />
             </div>
           </div>
         </div>
@@ -378,9 +386,8 @@ export default function CuePicks() {
         page="cue-picks" 
         title="Cue Picks Videos"
       />
-      
+
         <ScrollNavigation />
-      </div>
     </UniversalPageLayout>
   );
 }

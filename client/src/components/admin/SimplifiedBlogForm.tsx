@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectSeparator } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Upload, Eye, Clock, Image } from 'lucide-react';
@@ -43,6 +43,39 @@ export default function SimplifiedBlogForm() {
     hasTimer: false,
     timerDuration: '24'
   });
+
+  // Fetch ALL categories from DB for form dropdown (no filtering)
+  const { data: browseCategories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      const list = await res.json();
+      return (Array.isArray(list) ? list : []).map((c: any) => ({
+        id: c.id || c.name,
+        name: c.name,
+        isForProducts: c.isForProducts,
+        isForServices: c.isForServices,
+        isForAIApps: c.isForAIApps,
+      }));
+    },
+    // Always refetch on mount to reflect latest flags
+    staleTime: 0,
+  });
+
+  // Group categories by type for clearer selection (Products, Services, AI Apps, General)
+  const groupedBlogCategories = (browseCategories || []).reduce((groups: Record<string, any[]>, cat: any) => {
+    const add = (label: string) => {
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(cat);
+    };
+    if (cat.isForProducts) add('Products');
+    if (cat.isForServices) add('Services');
+    if (cat.isForAIApps) add('AI Apps');
+    if (!cat.isForProducts && !cat.isForServices && !cat.isForAIApps) add('General');
+    return groups;
+  }, {} as Record<string, any[]>);
+  const blogCategoryGroupOrder = ['Products', 'Services', 'AI Apps', 'General'];
 
   // Handle image upload - Optimized with compression for better performance
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -408,11 +441,7 @@ export default function SimplifiedBlogForm() {
     });
   };
 
-  const commonCategories = [
-    'Technology', 'Lifestyle', 'Fashion', 'Health', 'Travel',
-    'Food', 'Business', 'Entertainment', 'Sports', 'Education',
-    'Deals', 'Reviews', 'Gadgets', 'Mobile', 'Computing'
-  ];
+  // Removed hardcoded categories in favor of DB-driven categories
 
   if (error) {
     return (
@@ -497,15 +526,22 @@ export default function SimplifiedBlogForm() {
                   <Select 
                     value={newPost.category}
                     onValueChange={(value) => setNewPost({ ...newPost, category: value })}
+                    disabled={categoriesLoading}
                   >
                     <SelectTrigger className="bg-gray-800 border-gray-600 text-white mt-2">
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={categoriesLoading ? 'Loading categories...' : 'Select category'} />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-600">
-                      {commonCategories.map(cat => (
-                        <SelectItem key={cat} value={cat} className="text-white hover:bg-gray-700">
-                          {cat}
-                        </SelectItem>
+                      {blogCategoryGroupOrder.filter(label => groupedBlogCategories[label]?.length).map((label, idx, arr) => (
+                        <SelectGroup key={label}>
+                          <div className="px-2 py-1 text-xs uppercase tracking-wide font-bold text-white">{label}</div>
+                          {groupedBlogCategories[label].map((cat: any) => (
+                            <SelectItem key={cat.id} value={cat.name} className="text-white hover:bg-gray-700">
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                          {idx < arr.length - 1 && <SelectSeparator className="bg-gray-700" />}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
