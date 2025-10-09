@@ -2730,12 +2730,49 @@ export function setupRoutes(app: express.Application) {
             return s === 'true' || s === '1' || s === 'yes' || s === 'y';
           };
 
-          // Normalize display pages: comma-separated -> array
+          // Normalize display pages: comma-separated -> canonical slugs
+          // Rules: lowercase, replace spaces with hyphens, de-duplicate
+          // Also map common synonyms to canonical page slugs
+          const normalizeSlug = (val: string) => {
+            const s = val.trim().toLowerCase().replace(/\s+/g, '-');
+            switch (s) {
+              case 'global':
+              case 'globalpicks':
+              case 'global-pick':
+              case 'globals':
+                return 'global-picks';
+              case 'prime':
+              case 'primepicks':
+              case 'prime-pick':
+                return 'prime-picks';
+              case 'clickpicks':
+              case 'click-pick':
+                return 'click-picks';
+              case 'cuepicks':
+              case 'cue-pick':
+                return 'cue-picks';
+              case 'valuepicks':
+              case 'value-pick':
+                return 'value-picks';
+              case 'apps-aiapps':
+              case 'apps-aiapp':
+              case 'ai-apps':
+              case 'ai-app':
+                return 'apps-ai-apps';
+              default:
+                return s;
+            }
+          };
+
           const displayPages = productData.displayPages
-            ? String(productData.displayPages)
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter((s: string) => s.length > 0)
+            ? Array.from(
+                new Set(
+                  String(productData.displayPages)
+                    .split(',')
+                    .map((s: string) => normalizeSlug(s))
+                    .filter((s: string) => s.length > 0)
+                )
+              )
             : undefined;
 
           const mapped = {
@@ -2770,6 +2807,11 @@ export function setupRoutes(app: express.Application) {
               ? parseInt(String(productData.cookieDuration).replace(/[^0-9]/g, ''))
               : undefined
           } as any;
+
+          // Set pageType from first display page as a fallback to aid filtering
+          if (Array.isArray(displayPages) && displayPages.length > 0) {
+            (mapped as any).pageType = displayPages[0];
+          }
 
           const result = await storage.addProduct(mapped);
           if (result) inserted++;
@@ -3085,7 +3127,7 @@ export function setupRoutes(app: express.Application) {
 
       // Verify token against master or additional allowed bot tokens
       const expectedToken = process.env.MASTER_BOT_TOKEN;
-      const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '')
+    const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '')
         .split(',')
         .map(t => t.trim())
         .filter(Boolean);
@@ -3100,7 +3142,15 @@ export function setupRoutes(app: express.Application) {
         process.env.TRAVEL_PICKS_BOT_TOKEN
       ].filter(Boolean) as string[];
       const allowedTokensSet = new Set<string>([...allowedTokensEnv, ...additionalEnvTokens]);
-      const isAuthorized = token === expectedToken || allowedTokensSet.has(token);
+
+      // Development bypass: allow a known dev token for local testing
+      const isDevMode = (process.env.NODE_ENV || 'development') !== 'production';
+      const devToken = process.env.DEV_WEBHOOK_TOKEN || 'dev';
+      const isDevBypass = isDevMode && token === devToken;
+
+    // Allow optional override to accept any bot token in emergency
+    const allowAnyToken = process.env.ALLOW_ANY_BOT_TOKEN === 'true';
+    const isAuthorized = allowAnyToken || token === expectedToken || allowedTokensSet.has(token) || isDevBypass;
 
       if (!isAuthorized) {
         console.error('❌ Invalid webhook token: not in allowed list');
@@ -3109,7 +3159,7 @@ export function setupRoutes(app: express.Application) {
 
       console.log('✅ Authorized webhook token', {
         tokenPrefix: token.substring(0, 10) + '...',
-        type: token === expectedToken ? 'master' : 'additional'
+        type: isDevBypass ? 'dev' : (token === expectedToken ? 'master' : 'additional')
       });
 
       // If global bot processing is disabled, acknowledge and skip processing
@@ -3130,7 +3180,8 @@ export function setupRoutes(app: express.Application) {
       setImmediate(async () => {
         try {
           console.log('🔄 Importing telegram-bot module...');
-          const telegramBot = await import('./telegram-bot');
+          // Explicit .js extension for Node ESM resolution in production
+          const telegramBot = await import('./telegram-bot.js');
           console.log('🔄 Getting TelegramBotManager instance...');
           const botManager = telegramBot.TelegramBotManager.getInstance();
 
@@ -3155,6 +3206,100 @@ export function setupRoutes(app: express.Application) {
     } catch (error) {
       console.error('❌ Master bot webhook error:', error);
       // Never crash the site due to webhook issues
+      try {
+        res.status(200).json({ ok: true });
+      } catch {}
+    }
+  });
+
+  // Alias endpoint to tolerate base URLs that include /api
+  app.post('/api/webhook/master/:token', express.json({ limit: '200kb' }), botWebhookGuard, async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      const update: any = req.body;
+
+      console.log('🤖 [API Alias] Master bot webhook received:', {
+        token: token.substring(0, 10) + '...',
+        updateType: update.channel_post ? 'channel_post' : update.message ? 'message' : 'other',
+        messageId: update.channel_post?.message_id || update.message?.message_id,
+        chatId: update.channel_post?.chat?.id || update.message?.chat?.id,
+        chatTitle: update.channel_post?.chat?.title || update.message?.chat?.title
+      });
+
+      const expectedToken = process.env.MASTER_BOT_TOKEN;
+      const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '')
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+      const additionalEnvTokens = [
+        process.env.VALUE_PICKS_BOT_TOKEN,
+        process.env.PRIME_PICKS_BOT_TOKEN,
+        process.env.CUE_PICKS_BOT_TOKEN,
+        process.env.CLICK_PICKS_BOT_TOKEN,
+        process.env.GLOBAL_PICKS_BOT_TOKEN,
+        process.env.DEALS_HUB_BOT_TOKEN,
+        process.env.LOOT_BOX_BOT_TOKEN,
+        process.env.TRAVEL_PICKS_BOT_TOKEN
+      ].filter(Boolean) as string[];
+      const allowedTokensSet = new Set<string>([...allowedTokensEnv, ...additionalEnvTokens]);
+
+      const isDevMode = (process.env.NODE_ENV || 'development') !== 'production';
+      const devToken = process.env.DEV_WEBHOOK_TOKEN || 'dev';
+      const isDevBypass = isDevMode && token === devToken;
+
+      const allowAnyToken = process.env.ALLOW_ANY_BOT_TOKEN === 'true';
+      const isAuthorized = allowAnyToken || token === expectedToken || allowedTokensSet.has(token) || isDevBypass;
+
+      if (!isAuthorized) {
+        console.error('❌ [API Alias] Invalid webhook token: not in allowed list');
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      console.log('✅ [API Alias] Authorized webhook token', {
+        tokenPrefix: token.substring(0, 10) + '...',
+        type: isDevBypass ? 'dev' : (token === expectedToken ? 'master' : 'additional')
+      });
+
+      try {
+        const state = botProcessingController.getState();
+        if (!state.enabled) {
+          console.log('⏸️ Bot processing disabled via admin toggle; acknowledging without processing.');
+          return res.status(200).json({ ok: true, processing: 'disabled' });
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to read bot processing state, proceeding to process update:', e);
+      }
+
+      res.status(200).json({ ok: true });
+
+      setImmediate(async () => {
+        try {
+          console.log('🔄 [API Alias] Importing telegram-bot module...');
+          // Explicit .js extension for Node ESM resolution in production
+          const telegramBot = await import('./telegram-bot.js');
+          console.log('🔄 [API Alias] Getting TelegramBotManager instance...');
+          const botManager = telegramBot.TelegramBotManager.getInstance();
+
+          if (update.channel_post) {
+            console.log('🔄 [API Alias] Processing channel post (async)...');
+            await botManager.processChannelPost(update.channel_post);
+            console.log('✅ [API Alias] Channel post processed');
+          } else if (update.message) {
+            console.log('🔄 [API Alias] Processing message (async)...');
+            await botManager.processMessage(update.message);
+            console.log('✅ [API Alias] Message processed');
+          } else {
+            console.log('⚠️ [API Alias] No channel_post or message found in update');
+          }
+
+          console.log('✅ [API Alias] Master bot webhook processed successfully (async)');
+        } catch (error: any) {
+          console.error('❌ [API Alias] Failed to process master bot webhook update:', error);
+          if (error && error.stack) console.error('Error stack:', error.stack);
+        }
+      });
+    } catch (error) {
+      console.error('❌ [API Alias] Master bot webhook error:', error);
       try {
         res.status(200).json({ ok: true });
       } catch {}

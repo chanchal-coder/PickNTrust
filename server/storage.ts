@@ -50,32 +50,71 @@ const fromUnixTimestamp = (timestamp: number): Date => new Date(timestamp * 1000
 
 // Validation helpers
 const validateProduct = (product: any): void => {
-  if (!product.name?.trim()) throw new Error('Product name is required');
-  
-  // For services and AI apps, price validation is more flexible
-  if (product.isService || product.isAIApp) {
-    // Services/Apps can be free or have flexible pricing
-    if (product.isFree) {
-      // Free services don't need price validation
-    } else {
-      // Non-free services/apps should have some pricing information
-      const parsedPrice = typeof product.price === 'string' ? parseFloat(product.price.replace(/[^\d.]/g, '')) : product.price;
-      const hasMonthlyPrice = product.monthlyPrice && parseFloat(product.monthlyPrice.toString()) > 0;
-      const hasYearlyPrice = product.yearlyPrice && parseFloat(product.yearlyPrice.toString()) > 0;
-      
-      if (!hasMonthlyPrice && !hasYearlyPrice && (isNaN(parsedPrice) || parsedPrice < 0)) {
-        throw new Error('Services/Apps must have valid pricing (price, monthly, or yearly)');
+  // Make validation permissive: accept missing fields and normalize where possible
+  if (!product || typeof product !== 'object') return;
+
+  // Name fallback (no compulsion)
+  if (!product.name || typeof product.name !== 'string' || !product.name.trim()) {
+    product.name = 'Untitled';
+  }
+
+  // Normalize flags
+  const isService = Boolean(product.isService);
+  const isAIApp = Boolean(product.isAIApp);
+  const isFree = Boolean(product.isFree) || (
+    typeof product.pricingType === 'string' && product.pricingType.toLowerCase() === 'free'
+  );
+
+  // Numeric normalization helper
+  const normalizeNumber = (v: any): number | null => {
+    if (v === undefined || v === null || v === '') return null;
+    const s = typeof v === 'string' ? v.replace(/[^\d.]/g, '') : v;
+    const n = typeof s === 'string' ? parseFloat(s) : Number(s);
+    return isNaN(n) ? null : n;
+  };
+
+  // Price normalization (no strict requirement)
+  const priceNum = normalizeNumber(product.price);
+  const monthlyNum = normalizeNumber(product.monthlyPrice);
+  const yearlyNum = normalizeNumber(product.yearlyPrice);
+
+  if (isFree) {
+    product.pricingType = 'free';
+    // Keep price blank when free
+    product.price = '';
+    product.monthlyPrice = null;
+    product.yearlyPrice = null;
+  } else if (isService || isAIApp) {
+    // Accept any provided pricing; fallback to 0 if none
+    if (typeof product.pricingType === 'string') {
+      const pt = product.pricingType.toLowerCase();
+      if (pt === 'monthly' && monthlyNum !== null) {
+        product.price = monthlyNum;
+      } else if (pt === 'yearly' && yearlyNum !== null) {
+        product.price = yearlyNum;
+      } else if (pt === 'one-time' && priceNum !== null) {
+        product.price = priceNum;
+      } else {
+        // Leave price blank if nothing valid is provided
+        product.price = priceNum ?? monthlyNum ?? yearlyNum ?? null;
       }
+    } else {
+      // Leave price blank if nothing valid is provided
+      product.price = priceNum ?? monthlyNum ?? yearlyNum ?? null;
     }
   } else {
-    // Regular products need valid price
-    const parsedPrice = typeof product.price === 'string' ? parseFloat(product.price.replace(/[^\d.]/g, '')) : product.price;
-    if (isNaN(parsedPrice) || parsedPrice < 0) throw new Error('Valid price is required');
+    // Regular products: allow missing/invalid price, keep blank instead of forcing 0
+    product.price = priceNum !== null && priceNum >= 0 ? priceNum : null;
   }
-  
-  if (product.rating) {
-    const parsedRating = typeof product.rating === 'string' ? parseFloat(product.rating) : product.rating;
-    if (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) throw new Error('Rating must be between 1 and 5');
+
+  // Original price normalization
+  const origNum = normalizeNumber(product.originalPrice);
+  product.originalPrice = origNum !== null ? origNum : null;
+
+  // Rating normalization (no strict requirement)
+  if (product.rating !== undefined && product.rating !== null && product.rating !== '') {
+    const r = normalizeNumber(product.rating);
+    product.rating = r === null ? 4.5 : Math.max(1, Math.min(5, r));
   }
 };
 
@@ -974,10 +1013,15 @@ export class DatabaseStorage implements IStorage {
         isAIApp: product.isAIApp
       });
 
+      // Compute storage-friendly price: keep blank when zero or invalid
+      const priceForStore = (typeof price === 'number' && Number.isFinite(price) && price > 0)
+        ? price.toString()
+        : '';
+
       const productData = {
         name: product.name.trim(),
         description: product.description?.trim() || '',
-        price: (price || 0).toString(),
+        price: priceForStore,
         originalPrice: originalPrice ? originalPrice.toString() : null,
         currency: product.currency || 'INR',
         imageUrl: product.imageUrl?.trim() || '',
@@ -1045,7 +1089,7 @@ export class DatabaseStorage implements IStorage {
         created_at: Math.floor(now.getTime() / 1000),
         updated_at: Math.floor(now.getTime() / 1000),
         metadata: JSON.stringify({
-          price: (price || 0).toString(),
+          price: priceForStore,
           originalPrice: originalPrice ? originalPrice.toString() : null,
           currency: product.currency || 'INR',
           gender: normalizedGender,
@@ -1204,7 +1248,7 @@ export class DatabaseStorage implements IStorage {
         unifiedContentData.updated_at,
         unifiedContentData.processing_status,
         unifiedContentData.display_pages,
-        (price || 0).toString(),
+        priceForStore,
         originalPrice ? originalPrice.toString() : null,
         discountPercentageForUnified,
         unifiedContentData.image_url,
@@ -1225,7 +1269,7 @@ export class DatabaseStorage implements IStorage {
         id: result.lastInsertRowid,
         name: product.name.trim(),
         description: product.description?.trim() || '',
-        price: (price || 0).toString(),
+        price: priceForStore,
         originalPrice: originalPrice ? originalPrice.toString() : null,
         currency: product.currency || 'INR',
         imageUrl: product.imageUrl?.trim() || '',
