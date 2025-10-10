@@ -28,6 +28,42 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [hiddenBanners, setHiddenBanners] = useState<Set<string>>(new Set());
 
+  // Helper: detect placeholder/transparent images so we don't render them
+  const isRealImage = (url?: string) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    // Common placeholder patterns we want to avoid rendering
+    if (lower.includes('via.placeholder.com')) return false;
+    if (lower.includes('transparent')) return false;
+    if (lower.includes('data:image') && lower.includes('base64')) return false;
+    return true;
+  };
+
+  // Helper: proxy external images through backend to avoid cross-origin blocking
+  const getBannerImageSrc = (url: string) => {
+    if (!isRealImage(url)) return '';
+    try {
+      const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+      const isExternal = parsed.origin && parsed.origin !== (typeof window !== 'undefined' ? window.location.origin : '');
+      const isUploads = parsed.pathname.startsWith('/uploads');
+
+      if (isExternal && !isUploads) {
+        const qs = new URLSearchParams({
+          url,
+          width: '1200',
+          height: '400',
+          quality: '80',
+          format: 'webp'
+        });
+        return `/api/image-proxy?${qs.toString()}`;
+      }
+      return url;
+    } catch {
+      // If URL parsing fails (relative or malformed), return as-is
+      return url;
+    }
+  };
+
   // Update hidden banners from localStorage
   const updateHiddenBanners = () => {
     try {
@@ -260,22 +296,27 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
               index < currentBannerIndex ? '-translate-x-full' : 'translate-x-full'
             }`}
           >
-            {/* Background: Use gradient for all pages except travel-picks */}
+            {/* Background: Prefer real image if provided, otherwise gradient */}
             <div className="absolute inset-0">
-              {page === 'travel-picks' && banner.imageUrl ? (
+              {isRealImage(banner.imageUrl) ? (
                 <img
-                  src={banner.imageUrl}
+                  src={getBannerImageSrc(banner.imageUrl)}
                   alt={banner.title}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <div className={`w-full h-full bg-gradient-to-r ${banner.gradient || 'from-gray-600 to-gray-800'}`}></div>
               )}
-              <div className="absolute inset-0 bg-black/40"></div>
+              <div className={`absolute inset-0 ${
+                (isRealImage(banner.imageUrl) && !(banner.title || banner.subtitle || banner.buttonText || (banner.showHomeLink ?? 1)))
+                  ? 'bg-black/10'
+                  : 'bg-black/40'
+              }`}></div>
             </div>
 
             {/* Content */}
             <div className="relative h-full flex items-center justify-center text-center px-4">
+              {!(isRealImage(banner.imageUrl) && !(banner.title || banner.subtitle || banner.buttonText || (banner.showHomeLink ?? 1))) && (
               <div className="max-w-4xl mx-auto text-white">
                 {/* Centered Icon Above Title for consistency */}
                 <div className="mb-4">
@@ -321,6 +362,7 @@ export default function StaticPageBanner({ page, className = '' }: StaticPageBan
                   )}
                 </div>
               </div>
+              )}
             </div>
 
             {/* Hide Banner Button */}

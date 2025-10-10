@@ -25,13 +25,13 @@ export const DATABASE_CONFIG = {
       }
       return path.isAbsolute(envUrl) ? envUrl : path.join(process.cwd(), envUrl);
     }
-    // Candidate locations prioritized to avoid creating DB inside dist
+    // Candidate locations prioritized to avoid creating DB inside dist.
+    // Prefer project root first to keep a single authoritative DB in prod.
     const candidates = [
-      // Project root relative to compiled server (dist/server/server -> project root)
+      cwdPath,                                                   // current working directory (project root when PM2 sets cwd)
+      path.join(process.cwd(), '..', 'database.sqlite'),         // parent directory
       path.join(__dirname, '..', '..', '..', 'database.sqlite'), // dist/database.sqlite
       path.join(__dirname, '..', '..', 'database.sqlite'),       // dist/server/database.sqlite
-      cwdPath,                                                   // current working directory
-      path.join(process.cwd(), '..', 'database.sqlite'),         // parent directory
     ];
 
     for (const p of candidates) {
@@ -39,6 +39,9 @@ export const DATABASE_CONFIG = {
         // Prefer an existing database file
         const fs = require('fs');
         if (fs.existsSync(p)) {
+          if (process.env.LOG_DB_PATH === 'true') {
+            console.log('📦 Using existing database at', p);
+          }
           return p;
         }
       } catch {}
@@ -49,7 +52,14 @@ export const DATABASE_CONFIG = {
     const inDist = __dirname.includes(path.sep + 'dist' + path.sep);
     if (isProd && inDist) {
       // Redirect to project root database path when running from dist
-      return path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      const rootPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      if (process.env.LOG_DB_PATH === 'true') {
+        console.log('📦 Defaulting to project root database at', rootPath);
+      }
+      return rootPath;
+    }
+    if (process.env.LOG_DB_PATH === 'true') {
+      console.log('📦 Defaulting to cwd database at', cwdPath);
     }
     return cwdPath;
   },

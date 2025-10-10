@@ -49,8 +49,8 @@ const AffiliateProductCard: FC<AffiliateProductCardProps> = ({
 
   const formatPrice = (price: string | number, currency?: string) => {
     const numericPrice = typeof price === 'string' ? parseFloat(price.replace(/[^0-9.]/g, '')) : price;
-    if (isNaN(numericPrice)) return typeof price === 'string' ? price : '0';
-    
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return '';
+
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
     return `${currencySymbol}${Math.round(numericPrice).toLocaleString()}`; // Use whole numbers only
   };

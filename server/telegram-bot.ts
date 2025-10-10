@@ -1,4 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
+import { loadEnv } from './config/env-loader.js';
+// Ensure environment variables are loaded in any execution context
+loadEnv();
 // import { CHANNEL_CONFIGS } from './config/channels.js'; // This file doesn't exist - using inline config
 // import { convertUrls } from './services/affiliate-service.js'; // This file doesn't exist - using inline function
 // import { extractProductInfo } from './services/url-processing-service.js'; // This file doesn't exist - using inline function
@@ -10,6 +13,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { categorizeForAutomation, shouldAutoCategorize } from './enhanced-smart-categorization.js';
 import { travelPicksBot } from './travel-picks-bot.js';
+import { getDatabasePath, getDatabaseOptions } from './config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +21,10 @@ const __dirname = path.dirname(__filename);
 // Admin alert chat configuration (set one of these in env)
 // Prefer a private admin chat/channel to avoid spamming public channels
 const ALERT_CHAT_ID = process.env.BOT_ALERT_CHAT_ID || process.env.MASTER_ADMIN_CHAT_ID || '';
+// Silent mode: when enabled, the bot will NOT send any messages
+// back to Telegram (no replies, no channel posts, no admin alerts).
+// Set via env: BOT_SILENT=true|1|yes
+const BOT_SILENT = ['1', 'true', 'yes'].includes(String(process.env.BOT_SILENT || '').toLowerCase());
 
 // Singleton pattern to prevent multiple bot instances
 class TelegramBotManager {
@@ -46,8 +54,10 @@ class TelegramBotManager {
   }
 
   // Lightweight status accessor to avoid exposing internals
-  public getStatus(): { initialized: boolean } {
-    return { initialized: this.isInitialized };
+  public getStatus(): { initialized: boolean; hasToken: boolean; env: string } {
+    const hasToken = Boolean(process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN);
+    const env = process.env.NODE_ENV || 'unknown';
+    return { initialized: this.isInitialized, hasToken, env };
   }
 
   public async initializeBot(): Promise<void> {
@@ -56,22 +66,19 @@ class TelegramBotManager {
       return;
     }
 
-    // Check if we should enable Telegram bot (disable in development if network issues)
-    const ENABLE_TELEGRAM_BOT = process.env.ENABLE_TELEGRAM_BOT === 'true' || process.env.NODE_ENV === 'production';
-
-    if (!ENABLE_TELEGRAM_BOT) {
-      console.log('🤖 Telegram bot disabled in development mode');
-      console.log('   To enable: set ENABLE_TELEGRAM_BOT=true in environment');
+    // Initialize based on presence of a bot token; optional disable via DISABLE_TELEGRAM_BOT
+    if (process.env.DISABLE_TELEGRAM_BOT === 'true') {
+      console.log('⏸️ Telegram bot disabled via DISABLE_TELEGRAM_BOT flag');
       return;
     }
 
     console.log('🤖 Initializing Telegram bot (webhook-only mode)...');
     
-    // Bot configuration - ONLY MASTER BOT TOKEN (no default fallback)
-    const BOT_TOKEN = process.env.MASTER_BOT_TOKEN;
+    // Bot configuration - prefer MASTER_BOT_TOKEN, fallback to TELEGRAM_BOT_TOKEN
+    const BOT_TOKEN = process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     
     if (!BOT_TOKEN) {
-      console.error('❌ MASTER_BOT_TOKEN not found in environment variables');
+      console.error('❌ MASTER_BOT_TOKEN/TELEGRAM_BOT_TOKEN not found in environment variables');
       return;
     }
 
@@ -98,7 +105,7 @@ class TelegramBotManager {
 
       // Ensure master webhook is configured
       try {
-        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://www.pickntrust.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
         const webhookUrl = `${baseUrl}/webhook/master/${BOT_TOKEN}`;
         console.log(`🔗 Ensuring webhook is set: ${webhookUrl}`);
 
@@ -132,7 +139,7 @@ class TelegramBotManager {
       try {
         if (ALERT_CHAT_ID) {
           const me = await this.bot.getMe();
-          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://www.pickntrust.com';
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
           const info = await this.bot.getWebHookInfo();
           const msg = `✅ <b>Bot Initialized</b>\n` +
             `• Bot: <code>${me.username}</code> (ID: ${me.id})\n` +
@@ -140,7 +147,11 @@ class TelegramBotManager {
             `• Webhook: <code>${(info as any).url || baseUrl}</code>\n` +
             `• Pending: ${(info as any).pending_update_count || 0}\n` +
             `• Env: <code>${process.env.NODE_ENV || 'unknown'}</code>`;
-          await this.bot.sendMessage(ALERT_CHAT_ID, msg, { parse_mode: 'HTML' });
+          if (!BOT_SILENT) {
+            await this.bot.sendMessage(ALERT_CHAT_ID, msg, { parse_mode: 'HTML' });
+          } else {
+            console.log('🔕 BOT_SILENT enabled: Skipping init alert');
+          }
         } else {
           console.log('ℹ️ No ALERT_CHAT_ID configured; skipping init alert');
         }
@@ -249,6 +260,10 @@ const sendTelegramNotification = async (channelId: string, message: string, opti
   }
 
   try {
+    if (BOT_SILENT) {
+      console.log('🔕 BOT_SILENT enabled: Skipping sending channel message');
+      return false;
+    }
     console.log(`📤 Sending message to channel ${channelId}...`);
     const result = await currentBot.sendMessage(channelId, message, {
       parse_mode: 'HTML',
@@ -266,6 +281,10 @@ const sendTelegramNotification = async (channelId: string, message: string, opti
 // Internal helper to send admin alerts safely
 async function notifyAdmin(message: string, options: any = {}) {
   try {
+    if (BOT_SILENT) {
+      console.log('🔕 BOT_SILENT enabled: Skipping admin notification:', message);
+      return false;
+    }
     if (!ALERT_CHAT_ID) {
       console.log('ℹ️ ALERT_CHAT_ID not set; admin alert:', message);
       return false;
@@ -316,13 +335,6 @@ const CHANNEL_CONFIGS = {
     platform: 'multiple',
     platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
     pageSlug: 'global-picks'
-  },
-  '-1003047967930': {
-    pageName: 'Travel Picks',
-    affiliateTag: '',
-    platform: 'multiple',
-    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
-    pageSlug: 'travel-picks'
   },
   '-1003029983162': {
     pageName: 'Deals Hub',
@@ -876,7 +888,7 @@ async function extractImageUrl(msg: any): Promise<string | null> {
 async function saveToChannelPosts(msg: any, channelConfig: any, messageText: string, extractedUrls: string[], imageUrl: string | null = null) {
   try {
     // Use the same database path convention as other server modules
-    const dbPath = path.join(__dirname, '..', 'database.sqlite');
+    const dbPath = getDatabasePath();
     const sqliteDb = new Database(dbPath);
     
     // Updated SQL to match actual table schema
@@ -919,7 +931,7 @@ async function saveToChannelPosts(msg: any, channelConfig: any, messageText: str
 async function updateChannelPostStatus(channelPostId: number, isProcessed: boolean, isPosted: boolean, error?: string) {
   try {
     // Use the project root database file like other services
-    const dbPath = path.join(__dirname, '..', 'database.sqlite');
+    const dbPath = getDatabasePath();
     const sqliteDb = new Database(dbPath);
     
     const updateSQL = `
@@ -993,8 +1005,8 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
         affiliate_platform, rating, review_count, discount, currency, gender,
         is_active, is_featured, display_order, display_pages,
         has_timer, timer_duration, timer_start_time,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_at, updated_at, status, visibility, processing_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const values = [
@@ -1025,11 +1037,14 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
       null, // timer_start_time
       Math.floor(Date.now() / 1000), // created_at
       Math.floor(Date.now() / 1000), // updated_at
+      'active', // status
+      'public', // visibility
+      'completed', // processing_status
     ];
     
     // Execute raw SQL using the database connection
     // Align DB path with storage/db modules (server/../database.sqlite)
-    const dbPath = path.join(__dirname, '..', 'database.sqlite');
+    const dbPath = getDatabasePath();
     const sqliteDb = new Database(dbPath);
     
     const result = sqliteDb.prepare(insertSQL).run(...values);
@@ -1062,18 +1077,39 @@ async function processMessage(msg) {
   
   const chatId = msg.chat.id.toString();
   
-  // Check if this is a travel channel message
-  if (chatId === '-1003047967930') {
-    console.log('🧳 Routing message to Travel Picks bot');
-    await travelPicksBot.processMessage(msg);
-    return;
+  // Route Travel Picks channel posts to dedicated travel bot
+  try {
+    const travelStatus = travelPicksBot.getStatus();
+    if (chatId === travelStatus.channelId) {
+      console.log(`🧳 Routing message ${msg.message_id} from Travel Picks (${chatId}) to travel bot`);
+      await travelPicksBot.processMessage(msg);
+      return;
+    }
+  } catch (routeErr) {
+    console.warn('⚠️ Travel routing check failed:', (routeErr as any)?.message || routeErr);
   }
   
-  const channelConfig = CHANNEL_CONFIGS[chatId];
+  // Master bot handles non-travel channels below
   
+  let channelConfig = CHANNEL_CONFIGS[chatId];
+  
+  // Safe fallback: derive a default config so unknown channels still post to site
   if (!channelConfig) {
-    console.log(`❌ Message from unmonitored channel: ${chatId}`);
-    return;
+    const title = (msg.chat?.title || '').trim();
+    const slugify = (s: string) => s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'value-picks';
+    const derivedSlug = title ? slugify(title) : 'value-picks';
+    channelConfig = {
+      pageName: title || 'Value Picks',
+      affiliateTag: '',
+      platform: 'multiple',
+      platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+      pageSlug: derivedSlug
+    } as any;
+    console.log(`ℹ️ Using fallback channel config for ${chatId}:`, channelConfig);
   }
   
   console.log(`✅ Processing message from ${channelConfig.pageName} (${chatId})`);
@@ -1097,12 +1133,44 @@ async function processMessage(msg) {
   
   console.log(`📝 Message text for processing: ${messageText.substring(0, 200)}...`);
   
+  // Capture URLs present only in Telegram entities (e.g., text_link), and merge into text
+  function extractEntityUrls(m: any): string[] {
+    const out: string[] = [];
+    const collect = (entities: any[], text: string) => {
+      if (!entities || !Array.isArray(entities)) return;
+      for (const e of entities) {
+        try {
+          if (e.type === 'text_link' && e.url) {
+            out.push(String(e.url));
+          } else if (e.type === 'url' && typeof e.offset === 'number' && typeof e.length === 'number' && typeof text === 'string') {
+            const urlText = text.substring(e.offset, e.offset + e.length);
+            if (urlText) out.push(urlText);
+          }
+        } catch {}
+      }
+    };
+    collect(m.entities, m.text || '');
+    collect(m.caption_entities, m.caption || '');
+    return out;
+  }
+  const entityUrls = extractEntityUrls(msg);
+  if (entityUrls.length > 0) {
+    messageText = `${messageText}\n${entityUrls.join('\n')}`.trim();
+    console.log('🔗 Added entity URLs to message text:', entityUrls);
+  }
+  
   // Extract product information using URL processing service
   const productInfo = await extractProductInfo(messageText);
   
   if (productInfo.urls.length === 0) {
-    console.log('⚠️ No URLs found in message, skipping...');
-    return;
+    console.log('⚠️ No URLs found via text parsing');
+    if (entityUrls.length === 0) {
+      console.log('❌ No URLs found in entities either, skipping...');
+      return;
+    }
+    // Fallback: use entity URLs directly
+    productInfo.urls = entityUrls;
+    console.log(`🔗 Using ${entityUrls.length} URLs from entities`);
   }
   
   console.log(`🔗 Found ${productInfo.urls.length} URLs, proceeding to save...`);
@@ -1128,13 +1196,14 @@ async function processMessage(msg) {
     
     // Update the channel_posts record with the image URL if found
     if (imageUrl && channelPostId) {
-      const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
+      // Use the same project-root database path convention as elsewhere
+    const dbPath = getDatabasePath();
       const sqliteDb = new Database(dbPath);
-      
+
       const updateSQL = `UPDATE channel_posts SET image_url = ? WHERE id = ?`;
       sqliteDb.prepare(updateSQL).run(imageUrl, channelPostId);
       sqliteDb.close();
-      
+
       console.log(`📸 Image URL saved: ${imageUrl}`);
     }
     

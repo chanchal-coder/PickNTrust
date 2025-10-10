@@ -6,8 +6,8 @@ Use these notes alongside `product-bulk-template.csv`.
 - Use in the `display_pages` column. Comma-separated.
 - If using multiple slugs, wrap the cell in double quotes, e.g. "homepage,prime-picks" so it stays one CSV field.
 - Case-sensitive. Valid values:
-- prime-picks, cue-picks, value-picks, click-picks, global-picks,
-- travel-picks, deals-hub, loot-box, services, apps, homepage
+ - prime-picks, cue-picks, value-picks, click-picks, global-picks,
+ - travel-picks, deals-hub, loot-box, top-picks, services, apps, homepage
 - Internally stored as a JSON array; CSV comma-separated values are normalized to JSON on import. API uploads may send `["services","homepage"]` directly; for CSV keep comma-separated.
 
 2) Pricing models (services & apps)

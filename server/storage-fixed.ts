@@ -52,7 +52,9 @@ const validateVideoContent = (video: any): void => {
 
 const validateBlogPost = (blog: any): void => {
   if (!blog.title?.trim()) throw new Error('Blog title is required');
-  if (!blog.content?.trim()) throw new Error('Blog content is required');
+  const hasContent = !!blog.content && !!blog.content.trim();
+  const hasPdf = !!blog.pdfUrl && !!String(blog.pdfUrl).trim();
+  if (!hasContent && !hasPdf) throw new Error('Blog content or PDF is required');
 };
 
 export interface IStorage {
@@ -523,6 +525,7 @@ export class DatabaseStorage implements IStorage {
       excerpt: blogPost.excerpt || '',
       readTime: blogPost.readTime || '5 min read',
       imageUrl: blogPost.imageUrl || '',
+      pdfUrl: blogPost.pdfUrl || null,
       category: blogPost.category || 'General',
       title: blogPost.title || 'Untitled',
       content: blogPost.content || '',

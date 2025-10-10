@@ -4,30 +4,35 @@ const router = Router();
 
 // Public, read-only status endpoint to monitor bot initialization and webhook state
 router.get('/api/bot/status', async (_req, res) => {
-  try {
-    const telegramBot = await import('./telegram-bot');
-    const botManager = telegramBot.TelegramBotManager.getInstance();
-    const status = botManager.getStatus();
-    const bot = botManager.getBot();
+  // Build status fields without relying on external libs to avoid ESM/CJS issues
+  const env = process.env.NODE_ENV || 'unknown';
+  const token = process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
+  const hasToken = Boolean(token);
 
-    let webhook: { url?: string; pending_update_count?: number } | undefined;
-    if (bot) {
-      try {
-        const info: any = await bot.getWebHookInfo();
+  let initialized = false;
+  let webhook: { url?: string; pending_update_count?: number } | undefined;
+
+  if (hasToken) {
+    try {
+      const apiUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
+      const resp = await fetch(apiUrl);
+      if (resp.ok) {
+        const data: any = await resp.json();
+        const info = data?.result || {};
         webhook = {
           url: info?.url,
           pending_update_count: info?.pending_update_count,
         };
-      } catch {
-        webhook = undefined;
+        initialized = Boolean(info?.url);
+      } else {
+        console.warn('⚠️ Telegram API getWebhookInfo failed:', resp.status, resp.statusText);
       }
+    } catch (err) {
+      console.warn('⚠️ Failed to query Telegram API for status:', (err as any)?.message || err);
     }
-
-    res.json({ initialized: status.initialized, webhook });
-  } catch (error) {
-    console.error('Bot status error:', error);
-    res.status(200).json({ initialized: false, webhook: undefined });
   }
+
+  res.json({ initialized, hasToken, env, webhook });
 });
 
 export default router;

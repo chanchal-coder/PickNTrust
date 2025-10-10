@@ -359,6 +359,7 @@ export class DatabaseStorage implements IStorage {
       excerpt: blogPost.excerpt || '',
       readTime: blogPost.readTime || '5 min read',
       imageUrl: blogPost.imageUrl || '',
+      pdfUrl: blogPost.pdfUrl || null,
       category: blogPost.category || 'General',
       title: blogPost.title || 'Untitled',
       content: blogPost.content || '',

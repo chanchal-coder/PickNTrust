@@ -17,6 +17,7 @@ interface BlogPost {
   category: string;
   tags: string;
   imageUrl: string;
+  pdfUrl?: string;
   publishedAt: string;
   readTime: string;
   slug: string;
@@ -36,6 +37,7 @@ export default function SimplifiedBlogForm() {
     category: '',
     tags: '',
     imageUrl: '',
+    pdfUrl: '',
     videoUrl: '',
     readTime: '3 min read',
     slug: '',
@@ -151,6 +153,48 @@ export default function SimplifiedBlogForm() {
     }
   };
 
+  // Toggle between content mode and PDF mode
+  const [usePdf, setUsePdf] = useState(false);
+
+  // Handle document upload (PDF, Word, Excel, PowerPoint, common docs)
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'application/rtf',
+      'application/vnd.oasis.opendocument.text',
+      'application/vnd.oasis.opendocument.spreadsheet',
+      'application/vnd.oasis.opendocument.presentation'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: 'Invalid File Type', description: 'Please upload PDF, Word, Excel, PowerPoint, or a common document.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
+      const uploadUrl = apiBase ? `${apiBase}/api/upload` : '/api/upload';
+      const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || 'Upload failed');
+      }
+      const data = await res.json();
+      setNewPost({ ...newPost, pdfUrl: data.url });
+      toast({ title: 'PDF Uploaded', description: 'Your PDF has been uploaded successfully.' });
+    } catch (err: any) {
+      toast({ title: 'Upload Error', description: err.message || 'Failed to upload PDF', variant: 'destructive' });
+    }
+  };
   // Image compression function for better performance
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -346,6 +390,7 @@ export default function SimplifiedBlogForm() {
         category: '',
         tags: '',
         imageUrl: '',
+        pdfUrl: '',
         videoUrl: '',
         readTime: '3 min read',
         slug: '',
@@ -401,13 +446,20 @@ export default function SimplifiedBlogForm() {
 
   const handleAddPost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPost.title.trim() || !newPost.content.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Title and content are required',
-        variant: 'destructive',
-      });
+    if (!newPost.title.trim()) {
+      toast({ title: 'Error', description: 'Title is required', variant: 'destructive' });
       return;
+    }
+    if (usePdf) {
+      if (!newPost.pdfUrl || !String(newPost.pdfUrl).trim()) {
+        toast({ title: 'Error', description: 'PDF file or URL is required in PDF mode', variant: 'destructive' });
+        return;
+      }
+    } else {
+      if (!newPost.content.trim()) {
+        toast({ title: 'Error', description: 'Content is required in content mode', variant: 'destructive' });
+        return;
+      }
     }
     addBlogPostMutation.mutate(newPost);
   };
@@ -426,6 +478,7 @@ export default function SimplifiedBlogForm() {
       category: post.category,
       tags: typeof post.tags === 'string' ? JSON.parse(post.tags).join(', ') : post.tags,
       imageUrl: post.imageUrl,
+      pdfUrl: (post as any).pdfUrl || '',
       videoUrl: (post as any).videoUrl || '',
       readTime: post.readTime,
       slug: post.slug,
@@ -485,6 +538,14 @@ export default function SimplifiedBlogForm() {
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleAddPost} className="space-y-6">
+              <div className="flex gap-2">
+                <Button type="button" variant={usePdf ? 'outline' : 'default'} onClick={() => setUsePdf(false)} className={usePdf ? 'bg-transparent' : 'bg-blue-600'}>
+                  Content Mode
+                </Button>
+                <Button type="button" variant={usePdf ? 'default' : 'outline'} onClick={() => setUsePdf(true)} className={usePdf ? 'bg-purple-600' : 'bg-transparent'}>
+                  PDF Mode
+                </Button>
+              </div>
               <div>
                 <Label className="text-white font-medium">Blog Title *</Label>
                 <Input
@@ -508,17 +569,19 @@ export default function SimplifiedBlogForm() {
                 />
               </div>
 
-              <div>
-                <Label className="text-white font-medium">Full Content *</Label>
-                <Textarea
-                  value={newPost.content}
-                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                  placeholder="Full blog post content with Markdown formatting"
-                  className="bg-gray-800 border-gray-600 text-white mt-2 font-mono text-sm"
-                  rows={12}
-                  required
-                />
-              </div>
+              {!usePdf && (
+                <div>
+                  <Label className="text-white font-medium">Full Content *</Label>
+                  <Textarea
+                    value={newPost.content}
+                    onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                    placeholder="Full blog post content with Markdown formatting"
+                    className="bg-gray-800 border-gray-600 text-white mt-2 font-mono text-sm"
+                    rows={12}
+                    required
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -605,6 +668,37 @@ export default function SimplifiedBlogForm() {
                   </div>
                 )}
               </div>
+
+              {usePdf && (
+                <div>
+                  <Label className="text-white font-medium">Blog Document</Label>
+                  <Input
+                    value={newPost.pdfUrl}
+                    onChange={(e) => setNewPost({ ...newPost, pdfUrl: e.target.value })}
+                    placeholder="Paste document URL here or upload from device"
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
+                  />
+                  <div className="mt-2">
+                    <input 
+                      type="file" 
+                      accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,application/rtf,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation" 
+                      className="hidden" 
+                      id="pdf-upload"
+                      onChange={handlePdfUpload}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('pdf-upload')?.click()}
+                      className="text-xs"
+                    >
+                      <Upload className="w-3 h-3 mr-1" /> Upload Document
+                    </Button>
+                    <p className="text-xs text-blue-400 mt-1"><i className="fas fa-file"></i> Supports: PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT, RTF, ODT/ODS/ODP</p>
+                  </div>
+                </div>
+              )}
 
               {/* Video URL Section */}
               <div>

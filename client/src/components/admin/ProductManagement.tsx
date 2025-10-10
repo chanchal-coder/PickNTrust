@@ -121,6 +121,15 @@ export default function ProductManagement() {
   // CSV Bulk Upload state
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkAdminPassword, setBulkAdminPassword] = useState('');
+  // Bulk selection state for multi-delete across Products/Services/Apps
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const isSelected = (id: number) => selectedIds.includes(id);
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  };
+  const clearSelection = () => setSelectedIds([]);
+  const selectAllVisible = (ids: number[]) => setSelectedIds(ids);
 
   // Add custom field
   const addCustomField = () => {
@@ -472,7 +481,7 @@ export default function ProductManagement() {
       });
       
       // Invalidate all page-specific queries for real-time updates
-      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'global-picks'];
+      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
       pages.forEach(page => {
         queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -661,7 +670,7 @@ export default function ProductManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/products/services'] });
       
       // Invalidate all page-specific queries for real-time updates
-      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'global-picks'];
+      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
       pages.forEach(page => {
         queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -816,7 +825,7 @@ export default function ProductManagement() {
       });
       
       // Invalidate all page-specific queries for real-time updates
-      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'global-picks'];
+      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
       pages.forEach(page => {
         queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -2116,7 +2125,7 @@ export default function ProductManagement() {
               <li>`price` and `original_price` can include symbols; they are normalized.</li>
               <li>
                 `display_pages` accepts comma-separated page slugs. Common slugs:
-                <span className="ml-1 font-mono">prime-picks, cue-picks, value-picks, click-picks, global-picks, travel-picks, deals-hub, loot-box, services, apps, homepage</span>
+                <span className="ml-1 font-mono">prime-picks, cue-picks, value-picks, click-picks, global-picks, travel-picks, deals-hub, loot-box, top-picks, services, apps, homepage</span>
               </li>
             </ul>
           </div>
@@ -2143,49 +2152,110 @@ export default function ProductManagement() {
               </CardDescription>
             </div>
             {filteredProducts.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm(`Are you sure you want to delete ALL ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'}? This action cannot be undone.`)) {
-                    // Delete all products in current tab
-                    const deletePromises = filteredProducts.map(product => 
-                      fetch(`/api/admin/products/${product.id}`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password: 'pickntrust2025' })
-                      })
-                    );
-                    
-                    Promise.all(deletePromises)
-                      .then(() => {
-                        toast({
-                          title: "Success",
-                          description: `All ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'} deleted successfully`,
+              <div className="flex items-center gap-2">
+                {/* Clear selection */}
+                {selectedIds.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearSelection}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-800/50"
+                  >
+                    <i className="fas fa-times mr-2"></i>
+                    Clear ({selectedIds.length})
+                  </Button>
+                )}
+
+                {/* Delete Selected */}
+                {selectedIds.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(`Delete ${selectedIds.length} selected ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'}? This cannot be undone.`)) {
+                        const deletePromises = selectedIds.map(id =>
+                          fetch(`/api/admin/products/${id}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ password: 'pickntrust2025' })
+                          })
+                        );
+                        Promise.all(deletePromises)
+                          .then(() => {
+                            toast({
+                              title: 'Deleted',
+                              description: `${selectedIds.length} item(s) deleted successfully`,
+                            });
+                            clearSelection();
+                            queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+                            const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+                            pages.forEach(page => {
+                              queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
+                              queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
+                            });
+                          })
+                          .catch(() => {
+                            toast({
+                              title: 'Error',
+                              description: 'Failed to delete some selected items',
+                              variant: 'destructive',
+                            });
+                          });
+                      }
+                    }}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <i className="fas fa-trash mr-2"></i>
+                    Delete Selected ({selectedIds.length})
+                  </Button>
+                )}
+
+                {/* Delete All */}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete ALL ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'}? This action cannot be undone.`)) {
+                      // Delete all products in current tab
+                      const deletePromises = filteredProducts.map(product => 
+                        fetch(`/api/admin/products/${product.id}`, {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ password: 'pickntrust2025' })
+                        })
+                      );
+                      
+                      Promise.all(deletePromises)
+                        .then(() => {
+                          toast({
+                            title: "Success",
+                            description: `All ${activeTab === 'services' ? 'services' : activeTab === 'apps' ? 'apps' : 'products'} deleted successfully`,
+                          });
+                          clearSelection();
+                          queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+                          
+                          // Invalidate all page-specific queries for real-time updates
+                          const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+                          pages.forEach(page => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
+                          });
+                        })
+                        .catch(() => {
+                          toast({
+                            title: "Error",
+                            description: "Failed to delete some items",
+                            variant: "destructive",
+                          });
                         });
-                        queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-                        
-                        // Invalidate all page-specific queries for real-time updates
-                        const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'global-picks'];
-                        pages.forEach(page => {
-                          queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
-                          queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
-                        });
-                      })
-                      .catch(() => {
-                        toast({
-                          title: "Error",
-                          description: "Failed to delete some items",
-                          variant: "destructive",
-                        });
-                      });
-                  }
-                }}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                <i className="fas fa-trash mr-2"></i>
-                Delete All {activeTab === 'services' ? 'Services' : activeTab === 'apps' ? 'Apps' : 'Products'}
-              </Button>
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <i className="fas fa-trash mr-2"></i>
+                  Delete All {activeTab === 'services' ? 'Services' : activeTab === 'apps' ? 'Apps' : 'Products'}
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>
@@ -2226,6 +2296,16 @@ export default function ProductManagement() {
                       : 'bg-gray-800'
                   }`}
                 >
+                  {/* Select checkbox */}
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected(product.id)}
+                      onChange={() => toggleSelect(product.id)}
+                      className="w-4 h-4 accent-red-600 mr-2"
+                      aria-label={`Select ${activeTab === 'services' ? 'service' : activeTab === 'apps' ? 'app' : 'product'}`}
+                    />
+                  </div>
                   {/* Product Image */}
                   <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                     <img 

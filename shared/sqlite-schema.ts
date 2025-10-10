@@ -71,6 +71,7 @@ export const blogPosts = sqliteTable("blog_posts", {
   tags: text("tags"), // Store as JSON string
   imageUrl: text("image_url").notNull(),
   videoUrl: text("video_url"),
+  pdfUrl: text("pdf_url"),
   publishedAt: integer("published_at", { mode: 'timestamp' }).notNull(),
   createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
   readTime: text("read_time").notNull(),

@@ -329,80 +329,80 @@ export default function ClickPicks() {
                       </div>
                     </div>
                   )}
-                </div>
 
-            {productsLoading ? (
-              <div className="text-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  Loading Click Picks...
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  Finding the most popular products for you.
-                </p>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              hasWidgets && allClickProducts.length === 0 ? null : (
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                    {allClickProducts.length === 0 ? 'No Click Picks available' : 'No products found'}
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-500">
-                    {allClickProducts.length === 0 
-                      ? 'Products will appear here when added to Click Picks via admin panel.' 
-                      : 'Try adjusting your filters to see more results.'}
-                  </p>
+                  {productsLoading ? (
+                    <div className="text-center py-16">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                        Loading Click Picks...
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-500">
+                        Finding the most popular products for you.
+                      </p>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    hasWidgets && allClickProducts.length === 0 ? null : (
+                      <div className="text-center py-16">
+                        <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                        <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                          {allClickProducts.length === 0 ? 'No Click Picks available' : 'No products found'}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-500">
+                          {allClickProducts.length === 0 
+                            ? 'Products will appear here when added to Click Picks via admin panel.' 
+                            : 'Try adjusting your filters to see more results.'}
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="relative mt-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {filteredProducts.map((product) => (
+                          <AmazonProductCard 
+                            key={product.id} 
+                            product={{
+                              id: product.id,
+                              name: product.name || '',
+                              price: String(product.price || 0),
+                              originalPrice: product.originalPrice || product.original_price || '',
+                              currency: product.currency || 'INR',
+                              imageUrl: product.imageUrl || product.image_url || '',
+                              affiliateUrl: product.affiliateUrl || product.affiliate_url || '',
+                              category: product.category || '',
+                              rating: String(product.rating || 0),
+                              reviewCount: product.reviewCount || product.review_count || 0,
+                              discount: product.discount || 0,
+                              description: product.description || '',
+                              isNew: product.isNew || false,
+                              isFeatured: product.isFeatured || false,
+                              hasTimer: product.hasTimer || false,
+                              timerDuration: product.timerDuration || null,
+                              timerStartTime: product.timerStartTime || null,
+                              hasLimitedOffer: product.hasLimitedOffer || false,
+                              limitedOfferText: product.limitedOfferText || '',
+                              // Service-specific pricing fields normalization
+                              priceDescription: product.priceDescription || product.price_description || '',
+                              monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
+                              yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
+                              pricingType: product.pricingType || product.pricing_type,
+                              isFree: product.isFree || product.is_free || false,
+                              isService: product.isService || product.is_service || false,
+                              isAIApp: product.isAIApp || product.is_ai_app || false
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {/* Overlay widgets mirroring Prime Picks placement */}
+                      <WidgetRenderer page={'click-picks'} position="content-top" />
+                      <WidgetRenderer page={'click-picks'} position="content-middle" />
+                      <WidgetRenderer page={'click-picks'} position="content-bottom" />
+                      <WidgetRenderer page={'click-picks'} position="floating-top-left" />
+                      <WidgetRenderer page={'click-picks'} position="floating-top-right" />
+                      <WidgetRenderer page={'click-picks'} position="floating-bottom-left" />
+                      <WidgetRenderer page={'click-picks'} position="floating-bottom-right" />
+                    </div>
+                  )}
                 </div>
-              )
-            ) : (
-              <div className="relative">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {filteredProducts.map((product) => (
-                    <AmazonProductCard 
-                      key={product.id} 
-                      product={{
-                        id: product.id,
-                        name: product.name || '',
-                        price: String(product.price || 0),
-                        originalPrice: product.originalPrice || product.original_price || '',
-                        currency: product.currency || 'INR',
-                        imageUrl: product.imageUrl || product.image_url || '',
-                        affiliateUrl: product.affiliateUrl || product.affiliate_url || '',
-                        category: product.category || '',
-                        rating: String(product.rating || 0),
-                        reviewCount: product.reviewCount || product.review_count || 0,
-                        discount: product.discount || 0,
-                        description: product.description || '',
-                        isNew: product.isNew || false,
-                        isFeatured: product.isFeatured || false,
-                        hasTimer: product.hasTimer || false,
-                        timerDuration: product.timerDuration || null,
-                        timerStartTime: product.timerStartTime || null,
-                        hasLimitedOffer: product.hasLimitedOffer || false,
-                        limitedOfferText: product.limitedOfferText || '',
-                        // Service-specific pricing fields normalization
-                        priceDescription: product.priceDescription || product.price_description || '',
-                        monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
-                        yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
-                        pricingType: product.pricingType || product.pricing_type,
-                        isFree: product.isFree || product.is_free || false,
-                        isService: product.isService || product.is_service || false,
-                        isAIApp: product.isAIApp || product.is_ai_app || false
-                      }}
-                    />
-                  ))}
-                </div>
-                {/* Overlay widgets mirroring Prime Picks placement */}
-                <WidgetRenderer page={'click-picks'} position="content-top" />
-                <WidgetRenderer page={'click-picks'} position="content-middle" />
-                <WidgetRenderer page={'click-picks'} position="content-bottom" />
-                <WidgetRenderer page={'click-picks'} position="floating-top-left" />
-                <WidgetRenderer page={'click-picks'} position="floating-top-right" />
-                <WidgetRenderer page={'click-picks'} position="floating-bottom-left" />
-                <WidgetRenderer page={'click-picks'} position="floating-bottom-right" />
-              </div>
-            )}
           </div>
         </div>
       </div>

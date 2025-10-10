@@ -9,28 +9,37 @@ interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
-  image_url: string;
-  category: string;
-  is_service: boolean;
+  price?: number | string | null;
+  // Support both snake_case and camelCase from various sources
+  image_url?: string;
+  imageUrl?: string;
+  thumbnail_url?: string;
+  thumbnailUrl?: string;
+  category?: string;
+  is_service?: boolean;
 }
 
 interface BlogPost {
   id: number;
   title: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  image_url: string;
+  excerpt?: string;
+  content?: string;
+  category?: string;
+  // Support both snake_case and camelCase
+  image_url?: string;
+  imageUrl?: string;
 }
 
 interface VideoContent {
   id: number;
   title: string;
   description: string;
-  video_url: string;
-  thumbnail_url: string;
-  category: string;
+  // Support both snake_case and camelCase
+  video_url?: string;
+  videoUrl?: string;
+  thumbnail_url?: string;
+  thumbnailUrl?: string;
+  category?: string;
 }
 
 /**
@@ -40,13 +49,15 @@ export async function triggerCanvaForProduct(product: Product): Promise<void> {
   try {
     console.log(`Refresh Triggering Canva automation for product: ${product.name}`);
     
+    const imageUrl = product.image_url ?? product.imageUrl ?? product.thumbnail_url ?? product.thumbnailUrl;
+    const priceVal = typeof product.price === 'string' ? Number(product.price) : product.price;
     const contentItem = {
       id: product.id,
       type: product.is_service ? 'service' as const : 'product' as const,
       title: product.name,
       description: product.description,
-      image_url: product.image_url,
-      price: product.price,
+      image_url: imageUrl,
+      price: typeof priceVal === 'number' && isFinite(priceVal as number) ? (priceVal as number) : undefined,
       category: product.category
     };
 
@@ -64,12 +75,14 @@ export async function triggerCanvaForBlog(blogPost: BlogPost): Promise<void> {
   try {
     console.log(`Refresh Triggering Canva automation for blog: ${blogPost.title}`);
     
+    const description = blogPost.excerpt ?? (blogPost.content ? blogPost.content.substring(0, 200) : '');
+    const imageUrl = blogPost.image_url ?? blogPost.imageUrl;
     const contentItem = {
       id: blogPost.id,
       type: 'blog' as const,
       title: blogPost.title,
-      description: blogPost.excerpt || blogPost.content.substring(0, 200),
-      image_url: blogPost.image_url,
+      description,
+      image_url: imageUrl,
       category: blogPost.category
     };
 
@@ -87,12 +100,13 @@ export async function triggerCanvaForVideo(video: VideoContent): Promise<void> {
   try {
     console.log(`Refresh Triggering Canva automation for video: ${video.title}`);
     
+    const thumbUrl = video.thumbnail_url ?? video.thumbnailUrl;
     const contentItem = {
       id: video.id,
       type: 'video' as const,
       title: video.title,
       description: video.description,
-      image_url: video.thumbnail_url,
+      image_url: thumbUrl,
       category: video.category
     };
 

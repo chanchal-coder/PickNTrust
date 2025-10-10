@@ -51,7 +51,8 @@ export default function PriceTag({
 
   const hasMonthly = getNumeric(monthlyPrice) > 0;
   const hasYearly = getNumeric(yearlyPrice) > 0;
-  const hasOriginal = originalPrice !== undefined && originalPrice !== null && String(originalPrice) !== '';
+  const hasOriginal = getNumeric(originalPrice) > 0;
+  const hasSimplePrice = getNumeric(price) > 0;
 
   // FREE
   if (isFree || pricingType === 'free') {
@@ -102,6 +103,13 @@ export default function PriceTag({
     : pricingType === 'yearly' || pricingType === 'Yearly Subscription'
       ? '/year'
       : '';
+
+  // Hide zero/empty price entirely; show description only if provided
+  if (!hasSimplePrice) {
+    return priceDescription ? (
+      <span className={helperClass}>{String(priceDescription)}</span>
+    ) : null;
+  }
 
   return (
     <div className="flex items-center space-x-2">

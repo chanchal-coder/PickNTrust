@@ -19,26 +19,20 @@ if (typeof g.File === "undefined") {
 }
 
 import express, { type Request, Response, NextFunction } from "express";
-import dotenv from 'dotenv';
-// Load environment variables from .env for both dev and prod
-dotenv.config();
+import { loadEnv } from './config/env-loader.js';
+// Load environment variables from multiple candidate locations (robust on EC2)
+loadEnv();
 import cors from "cors";
 import { setupRoutes } from "./routes.js";
 import { serveStatic, log } from "./vite.js";
 import path from "path";
 import { fileURLToPath } from "url";
-// Initialize Telegram bot in production or when explicitly enabled
-const ENABLE_TELEGRAM_BOT = process.env.ENABLE_TELEGRAM_BOT === 'true' || process.env.NODE_ENV === 'production';
-if (ENABLE_TELEGRAM_BOT) {
-  // Dynamically import to avoid pulling dependencies when disabled
-  import('./telegram-bot.js').then(() => {
-    console.log('🤖 Telegram bot module loaded');
-  }).catch(err => {
-    console.warn('⚠️ Failed to load Telegram bot module:', err?.message || err);
-  });
-} else {
-  console.log('🤖 Telegram bot module not loaded (ENABLE_TELEGRAM_BOT not set and not production)');
-}
+// Initialize Telegram bot module unconditionally; it will self-guard on env/token
+import('./telegram-bot.js').then(() => {
+  console.log('🤖 Telegram bot module loaded');
+}).catch(err => {
+  console.warn('⚠️ Failed to load Telegram bot module:', err?.message || err);
+});
 import { sqliteDb } from "./db.js";
 
 // Initialize URL Processing Routes for manual URL processing
@@ -52,6 +46,7 @@ import { CategoryCleanupService } from './category-cleanup-service.js';
 
 // Banner routes for dynamic banner management
 import bannerRoutes from './banner-routes.js';
+import staticBannerRoutes from './static-banner-routes.js';
 
 // Import credential management routes
 import credentialRoutes from './credential-routes.js';
@@ -281,6 +276,7 @@ app.use((req, res, next) => {
   console.log('🔗 URL processing routes initialized');
   
   app.use(bannerRoutes); // Re-enabled for dynamic banner management
+  app.use(staticBannerRoutes); // Mount static banner management routes
   app.use(credentialRoutes);
   app.use(metaTagsRoutes);
   app.use(rssFeedsRoutes);
@@ -334,6 +330,43 @@ app.get('/api/status', (_req: Request, res: Response) => {
     uptime: process.uptime(),
     memory: process.memoryUsage()
   });
+});
+
+// Bot status endpoint (explicit mounting to ensure full fields are returned)
+app.get('/api/bot/status', async (_req: Request, res: Response) => {
+  try {
+    const env = process.env.NODE_ENV || 'unknown';
+    const token = process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
+    const hasToken = Boolean(token);
+
+    let initialized = false;
+    let webhook: { url?: string; pending_update_count?: number } | undefined;
+
+    if (hasToken) {
+      try {
+        const apiUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
+        const resp = await fetch(apiUrl);
+        if (resp.ok) {
+          const data: any = await resp.json();
+          const info = data?.result || {};
+          webhook = {
+            url: info?.url,
+            pending_update_count: info?.pending_update_count,
+          };
+          initialized = Boolean(info?.url);
+        } else {
+          console.warn('⚠️ Telegram API getWebhookInfo failed:', resp.status, resp.statusText);
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to query Telegram API for status:', (err as any)?.message || err);
+      }
+    }
+
+    res.json({ initialized, hasToken, env, webhook });
+  } catch (e: any) {
+    console.warn('⚠️ /api/bot/status failed:', e?.message || e);
+    res.json({ initialized: false });
+  }
 });
 
 // Debug: list mounted routes for troubleshooting

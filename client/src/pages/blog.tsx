@@ -9,7 +9,8 @@ import { AnnouncementBanner } from "@/components/announcement-banner";
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
 import { useToast } from '@/hooks/use-toast';
-import UniversalPageLayout from '@/components/UniversalPageLayout';
+import Header from '@/components/header';
+import Footer from '@/components/footer';
 // Define BlogPost type locally to avoid schema conflicts
 interface BlogPost {
   id: number;
@@ -147,19 +148,21 @@ export default function Blog() {
   }, []);
 
   return (
-    <UniversalPageLayout pageId="blog">
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        {/* Header Top above dynamic banner */}
-        <WidgetRenderer page={'blog'} position="header-top" className="w-full" />
-        
-        <AnnouncementBanner page="blog" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-gray-950 via-slate-900 to-black">
+      {/* Global Header same as Home */}
+      <Header />
+      {/* Header widgets */}
+      <WidgetRenderer page={'blog'} position="header-top" className="w-full" />
+      <AnnouncementBanner page="blog" />
+      <WidgetRenderer page={'blog'} position="header-bottom" className="w-full" />
       
-      {/* Page Header */}
-      {/* Amazing Page Banner */}
-        <PageBanner page="blog" />
-        {/* Header Bottom below dynamic banner */}
-        <WidgetRenderer page={'blog'} position="header-bottom" className="w-full" />
+      {/* Banner Top Widgets (inside main content flow) */}
+      <WidgetRenderer page={'blog'} position="banner-top" className="w-full" />
+      
+      {/* Main Content */}
       <div className="header-spacing">
+        {/* Page Banner */}
+        <PageBanner page="blog" />
 
       {/* Blog Posts Grid */}
       <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
@@ -338,8 +341,6 @@ export default function Blog() {
         title="Blog Videos"
       />
       
-      <ScrollNavigation />
-      
       {/* Share Automatically Modal */}
       <ShareAutomaticallyModal
         isOpen={shareModalOpen}
@@ -348,10 +349,18 @@ export default function Blog() {
         productName={selectedBlogPost?.title || ''}
         platforms={adminPlatformSettings}
       />
-      {/* Close header-spacing wrapper */}
       </div>
-      {/* Close outer min-h-screen container */}
-      </div>
-    </UniversalPageLayout>
+      
+      {/* Banner Bottom Widgets */}
+      <WidgetRenderer page={'blog'} position="banner-bottom" className="w-full" />
+      
+      {/* Footer Widgets and Branded Footer (same order as Home) */}
+      <WidgetRenderer page={'blog'} position="footer-top" className="w-full" />
+      <WidgetRenderer page={'blog'} position="footer-bottom" className="w-full" />
+      <Footer />
+      
+      {/* Fixed Elements */}
+      <ScrollNavigation />
+    </div>
   );
 }

@@ -206,6 +206,29 @@ class UniversalURLResolver {
       throw new Error('Invalid URL format');
     }
 
+    // Handle affiliate wrapper URLs (e.g., linksredirect.com) by extracting original URL
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      if (host.includes('linksredirect.com') || host.includes('cuelinks.com') || host.endsWith('.clnk.in') || host.includes('amzn.clnk.in')) {
+        const inner = parsed.searchParams.get('url');
+        if (inner) {
+          const decodedInner = decodeURIComponent(inner);
+          console.log(`Success Unwrapped affiliate URL → ${decodedInner}`);
+          return {
+            originalUrl: url,
+            finalUrl: decodedInner,
+            redirectChain: [url, decodedInner],
+            isShortened: this.isShortenedURL(decodedInner),
+            platform: this.detectPlatform(decodedInner),
+            productId: this.extractProductId(decodedInner)
+          };
+        }
+      }
+    } catch (e) {
+      console.log(`Warning Failed to unwrap affiliate wrapper: ${String(e)}`);
+    }
+
     // Check if URL is shortened
     if (this.isShortenedURL(url)) {
       console.log(`Link Detected shortened URL, following redirects...`);

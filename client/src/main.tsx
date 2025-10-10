@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { getSafeImageSrc } from "@/utils/imageProxy";
 import "./index.css";
 
 // Global error overlay for critical load failures
@@ -78,6 +79,42 @@ if (!rootElement) {
 const root = createRoot(rootElement);
 
 // Diagnostic: allow forcing a minimal safe render to isolate mount issues
+
+// Global: rewrite Unsplash image sources to backend proxy to avoid ORB
+function rewriteImgSrc(img: HTMLImageElement) {
+  try {
+    const src = img.getAttribute('src') || '';
+    if (src && /images\.unsplash\.com/i.test(src)) {
+      const proxied = getSafeImageSrc(src, { width: 800, height: 600, quality: 80, format: 'webp' });
+      if (proxied && proxied !== src) {
+        img.setAttribute('src', proxied);
+        img.setAttribute('crossorigin', 'anonymous');
+      }
+    }
+  } catch {}
+}
+
+// Apply to existing images
+document.querySelectorAll('img').forEach((el) => rewriteImgSrc(el as HTMLImageElement));
+
+// Observe future additions and attribute changes
+const observer = new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    if (m.type === 'childList') {
+      m.addedNodes.forEach((node: any) => {
+        if (!node) return;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const el = node as Element;
+          if (el.tagName === 'IMG') rewriteImgSrc(el as HTMLImageElement);
+          el.querySelectorAll?.('img').forEach((img) => rewriteImgSrc(img as HTMLImageElement));
+        }
+      });
+    } else if (m.type === 'attributes' && (m.target as Element).tagName === 'IMG' && m.attributeName === 'src') {
+      rewriteImgSrc(m.target as HTMLImageElement);
+    }
+  }
+});
+observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
 const params = new URLSearchParams(window.location.search);
 const forceSafeApp = params.get("forceSafeApp") === "1" || localStorage.getItem("forceSafeApp") === "true";
 

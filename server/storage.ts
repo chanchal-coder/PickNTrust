@@ -126,7 +126,10 @@ const validateVideoContent = (video: any): void => {
 
 const validateBlogPost = (blog: any): void => {
   if (!blog.title?.trim()) throw new Error('Blog title is required');
-  if (!blog.content?.trim()) throw new Error('Blog content is required');
+  // Allow either rich content or a PDF URL
+  const hasContent = !!blog.content && !!blog.content.trim();
+  const hasPdf = !!blog.pdfUrl && !!String(blog.pdfUrl).trim();
+  if (!hasContent && !hasPdf) throw new Error('Blog content or PDF is required');
 };
 
 export interface IStorage {
@@ -1480,22 +1483,23 @@ export class DatabaseStorage implements IStorage {
     return null;
   }
 
-  // Blog Management
-  async addBlogPost(blogPost: any): Promise<BlogPost> {
-    const blogPostData = {
-      ...blogPost,
-      hasTimer: blogPost.hasTimer || false,
-      timerDuration: blogPost.hasTimer && blogPost.timerDuration ? parseInt(blogPost.timerDuration.toString()) : null,
-      timerStartTime: blogPost.hasTimer ? new Date() : null,
-      publishedAt: new Date(blogPost.publishedAt || new Date()),
-      slug: blogPost.slug || blogPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      excerpt: blogPost.excerpt || '',
-      readTime: blogPost.readTime || '5 min read',
-      imageUrl: blogPost.imageUrl || '',
-      category: blogPost.category || 'General',
-      title: blogPost.title || 'Untitled',
-      content: blogPost.content || '',
-    };
+// Blog Management
+async addBlogPost(blogPost: any): Promise<BlogPost> {
+  const blogPostData = {
+    ...blogPost,
+    hasTimer: blogPost.hasTimer || false,
+    timerDuration: blogPost.hasTimer && blogPost.timerDuration ? parseInt(blogPost.timerDuration.toString()) : null,
+    timerStartTime: blogPost.hasTimer ? new Date() : null,
+    publishedAt: new Date(blogPost.publishedAt || new Date()),
+    slug: blogPost.slug || blogPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    excerpt: blogPost.excerpt || '',
+    readTime: blogPost.readTime || '5 min read',
+    imageUrl: blogPost.imageUrl || '',
+    pdfUrl: blogPost.pdfUrl || null,
+    category: blogPost.category || 'General',
+    title: blogPost.title || 'Untitled',
+    content: blogPost.content || '',
+  };
     
     const [newBlogPost] = await db
       .insert(blogPosts)

@@ -21,7 +21,6 @@ const CHANNEL_CONFIGS = {
     '-1003017626269': { name: 'Value Picks', pageName: 'Value Picks', pageSlug: 'value-picks' },
     '-1002981205504': { name: 'Click Picks', pageName: 'Click Picks', pageSlug: 'click-picks' },
     '-1002902496654': { name: 'Global Picks', pageName: 'Global Picks', pageSlug: 'global-picks' },
-    '-1003047967930': { name: 'Travel Picks', pageName: 'Travel Picks', pageSlug: 'travel-picks' },
     '-1003029983162': { name: 'Deals Hub', pageName: 'Deals Hub', pageSlug: 'deals-hub' },
     '-1002991047787': { name: 'Loot Box', pageName: 'Loot Box', pageSlug: 'loot-box' }
 };
@@ -72,15 +71,6 @@ const CHANNEL_PRODUCTS = {
         url: 'https://www.amazon.in/gaming-keyboard/dp/B08REAL127',
         features: ['RGB Backlight', 'Mechanical Switches', 'Anti-Ghosting', 'Durable Build'],
         hashtags: '#GlobalPicks #Gaming #Keyboard'
-    },
-    '-1003047967930': {
-        title: 'Travel Backpack 40L',
-        price: '₹2,199',
-        originalPrice: '₹4,399',
-        discount: '50% OFF',
-        url: 'https://www.amazon.in/travel-backpack/dp/B08REAL128',
-        features: ['Water Resistant', 'Multiple Compartments', 'Laptop Sleeve', 'Comfortable Straps'],
-        hashtags: '#TravelPicks #Backpack #Travel'
     },
     '-1003029983162': {
         title: 'Smartphone Gimbal Stabilizer',
@@ -241,7 +231,7 @@ async function checkDatabaseUpdates() {
         // Verify per-page display mapping using display_pages JSON
         const pageChecks = [
             'prime-picks','cue-picks','value-picks','click-picks',
-            'global-picks','travel-picks','deals-hub','loot-box'
+            'global-picks','deals-hub','loot-box'
         ];
         console.log('\n🗂️ Products by page (last 2 minutes):');
         for (const slug of pageChecks) {

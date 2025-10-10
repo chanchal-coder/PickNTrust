@@ -12,6 +12,7 @@ import { UnifiedContent, MappedUnifiedContent } from './types.js';
 import travelCategoriesRouter from './travel-categories-routes.js';
 import currencyRouter from './routes/currency.js';
 import canvaAdminRouter from './canva-admin-routes.js';
+import { triggerCanvaForProduct, triggerCanvaForBlog, triggerCanvaForVideo } from './canva-triggers.js';
 import multer from 'multer';
 import { commissionRateManager } from './commission-rate-manager.js';
 import { botWebhookGuard } from './bot-webhook-guard.js';
@@ -145,10 +146,28 @@ export function setupRoutes(app: express.Application) {
 
   const mediaUpload = multer({
     storage: mediaStorage,
-    limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+    // Allow images, videos, PDFs, and common Office/Doc formats
     fileFilter: (_req, file, cb) => {
-      const ok = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/pdf';
-      if (ok) return cb(null, true);
+      const type = file.mimetype;
+      const isImage = type.startsWith('image/');
+      const isVideo = type.startsWith('video/');
+      const allowedDocs = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'application/rtf',
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation'
+      ];
+      if (isImage || isVideo || allowedDocs.includes(type)) {
+        return cb(null, true);
+      }
       cb(new Error('Unsupported file type'));
     },
   });
@@ -433,17 +452,19 @@ export function setupRoutes(app: express.Application) {
       console.log(`Getting products for page: "${page}"`);
       
       let query = '';
-      const params: any[] = [];
+      // Use named parameter bindings for robustness across SQLite drivers
+      const bindings: Record<string, any> = {};
       
       // Query unified_content table for all pages with inclusive filters
       // Avoid overly strict is_active dependency since bot inserts may not set it
+      // Broaden status acceptance to include CSV-imported states used previously
       query = `
         SELECT * FROM unified_content 
         WHERE (
-          status = 'active' OR status = 'published' OR status IS NULL
+          status IN ('active', 'published', 'ready', 'processed', 'completed') OR status IS NULL
         )
         AND (
-          visibility = 'public' OR visibility IS NULL
+          visibility IN ('public', 'visible') OR visibility IS NULL
         )
         AND (
           processing_status != 'archived' OR processing_status IS NULL
@@ -460,36 +481,45 @@ export function setupRoutes(app: express.Application) {
       } else if (page === 'apps-ai-apps' || page === 'apps') {
         // AI & Apps: Show only products with is_ai_app=1
         query += ` AND is_ai_app = 1`;
-      } else {
-        // For all other pages, use proper JSON filtering for display_pages
-        // This handles both JSON arrays and simple strings for backward compatibility
+      } else if (page === 'home' || page === 'main' || page === 'index') {
+        // Home page: use a minimal, highly compatible filter to avoid driver issues
+        // Keep placeholders minimal to prevent parameter mismatch errors in some SQLite drivers
         query += ` AND (
-          JSON_EXTRACT(display_pages, '$') LIKE '%' || ? || '%' OR
-          display_pages LIKE '%' || ? || '%' OR
-          display_pages = ? OR
-          page_type = ? OR
-          (display_pages IS NULL AND ? = 'prime-picks') OR
-          (display_pages = '' AND ? = 'prime-picks')
+          display_pages LIKE '%' || :page || '%' OR
+          display_pages = :page
         )`;
-        params.push(page, page, page, page, page, page);
+        bindings.page = page;
+      } else {
+        // For all other pages, avoid JSON functions for maximum compatibility
+        // Match by string fields and normalized forms only
+        query += ` AND (
+          display_pages LIKE '%' || :page || '%' OR
+          display_pages = :page OR
+          page_type = :page OR
+          REPLACE(LOWER(display_pages), ' ', '-') LIKE '%' || LOWER(:page) || '%' OR
+          REPLACE(LOWER(page_type), ' ', '-') = LOWER(:page) OR
+          ((display_pages IS NULL OR display_pages = '') AND (:page = 'prime-picks' OR :page = 'global-picks'))
+        )`;
+        bindings.page = page;
       }
-      
+
       if (category && category !== 'all') {
-        query += ` AND category = ?`;
-        params.push(category);
+        query += ` AND category = :category`;
+        bindings.category = category;
       }
-      
-      query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-      params.push(parsedLimit, parsedOffset);
+
+      query += ` ORDER BY created_at DESC LIMIT :limit OFFSET :offset`;
+      bindings.limit = parsedLimit;
+      bindings.offset = parsedOffset;
       
       // Debug logging for SQL and params
       try {
         const meta = { page, category, limit: parsedLimit, offset: parsedOffset };
         const q = query.replace(/\s+/g, ' ').trim();
-        const p = JSON.stringify(params);
+        const p = JSON.stringify(bindings);
         console.log('[SQL] /api/products/page', meta);
         console.log('[SQL] Query:', q);
-        console.log('[SQL] Params:', params);
+        console.log('[SQL] Params:', bindings);
         try {
           fs.appendFileSync(path.join(__dirname, 'sql-debug.log'), `\n[${new Date().toISOString()}] /api/products/page meta=${JSON.stringify(meta)}\nQuery: ${q}\nParams: ${p}\n`);
         } catch {}
@@ -497,9 +527,94 @@ export function setupRoutes(app: express.Application) {
         // Ignore logging errors
       }
 
-      const rawProducts = await retryDatabaseOperation(() => {
-        return sqliteDb.prepare(query).all(...params) as UnifiedContent[];
+      let productsSource: 'unified_content' | 'products' = 'unified_content';
+      // Execute with named parameter bindings for compatibility
+      let rawProducts = await retryDatabaseOperation(() => {
+        return sqliteDb.prepare(query).all(bindings) as UnifiedContent[];
       });
+
+      // If unified_content returns no rows, fall back to legacy products table
+      if (!rawProducts || rawProducts.length === 0) {
+        try {
+          let fallbackQuery = `
+            SELECT 
+              id,
+              name as title,
+              description,
+              price,
+              original_price as originalPrice,
+              currency,
+              image_url as imageUrl,
+              affiliate_url as affiliateUrl,
+              category,
+              is_featured as isFeatured,
+              created_at as createdAt,
+              tags,
+              page_type,
+              display_pages,
+              status,
+              visibility,
+              processing_status
+            FROM products
+            WHERE (
+              status IN ('active','published','ready','processed','completed') OR status IS NULL
+            )
+            AND (
+              visibility IN ('public','visible') OR visibility IS NULL
+            )
+            AND (
+              processing_status != 'archived' OR processing_status IS NULL
+            )
+          `;
+
+          const fallbackParams: any[] = [];
+          if (page === 'top-picks') {
+            fallbackQuery += ` AND is_featured = 1`;
+          } else if (page === 'services') {
+            fallbackQuery += ` AND is_service = 1`;
+          } else if (page === 'apps-ai-apps' || page === 'apps') {
+            fallbackQuery += ` AND is_ai_app = 1`;
+          } else {
+            fallbackQuery += ` AND (
+              display_pages LIKE '%' || ? || '%' OR
+              display_pages = ? OR
+              page_type = ? OR
+              REPLACE(LOWER(display_pages), ' ', '-') LIKE '%' || LOWER(?) || '%' OR
+              REPLACE(LOWER(page_type), ' ', '-') = LOWER(?) OR
+              ((display_pages IS NULL OR display_pages = '') AND (? = 'prime-picks' OR ? = 'global-picks'))
+            )`;
+            fallbackParams.push(page, page, page, page, page, page, page);
+          }
+
+          if (category && category !== 'all') {
+            fallbackQuery += ` AND category = ?`;
+            fallbackParams.push(category);
+          }
+
+          fallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+          fallbackParams.push(parsedLimit, parsedOffset);
+
+          // Defensive: trim fallback params to match placeholders
+          const placeholderCountFb = (fallbackQuery.match(/\?/g) || []).length;
+          const safeParamsFb = fallbackParams.slice(0, placeholderCountFb);
+          if (fallbackParams.length !== placeholderCountFb) {
+            console.warn(`[SQL] Fallback param count mismatch: have ${fallbackParams.length}, need ${placeholderCountFb}. Trimming.`);
+          }
+
+          const fb = await retryDatabaseOperation(() => {
+            // Use array-based parameter passing for broader SQLite driver compatibility
+            return sqliteDb.prepare(fallbackQuery).all(safeParamsFb) as UnifiedContent[];
+          });
+
+          if (fb && fb.length > 0) {
+            rawProducts = fb;
+            productsSource = 'products';
+            console.log(`[SQL] Fallback applied: using products table for page "${page}"`);
+          }
+        } catch (fallbackErr) {
+          console.warn('[SQL] Fallback query on products table failed:', fallbackErr?.message || fallbackErr);
+        }
+      }
       
       // Transform the data to match the expected frontend format with error handling
       const products = rawProducts.map((product: UnifiedContent) => {
@@ -2548,6 +2663,14 @@ export function setupRoutes(app: express.Application) {
       }
 
       const product = await storage.addProduct(productData);
+      // Fire Canva automation in background (non-blocking)
+      try {
+        triggerCanvaForProduct(product).catch(err => {
+          console.error('Background Canva automation failed for product:', err);
+        });
+      } catch (e) {
+        console.error('Error launching Canva automation for product:', e);
+      }
       res.json({ message: 'Product added successfully', product });
     } catch (error) {
       console.error('Add product error:', error);
@@ -2919,6 +3042,14 @@ export function setupRoutes(app: express.Application) {
       };
 
       const created = await storage.addVideoContent(payload);
+      // Fire Canva automation in background (non-blocking)
+      try {
+        triggerCanvaForVideo(created).catch(err => {
+          console.error('Background Canva automation failed for video:', err);
+        });
+      } catch (e) {
+        console.error('Error launching Canva automation for video:', e);
+      }
       res.json({ message: 'Video content added successfully', video: created });
     } catch (error) {
       console.error('Add video content error:', error);
@@ -3026,6 +3157,14 @@ export function setupRoutes(app: express.Application) {
       }
 
       const blogPost = await storage.addBlogPost(blogPostData);
+      // Fire Canva automation in background (non-blocking)
+      try {
+        triggerCanvaForBlog(blogPost).catch(err => {
+          console.error('Background Canva automation failed for blog:', err);
+        });
+      } catch (e) {
+        console.error('Error launching Canva automation for blog:', e);
+      }
       res.json({ message: 'Blog post added successfully', blogPost });
     } catch (error) {
       console.error('Add blog post error:', error);

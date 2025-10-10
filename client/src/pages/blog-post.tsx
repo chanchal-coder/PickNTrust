@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 // Removed direct header import; using header widgets instead
 import WidgetRenderer from '@/components/WidgetRenderer';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import Header from '@/components/header';
+import Footer from '@/components/footer';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import { Loader2, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin, Link2, Tag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,6 +22,7 @@ interface BlogPostData {
   tags: string[];
   imageUrl: string;
   videoUrl?: string;
+  pdfUrl?: string;
   publishedAt: string;
   readTime: string;
   slug: string;
@@ -255,18 +258,21 @@ export default function BlogPostPage() {
 
   // Main blog post page
   return (
-    <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white flex flex-col">
-      {/* Header Top above dynamic banner */}
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-gray-950 via-slate-900 to-black">
+      {/* Global Header matching Home */}
+      <Header />
+      {/* Header widgets */}
       <WidgetRenderer page={'blog-post'} position="header-top" />
-      
       <AnnouncementBanner page="blog-post" />
-      {/* Header Bottom will be placed after PageBanner below */}
-      
-      <PageBanner page="blog" />
-      {/* Header Bottom below dynamic banner */}
       <WidgetRenderer page={'blog-post'} position="header-bottom" />
       
+      {/* Banner Top Widgets */}
+      <WidgetRenderer page={'blog-post'} position="banner-top" />
+      
+      {/* Main Content */}
       <div className="header-spacing">
+      {/* Page Banner */}
+      <PageBanner page="blog" />
       <main className="flex-1 pt-20 pb-8">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Hero Section */}
@@ -332,6 +338,46 @@ export default function BlogPostPage() {
             </div>
           </header>
 
+          {/* Document viewer: PDF or Office docs */}
+          {postData.pdfUrl && (
+            <div className="mb-8">
+              <div className="w-full h-[800px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                {(() => {
+                  const url = String(postData.pdfUrl);
+                  const lower = url.toLowerCase();
+                  const isPdf = lower.endsWith('.pdf') || lower.includes('application/pdf');
+                  const isOfficeDoc = /(\.docx?$|\.xlsx?$|\.pptx?$)/i.test(url);
+                  if (isPdf) {
+                    return (
+                      <iframe
+                        src={`/pdf-viewer.html?file=${encodeURIComponent(url)}`}
+                        title={postData.title + ' PDF'}
+                        className="w-full h-full"
+                      />
+                    );
+                  } else if (isOfficeDoc) {
+                    const officeViewer = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+                    return (
+                      <iframe
+                        src={officeViewer}
+                        title={postData.title + ' Document'}
+                        className="w-full h-full"
+                      />
+                    );
+                  }
+                  // Fallback: attempt inline iframe
+                  return (
+                    <iframe
+                      src={url}
+                      title={postData.title + ' Document'}
+                      className="w-full h-full"
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* Content */}
           <div className="prose prose-lg max-w-none">
             <div 
@@ -370,6 +416,13 @@ export default function BlogPostPage() {
       </main>
       </div>
       
+      {/* Banner Bottom Widgets */}
+      <WidgetRenderer page={'blog-post'} position="banner-bottom" />
+      
+      {/* Footer Widgets and Footer */}
+      <WidgetRenderer page={'blog-post'} position="footer-top" />
+      <WidgetRenderer page={'blog-post'} position="footer-bottom" />
+      <Footer />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// Database connection
-const dbPath = path.join(__dirname, 'server', 'database.sqlite');
+// Database connection (use root database used by the app)
+const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // Channel configurations (matching your telegram-bot.ts)
@@ -39,6 +39,34 @@ const sampleProducts = [
     description: '⌨️ RGB Backlit Keys\n🎮 Gaming Grade Switches\n💻 USB-C Connection\n🔧 Hot-Swappable Keys\n\n💰 Gaming Price: ₹1,599 (was ₹3,999)\n🎯 60% OFF - Gamers Special!',
     originalUrl: 'https://www.amazon.in/gaming-mechanical-keyboard/dp/B08GAMING789',
     imageUrl: 'https://images.unsplash.com/photo-1541140532154-b024d705b90a?w=400&h=400&fit=crop'
+  },
+  {
+    channelId: '-1003047967930', // Travel Picks
+    title: '🧳 Travel Deal: Compact Carry-On Suitcase 40L',
+    description: '✅ Lightweight & Durable\n✅ TSA Lock\n✅ 360° Spinner Wheels\n\n💰 Special Price: ₹2,499 (was ₹5,999)\n✈️ Perfect for weekend trips!',
+    originalUrl: 'https://www.earnkaro.com/compact-carry-on-suitcase',
+    imageUrl: 'https://images.unsplash.com/photo-1549058921-5d7b25ae09c3?w=400&h=400&fit=crop'
+  },
+  {
+    channelId: '-1002981205504', // Click Picks
+    title: '📈 Trending: USB-C Fast Charger 65W',
+    description: '⚡ Superfast charging for laptops & phones\n🔌 GaN Technology\n💼 Compact travel-friendly\n\n💰 Deal Price: ₹1,099 (was ₹2,499)\n🔥 Hot on Click Picks!',
+    originalUrl: 'https://inrdeals.com/usbc-fast-charger-65w',
+    imageUrl: 'https://images.unsplash.com/photo-1587854692152-1c1b9b141e1b?w=400&h=400&fit=crop'
+  },
+  {
+    channelId: '-1002902496654', // Global Picks
+    title: '🌍 Global: Japanese Matcha Starter Kit',
+    description: '🍵 Authentic matcha whisk & bowl\n🇯🇵 Imported quality\n🎁 Perfect gift set\n\n💰 Price: ₹3,499',
+    originalUrl: 'https://deodap.com/japanese-matcha-starter-kit',
+    imageUrl: 'https://images.unsplash.com/photo-1517959105821-eaf3b92b3cb2?w=400&h=400&fit=crop'
+  },
+  {
+    channelId: '-1002991047787', // Loot Box
+    title: '🎁 Loot Box: Mystery Tech Bundle',
+    description: '🔮 3–5 surprise gadgets\n💡 Minimum value ₹3,000\n🎉 Fun unboxing experience\n\n💰 Bundle Price: ₹999',
+    originalUrl: 'https://amazon.in/mystery-tech-bundle/dp/B0CLOOTBOX',
+    imageUrl: 'https://images.unsplash.com/photo-1549394954-0e1d9cd40c83?w=400&h=400&fit=crop'
   }
 ];
 
@@ -92,7 +120,7 @@ function simulateTelegramPost(product) {
           title, description, image_url, affiliate_url,
           content_type, page_type, category, source_type,
           source_id, affiliate_platform, is_active, 
-          source_channel, created_at, updated_at
+          display_pages, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
@@ -108,7 +136,7 @@ function simulateTelegramPost(product) {
         channelPostId.toString(),
         channelConfig.platform,
         1, // is_active
-        channelConfig.page,
+        JSON.stringify([channelConfig.page]),
         timestamp,
         timestamp
       ], function(err) {

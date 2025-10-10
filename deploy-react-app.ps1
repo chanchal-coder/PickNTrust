@@ -1,25 +1,27 @@
-# Deploy React App to Server
-$keyPath = "C:\AWSKeys\picktrust-key.pem"
-$serverIP = "51.21.112.211"
-$username = "ubuntu"
+# Deploy React App to Server (updated for ec2-user and new host)
+$keyPath = "C:\Users\sharm\.ssh\pnt08.pem"
+$serverIP = "51.20.55.153"
+$username = "ec2-user"
 
 Write-Host "Deploying React app to server..."
 
-# Create the client/dist directory structure on server
-$createDirCommand = "mkdir -p /home/ubuntu/PickNTrust/client/dist"
+# Ensure remote dist/public directory exists (matches PM2 FRONTEND_STATIC_DIR)
+$createDirCommand = "mkdir -p /home/ec2-user/pickntrust/dist/public"
 ssh -o StrictHostKeyChecking=no -i $keyPath $username@$serverIP $createDirCommand
 
-# Copy the built React app files
+# Copy the built React app files from local dist/public
 Write-Host "Copying React app files..."
-scp -o StrictHostKeyChecking=no -r -i $keyPath "client/dist/*" $username@$serverIP":/home/ubuntu/PickNTrust/client/dist/"
+scp -o StrictHostKeyChecking=no -r -i $keyPath "dist/public/*" $username@$serverIP":/home/ec2-user/pickntrust/dist/public/"
 
-# Copy the updated production server
-Write-Host "Copying updated server file..."
-scp -o StrictHostKeyChecking=no -i $keyPath "production-server.cjs" $username@$serverIP":/home/ubuntu/PickNTrust/"
+# Optional: Copy updated production server file if needed
+if (Test-Path "production-server.js") {
+  Write-Host "Copying updated server file..."
+  scp -o StrictHostKeyChecking=no -i $keyPath "production-server.js" $username@$serverIP":/home/ec2-user/pickntrust/"
+}
 
-# Restart the server
-Write-Host "Restarting server..."
-$restartCommand = "cd /home/ubuntu/PickNTrust && pm2 restart pickntrust-production"
+# Restart backend via PM2 (app name from ecosystem.config.cjs)
+Write-Host "Restarting backend via PM2..."
+$restartCommand = "pm2 restart pickntrust-backend || pm2 list"
 ssh -o StrictHostKeyChecking=no -i $keyPath $username@$serverIP $restartCommand
 
 Write-Host "Deployment complete!"

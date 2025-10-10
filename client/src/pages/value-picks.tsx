@@ -315,70 +315,70 @@ export default function ValuePicks() {
                       </div>
                     </div>
                   )}
-                </div>
 
-            {productsLoading ? (
-              <div className="text-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-                <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                  Loading Value Picks...
-                </h3>
-                <p className="text-gray-500 dark:text-gray-500">
-                  Finding the best value products for you.
-                </p>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              hasWidgets && allValueProducts.length === 0 ? null : (
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
-                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                    {allValueProducts.length === 0 ? 'No Value Picks available' : 'No products found'}
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-500">
-                    {allValueProducts.length === 0 
-                      ? 'Products will appear here when added to Value Picks via admin panel.' 
-                      : 'Try adjusting your filters to see more results.'}
-                  </p>
-                </div>
-              )
-            ) : (
-              <div className="relative">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredProducts.map((product) => (
-                  <div key={product.id} className="relative">
-                    {/* Checkbox overlay for bulk delete mode */}
-                    {bulkDeleteMode && isAdmin && (
-                      <div className="absolute top-2 right-2 z-20">
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts.includes(String(product.id))}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedProducts(prev => [...prev, String(product.id)]);
-                            } else {
-                              setSelectedProducts(prev => prev.filter(id => id !== String(product.id)));
-                            }
-                          }}
-                          className="w-5 h-5 text-red-600 bg-white border-2 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
-                        />
+                  {productsLoading ? (
+                    <div className="text-center py-16">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+                      <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                        Loading Value Picks...
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-500">
+                        Finding the best value products for you.
+                      </p>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    hasWidgets && allValueProducts.length === 0 ? null : (
+                      <div className="text-center py-16">
+                        <div className="text-6xl mb-4"><i className="fas fa-search text-gray-400"></i></div>
+                        <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                          {allValueProducts.length === 0 ? 'No Value Picks available' : 'No products found'}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-500">
+                          {allValueProducts.length === 0 
+                            ? 'Products will appear here when added to Value Picks via admin panel.' 
+                            : 'Try adjusting your filters to see more results.'}
+                        </p>
                       </div>
-                    )}
-                    <AmazonProductCard product={product} />
-                  </div>
-                ))}
+                    )
+                  ) : (
+                    <div className="relative">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                      {filteredProducts.map((product) => (
+                        <div key={product.id} className="relative">
+                          {/* Checkbox overlay for bulk delete mode */}
+                          {bulkDeleteMode && isAdmin && (
+                            <div className="absolute top-2 right-2 z-20">
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.includes(String(product.id))}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedProducts(prev => [...prev, String(product.id)]);
+                                  } else {
+                                    setSelectedProducts(prev => prev.filter(id => id !== String(product.id)));
+                                  }
+                                }}
+                                className="w-5 h-5 text-red-600 bg-white border-2 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
+                              />
+                            </div>
+                          )}
+                          <AmazonProductCard product={product} />
+                        </div>
+                      ))}
+                      </div>
+                      {/* Product Grid Bottom Widgets */}
+                      <SafeWidgetRenderer page={'value-picks'} position={'product-grid-bottom'} />
+                      {/* Overlay widgets mirroring Prime Picks placement */}
+                      <WidgetRenderer page={'value-picks'} position="content-top" />
+                      <WidgetRenderer page={'value-picks'} position="content-middle" />
+                      <WidgetRenderer page={'value-picks'} position="content-bottom" />
+                      <WidgetRenderer page={'value-picks'} position="floating-top-left" />
+                      <WidgetRenderer page={'value-picks'} position="floating-top-right" />
+                      <WidgetRenderer page={'value-picks'} position="floating-bottom-left" />
+                      <WidgetRenderer page={'value-picks'} position="floating-bottom-right" />
+                    </div>
+                  )}
                 </div>
-                {/* Product Grid Bottom Widgets */}
-                <SafeWidgetRenderer page={'value-picks'} position={'product-grid-bottom'} />
-                {/* Overlay widgets mirroring Prime Picks placement */}
-                <WidgetRenderer page={'value-picks'} position="content-top" />
-                <WidgetRenderer page={'value-picks'} position="content-middle" />
-                <WidgetRenderer page={'value-picks'} position="content-bottom" />
-                <WidgetRenderer page={'value-picks'} position="floating-top-left" />
-                <WidgetRenderer page={'value-picks'} position="floating-top-right" />
-                <WidgetRenderer page={'value-picks'} position="floating-bottom-left" />
-                <WidgetRenderer page={'value-picks'} position="floating-bottom-right" />
-              </div>
-            )}
           </div>
         </div>
       </div>

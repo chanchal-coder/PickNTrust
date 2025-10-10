@@ -4,7 +4,7 @@ Overview
 - Goal: Safe, zero-404 deployments to EC2 with services auto-started and isolated so crashes never break the website.
 - Scope: Frontend static assets, backend API, Telegram bot, and automation triggers (autosharing/Canva).
 
-Deployment Flow (deploy-to-domain.ps1)
+Deployment Flow (deploy-to-domain.ps1 or deploy-domain.sh)
 - Build: `npm run build` produces `dist/public` (client) and `dist/server` (backend).
 - Client publish (atomic): uploads a tarball, extracts to `public_new`, then swaps to `public` in one move to avoid 404s.
 - Nginx: config is refreshed and validated; SPA and cache headers keep assets visible after swaps.
@@ -12,10 +12,21 @@ Deployment Flow (deploy-to-domain.ps1)
 - Bot isolation: the Telegram bot runs as a separate PM2 app so its crash cannot affect the website.
 - Health checks: verifies `/health`, bundles, and widgets; logs are tailed to confirm startup.
 
+Quick Use
+- PowerShell: `powershell -File .\deploy-to-domain.ps1 -Domain yourdomain.com -Server ec2-user@IP -KeyPath C:\path\key.pem`
+- Bash: `DOMAIN=yourdomain.com SERVER=ec2-user@IP KEY=~/.ssh/key.pem APP_DIR=/home/ec2-user/pickntrust ./deploy-domain.sh`
+
+What these scripts do
+- Install Node 18, PM2, Nginx, Certbot on the server.
+- Clone/update repo, install deps, and run `node build-production.js` to build client/server.
+- Start backend with PM2 at `:5000` (`pickntrust-backend`).
+- Configure Nginx: serve `dist/public` as SPA; proxy `/api` → backend.
+- Obtain Let’s Encrypt certificates and enable HTTPS for `www` and apex.
+
 PM2 Management
 - Start/refresh: `pm2 start ecosystem.config.cjs` or `pm2 restart pickntrust-backend`.
 - Bot: `pm2 restart pickntrust-bot` is included; runs independently from the website.
-- Persist across reboot: `pm2 save` and `pm2 startup systemd -u ec2-user` are executed.
+- Persist across reboot: `pm2 save` and `pmebsit2 startup systemd -u ec2-user` are executed.
 - Log rotation: `pm2 install pm2-logrotate` with sane defaults to keep logs tidy.
 
 Services and Isolation

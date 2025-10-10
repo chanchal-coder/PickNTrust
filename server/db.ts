@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 // Avoid static import of schema which breaks in production when dist/shared isn't shipped
 // We'll attempt dynamic imports and gracefully proceed without schema if not found
-import dotenv from 'dotenv';
+import { loadEnv } from './config/env-loader.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,8 +14,8 @@ import { getDatabasePath } from './config/database.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from .env file
-dotenv.config();
+// Load environment variables from multiple candidate locations
+loadEnv();
 
 // Centralized database path resolution
 const dbFile = getDatabasePath();
@@ -68,6 +68,64 @@ try {
       updated_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  // Ensure channel_posts table exists for master bot processing
+  try {
+    const hasChannelPosts = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='channel_posts'").get();
+    if (!hasChannelPosts) {
+      console.log('Creating channel_posts table...');
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS channel_posts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          channel_id TEXT NOT NULL,
+          channel_name TEXT,
+          website_page TEXT,
+          message_id INTEGER NOT NULL,
+          original_text TEXT,
+          processed_text TEXT,
+          extracted_urls TEXT,
+          image_url TEXT,
+          is_processed INTEGER DEFAULT 0,
+          is_posted INTEGER DEFAULT 0,
+          telegram_timestamp INTEGER,
+          created_at INTEGER DEFAULT (strftime('%s', 'now')),
+          updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+          processed_at INTEGER,
+          processing_error TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_channel_posts_channel_message ON channel_posts(channel_id, message_id);
+        CREATE INDEX IF NOT EXISTS idx_channel_posts_processed ON channel_posts(is_processed, is_posted);
+        CREATE INDEX IF NOT EXISTS idx_channel_posts_created ON channel_posts(created_at);
+      `);
+      console.log('✅ channel_posts table created');
+    } else {
+      // Ensure required columns exist (idempotent ALTERs)
+      const cols = sqlite.prepare('PRAGMA table_info(channel_posts)').all() as any[];
+      const names = new Set(cols.map((c: any) => c.name));
+      const ensureColumn = (name: string, ddl: string) => {
+        if (!names.has(name)) {
+          try {
+            sqlite.exec(`ALTER TABLE channel_posts ADD COLUMN ${ddl}`);
+            console.log(`✅ Added missing column channel_posts.${name}`);
+          } catch (e) {
+            console.warn(`⚠️ Failed adding column channel_posts.${name}:`, (e as any)?.message || e);
+          }
+        }
+      };
+      ensureColumn('image_url', 'image_url TEXT');
+      ensureColumn('processed_at', 'processed_at INTEGER');
+      ensureColumn('processing_error', 'processing_error TEXT');
+      ensureColumn('updated_at', "updated_at INTEGER DEFAULT (strftime('%s', 'now'))");
+      // Recreate helpful indexes if missing
+      sqlite.exec(`
+        CREATE INDEX IF NOT EXISTS idx_channel_posts_channel_message ON channel_posts(channel_id, message_id);
+        CREATE INDEX IF NOT EXISTS idx_channel_posts_processed ON channel_posts(is_processed, is_posted);
+        CREATE INDEX IF NOT EXISTS idx_channel_posts_created ON channel_posts(created_at);
+      `);
+    }
+  } catch (cpErr) {
+    console.error('Error ensuring channel_posts table exists:', cpErr);
+  }
 
   // categories table used by browse endpoints
   sqlite.exec(`
@@ -214,6 +272,29 @@ try {
   } catch (checkError) {
     console.error('Error checking announcements table presence:', checkError);
   }
+
+  // Ensure blog_posts table has required columns (idempotent alters)
+  try {
+    const blogExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='blog_posts'").get();
+    if (!blogExists) {
+      console.log('blog_posts table not found; skipping column updates');
+    } else {
+      const existingCols = sqlite.prepare("PRAGMA table_info(blog_posts)").all().map((c: any) => c.name);
+      const ensureCol = (name: string, ddl: string) => {
+        if (!existingCols.includes(name)) {
+          try {
+            sqlite.exec(`ALTER TABLE blog_posts ADD COLUMN ${ddl}`);
+            console.log(`✅ Added missing column blog_posts.${name}`);
+          } catch (e) {
+            console.warn(`⚠️ Failed to add column blog_posts.${name}:`, (e as any)?.message || e);
+          }
+        }
+      };
+      ensureCol('pdf_url', 'pdf_url TEXT');
+    }
+  } catch (bpErr) {
+    console.warn('Failed to ensure blog_posts columns:', bpErr);
+  }
 } catch (error) {
   // If tables don't exist, create them
   console.log('Initializing database schema...');
@@ -284,6 +365,7 @@ try {
           tags TEXT,
           image_url TEXT NOT NULL,
           video_url TEXT,
+          pdf_url TEXT,
           published_at INTEGER NOT NULL,
           created_at INTEGER DEFAULT (strftime('%s', 'now')),
           read_time TEXT NOT NULL,

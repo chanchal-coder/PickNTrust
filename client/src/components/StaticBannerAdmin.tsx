@@ -107,7 +107,7 @@ export default function StaticBannerAdmin({ onSave }: StaticBannerAdminProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify({ config, password: 'pickntrust2025' }),
       });
 
       if (response.ok) {
@@ -115,7 +115,12 @@ export default function StaticBannerAdmin({ onSave }: StaticBannerAdminProps) {
         if (onSave) onSave(config);
         setTimeout(() => setSaveStatus('idle'), 2000);
       } else {
-        throw new Error('Failed to save config');
+        let msg = 'Failed to save config';
+        try {
+          const err = await response.json();
+          msg = (err && (err.error || err.message)) || msg;
+        } catch {}
+        throw new Error(msg);
       }
     } catch (error) {
       console.error('Error saving banner config:', error);

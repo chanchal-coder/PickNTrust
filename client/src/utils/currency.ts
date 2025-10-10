@@ -156,9 +156,14 @@ export function formatPrice(
     locale = 'en-IN'
   } = options;
 
+  // Do not render any price when amount is zero, negative, or invalid
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+    return '';
+  }
+
   const currencyInfo = CURRENCIES[currency];
   if (!currencyInfo) {
-    return amount.toString();
+    return '';
   }
 
   // Determine decimal places - default to 0 for whole numbers

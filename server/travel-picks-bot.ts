@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { urlProcessingService } from './url-processing-service.js';
 import { categorizeForAutomation, shouldAutoCategorize } from './enhanced-smart-categorization.js';
+import { getDatabasePath, getDatabaseOptions } from './config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,9 +53,19 @@ class TravelPicksBot {
   private isInitialized: boolean = false;
 
   constructor() {
-    // Initialize database
-    const dbPath = path.join(__dirname, '..', 'database.sqlite');
-    this.db = new Database(dbPath);
+    // Initialize database using centralized resolver to ensure consistency in prod
+    const dbPath = getDatabasePath();
+    try {
+      if (process.env.LOG_DB_PATH === 'true') {
+        console.log('🧳 Travel bot DB path:', dbPath);
+      }
+      this.db = new Database(dbPath, getDatabaseOptions());
+      // Ensure WAL mode for better concurrency; falls back silently if unsupported
+      try { this.db.pragma('journal_mode = WAL'); } catch {}
+    } catch (err) {
+      console.error('❌ Failed to open travel database at', dbPath, err);
+      throw err;
+    }
     
     // Ensure travel_products table exists
     this.initializeDatabase();
@@ -62,6 +73,19 @@ class TravelPicksBot {
 
   private initializeDatabase(): void {
     try {
+      // Defensive migration: ensure required columns exist on travel_categories
+      try {
+        const cols = this.db.prepare(`PRAGMA table_info(travel_categories)`).all();
+        const hasTable = Array.isArray(cols) && cols.length > 0;
+        const hasSortOrder = hasTable && cols.some((c: any) => String(c.name).toLowerCase() === 'sort_order');
+        if (hasTable && !hasSortOrder) {
+          this.db.exec(`ALTER TABLE travel_categories ADD COLUMN sort_order INTEGER DEFAULT 0`);
+          console.log('🧳 Added missing column travel_categories.sort_order');
+        }
+      } catch (migErr) {
+        console.warn('⚠️ Could not run defensive migration for travel_categories:', migErr);
+      }
+
       // Create travel_products table if it doesn't exist
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS travel_products (
@@ -144,6 +168,27 @@ class TravelPicksBot {
 
       // Initialize bot
       this.bot = new TelegramBot(TRAVEL_BOT_CONFIG.botToken, { polling: false });
+
+      // Configure webhook to master endpoint
+      try {
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
+        const webhookUrl = `${baseUrl}/webhook/master/${TRAVEL_BOT_CONFIG.botToken}`;
+
+        await this.bot.deleteWebHook();
+        await this.bot.setWebHook(webhookUrl, {
+          allowed_updates: ['message', 'channel_post', 'edited_channel_post']
+        });
+
+        const info = await this.bot.getWebHookInfo();
+        console.log('🧳 Travel bot webhook info', {
+          url: (info as any).url,
+          pending_update_count: (info as any).pending_update_count,
+          has_custom_certificate: (info as any).has_custom_certificate,
+          max_connections: (info as any).max_connections,
+        });
+      } catch (err: any) {
+        console.warn('⚠️ Failed to configure Travel Picks webhook:', err?.message || err);
+      }
 
       // Set up message handlers
       this.setupMessageHandlers();
@@ -234,7 +279,33 @@ class TravelPicksBot {
       const result = await urlProcessingService.processURL(url, 'travel-picks');
 
       if (!result?.success || !result.productCard) {
-        console.log('⚠️ Could not extract product info from URL');
+        console.log('⚠️ Could not extract product info from URL — using fallback save');
+
+        // Fallback: still save a minimal product so the page shows the post
+        const category = this.detectTravelCategory(url, messageText);
+        const affiliateUrlFallback = this.applyAffiliateTemplate(url);
+        const priceInfo = this.extractPriceInfo(messageText);
+
+        await this.saveToDatabase({
+          name: this.extractTitleFromMessage(messageText) || new URL(url).hostname,
+          description: messageText.substring(0, 500),
+          price: priceInfo.price,
+          original_price: priceInfo.originalPrice,
+          currency: 'INR',
+          image_url: null,
+          affiliate_url: affiliateUrlFallback,
+          category,
+          rating: 0,
+          review_count: 0,
+          discount: priceInfo.discount,
+          is_featured: this.isFeaturedDeal(messageText),
+          affiliate_network: this.getAffiliateNetwork(url),
+          telegram_message_id: msg.message_id,
+          telegram_channel_id: msg.chat.id.toString(),
+          processing_status: 'active'
+        });
+
+        console.log('✅ Saved minimal travel product via fallback');
         return;
       }
 
@@ -392,6 +463,51 @@ class TravelPicksBot {
       );
 
       console.log(`✅ Saved travel product: ${productData.name} (${productData.category})`);
+
+      // Also insert into unified_content so Travel Picks page shows items
+      try {
+        const displayPagesArr = ['travel', productData.category].filter((v) => v && v.length > 0);
+        const tags = JSON.stringify({
+          source: 'travel-bot',
+          affiliate_network: productData.affiliate_network,
+          telegram_message_id: productData.telegram_message_id,
+          telegram_channel_id: productData.telegram_channel_id
+        });
+
+        const ucInsert = this.db.prepare(`
+          INSERT INTO unified_content (
+            title, description, price, original_price, currency,
+            image_url, affiliate_url, content_type, page_type,
+            category, subcategory, tags, is_active, is_featured,
+            display_pages, status, visibility, processing_status,
+            created_at, updated_at
+          ) VALUES (
+            ?, ?, ?, ?, ?,
+            ?, ?, 'travel', 'travel-picks',
+            ?, NULL, ?, 1, ?,
+            ?, 'published', 'public', 'active',
+            datetime('now'), datetime('now')
+          )
+        `);
+
+        ucInsert.run(
+          productData.name,
+          productData.description,
+          productData.price,
+          productData.original_price,
+          productData.currency,
+          productData.image_url,
+          productData.affiliate_url,
+          productData.category,
+          tags,
+          productData.is_featured ? 1 : 0,
+          JSON.stringify(displayPagesArr)
+        );
+
+        console.log('🧳 Mirrored travel product into unified_content for Travel Picks page');
+      } catch (mirrorErr) {
+        console.warn('⚠️ Could not mirror travel product into unified_content:', (mirrorErr as any)?.message || mirrorErr);
+      }
     } catch (error) {
       console.error('❌ Error saving to database:', error);
     }
