@@ -1,0 +1,1 @@
+SELECT 'PRIME', COUNT(*) FROM unified_content WHERE display_pages LIKE '%prime-picks%' AND status='active' AND visibility='visible' AND processing_status='active';

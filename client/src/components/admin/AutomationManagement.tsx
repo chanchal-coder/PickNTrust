@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { getAdminPassword } from '@/config/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -342,12 +343,18 @@ export default function AutomationManagement() {
 
   // Remove duplicate function declarations - they are already defined above
 
-  // Fetch Canva settings - Disabled for now since API endpoints don't exist
+  // Fetch Canva settings from backend
   const { data: canvaSettingsData, isLoading: canvaLoading } = useQuery<CanvaSettingsResponse>({
     queryKey: ['canva-settings'],
     queryFn: async (): Promise<CanvaSettingsResponse> => {
-      // Return mock data instead of making API call
-      return {
+      const password = getAdminPassword();
+      const res = await fetch(`/api/admin/canva/settings?password=${encodeURIComponent(password)}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to fetch Canva settings');
+      }
+      const data = await res.json();
+      return data?.settings || {
         is_enabled: false,
         auto_generate_captions: true,
         auto_generate_hashtags: true,
@@ -357,37 +364,44 @@ export default function AutomationManagement() {
         enable_blog_posts: true,
         enable_videos: true
       };
-    },
-    enabled: false // Disable the query for now
+    }
   });
 
-  // Update Canva settings mutation
+  // Update Canva settings via backend
   const updateCanvaSettingsMutation = useMutation({
     mutationFn: async (settings: CanvaSettings) => {
-      // Simulate API delay for realistic UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Mock successful response - no actual API call
-      return {
-        success: true,
-        message: 'Settings updated successfully',
-        settings: settings
-      };
+      const password = getAdminPassword();
+      const res = await fetch('/api/admin/canva/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, ...settings })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to update Canva settings');
+      }
+      return res.json();
     },
     onSuccess: (data) => {
       toast({
-        title: 'Settings Saved <i className="fas fa-check-circle"></i>',
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <i className="fas fa-check-circle"></i>
+            <span>Settings Saved</span>
+          </span>
+        ),
         description: 'Canva automation settings updated successfully.',
       });
       
       // Force update local state with the response data
-      if (data.settings) {
+      const settings = (data && data.settings) ? data.settings : data;
+      if (settings) {
         const updatedSettings = {
-          ...data.settings,
-          platforms: Array.isArray(data.settings.platforms) 
-            ? data.settings.platforms 
-            : JSON.parse(data.settings.platforms || '[]')
-        };
+          ...settings,
+          platforms: Array.isArray(settings.platforms) 
+            ? settings.platforms 
+            : JSON.parse(settings.platforms || '[]')
+        } as any;
         setCanvaSettings(updatedSettings);
       }
       
@@ -398,7 +412,12 @@ export default function AutomationManagement() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error <i className="fas fa-times-circle"></i>',
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <i className="fas fa-times-circle"></i>
+            <span>Error</span>
+          </span>
+        ),
         description: error.message || 'Failed to update Canva settings.',
         variant: 'destructive',
       });
@@ -408,18 +427,20 @@ export default function AutomationManagement() {
     }
   });
 
-  // Test Canva automation mutation - Mock implementation
+  // Test Canva automation via backend
   const testCanvaMutation = useMutation({
     mutationFn: async () => {
-      // Simulate test delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock successful test response
-      return {
-        success: true,
-        message: 'Canva automation test completed successfully! <i className="fas fa-palette"></i><i className="fas fa-sparkles"></i>',
-        details: 'Mock test created a sample social media post with auto-generated caption and hashtags.'
-      };
+      const password = getAdminPassword();
+      const res = await fetch('/api/admin/canva/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to test Canva automation');
+      }
+      return res.json();
     },
     onSuccess: (data) => {
       toast({
@@ -440,23 +461,23 @@ export default function AutomationManagement() {
   useEffect(() => {
     if (canvaSettingsData && !updateCanvaSettingsMutation.isPending) {
       const updatedSettings = {
-        isEnabled: canvaSettingsData.is_enabled || false,
-        apiKey: canvaSettingsData.api_key || '',
-        apiSecret: canvaSettingsData.api_secret || '',
-        defaultTemplateId: canvaSettingsData.default_template_id || '',
-        autoGenerateCaptions: canvaSettingsData.auto_generate_captions !== false,
-        autoGenerateHashtags: canvaSettingsData.auto_generate_hashtags !== false,
-        defaultCaption: canvaSettingsData.default_caption || '',
-        defaultHashtags: canvaSettingsData.default_hashtags || '',
-        platforms: Array.isArray(canvaSettingsData.platforms) 
-          ? canvaSettingsData.platforms 
-          : (typeof canvaSettingsData.platforms === 'string' 
-              ? JSON.parse(canvaSettingsData.platforms || '[]')
+        isEnabled: (canvaSettingsData as any).is_enabled ?? (canvaSettingsData as any).isEnabled ?? false,
+        apiKey: (canvaSettingsData as any).api_key ?? (canvaSettingsData as any).apiKey ?? '',
+        apiSecret: (canvaSettingsData as any).api_secret ?? (canvaSettingsData as any).apiSecret ?? '',
+        defaultTemplateId: (canvaSettingsData as any).default_template_id ?? (canvaSettingsData as any).defaultTemplateId ?? '',
+        autoGenerateCaptions: ((canvaSettingsData as any).auto_generate_captions ?? (canvaSettingsData as any).autoGenerateCaptions) !== false,
+        autoGenerateHashtags: ((canvaSettingsData as any).auto_generate_hashtags ?? (canvaSettingsData as any).autoGenerateHashtags) !== false,
+        defaultCaption: (canvaSettingsData as any).default_caption ?? (canvaSettingsData as any).defaultCaption ?? '',
+        defaultHashtags: (canvaSettingsData as any).default_hashtags ?? (canvaSettingsData as any).defaultHashtags ?? '',
+        platforms: Array.isArray((canvaSettingsData as any).platforms)
+          ? (canvaSettingsData as any).platforms
+          : (typeof (canvaSettingsData as any).platforms === 'string'
+              ? JSON.parse((canvaSettingsData as any).platforms || '[]')
               : ['instagram', 'facebook']),
-        scheduleType: (canvaSettingsData.schedule_type || 'immediate') as 'immediate' | 'scheduled',
-        scheduleDelayMinutes: canvaSettingsData.schedule_delay_minutes || 0,
-        enableBlogPosts: canvaSettingsData.enable_blog_posts !== false,
-        enableVideos: canvaSettingsData.enable_videos !== false
+        scheduleType: ((canvaSettingsData as any).schedule_type ?? (canvaSettingsData as any).scheduleType ?? 'immediate') as 'immediate' | 'scheduled',
+        scheduleDelayMinutes: (canvaSettingsData as any).schedule_delay_minutes ?? (canvaSettingsData as any).scheduleDelayMinutes ?? 0,
+        enableBlogPosts: ((canvaSettingsData as any).enable_blog_posts ?? (canvaSettingsData as any).enableBlogPosts) !== false,
+        enableVideos: ((canvaSettingsData as any).enable_videos ?? (canvaSettingsData as any).enableVideos) !== false
       };
       setCanvaSettings(updatedSettings);
     }
@@ -630,7 +651,17 @@ export default function AutomationManagement() {
             <Share2 className="w-5 h-5" />
             <i className="fas fa-palette"></i> Social Media Automation with Canva
             <Badge variant={canvaSettings.isEnabled ? 'default' : 'secondary'} className="bg-white/80 text-black border-gray-300 font-semibold">
-              {canvaSettings.isEnabled ? '<i className="fas fa-check-circle"></i> ON' : '<i className="fas fa-times-circle"></i> OFF'}
+              {canvaSettings.isEnabled ? (
+                <span className="inline-flex items-center gap-2">
+                  <i className="fas fa-check-circle"></i>
+                  <span>ON</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <i className="fas fa-times-circle"></i>
+                  <span>OFF</span>
+                </span>
+              )}
             </Badge>
           </CardTitle>
           <CardDescription className="text-black font-medium">
@@ -899,7 +930,9 @@ export default function AutomationManagement() {
                                                 : 'bg-white/20 border-white/40 text-gray-600 hover:bg-white/30'
                                             }`}
                                           >
-                                            {defaultTemplates[platform.key] === index ? '<i className="fas fa-check"></i>' : ''}
+                                            {defaultTemplates[platform.key] === index ? (
+                                              <i className="fas fa-check"></i>
+                                            ) : null}
                                           </Button>
                                          <Input
                                            placeholder={`${platform.name} template ID`}
@@ -977,7 +1010,9 @@ export default function AutomationManagement() {
                                           : 'bg-white/20 border-white/40 text-gray-600 hover:bg-white/30'
                                       }`}
                                     >
-                                      {defaultExtraTemplate === index ? '<i className="fas fa-check"></i>' : ''}
+                                      {defaultExtraTemplate === index ? (
+                                        <i className="fas fa-check"></i>
+                                      ) : null}
                                     </Button>
                                    <Input
                                      placeholder="Extra template ID"

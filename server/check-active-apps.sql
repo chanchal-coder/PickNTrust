@@ -1,0 +1,2 @@
+SELECT 'APPS', COUNT(*) FROM unified_content WHERE (display_pages LIKE '%apps%' OR display_pages LIKE '%apps-ai-apps%') AND status='active' AND visibility='visible' AND processing_status='active';
+SELECT 'AI_APP_FLAG', COUNT(*) FROM unified_content WHERE is_ai_app=1 AND status='active' AND visibility='visible' AND processing_status='active';

@@ -74,3 +74,57 @@ Redeploy Checklist
 - Confirm `pm2 status` shows both apps online; logs show no immediate errors.
 
 That’s all — this covers the exact deployment process, auto-start behavior, isolation guarantees, and fallback measures.
+Domain Deployment (pickntrust.com)
+---------------------------------
+Goal
+- Make pickntrust.com the canonical domain.
+- Redirect www.pickntrust.com to pickntrust.com with 301 (both HTTP and HTTPS).
+
+Prerequisites
+- DNS A/AAAA for pickntrust.com and www.pickntrust.com points to EC2 IP.
+- SSH key present at C:\Users\sharm\.ssh\pnt08.pem.
+
+Steps (from Windows PowerShell)
+1) Set variables:
+   $env:DOMAIN = "pickntrust.com"
+   $env:SERVER = "ec2-user@51.20.55.153"
+   $env:KEY = "C:\Users\sharm\.ssh\pnt08.pem"
+
+2) Run deploy script:
+   bash ./deploy-domain.sh
+   (Script installs Nginx, builds app, starts PM2, provisions certs, deploys configs.)
+
+3) Enforce 301 redirect (www → apex) and force HTTPS:
+   On server, add Nginx config:
+   /etc/nginx/conf.d/www-pickntrust-redirect.conf
+   server {
+     listen 80;
+     server_name www.pickntrust.com;
+     location ^~ /.well-known/acme-challenge/ { root /var/lib/letsencrypt; default_type text/plain; try_files $uri =404; }
+     return 301 https://pickntrust.com$request_uri;
+   }
+   server {
+     listen 80;
+     server_name pickntrust.com;
+     location ^~ /.well-known/acme-challenge/ { root /var/lib/letsencrypt; default_type text/plain; try_files $uri =404; }
+     return 301 https://pickntrust.com$request_uri;
+   }
+   server {
+     listen 443 ssl;
+     server_name www.pickntrust.com;
+     ssl_certificate /etc/letsencrypt/live/pickntrust.com/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/pickntrust.com/privkey.pem;
+     return 301 https://pickntrust.com$request_uri;
+   }
+
+   Reload Nginx:
+   sudo nginx -t && sudo nginx -s reload
+
+4) Verify
+   curl -I https://www.pickntrust.com   # Expect 301 → https://pickntrust.com
+   curl -I http://www.pickntrust.com    # Expect 301 → https://pickntrust.com
+   curl -fsS https://pickntrust.com/api/status
+
+Notes
+- No data loss: only Nginx config and PM2 app process.
+- Certbot uses webroot at /var/lib/letsencrypt (ACME challenge kept via HTTP).

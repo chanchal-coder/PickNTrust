@@ -63,6 +63,9 @@ import adRequestRoutes from './ad-request-routes.js';
 import { setupSocialMediaRoutes } from './social-media-routes.js';
 import botStatusRoutes from './bot-status-routes.js';
 import botProcessingRoutes from './bot-processing-routes.js';
+import canvaAdminRouter from './canva-admin-routes.js';
+import { createSocialMediaPoster } from './social-media-poster.js';
+// sqliteDb already imported above; avoid duplicate identifier
 
 
 
@@ -79,25 +82,29 @@ app.use(cors({
     
     // In production, check against allowed origins
     if (process.env.NODE_ENV === 'production') {
+      // Allow localhost in production for admin/testing
       const allowedOrigins = [
-        'https://picktrustdeals.com',
-        'https://www.picktrustdeals.com',
-        'https://pickntrust.com',
-        'https://www.pickntrust.com',
-        'http://localhost:3000',
         'http://localhost:5000',
-        'http://localhost:5173',
-        'http://127.0.0.1:5000',
-        'http://127.0.0.1:5173'
+        'http://127.0.0.1:5000'
       ];
-      
-      if (allowedOrigins.includes(origin)) {
+      // Permit any localhost/127.0.0.1 port explicitly
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(origin || '');
+      if (isLocalhost || (origin && allowedOrigins.includes(origin))) {
         return callback(null, true);
       } else {
         return callback(null, false);
       }
     } else {
-      // In development, allow all origins
+      // In development, allow localhost and 127.0.0.1 on common ports
+      const devAllowed = [
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173'
+      ];
+      if (origin && (devAllowed.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(origin))) {
+        return callback(null, true);
+      }
       return callback(null, true);
     }
   },
@@ -287,6 +294,7 @@ app.use((req, res, next) => {
   app.use(adRequestRoutes); // Ad requests + Explore ads config routes
   app.use(botStatusRoutes); // Bot status monitoring endpoint
   app.use(botProcessingRoutes); // Admin toggle for global bot processing
+  app.use(canvaAdminRouter); // Canva automation admin routes
   
   // Admin routes for social media posting and credential checks
   setupSocialMediaRoutes(app);
@@ -304,6 +312,51 @@ app.use((req, res, next) => {
   // Setup image proxy routes for authentic product images
   imageProxyService.setupRoutes(app);
   console.log('🖼️ Image proxy service initialized for authentic product images');
+
+  // Background scheduler: process pending social posts based on Canva settings
+  try {
+    const isProd = (process.env.NODE_ENV || 'development') === 'production';
+    const enableBackground = process.env.ENABLE_BACKGROUND_SERVICES === 'true' || isProd;
+    if (enableBackground) {
+      const socialMediaPoster = createSocialMediaPoster(sqliteDb);
+      const getDelayMs = async () => {
+        try {
+          const s: any = await storage.getCanvaSettings();
+          const enabled = !!(s?.isEnabled ?? s?.is_enabled);
+          const scheduleType = s?.scheduleType ?? s?.schedule_type ?? 'immediate';
+          const delayMin = Number(s?.scheduleDelayMinutes ?? s?.schedule_delay_minutes ?? 15);
+          const baseMs = Math.max(1, delayMin) * 60 * 1000;
+          return enabled ? (scheduleType === 'scheduled' ? baseMs : 5 * 60 * 1000) : 0;
+        } catch (e) {
+          console.warn('⚠️ Failed to read Canva settings for scheduler; using default 15m:', e);
+          return 15 * 60 * 1000;
+        }
+      };
+
+      let intervalMs = await getDelayMs();
+      if (intervalMs > 0) {
+        console.log(`🕒 Starting social auto-post scheduler (interval ${Math.round(intervalMs/60000)}m)`);
+        setInterval(async () => {
+          try {
+            const currentMs = await getDelayMs();
+            if (currentMs === 0) {
+              // Disabled; skip run
+              return;
+            }
+            await socialMediaPoster.processPendingPosts();
+          } catch (err) {
+            console.error('Social auto-post scheduler error:', err);
+          }
+        }, intervalMs);
+      } else {
+        console.log('⏸️ Social auto-post scheduler disabled via Canva settings.');
+      }
+    } else {
+      console.log('⏸️ Background services disabled; social auto-post scheduler not started.');
+    }
+  } catch (err) {
+    console.error('Failed to initialize social auto-post scheduler:', err);
+  }
   
   // Root route: Always fall through to SPA fallback for meta tag injection and client routing
   app.get('/', (_req: Request, _res: Response, next: NextFunction) => {
@@ -485,13 +538,14 @@ const server = app.listen(port, '0.0.0.0', async () => {
       
       // SPA fallback - serve index.html for client-side routes
       app.get('*', (req, res, next) => {
-        // Skip API routes
-        if (req.path.startsWith('/api/')) {
+        // Skip API routes (defensive across proxies/middlewares)
+        const urlPath = (req as any).originalUrl || req.url || req.path || '';
+        if (/^\/api(\/|$)/.test(urlPath)) {
           return next();
         }
         
         // Skip static files (files with extensions)
-        if (path.extname(req.path)) {
+        if (path.extname(urlPath)) {
           return next();
         }
         
@@ -548,6 +602,48 @@ const server = app.listen(port, '0.0.0.0', async () => {
       console.log('✅ RSS aggregation service initialized with automatic scheduling');
     } catch (error) {
       console.error('❌ Failed to initialize RSS Aggregation Service:', error);
+    }
+
+    // Initialize Social Media Auto-Poster scheduler
+    try {
+      const socialMediaPoster = createSocialMediaPoster(sqliteDb);
+
+      // Read Canva settings to determine scheduling
+      const settings = sqliteDb.prepare(
+        `SELECT 
+           is_enabled as isEnabled, 
+           schedule_type as scheduleType, 
+           schedule_delay_minutes as delay
+         FROM canva_settings 
+         ORDER BY id DESC 
+         LIMIT 1`
+      ).get() as any;
+
+      const isEnabled = Boolean(settings?.isEnabled);
+      const scheduleType = (settings?.scheduleType || 'immediate') as string;
+      const delayMinutes = Number(settings?.delay) || 0;
+      const defaultIntervalMinutes = 15;
+      const intervalMs = scheduleType === 'scheduled' && delayMinutes > 0
+        ? delayMinutes * 60 * 1000
+        : defaultIntervalMinutes * 60 * 1000;
+
+      if (isEnabled) {
+        console.log(`📣 Starting Social Media Auto-Poster scheduler (every ${Math.round(intervalMs/60000)}m)...`);
+        setInterval(async () => {
+          try {
+            const result = await socialMediaPoster.processPendingPosts();
+            if (result.processed > 0) {
+              console.log(`📣 Auto-Poster processed: ${result.successful} successful, ${result.failed} failed of ${result.processed}`);
+            }
+          } catch (err) {
+            console.error('❌ Social Media Auto-Poster scheduler error:', err);
+          }
+        }, intervalMs);
+      } else {
+        console.log('⏸️ Social Media Auto-Poster disabled in settings; scheduler not started.');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize Social Media Auto-Poster scheduler:', error);
     }
   } else {
     console.log('⏸️ Skipping background services in development (set ENABLE_BACKGROUND_SERVICES=true to enable).');

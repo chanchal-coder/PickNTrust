@@ -207,12 +207,31 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
       console.log(`API call status: ${response.status}`);
       
       if (!response.ok) {
-        console.warn(`Banner API not available for ${page}. Rendering without banners.`);
+        console.warn(`Banner API not available for ${page}. Will try static fallback.`);
+        // Try static fallback endpoint
+        const staticRes = await fetch(`/api/banners/static/${page}`);
+        if (staticRes.ok) {
+          const staticData = await staticRes.json();
+          console.log(`Static banners fetched for ${page}:`, staticData);
+          return Array.isArray(staticData) ? staticData : [];
+        }
         return [];
       }
       const data = await response.json();
-      console.log(`Banners fetched for ${page}:`, data);
-      return data.banners || [];
+      const primary = data?.banners || [];
+      console.log(`Banners fetched for ${page}:`, primary);
+      
+      // If dynamic API returned no banners, attempt static fallback
+      if (!Array.isArray(primary) || primary.length === 0) {
+        console.log(`No dynamic banners for ${page}. Trying static fallback...`);
+        const staticRes = await fetch(`/api/banners/static/${page}`);
+        if (staticRes.ok) {
+          const staticData = await staticRes.json();
+          console.log(`Static banners fetched for ${page}:`, staticData);
+          return Array.isArray(staticData) ? staticData : [];
+        }
+      }
+      return primary;
     },
     staleTime: 60 * 1000,
     refetchOnWindowFocus: false,

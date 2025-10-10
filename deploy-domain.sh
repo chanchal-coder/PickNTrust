@@ -105,7 +105,7 @@ server {
 NGINXHTTP
 
 sudo mv /tmp/${DOMAIN}.http.conf /etc/nginx/conf.d/${DOMAIN}.conf
-sudo nginx -t && sudo systemctl reload nginx
+sudo nginx -t && sudo nginx -s reload
 
 # Obtain certificate
 sudo certbot certonly --webroot -w /var/lib/letsencrypt -d ${DOMAIN} -d www.${DOMAIN} --agree-tos -m admin@${DOMAIN} --non-interactive || true
@@ -174,7 +174,7 @@ server {
 NGINXSSL
 
 sudo mv /tmp/${DOMAIN}.ssl.conf /etc/nginx/conf.d/${DOMAIN}-ssl.conf
-sudo nginx -t && sudo systemctl reload nginx
+sudo nginx -t && sudo nginx -s reload
 
 echo "Deployment finished"
 REMOTE

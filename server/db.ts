@@ -21,7 +21,7 @@ loadEnv();
 const dbFile = getDatabasePath();
 console.log(`Using SQLite database: ${dbFile}`);
 
-const sqlite = new Database(dbFile);
+let sqlite = new Database(dbFile);
 // Configure SQLite to reduce lock errors and improve concurrency
 try {
   // Wait up to 10 seconds when the database is busy instead of failing immediately
@@ -33,6 +33,35 @@ try {
   console.log('SQLite PRAGMAs set: busy_timeout=10000, journal_mode=WAL, foreign_keys=ON');
 } catch (pragmaErr) {
   console.warn('Failed to set SQLite PRAGMAs:', pragmaErr);
+}
+
+// Detect corruption and rebuild a fresh database if integrity check fails
+try {
+  const res: any = sqlite.prepare("PRAGMA integrity_check").get();
+  const val = res ? (Object.values(res)[0] as string) : 'ok';
+  if (typeof val === 'string' && val.toLowerCase() !== 'ok') {
+    console.warn('SQLite integrity check failed, rebuilding database...');
+    try { sqlite.close(); } catch {}
+    try {
+      const backup = `${dbFile}.corrupt.${Date.now()}.bak`;
+      if (fs.existsSync(dbFile)) {
+        fs.copyFileSync(dbFile, backup);
+        console.log('Backed up corrupt database to', backup);
+      }
+    } catch (e) {
+      console.warn('Failed to backup corrupt database:', (e as any)?.message || e);
+    }
+    // Recreate connection to a fresh file
+    sqlite = new Database(dbFile);
+    try {
+      sqlite.pragma('busy_timeout = 10000');
+      sqlite.pragma('journal_mode = WAL');
+      sqlite.pragma('foreign_keys = ON');
+    } catch {}
+    console.log('Reinitialized fresh SQLite database');
+  }
+} catch (icErr) {
+  console.warn('Integrity check failed to run:', icErr);
 }
 
 // Ensure required tables exist to avoid runtime 500s when DB is missing or incomplete
@@ -176,6 +205,34 @@ try {
   console.log('Database schema ensured: unified_content and categories present');
 } catch (schemaErr) {
   console.warn('Failed to ensure database schema:', schemaErr);
+}
+
+// Seed minimal homepage data if unified_content is empty
+try {
+  const countRow = sqlite.prepare('SELECT COUNT(*) as count FROM unified_content').get() as { count: number };
+  if ((countRow?.count || 0) === 0) {
+    console.log('Seeding minimal unified_content for homepage...');
+    const insert = sqlite.prepare(`
+      INSERT INTO unified_content (
+        title, description, price, original_price, image_url, affiliate_url,
+        content_type, page_type, category, tags, is_active, is_featured,
+        is_service, is_ai_app, display_pages, status, visibility,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 'active', 'public', datetime('now'), datetime('now'))
+    `);
+    const rows = [
+      ['Prime Picks Test Product', 'Sample featured product for homepage', 999.0, 1299.0, '/assets/card-placeholder.svg', 'https://example.com/product', 'product', 'prime-picks', 'Electronics', 'featured', 1, 0, 0, 'prime-picks'],
+      ['Service Sample', 'Sample service entry', null, null, '/assets/card-placeholder.svg', 'https://example.com/service', 'service', 'services', 'Services', 'service', 1, 1, 0, 'services'],
+      ['AI App Sample', 'Sample AI app entry', null, null, '/assets/card-placeholder.svg', 'https://example.com/app', 'app', 'apps', 'Apps', 'app', 1, 0, 1, 'apps']
+    ];
+    const tx = sqlite.transaction((items: any[]) => {
+      for (const r of items) insert.run(...r);
+    });
+    tx(rows);
+    console.log('✅ Seeded minimal unified_content entries');
+  }
+} catch (seedUcErr) {
+  console.warn('Failed to seed unified_content:', seedUcErr);
 }
 // Ensure social media posting tables exist and have required columns
 try {
@@ -1039,6 +1096,33 @@ try {
   }
 } catch (styleErr) {
   console.error('Error ensuring banners style columns exist:', styleErr);
+}
+
+// Seed minimal categories if categories table is empty
+try {
+  const catCount = sqlite.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
+  if ((catCount?.count || 0) === 0) {
+    console.log('Seeding minimal categories...');
+    const insertCat = sqlite.prepare(`
+      INSERT INTO categories (
+        name, parent_id, slug, description, is_for_products, is_for_services,
+        is_for_apps, display_order, page_type, icon, color, created_at, updated_at
+      ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), strftime('%s','now'))
+    `);
+    const cats = [
+      ['Electronics', 'electronics', 'Gadgets and devices', 1, 0, 0, 1, 'prime-picks', 'memory', '#0ea5e9'],
+      ['Services', 'services', 'Professional and online services', 0, 1, 0, 2, 'services', 'handshake', '#22c55e'],
+      ['Apps', 'apps', 'Mobile and web apps', 0, 0, 1, 3, 'apps', 'apps', '#f97316'],
+      ['Travel', 'travel', 'Travel gear and services', 1, 1, 0, 4, 'prime-picks', 'airplane', '#a78bfa']
+    ];
+    const txCat = sqlite.transaction((rows: any[]) => {
+      for (const r of rows) insertCat.run(...r);
+    });
+    txCat(cats);
+    console.log('✅ Seeded minimal categories');
+  }
+} catch (seedCatErr) {
+  console.warn('Failed to seed categories:', seedCatErr);
 }
 
 // Optional compatibility exports

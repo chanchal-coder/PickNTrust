@@ -10,7 +10,25 @@ import fs from 'fs';
 
 const router = Router();
 const dbPath = path.join(process.cwd(), 'database.sqlite');
-const staticConfigPath = path.join(process.cwd(), 'client', 'src', 'config', 'banners.json');
+
+// Robust static config path resolution to handle different deployment CWDs
+function resolveStaticConfigPath(): string | null {
+  const candidates = [
+    // Relative to current working directory (PM2/systemd start location)
+    path.join(process.cwd(), 'client', 'src', 'config', 'banners.json'),
+    // Relative to compiled server directory
+    path.join(__dirname, '..', 'client', 'src', 'config', 'banners.json'),
+    // Common absolute deploy locations
+    '/home/ec2-user/pickntrust/client/src/config/banners.json',
+    '/var/www/pickntrust/client/src/config/banners.json',
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch {}
+  }
+  return null;
+}
 
 // Get banners for a specific page
 router.get('/api/banners/:page', (req, res) => {
@@ -33,13 +51,16 @@ router.get('/api/banners/:page', (req, res) => {
     // If no banners found in database, fallback to static config
     if (banners.length === 0) {
       try {
-        if (fs.existsSync(staticConfigPath)) {
-          const configData = fs.readFileSync(staticConfigPath, 'utf8');
+        const staticPath = resolveStaticConfigPath();
+        if (staticPath && fs.existsSync(staticPath)) {
+          const configData = fs.readFileSync(staticPath, 'utf8');
           const config = JSON.parse(configData);
           const staticBanners = config[page] || [];
           const activeBanners = staticBanners.filter((banner: any) => banner.isActive);
-          console.log(`Serving ${activeBanners.length} static banners for page: ${page}`);
+          console.log(`Serving ${activeBanners.length} static banners for page: ${page} (from ${staticPath})`);
           return res.json({ success: true, banners: activeBanners });
+        } else {
+          console.warn('Static banner config not found in any candidate path for page:', page);
         }
       } catch (staticError) {
         console.error('Error reading static banner config:', staticError);
@@ -222,11 +243,12 @@ router.put('/api/admin/banners/:id(\\d+)', (req, res) => {
 // Import all static banners from config into the dynamic database
 router.post('/api/admin/banners/import-static', (req, res) => {
   try {
-    if (!fs.existsSync(staticConfigPath)) {
+    const staticPath = resolveStaticConfigPath();
+    if (!staticPath || !fs.existsSync(staticPath)) {
       return res.status(404).json({ success: false, error: 'Static banner config not found' });
     }
 
-    const configData = fs.readFileSync(staticConfigPath, 'utf8');
+    const configData = fs.readFileSync(staticPath, 'utf8');
     const config = JSON.parse(configData);
 
     const db = new Database(dbPath);

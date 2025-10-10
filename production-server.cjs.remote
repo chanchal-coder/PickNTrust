@@ -89,6 +89,15 @@ app.get('/health', (req, res) => {
   }
 });
 
+// Explicit API health/status endpoints to avoid SPA fallback
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get('/api/status', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // Get products for a specific page using unified_content
 app.get('/api/products/page/:page', async (req, res) => {
   try {
@@ -263,8 +272,17 @@ app.get('/api/categories/page/:page', async (req, res) => {
   }
 });
 
-// Fallback: React index.html (Express 5-compatible wildcard)
-app.get('/(.*)', (req, res) => {
+// Fallback: React index.html
+// Do NOT fallback for unknown /api paths; return JSON 404 instead
+app.use((req, res, next) => {
+  const p = (req.path || '').toString();
+  if (p.startsWith('/api/')) {
+    return res.status(404).json({ error: 'NOT_FOUND' });
+  }
+  next();
+});
+
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client/dist/index.html'));
 });
 

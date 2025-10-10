@@ -83,9 +83,16 @@ router.get('/api/admin/canva/settings', async (req: Request, res: Response) => {
       });
     }
 
+    // Normalize platforms to array for client convenience
+    let platformsArr: string[] = [];
+    try {
+      const p = (settings as any).platforms;
+      platformsArr = Array.isArray(p) ? p : JSON.parse(p || '[]');
+    } catch {}
+
     res.json({
       success: true,
-      settings: settings
+      settings: { ...settings, platforms: platformsArr }
     });
 
   } catch (error) {
@@ -103,7 +110,7 @@ router.get('/api/admin/canva/settings', async (req: Request, res: Response) => {
  */
 router.put('/api/admin/canva/settings', async (req: Request, res: Response) => {
   try {
-    const { password, ...settingsData } = req.body;
+    const { password, ...settingsData } = req.body as any;
     
     if (!password) {
       return res.status(400).json({ 
@@ -128,14 +135,51 @@ router.put('/api/admin/canva/settings', async (req: Request, res: Response) => {
       });
     }
 
+    // Normalize and whitelist fields to match schema
+    const sanitized: any = {
+      isEnabled: !!settingsData.isEnabled,
+      apiKey: settingsData.apiKey ?? null,
+      apiSecret: settingsData.apiSecret ?? null,
+      defaultTemplateId: settingsData.defaultTemplateId ?? null,
+      autoGenerateCaptions: settingsData.autoGenerateCaptions !== false,
+      autoGenerateHashtags: settingsData.autoGenerateHashtags !== false,
+      defaultTitle: settingsData.defaultTitle ?? null,
+      defaultCaption: settingsData.defaultCaption ?? null,
+      defaultHashtags: settingsData.defaultHashtags ?? null,
+      scheduleType: settingsData.scheduleType === 'scheduled' ? 'scheduled' : 'immediate',
+      scheduleDelayMinutes: Number(settingsData.scheduleDelayMinutes ?? 0),
+    };
+    // platforms: ensure JSON string in DB
+    const platformsVal = settingsData.platforms;
+    if (Array.isArray(platformsVal)) {
+      sanitized.platforms = JSON.stringify(platformsVal);
+    } else if (typeof platformsVal === 'string') {
+      // Accept string (already JSON or comma-separated)
+      try {
+        const parsed = JSON.parse(platformsVal);
+        sanitized.platforms = JSON.stringify(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        // Fallback: split by comma
+        sanitized.platforms = JSON.stringify(platformsVal.split(',').map((s: string) => s.trim()).filter(Boolean));
+      }
+    } else {
+      sanitized.platforms = JSON.stringify([]);
+    }
+
     // Update Canva settings in storage
     try {
-      const updatedSettings = await storage.updateCanvaSettings(settingsData);
+      const updatedSettings = await storage.updateCanvaSettings(sanitized);
       
+      // Normalize platforms to array for client convenience
+      let platformsArr: string[] = [];
+      try {
+        const p = (updatedSettings as any).platforms;
+        platformsArr = Array.isArray(p) ? p : JSON.parse(p || '[]');
+      } catch {}
       res.json({
         success: true,
         message: 'Canva settings updated successfully',
-        settings: updatedSettings
+        settings: { ...updatedSettings, platforms: platformsArr }
       });
     } catch (error) {
       console.error('Error updating Canva settings:', error);

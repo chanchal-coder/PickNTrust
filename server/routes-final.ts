@@ -47,11 +47,28 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024 // 50MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept images and videos
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    // Accept images, videos, PDFs, and common document formats
+    const type = file.mimetype;
+    const isImage = type.startsWith('image/');
+    const isVideo = type.startsWith('video/');
+    const allowedDocs = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'application/rtf',
+      'application/vnd.oasis.opendocument.text',
+      'application/vnd.oasis.opendocument.spreadsheet',
+      'application/vnd.oasis.opendocument.presentation'
+    ];
+    if (isImage || isVideo || allowedDocs.includes(type)) {
       cb(null, true);
     } else {
-      cb(new Error('Only image and video files are allowed!'));
+      cb(new Error('Unsupported file type'));
     }
   }
 });
@@ -100,6 +117,34 @@ export function setupRoutes(app: Express, storage: IStorage) {
       });
     } catch (error) {
       console.error('Upload error:', error);
+      res.status(500).json({ message: 'Failed to upload file' });
+    }
+  });
+
+  // Admin image upload endpoint (used by BannerManagement)
+  app.post('/api/admin/upload-image', upload.single('image'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image uploaded' });
+      }
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ imageUrl, filename: req.file.filename, mimetype: req.file.mimetype, size: req.file.size });
+    } catch (error) {
+      console.error('Admin image upload error:', error);
+      res.status(500).json({ message: 'Failed to upload image' });
+    }
+  });
+
+  // Admin generic upload endpoint (allows documents like PDF)
+  app.post('/api/admin/upload', upload.single('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ url, filename: req.file.filename, mimetype: req.file.mimetype, size: req.file.size });
+    } catch (error) {
+      console.error('Admin upload error:', error);
       res.status(500).json({ message: 'Failed to upload file' });
     }
   });

@@ -187,6 +187,36 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
+  // Admin image upload endpoint (used by BannerManagement)
+  app.post('/api/admin/upload-image', mediaUpload.single('image'), (req, res) => {
+    try {
+      const f = (req as any).file;
+      if (!f) {
+        return res.status(400).json({ message: 'No image uploaded' });
+      }
+      const imageUrl = `/uploads/${f.filename}`;
+      return res.json({ imageUrl, filename: f.originalname, mimetype: f.mimetype, size: f.size });
+    } catch (e: any) {
+      console.error('Admin image upload error:', e);
+      return res.status(500).json({ message: 'Upload failed', error: String(e?.message || e) });
+    }
+  });
+
+  // Admin generic upload endpoint (allows documents like PDF)
+  app.post('/api/admin/upload', mediaUpload.single('file'), (req, res) => {
+    try {
+      const f = (req as any).file;
+      if (!f) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      const url = `/uploads/${f.filename}`;
+      return res.json({ url, filename: f.originalname, mimetype: f.mimetype, size: f.size });
+    } catch (e: any) {
+      console.error('Admin upload error:', e);
+      return res.status(500).json({ message: 'Upload failed', error: String(e?.message || e) });
+    }
+  });
+
   // Multiple file upload (optional support for image and video fields)
   app.post('/api/upload/multiple', mediaUpload.fields([
     { name: 'image', maxCount: 1 },
@@ -317,7 +347,7 @@ export function setupRoutes(app: express.Application) {
             status = 'active' OR status = 'published' OR status IS NULL
           )
           AND (
-            visibility = 'public' OR visibility IS NULL
+            visibility IN ('public','visible') OR visibility IS NULL
           )
           AND (
             processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
@@ -368,7 +398,7 @@ export function setupRoutes(app: express.Application) {
             status = 'active' OR status = 'published' OR status IS NULL
           )
           AND (
-            visibility = 'public' OR visibility IS NULL
+            visibility IN ('public','visible') OR visibility IS NULL
           )
           AND (
             processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
@@ -472,16 +502,7 @@ export function setupRoutes(app: express.Application) {
       `;
       
       // Apply page-specific filtering
-      if (page === 'top-picks') {
-        // Featured Products: Show only products with is_featured=1
-        query += ` AND is_featured = 1`;
-      } else if (page === 'services') {
-        // Services: Show only products with is_service=1
-        query += ` AND is_service = 1`;
-      } else if (page === 'apps-ai-apps' || page === 'apps') {
-        // AI & Apps: Show only products with is_ai_app=1
-        query += ` AND is_ai_app = 1`;
-      } else if (page === 'home' || page === 'main' || page === 'index') {
+      if (page === 'home' || page === 'main' || page === 'index') {
         // Home page: use a minimal, highly compatible filter to avoid driver issues
         // Keep placeholders minimal to prevent parameter mismatch errors in some SQLite drivers
         query += ` AND (
@@ -568,12 +589,12 @@ export function setupRoutes(app: express.Application) {
           `;
 
           const fallbackParams: any[] = [];
-          if (page === 'top-picks') {
-            fallbackQuery += ` AND is_featured = 1`;
-          } else if (page === 'services') {
-            fallbackQuery += ` AND is_service = 1`;
-          } else if (page === 'apps-ai-apps' || page === 'apps') {
-            fallbackQuery += ` AND is_ai_app = 1`;
+          if (page === 'home' || page === 'main' || page === 'index') {
+            fallbackQuery += ` AND (
+              display_pages LIKE '%' || ? || '%' OR
+              display_pages = ?
+            )`;
+            fallbackParams.push(page, page);
           } else {
             fallbackQuery += ` AND (
               display_pages LIKE '%' || ? || '%' OR
@@ -610,6 +631,54 @@ export function setupRoutes(app: express.Application) {
             rawProducts = fb;
             productsSource = 'products';
             console.log(`[SQL] Fallback applied: using products table for page "${page}"`);
+          } else {
+            // Second-level fallback: return recent products without page filter
+            try {
+              let genericFallbackQuery = `
+                SELECT 
+                  id,
+                  name as title,
+                  description,
+                  price,
+                  original_price as originalPrice,
+                  currency,
+                  image_url as imageUrl,
+                  affiliate_url as affiliateUrl,
+                  category,
+                  is_featured as isFeatured,
+                  created_at as createdAt,
+                  tags,
+                  page_type,
+                  display_pages,
+                  status,
+                  visibility,
+                  processing_status
+                FROM products
+                WHERE (
+                  status IN ('active','published','ready','processed','completed') OR status IS NULL
+                )
+                AND (
+                  visibility IN ('public','visible') OR visibility IS NULL
+                )
+                AND (
+                  processing_status != 'archived' OR processing_status IS NULL
+                )
+                ORDER BY created_at DESC LIMIT ? OFFSET ?
+              `;
+
+              const genericParams = [parsedLimit, parsedOffset];
+              const gf = await retryDatabaseOperation(() => {
+                return sqliteDb.prepare(genericFallbackQuery).all(genericParams) as UnifiedContent[];
+              });
+
+              if (gf && gf.length > 0) {
+                rawProducts = gf;
+                productsSource = 'products';
+                console.log(`[SQL] Second-level fallback applied: generic recent products for page "${page}"`);
+              }
+            } catch (gfbErr) {
+              console.warn('[SQL] Second-level fallback query failed:', gfbErr?.message || gfbErr);
+            }
           }
         } catch (fallbackErr) {
           console.warn('[SQL] Fallback query on products table failed:', fallbackErr?.message || fallbackErr);
@@ -1687,6 +1756,32 @@ export function setupRoutes(app: express.Application) {
     } catch (error) {
       console.error('Error fetching active announcement:', error);
       return res.status(500).json({ error: 'Failed to fetch announcement' });
+    }
+  });
+
+  // Public announcements list endpoint - returns safe, minimal data
+  app.get('/api/announcements', async (_req, res) => {
+    try {
+      const all = await storage.getAnnouncements();
+      const safe = (Array.isArray(all) ? all : []).map((a: any) => ({
+        id: a.id,
+        title: a.title || a.bannerText || '',
+        message: a.message || '',
+        bannerText: a.bannerText || '',
+        bannerPosition: a.bannerPosition || 'top',
+        bannerBackground: a.bannerBackground || '#ffffff',
+        bannerTextColor: a.bannerTextColor || '#000000',
+        bannerBorderStyle: a.bannerBorderStyle || 'solid',
+        bannerBorderColor: a.bannerBorderColor || '#000000',
+        isActive: Boolean(a.isActive),
+        isGlobal: a.isGlobal !== false,
+        page: a.page || null,
+        createdAt: a.createdAt || null,
+      }));
+      res.json(safe);
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      res.status(500).json({ error: 'Failed to fetch announcements' });
     }
   });
 
