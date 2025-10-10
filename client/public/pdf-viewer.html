@@ -65,6 +65,18 @@
         const params = new URLSearchParams(window.location.search);
         return params.get(name);
       }
+      function showLink(fileUrl) {
+        const errorEl = document.getElementById('error');
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Open file in a new tab';
+        link.style.display = 'inline-block';
+        link.style.marginTop = '8px';
+        link.style.color = '#2563eb';
+        errorEl.appendChild(link);
+      }
       async function renderPDF() {
         const fileUrl = getParam('file');
         const container = document.getElementById('viewer');
@@ -78,6 +90,13 @@
           return;
         }
         try {
+          // Quick HEAD check for visibility and status
+          try {
+            const headResp = await fetch(fileUrl, { method: 'HEAD' }).catch(() => null);
+            if (headResp && !headResp.ok) {
+              console.warn('HEAD status for file:', headResp.status);
+            }
+          } catch {}
           const pdf = await pdfjsLib.getDocument({ url: fileUrl, withCredentials: false }).promise;
           loadingEl.style.display = 'none';
 
@@ -152,8 +171,21 @@
         } catch (err) {
           console.error('PDF render error', err);
           loadingEl.style.display = 'none';
-          errorEl.textContent = 'Failed to load PDF';
+          const msg = (err && (err.message || String(err))) || 'Failed to load PDF';
+          errorEl.innerHTML = 'Failed to load PDF<br/><span style="font-size:12px;color:#6b7280">' + msg + '</span>';
           errorEl.style.display = 'block';
+          // Fallback: try native embed
+          try {
+            const embed = document.createElement('embed');
+            embed.src = fileUrl;
+            embed.type = 'application/pdf';
+            embed.style.width = '100%';
+            embed.style.minHeight = '600px';
+            container.appendChild(embed);
+          } catch (e2) {
+            console.warn('Native embed fallback failed:', e2);
+          }
+          showLink(fileUrl);
         }
       }
 

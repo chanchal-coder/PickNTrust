@@ -122,8 +122,10 @@ export function setupRoutes(app: express.Application) {
   });
 
   // Static hosting for uploaded files and general media upload endpoints
-  // Create uploads directory if it doesn't exist
-  const uploadDir = path.join(process.cwd(), 'uploads');
+  // Use a stable, environment-configurable uploads directory to avoid cwd issues
+  const uploadDir = process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : path.resolve(__dirname, '..', 'uploads');
   try {
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -146,6 +148,7 @@ export function setupRoutes(app: express.Application) {
 
   const mediaUpload = multer({
     storage: mediaStorage,
+    limits: { fileSize: 50 * 1024 * 1024 },
     // Allow images, videos, PDFs, and common Office/Doc formats
     fileFilter: (_req, file, cb) => {
       const type = file.mimetype;

@@ -70,6 +70,7 @@ cat > /tmp/${DOMAIN}.http.conf <<NGINXHTTP
 server {
   listen 80;
   server_name ${DOMAIN} www.${DOMAIN};
+  client_max_body_size 50M;
 
   location ^~ /.well-known/acme-challenge/ {
     root /var/lib/letsencrypt;
@@ -100,6 +101,7 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_read_timeout 300s;
     proxy_connect_timeout 75s;
+    proxy_request_buffering off;
   }
 }
 NGINXHTTP
@@ -117,6 +119,7 @@ server {
   server_name www.${DOMAIN};
   ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  client_max_body_size 50M;
 
   gzip on;
   gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
@@ -139,6 +142,7 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_read_timeout 300s;
     proxy_connect_timeout 75s;
+    proxy_request_buffering off;
   }
 }
 
@@ -147,6 +151,7 @@ server {
   server_name ${DOMAIN};
   ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  client_max_body_size 50M;
 
   gzip on;
   gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
@@ -169,6 +174,7 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_read_timeout 300s;
     proxy_connect_timeout 75s;
+    proxy_request_buffering off;
   }
 }
 NGINXSSL

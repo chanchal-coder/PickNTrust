@@ -348,9 +348,22 @@ export default function BlogPostPage() {
                   const isPdf = lower.endsWith('.pdf') || lower.includes('application/pdf');
                   const isOfficeDoc = /(\.docx?$|\.xlsx?$|\.pptx?$)/i.test(url);
                   if (isPdf) {
+                    const fileForViewer = (() => {
+                      if (typeof window !== 'undefined') {
+                        if (url.startsWith('/uploads/')) {
+                          // Keep relative path so dev proxy (/uploads -> backend) works
+                          return url;
+                        }
+                        if (url.startsWith('/')) {
+                          // Make other root-relative paths absolute to current origin
+                          return window.location.origin + url;
+                        }
+                      }
+                      return url;
+                    })();
                     return (
                       <iframe
-                        src={`/pdf-viewer.html?file=${encodeURIComponent(url)}`}
+                        src={`/pdf-viewer.html?file=${encodeURIComponent(fileForViewer)}`}
                         title={postData.title + ' PDF'}
                         className="w-full h-full"
                       />
@@ -405,8 +418,9 @@ export default function BlogPostPage() {
                     category: postData.category,
                     affiliateUrl: shareUrl || ''
                   }}
-                  className="border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 text-gray-700 dark:text-gray-300 rounded-md px-3 py-1.5 text-sm transition-colors"
-                  buttonText="Share Article"
+                  contentType="blog"
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-full p-2 shadow-md transition-colors"
+                  buttonText=""
                   showIcon={true}
                 />
               </div>

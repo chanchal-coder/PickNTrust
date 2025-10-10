@@ -10,6 +10,8 @@ interface Product {
   imageUrl?: string;
   category?: string;
   affiliateUrl?: string;
+  url?: string;
+  slug?: string;
 }
 
 interface SmartShareDropdownProps {
@@ -17,6 +19,7 @@ interface SmartShareDropdownProps {
   className?: string;
   buttonText?: string;
   showIcon?: boolean;
+  contentType?: 'product' | 'blog' | 'app' | 'service' | string;
 }
 
 interface SharePlatform {
@@ -31,7 +34,8 @@ export default function SmartShareDropdown({
   product, 
   className = "", 
   buttonText = "",
-  showIcon = true 
+  showIcon = true,
+  contentType
 }: SmartShareDropdownProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -144,23 +148,47 @@ export default function SmartShareDropdown({
     };
   }, [isOpen]);
 
+  const resolveShareUrl = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    let link = product.affiliateUrl || product.url || '';
+
+    // If a relative path was provided, make it absolute
+    if (link && origin && link.startsWith('/')) {
+      link = origin + link;
+    }
+
+    // Fallbacks based on content type
+    if (!link && origin) {
+      if (contentType === 'product') {
+        link = `${origin}/product/${product.id}`;
+      } else if (contentType === 'blog') {
+        // Prefer slug when available; otherwise current page
+        link = product.slug ? `${origin}/blog/${product.slug}` : `${origin}${typeof window !== 'undefined' ? window.location.pathname : ''}`;
+      } else {
+        link = typeof window !== 'undefined' ? window.location.href : origin;
+      }
+    }
+    return link || (typeof window !== 'undefined' ? window.location.href : '');
+  };
+
   const handleShare = (platformId: string) => {
-    const productUrl = `${window.location.origin}/product/${product.id}`;
-    const text = `Check out this amazing product: ${product.name}`;
-    const subject = `Amazing Deal: ${product.name}`;
+    const shareUrl = resolveShareUrl();
+    const isBlog = contentType === 'blog';
+    const text = isBlog ? `Read this article: ${product.name}` : `Check this out: ${product.name}`;
+    const subject = isBlog ? `Article: ${product.name}` : `Share: ${product.name}`;
     
     switch (platformId) {
       case 'copy':
-        navigator.clipboard.writeText(productUrl);
+        navigator.clipboard.writeText(shareUrl);
         toast({
           title: 'Link Copied!',
-          description: 'Product link copied to clipboard',
+          description: 'Link copied to clipboard',
         });
         break;
         
       case 'facebook':
         window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`,
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
           '_blank',
           'width=600,height=400'
         );
@@ -168,7 +196,7 @@ export default function SmartShareDropdown({
         
       case 'twitter':
         window.open(
-          `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(productUrl)}`,
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`,
           '_blank',
           'width=600,height=400'
         );
@@ -176,21 +204,21 @@ export default function SmartShareDropdown({
         
       case 'whatsapp':
         window.open(
-          `https://wa.me/?text=${encodeURIComponent(text + ' ' + productUrl)}`,
+          `https://wa.me/?text=${encodeURIComponent(text + ' ' + shareUrl)}`,
           '_blank'
         );
         break;
         
       case 'telegram':
         window.open(
-          `https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(text)}`,
+          `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`,
           '_blank'
         );
         break;
         
       case 'email':
         window.open(
-          `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text + '\n\n' + productUrl)}`,
+          `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text + '\n\n' + shareUrl)}`,
           '_blank'
         );
         break;
@@ -228,7 +256,7 @@ export default function SmartShareDropdown({
           }}
         >
           <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 px-2">
-            Share this product
+            Share
           </div>
           
           <div className="space-y-1">

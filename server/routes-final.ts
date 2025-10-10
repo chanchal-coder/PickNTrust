@@ -26,7 +26,10 @@ async function verifyAdminPassword(password: string): Promise<boolean> {
 }
 
 // Configure multer for file uploads
-const uploadDir = path.join(process.cwd(), 'uploads');
+// Use a stable path to avoid differences between dev and production working directories
+const uploadDir = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.resolve(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
