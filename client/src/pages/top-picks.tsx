@@ -252,23 +252,30 @@ export default function TopPicks() {
 
   // Apply client-side filtering for category, price, and rating
   const filteredProducts = displayProducts.filter(product => {
-    // Filter by category
-    if (selectedCategory && product.category !== selectedCategory) {
+    // Normalize helper
+    const norm = (v: any) => String(v ?? '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+
+    // Filter by category (case/space insensitive)
+    if (selectedCategory) {
+      const prodCat = norm(product.category);
+      const selCat = norm(selectedCategory);
+      if (prodCat !== selCat) {
+        return false;
+      }
+    }
+
+    // Filter by price range (strip non-numeric characters)
+    const priceNum = parseFloat(String(product.price ?? '').toString().replace(/[^0-9.]/g, '')) || 0;
+    if (priceNum < priceRange.min || priceNum > priceRange.max) {
       return false;
     }
-    
-    // Filter by price range
-    const price = parseFloat(String(product.price || 0));
-    if (price < priceRange.min || price > priceRange.max) {
-      return false;
-    }
-    
+
     // Filter by rating
-    const rating = parseFloat(String(product.rating || 0));
-    if (rating < minRating) {
+    const ratingNum = parseFloat(String(product.rating || 0)) || 0;
+    if (ratingNum < minRating) {
       return false;
     }
-    
+
     return true;
   });
 

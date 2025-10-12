@@ -162,6 +162,7 @@ export interface MappedUnifiedContent {
   gender?: string | null;
   isActive?: boolean | number; // Already camelCase in UnifiedContent
   isFeatured?: boolean | number; // Already camelCase in UnifiedContent
+  is_featured?: boolean | number; // snake_case for backward compatibility
   isNew?: boolean | number; // New flag to match routes mapping
   displayOrder?: number; // Already camelCase in UnifiedContent
   displayPages?: string; // Already camelCase in UnifiedContent

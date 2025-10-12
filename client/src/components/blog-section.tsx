@@ -279,12 +279,17 @@ export default function BlogSection() {
   };
 
   // Handle mouse wheel scrolling
-  const handleWheel = (e: React.WheelEvent) => {
-    if (scrollContainerRef.current) {
+  // Attach non-passive wheel listener to enable preventDefault without warnings
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onWheel = (e: any) => {
       e.preventDefault();
-      scrollContainerRef.current.scrollBy({ left: e.deltaY, behavior: 'smooth' });
-    }
-  };
+      el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel as EventListener);
+  }, [displayPosts]);
 
   return (
     <section id="blog" className="py-16 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30">
@@ -322,11 +327,12 @@ export default function BlogSection() {
           {/* Scrollable Blog Container - Single Row */}
           <div 
             ref={scrollContainerRef}
-            onWheel={handleWheel}
             className="flex gap-6 overflow-x-auto pb-4 px-12 md:px-16"
             style={{ 
               scrollbarWidth: 'none', 
-              msOverflowStyle: 'none'
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-x'
             }}
           >
             {displayPosts.map((post: BlogPost, index: number) => (

@@ -203,8 +203,28 @@ export default function Header() {
     refetchInterval: false, // Disable auto-refresh to prevent conflicts
   });
 
-  // Use API data if available, otherwise use fallback
-  const navTabs = apiNavTabs.length > 0 ? apiNavTabs : fallbackNavTabs;
+  // Merge API-provided tabs with fallback to ensure core picks always exist
+  const mergedNavTabs = apiNavTabs.length > 0
+    ? [
+        ...apiNavTabs,
+        ...fallbackNavTabs.filter((f) => !apiNavTabs.some((t) => t.slug === f.slug)),
+      ]
+    : fallbackNavTabs;
+
+  const navTabs = mergedNavTabs;
+
+  // Ensure Prime/Cue/Value Picks are always present on mobile
+  const corePicks = ['prime-picks', 'cue-picks', 'value-picks'];
+  let topThreePicks = navTabs
+    .filter((t) => corePicks.includes(t.slug))
+    .sort((a, b) => a.display_order - b.display_order);
+
+  // Fallback to static picks if API omitted them
+  if (topThreePicks.length === 0) {
+    topThreePicks = fallbackNavTabs
+      .filter((t) => corePicks.includes(t.slug))
+      .sort((a, b) => a.display_order - b.display_order);
+  }
 
   // Use predefined categories instead of API call
   const categories = predefinedCategories;
@@ -561,10 +581,33 @@ export default function Header() {
           </div>
         </div>
         
-        {/* Second Row - External Links */}
-        <div className="flex justify-center items-center space-x-1 sm:space-x-2 lg:space-x-3 pt-1 pb-2 px-1 sm:px-2 lg:px-4 overflow-x-auto scrollbar-hide">
+        {/* Quick Picks Row removed for clarity: show only in main nav row below */}
+
+        {/* Second Row - External Links (mobile-friendly and wrapped) */}
+        <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 lg:gap-3 pt-1 pb-2 px-1 sm:px-2 lg:px-4">
+          {/* Always show Prime, Cue, Value first on mobile */}
+          {topThreePicks.map((tab) => (
+            <Link
+              key={`nav-core-${tab.id}`}
+              href={`/${tab.slug}`}
+              className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0"
+              style={{
+                background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
+              }}
+              title={tab.description || tab.name}
+              onClick={() => {
+                setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+              }}
+            >
+              <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
+              <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+            </Link>
+          ))}
           {/* Dynamic Navigation Tabs, injecting Explore next to Loot Box */}
-          {navTabs.flatMap((tab) => {
+          {navTabs
+            .filter((t) => !['prime-picks','cue-picks','value-picks'].includes(t.slug))
+            .flatMap((tab) => {
             const elements = [
               (
                 <Link

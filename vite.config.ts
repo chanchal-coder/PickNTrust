@@ -66,6 +66,7 @@ export default defineConfig({
   server: {
     allowedHosts: ["pickntrust.com", "www.pickntrust.com", "51.21.112.211", "localhost", "127.0.0.1"],
     host: "0.0.0.0",
+    // Use a clean port to avoid collisions with other instances
     port: 5173,
     proxy: {
       '/api': {

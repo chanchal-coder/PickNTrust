@@ -5,6 +5,8 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import { AnnouncementBanner } from "@/components/announcement-banner";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/sidebar";
 import { BundleProductCard } from "@/components/BundleProductCard";
 import AmazonProductCard from "@/components/amazon-product-card";
@@ -102,6 +104,7 @@ export default function DynamicPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [priceRange, setPriceRange] = useState({ min: 0, max: Infinity });
   const [minRating, setMinRating] = useState<number>(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Fetch navigation tab info with direct backend call and real-time updates
   const { data: navTab, isLoading: navTabLoading, error: navTabError } = useQuery<NavTab>({
@@ -285,6 +288,27 @@ export default function DynamicPage() {
       {/* Header Top above dynamic header */}
       <WidgetRenderer page={navTab.slug} position="header-top" className="w-full" />
       <AnnouncementBanner />
+      {/* Mobile Filters Drawer */}
+      <div className="md:hidden px-4 pt-3">
+        <Button onClick={() => setFiltersOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <i className="fas fa-sliders-h mr-2"/> Filters
+        </Button>
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetContent side="left" className="w-[85vw] sm:w-[22rem]">
+            <SheetHeader>
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <Sidebar 
+                onCategoryChange={handleCategoryChange}
+                onPriceRangeChange={handlePriceRangeChange}
+                onRatingChange={handleRatingChange}
+                availableCategories={availableCategories}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
       <div className="header-spacing">
         {/* Page Header */}
         <div className="py-8" style={gradientStyle}>
@@ -314,13 +338,15 @@ export default function DynamicPage() {
 
         {/* Main Content with Sidebar */}
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-          {/* Sidebar */}
-          <Sidebar 
-            onCategoryChange={handleCategoryChange}
-            onPriceRangeChange={handlePriceRangeChange}
-            onRatingChange={handleRatingChange}
-            availableCategories={availableCategories}
-          />
+          {/* Sidebar (desktop only) */}
+          <div className="hidden md:block">
+            <Sidebar 
+              onCategoryChange={handleCategoryChange}
+              onPriceRangeChange={handlePriceRangeChange}
+              onRatingChange={handleRatingChange}
+              availableCategories={availableCategories}
+            />
+          </div>
           {/* Left Sidebar Widgets below filters */}
           <div className="hidden lg:block w-64 p-4">
             <WidgetRenderer page={navTab.slug} position="sidebar-left" />
@@ -378,7 +404,7 @@ export default function DynamicPage() {
                   </div>
                 )
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                   {filteredProducts.map((product) => {
                     // Check if product is part of a bundle (multiple products)
                     const isBundle = product.totalInGroup && Number(product.totalInGroup) > 1;

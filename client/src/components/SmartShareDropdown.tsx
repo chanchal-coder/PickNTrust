@@ -74,6 +74,13 @@ export default function SmartShareDropdown({
           available: true // Universal
         },
         {
+          id: 'instagram',
+          name: 'Instagram',
+          icon: 'fab fa-instagram',
+          color: 'text-pink-500',
+          available: true // Show as guidance-based share
+        },
+        {
           id: 'email',
           name: 'Email',
           icon: 'fas fa-envelope',
@@ -122,7 +129,7 @@ export default function SmartShareDropdown({
           if (b.id === 'copy') return 1;
           return 0;
         })
-        .slice(0, 6); // Max 6 options
+        .slice(0, 8); // Allow up to 8 options so Instagram appears
     };
 
     const detectedPlatforms = detectPlatforms();
@@ -208,6 +215,32 @@ export default function SmartShareDropdown({
           '_blank'
         );
         break;
+
+      case 'instagram': {
+        // Instagram doesn’t support direct link sharing via web.
+        // Provide a helpful flow: copy text + url, then open Instagram.
+        try {
+          navigator.clipboard.writeText(`${text} ${shareUrl}`);
+          toast({
+            title: 'Copied for Instagram',
+            description: 'Text and link copied. Paste in Instagram post/story.',
+          });
+        } catch (e) {
+          toast({
+            title: 'Copy Failed',
+            description: 'Please copy share text manually from the page.',
+            variant: 'destructive'
+          });
+        }
+        // Try to open Instagram in a new tab
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+        if (isMobile) {
+          // Attempt to open Instagram app; if blocked, web will open
+          window.open('instagram://app', '_blank');
+        }
+        window.open('https://www.instagram.com/', '_blank');
+        break;
+      }
         
       case 'telegram':
         window.open(

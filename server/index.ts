@@ -64,6 +64,7 @@ import { setupSocialMediaRoutes } from './social-media-routes.js';
 import botStatusRoutes from './bot-status-routes.js';
 import botProcessingRoutes from './bot-processing-routes.js';
 import canvaAdminRouter from './canva-admin-routes.js';
+import canvaBackfillRouter from './canva-backfill-routes.js';
 import { createSocialMediaPoster } from './social-media-poster.js';
 // sqliteDb already imported above; avoid duplicate identifier
 
@@ -295,6 +296,7 @@ app.use((req, res, next) => {
   app.use(botStatusRoutes); // Bot status monitoring endpoint
   app.use(botProcessingRoutes); // Admin toggle for global bot processing
   app.use(canvaAdminRouter); // Canva automation admin routes
+  app.use(canvaBackfillRouter); // Canva backfill routes
   
   // Admin routes for social media posting and credential checks
   setupSocialMediaRoutes(app);

@@ -93,11 +93,44 @@
           // Quick HEAD check for visibility and status
           try {
             const headResp = await fetch(fileUrl, { method: 'HEAD' }).catch(() => null);
-            if (headResp && !headResp.ok) {
-              console.warn('HEAD status for file:', headResp.status);
+            if (headResp) {
+              if (!headResp.ok) {
+                console.warn('HEAD status for file:', headResp.status);
+              }
+              const ct = headResp.headers.get('content-type') || '';
+              if (!/application\/pdf/i.test(ct)) {
+                console.warn('Unexpected Content-Type for PDF:', ct);
+              }
             }
           } catch {}
-          const pdf = await pdfjsLib.getDocument({ url: fileUrl, withCredentials: false }).promise;
+
+          // Fetch as ArrayBuffer to avoid proxy range/streaming issues
+          const resp = await fetch(fileUrl).catch((e) => {
+            console.warn('GET failed for PDF:', e);
+            return null;
+          });
+          if (!resp || !resp.ok) {
+            loadingEl.style.display = 'none';
+            errorEl.textContent = 'Failed to load PDF';
+            errorEl.style.display = 'block';
+            showLink(fileUrl);
+            return;
+          }
+          const buf = await resp.arrayBuffer();
+          if (!buf || buf.byteLength === 0) {
+            loadingEl.style.display = 'none';
+            errorEl.textContent = 'Invalid PDF (empty file)';
+            errorEl.style.display = 'block';
+            showLink(fileUrl);
+            return;
+          }
+
+          const pdf = await pdfjsLib.getDocument({
+            data: buf,
+            withCredentials: false,
+            disableRange: true,
+            disableStream: true
+          }).promise;
           loadingEl.style.display = 'none';
 
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {

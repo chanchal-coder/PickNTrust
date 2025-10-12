@@ -13,6 +13,17 @@ const dbPath = path.join(process.cwd(), 'database.sqlite');
 
 // Robust static config path resolution to handle different deployment CWDs
 function resolveStaticConfigPath(): string | null {
+  // Highest priority: explicit env override
+  const envPath = process.env.STATIC_BANNERS_PATH;
+  if (envPath) {
+    try {
+      if (fs.existsSync(envPath)) return envPath;
+      console.warn('[banners] STATIC_BANNERS_PATH set but file not found:', envPath);
+    } catch (e) {
+      console.warn('[banners] STATIC_BANNERS_PATH access error:', (e as any)?.message || e);
+    }
+  }
+
   const candidates = [
     // Relative to current working directory (PM2/systemd start location)
     path.join(process.cwd(), 'client', 'src', 'config', 'banners.json'),
@@ -22,10 +33,21 @@ function resolveStaticConfigPath(): string | null {
     '/home/ec2-user/pickntrust/client/src/config/banners.json',
     '/var/www/pickntrust/client/src/config/banners.json',
   ];
+
   for (const p of candidates) {
     try {
-      if (fs.existsSync(p)) return p;
+      if (fs.existsSync(p)) {
+        if (process.env.DEBUG_BANNERS === '1') {
+          console.log('[banners] Using static config at:', p);
+        }
+        return p;
+      }
     } catch {}
+  }
+
+  if (process.env.DEBUG_BANNERS === '1') {
+    console.warn('[banners] Static banner config not found. CWD:', process.cwd(), 'DIR:', __dirname);
+    console.warn('[banners] Checked candidates:', candidates);
   }
   return null;
 }
@@ -245,6 +267,9 @@ router.post('/api/admin/banners/import-static', (req, res) => {
   try {
     const staticPath = resolveStaticConfigPath();
     if (!staticPath || !fs.existsSync(staticPath)) {
+      if (process.env.DEBUG_BANNERS === '1') {
+        console.warn('[banners] import-static failed. Path:', staticPath, 'CWD:', process.cwd(), 'DIR:', __dirname);
+      }
       return res.status(404).json({ success: false, error: 'Static banner config not found' });
     }
 

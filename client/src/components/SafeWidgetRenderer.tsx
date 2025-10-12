@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import DOMPurify from 'dompurify';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Widget {
   id: number;
@@ -120,6 +119,42 @@ function SafeWidgetItem({ widget, position, page }: { widget: Widget; position: 
 
   const isAdLike = /adsbygoogle|ad-slot|Advertisement|Affiliate|Sponsored/i.test(widget.body || widget.code) || /ad|sponsor/i.test(widget.name);
 
+  const [iframeHeight, setIframeHeight] = useState<number>(300);
+
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const d: any = e.data;
+      if (d && d.type === 'WIDGET_IFRAME_HEIGHT' && d.id === widget.id && typeof d.h === 'number') {
+        const clamped = Math.min(Math.max(d.h, 60), 3000);
+        setIframeHeight(clamped);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [widget.id]);
+
+  const rawHtml = useMemo(() => {
+    const html = (widget.body && widget.body.trim().length > 0) ? widget.body : widget.code;
+    return html || '';
+  }, [widget.body, widget.code]);
+
+  const srcDoc = useMemo(() => {
+    if (!rawHtml) return '';
+    const customStyle = widget.customCss ? `<style>${widget.customCss}</style>` : '';
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1" />
+      <style>html,body{margin:0;padding:0;background:transparent}</style>${customStyle}</head>
+      <body>
+        ${rawHtml}
+        <script>(function(){
+          function send(){ try{ parent.postMessage({ type: 'WIDGET_IFRAME_HEIGHT', id: ${widget.id}, h: document.body.scrollHeight }, '*'); }catch(e){} }
+          var mo = new MutationObserver(function(){ send(); });
+          mo.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+          window.addEventListener('load', send);
+          setTimeout(send, 200);
+        })();</script>
+      </body></html>`;
+  }, [rawHtml, widget.customCss, widget.id]);
+
   return (
     <div
       id={`safe-widget-${widget.id}`}
@@ -136,35 +171,28 @@ function SafeWidgetItem({ widget, position, page }: { widget: Widget; position: 
         <span className="absolute top-2 right-2 z-10 text-xs px-2 py-0.5 rounded-full bg-black/50 text-white border border-white/20 select-none" aria-label="Advertisement">Ad</span>
       )}
 
-      {(() => {
-        if (widget.externalLink && /^https?:\/\//i.test(widget.externalLink)) {
-          return (
-            <iframe
-              src={widget.externalLink}
-              className="w-full rounded-md"
-              sandbox="allow-scripts allow-popups allow-forms"
-              referrerPolicy="no-referrer"
-              loading="lazy"
-              height={300}
-            />
-          );
-        }
-        const rawHtml = (widget.body && widget.body.trim().length > 0) ? widget.body : widget.code;
-        const sanitized = DOMPurify.sanitize(rawHtml, {
-          USE_PROFILES: { html: true },
-          FORBID_TAGS: ['script'],
-          // Allow safe iframe embeds for whitelisted widget content
-          ADD_TAGS: ['iframe'],
-          ALLOWED_ATTR: [
-            'href','src','alt','title','target','rel','class','style','data-*','aria-*',
-            // Common iframe attributes
-            'width','height','loading','referrerpolicy','sandbox','frameborder','allow','allowfullscreen'
-          ],
-        } as any);
-        return (
-          <div dangerouslySetInnerHTML={{ __html: sanitized }} className="widget-content" />
-        );
-      })()}
+      {widget.externalLink && /^https?:\/\//i.test(widget.externalLink) ? (
+        <iframe
+          src={widget.externalLink}
+          className="w-full rounded-md"
+          sandbox="allow-scripts allow-popups allow-forms"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          height={iframeHeight}
+          style={{ background: 'transparent' }}
+        />
+      ) : (rawHtml ? (
+        <iframe
+          srcDoc={srcDoc}
+          className="w-full rounded-md"
+          sandbox="allow-scripts allow-popups allow-forms"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          height={iframeHeight}
+          style={{ background: 'transparent' }}
+          title={`Widget ${widget.name}`}
+        />
+      ) : null)}
     </div>
   );
 }

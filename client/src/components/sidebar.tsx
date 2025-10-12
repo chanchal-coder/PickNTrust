@@ -159,7 +159,7 @@ export default function Sidebar({ onCategoryChange, onPriceRangeChange, onRating
   };
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto block">
+    <div className="w-full md:w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto block">
       <div className="p-4 space-y-6">
         {/* Filters Header */}
         <div className="flex justify-between items-center">

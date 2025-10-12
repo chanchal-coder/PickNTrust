@@ -15,6 +15,8 @@ import AmazonProductCard from "@/components/amazon-product-card";
 import { useToast } from '@/hooks/use-toast';
 import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 interface Product {
   id: number | string;
@@ -97,6 +99,7 @@ export default function CuePicks() {
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const { data: hasWidgets } = useHasActiveWidgets('cue-picks');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Check admin status
   useEffect(() => {
@@ -243,6 +246,27 @@ export default function CuePicks() {
         <WidgetRenderer page={'cue-picks'} position="header-top" className="w-full" />
         
         <AnnouncementBanner />
+        {/* Mobile Filters Drawer */}
+        <div className="md:hidden px-4 pt-3">
+          <Button onClick={() => setFiltersOpen(true)} className="bg-teal-600 hover:bg-teal-700">
+            <i className="fas fa-sliders-h mr-2"/> Filters
+          </Button>
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetContent side="left" className="w-[85vw] sm:w-[22rem]">
+              <SheetHeader>
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <Sidebar 
+                  onCategoryChange={handleCategoryChange}
+                  onPriceRangeChange={handlePriceRangeChange}
+                  onRatingChange={handleRatingChange}
+                  availableCategories={availableCategories}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
         
         {/* Page Banner Slider */}
         <PageBanner page="cue-picks" />
@@ -252,13 +276,15 @@ export default function CuePicks() {
       
               {/* Main Content with Sidebar */}
               <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-                {/* Sidebar */}
-                <Sidebar 
-                  onCategoryChange={handleCategoryChange}
-                  onPriceRangeChange={handlePriceRangeChange}
-                  onRatingChange={handleRatingChange}
-                  availableCategories={availableCategories}
-                />
+                {/* Sidebar (desktop only) */}
+                <div className="hidden md:block">
+                  <Sidebar 
+                    onCategoryChange={handleCategoryChange}
+                    onPriceRangeChange={handlePriceRangeChange}
+                    onRatingChange={handleRatingChange}
+                    availableCategories={availableCategories}
+                  />
+                </div>
       
                 {/* Products Grid with overlay anchor */}
                 <div className="flex-1 p-6">
@@ -342,7 +368,7 @@ export default function CuePicks() {
               )
             ) : (
               <div className="relative">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="relative">
                     {/* Checkbox overlay for bulk delete mode */}

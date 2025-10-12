@@ -20,9 +20,9 @@ export default function Search() {
 
   return (
     <UniversalPageLayout pageId="search">
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 py-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-8">Search Products</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Search Products</h1>
               
               <div className="mb-8">
                 <input
@@ -30,13 +30,13 @@ export default function Search() {
                   placeholder="Search for products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                 />
               </div>
       
               {isLoading && (
                 <div className="text-center py-8">
-                  <div className="text-gray-600">Searching...</div>
+                  <div className="text-gray-600 dark:text-gray-300">Searching...</div>
                 </div>
               )}
       
@@ -97,7 +97,7 @@ export default function Search() {
 
         {searchTerm && searchResults && searchResults.length === 0 && !isLoading && (
           <div className="text-center py-8">
-            <div className="text-gray-600">No products found for "{searchTerm}"</div>
+            <div className="text-gray-600 dark:text-gray-300">No products found for "{searchTerm}"</div>
           </div>
         )}
         </div>

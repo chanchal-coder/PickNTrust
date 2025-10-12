@@ -1,6 +1,12 @@
 # Deploy Full PickNTrust App to EC2 (unified server)
-$keyPath = "C:\Users\sharm\.ssh\pnt08.pem"
-$server = "ec2-user@51.20.55.153"
+Param(
+  [string]$keyPath = "C:\Users\sharm\.ssh\pnt08.pem",
+  [string]$server = "ec2-user@51.20.55.153"
+)
+
+# Derive host for messages and API base
+$serverHost = $server
+if ($server -match "@") { $serverHost = ($server -split "@")[1] }
 
 Write-Host "Deploying PickNTrust application to EC2..."
 
@@ -47,4 +53,17 @@ echo 'PickNTrust application deployed successfully!'
 pm2 status
 "@
 
-Write-Host "Deployment complete! Your PickNTrust website should now be live at http://51.20.55.153"
+Write-Host ("Deployment complete! Your PickNTrust website should now be live at http://{0}" -f $serverHost)
+
+# Seed canonical form flags and verify counts on remote
+try {
+  $seedScript = Join-Path $PSScriptRoot 'scripts\deploy-seed-form-flags.ps1'
+  if (Test-Path $seedScript) {
+    Write-Host "Running form flags seeding on remote..." -ForegroundColor Yellow
+    & $seedScript -Server $server -KeyPath $keyPath -ApiBase ("http://{0}" -f $serverHost)
+  } else {
+    Write-Host "Seed script not found at $seedScript; skipping seeding step" -ForegroundColor Yellow
+  }
+} catch {
+  Write-Host ("Seeding step encountered an error: {0}" -f $_.Exception.Message) -ForegroundColor Red
+}

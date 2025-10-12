@@ -13,32 +13,56 @@ Write-Host "Seeding canonical form category flags on $Server" -ForegroundColor G
 $LocalSql = Join-Path $PSScriptRoot 'seed-form-flags.sql'
 if (-not (Test-Path $LocalSql)) { throw "Missing SQL file: $LocalSql" }
 
+# Ensure sqlite3 is available remotely and resolve DB path robustly
+Write-Host "Checking sqlite3 on remote and resolving DB path..." -ForegroundColor Yellow
+$installCmd = @'
+set -e
+if ! command -v sqlite3 >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -y && sudo apt-get install -y sqlite3 || true
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y sqlite || true
+  elif command -v yum >/dev/null 2>&1; then
+    sudo yum install -y sqlite || true
+  fi
+fi
+'@
+ssh -i $KeyPath -o StrictHostKeyChecking=no $Server $installCmd
+
+function Resolve-RemoteDbPath([string]$preferred) {
+  $candidates = @(
+    $preferred,
+    "/home/ec2-user/pickntrust/database.sqlite",
+    "/home/ec2-user/PickNTrust/database.sqlite",
+    "/home/ubuntu/pickntrust/database.sqlite",
+    "/home/ubuntu/PickNTrust/database.sqlite"
+  ) | Where-Object { $_ -and $_.Trim() -ne "" }
+
+  foreach ($p in $candidates) {
+    $testCmd = "bash -lc 'test -f " + $p + "'"
+    ssh -i $KeyPath -o StrictHostKeyChecking=no $Server $testCmd
+    if ($LASTEXITCODE -eq 0) { return $p }
+  }
+  return $preferred
+}
+
+$ResolvedDbPath = Resolve-RemoteDbPath -preferred $DbPath
+Write-Host "Using remote DB path: $ResolvedDbPath" -ForegroundColor Cyan
+
 # Copy SQL to remote tmp path
 Write-Host "Copying SQL to remote /tmp/seed-form-flags.sql..." -ForegroundColor Yellow
-scp -i $KeyPath -o StrictHostKeyChecking=no $LocalSql "$Server:/tmp/seed-form-flags.sql"
+scp -i $KeyPath -o StrictHostKeyChecking=no $LocalSql "${Server}:/tmp/seed-form-flags.sql"
 
-# Apply SQL to remote SQLite database
-Write-Host "Applying SQL to remote DB: $DbPath" -ForegroundColor Yellow
-$remoteApply = @'
-set -e
-DB_PATH="$1"
-if [ ! -f "$DB_PATH" ]; then
-  echo "ERROR: DB not found at $DB_PATH" >&2
-  exit 1
-fi
-if ! command -v sqlite3 >/dev/null 2>&1; then
-  echo "ERROR: sqlite3 not installed" >&2
-  exit 1
-fi
-sqlite3 "$DB_PATH" < /tmp/seed-form-flags.sql
-echo "Applied seed-form-flags.sql"
-echo "Counts (products, services, ai apps):"
-sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM categories WHERE is_for_products=1 AND parent_id IS NULL;"
-sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM categories WHERE is_for_services=1 AND parent_id IS NULL;"
-sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM categories WHERE is_for_ai_apps=1 AND parent_id IS NULL;"
-'@
+# Apply SQL to remote SQLite database (avoid complex quoting by piping)
+Write-Host "Applying SQL to remote DB: $ResolvedDbPath" -ForegroundColor Yellow
+ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "cat /tmp/seed-form-flags.sql | sqlite3 $ResolvedDbPath"
+if ($LASTEXITCODE -ne 0) { Write-Error "Failed to apply SQL to remote DB"; exit 1 }
 
-ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "bash -lc '$remoteApply' -- $DbPath"
+# Show counts (products, services, ai apps)
+Write-Host "Counts (products, services, ai apps):" -ForegroundColor Cyan
+ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "sqlite3 $ResolvedDbPath 'SELECT COUNT(*) FROM categories WHERE is_for_products=1 AND parent_id IS NULL;'"
+ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "sqlite3 $ResolvedDbPath 'SELECT COUNT(*) FROM categories WHERE is_for_services=1 AND parent_id IS NULL;'"
+ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "sqlite3 $ResolvedDbPath 'SELECT COUNT(*) FROM categories WHERE is_for_ai_apps=1 AND parent_id IS NULL;'"
 
 # Verify public API counts
 Write-Host "Verifying public API counts at $ApiBase..." -ForegroundColor Yellow
@@ -50,7 +74,7 @@ function Get-Count($url) {
     if ($data.data) { return ($data.data | Measure-Object).Count }
     return 0
   } catch {
-    Write-Host "Fetch error $url: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ("Fetch error {0}: {1}" -f $url, $_.Exception.Message) -ForegroundColor Red
     return -1
   }
 }

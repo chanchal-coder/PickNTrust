@@ -73,6 +73,7 @@ export default defineConfig({
     }
   },
   server: {
+    // Use a clean port to avoid collisions with other instances
     port: 5173,
     strictPort: true,
     host: true,

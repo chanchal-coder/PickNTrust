@@ -26,9 +26,11 @@ interface Banner {
 interface PageBannerProps {
   page: string;
   className?: string;
+  // Optional: override the banner button link for dynamic pages
+  overrideLinkUrl?: string;
 }
 
-export default function PageBanner({ page, className = '' }: PageBannerProps) {
+export default function PageBanner({ page, className = '', overrideLinkUrl }: PageBannerProps) {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [hiddenBanners, setHiddenBanners] = useState<Set<string>>(new Set());
@@ -324,14 +326,15 @@ export default function PageBanner({ page, className = '' }: PageBannerProps) {
 
   // Handle button click
   const handleButtonClick = (banner: Banner) => {
-    if (banner.linkUrl) {
-      if (banner.linkUrl.startsWith('http')) {
+    const targetUrl = overrideLinkUrl || banner.linkUrl;
+    if (targetUrl) {
+      if (targetUrl.startsWith('http')) {
         // External link
-        window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
       } else {
         // Internal link
         // Use proper navigation instead of direct window.location
-            window.location.href = banner.linkUrl;
+            window.location.href = targetUrl;
       }
     }
   };

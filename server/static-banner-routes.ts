@@ -8,7 +8,45 @@ import fs from 'fs';
 import path from 'path';
 
 const router = Router();
-const configPath = path.join(process.cwd(), 'client', 'src', 'config', 'banners.json');
+
+// Robust static config path resolution to handle different deployment CWDs
+function resolveStaticConfigPath(): string | null {
+  // Highest priority: explicit env override
+  const envPath = process.env.STATIC_BANNERS_PATH;
+  if (envPath) {
+    try {
+      if (fs.existsSync(envPath)) return envPath;
+      console.warn('[static-banners] STATIC_BANNERS_PATH set but file not found:', envPath);
+    } catch (e) {
+      console.warn('[static-banners] STATIC_BANNERS_PATH access error:', (e as any)?.message || e);
+    }
+  }
+
+  const candidates = [
+    // Relative to current working directory (PM2/systemd start location)
+    path.join(process.cwd(), 'client', 'src', 'config', 'banners.json'),
+    // Relative to compiled server directory
+    path.join(__dirname, '..', 'client', 'src', 'config', 'banners.json'),
+    // Common absolute deploy locations
+    '/home/ec2-user/pickntrust/client/src/config/banners.json',
+    '/var/www/pickntrust/client/src/config/banners.json',
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        if (process.env.DEBUG_BANNERS === '1') {
+          console.log('[static-banners] Using static config at:', p);
+        }
+        return p;
+      }
+    } catch {}
+  }
+  if (process.env.DEBUG_BANNERS === '1') {
+    console.warn('[static-banners] Static banner config not found. CWD:', process.cwd(), 'DIR:', __dirname);
+    console.warn('[static-banners] Checked candidates:', candidates);
+  }
+  return null;
+}
 
 // Middleware to verify admin access
 const verifyAdminAccess = (req: any, res: any, next: any) => {
@@ -25,7 +63,8 @@ const verifyAdminAccess = (req: any, res: any, next: any) => {
 // Get current static banner configuration
 router.get('/api/admin/banners/static-config', (req, res) => {
   try {
-    if (!fs.existsSync(configPath)) {
+    const configPath = resolveStaticConfigPath();
+    if (!configPath || !fs.existsSync(configPath)) {
       return res.status(404).json({ success: false, error: 'Banner config file not found' });
     }
     
@@ -54,7 +93,8 @@ router.post('/api/admin/banners/static-config', verifyAdminAccess, (req, res) =>
     }
     
     // Create backup of current config
-    if (fs.existsSync(configPath)) {
+    const configPath = resolveStaticConfigPath();
+    if (configPath && fs.existsSync(configPath)) {
       const backupPath = configPath.replace('.json', `.backup.${Date.now()}.json`);
       fs.copyFileSync(configPath, backupPath);
       
@@ -73,13 +113,14 @@ router.post('/api/admin/banners/static-config', verifyAdminAccess, (req, res) =>
     }
     
     // Ensure config directory exists
-    const configDir = path.dirname(configPath);
+    const configDir = path.dirname(configPath ?? path.join(process.cwd(), 'client', 'src', 'config', 'banners.json'));
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
     
     // Write new configuration
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    const targetPath = configPath ?? path.join(process.cwd(), 'client', 'src', 'config', 'banners.json');
+    fs.writeFileSync(targetPath, JSON.stringify(config, null, 2), 'utf8');
     
     console.log('✅ Static banner configuration updated successfully');
     res.json({ success: true, message: 'Banner configuration updated successfully' });
@@ -95,7 +136,8 @@ router.get('/api/banners/static/:page', (req, res) => {
   try {
     const { page } = req.params;
     
-    if (!fs.existsSync(configPath)) {
+    const configPath = resolveStaticConfigPath();
+    if (!configPath || !fs.existsSync(configPath)) {
       return res.status(404).json({ success: false, error: 'Banner config file not found' });
     }
     
@@ -124,8 +166,10 @@ router.post('/api/admin/banners/static/:page', verifyAdminAccess, (req, res) => 
     
     // Read current config
     let config = {};
-    if (fs.existsSync(configPath)) {
-      const configData = fs.readFileSync(configPath, 'utf8');
+    const configPath = resolveStaticConfigPath();
+    const targetPath = configPath ?? path.join(process.cwd(), 'client', 'src', 'config', 'banners.json');
+    if (configPath && fs.existsSync(targetPath)) {
+      const configData = fs.readFileSync(targetPath, 'utf8');
       config = JSON.parse(configData);
     }
     
@@ -144,7 +188,7 @@ router.post('/api/admin/banners/static/:page', verifyAdminAccess, (req, res) => 
     (config as any)[page].push(banner);
     
     // Save config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    fs.writeFileSync(targetPath, JSON.stringify(config, null, 2), 'utf8');
     
     res.json({ success: true, banner, message: 'Banner added successfully' });
   } catch (error) {
@@ -165,7 +209,8 @@ router.put('/api/admin/banners/static/:page/:id', verifyAdminAccess, (req, res) 
     }
     
     // Read current config
-    if (!fs.existsSync(configPath)) {
+    const configPath = resolveStaticConfigPath();
+    if (!configPath || !fs.existsSync(configPath)) {
       return res.status(404).json({ success: false, error: 'Banner config file not found' });
     }
     
@@ -203,7 +248,8 @@ router.delete('/api/admin/banners/static/:page/:id', verifyAdminAccess, (req, re
     const bannerId = parseInt(id);
     
     // Read current config
-    if (!fs.existsSync(configPath)) {
+    const configPath = resolveStaticConfigPath();
+    if (!configPath || !fs.existsSync(configPath)) {
       return res.status(404).json({ success: false, error: 'Banner config file not found' });
     }
     
@@ -235,7 +281,8 @@ router.delete('/api/admin/banners/static/:page/:id', verifyAdminAccess, (req, re
 // Get banner statistics
 router.get('/api/admin/banners/static/stats', (req, res) => {
   try {
-    if (!fs.existsSync(configPath)) {
+    const configPath = resolveStaticConfigPath();
+    if (!configPath || !fs.existsSync(configPath)) {
       return res.json({ 
         success: true, 
         stats: { totalBanners: 0, activePages: 0, inactivePages: 0, totalPages: 0 } 

@@ -8,7 +8,9 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 5000,
         DATABASE_URL: 'file:./database.sqlite',
-        FRONTEND_STATIC_DIR: '/home/ec2-user/pickntrust/dist/public'
+        FRONTEND_STATIC_DIR: '/home/ec2-user/pickntrust/dist/public',
+        STATIC_BANNERS_PATH: '/home/ec2-user/pickntrust/client/src/config/banners.json',
+        DEBUG_BANNERS: '1'
       },
       instances: 1,
       exec_mode: 'fork',

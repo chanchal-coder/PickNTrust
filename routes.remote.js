@@ -401,8 +401,24 @@ export function setupRoutes(app) {
             const bindings = {};
             // Query unified_content table for all pages with inclusive filters
             // Avoid overly strict is_active dependency since bot inserts may not set it
-            // Broaden status acceptance to include CSV-imported states used previously
-            query = `
+            // Build query; for Top Picks, be permissive and ignore status/visibility filters
+            if (page === 'top-picks') {
+                // Featured-only with broad truthy handling; exclude archived only
+                query = `
+        SELECT * FROM unified_content 
+        WHERE (
+          is_featured = 1 OR
+          CAST(is_featured AS TEXT) IN ('1','true','TRUE','yes','YES','y','Y') OR
+          COALESCE(is_featured, 0) = 1
+        )
+        AND (
+          processing_status != 'archived' OR processing_status IS NULL
+        )
+        ORDER BY created_at DESC, id DESC
+      `;
+            } else {
+                // Broaden status acceptance to include CSV-imported states used previously
+                query = `
         SELECT * FROM unified_content 
         WHERE (
           status IN ('active', 'published', 'ready', 'processed', 'completed') OR status IS NULL
@@ -414,32 +430,26 @@ export function setupRoutes(app) {
           processing_status != 'archived' OR processing_status IS NULL
         )
       `;
-            // Apply page-specific filtering
-            if (page === 'top-picks') {
-                // Featured Products: Show only products with is_featured=1
-                query += ` AND is_featured = 1`;
-            }
-            else if (page === 'services') {
-                // Services: Show only products with is_service=1
-                query += ` AND is_service = 1`;
-            }
-            else if (page === 'apps-ai-apps' || page === 'apps') {
-                // AI & Apps: Show only products with is_ai_app=1
-                query += ` AND is_ai_app = 1`;
-            }
-            else if (page === 'home' || page === 'main' || page === 'index') {
-                // Home page: use a minimal, highly compatible filter to avoid driver issues
-                // Keep placeholders minimal to prevent parameter mismatch errors in some SQLite drivers
-                query += ` AND (
+
+                // Page-specific filters (non Top Picks)
+                if (page === 'services') {
+                    // Services: Show only products with is_service=1
+                    query += ` AND is_service = 1`;
+                } else if (page === 'apps-ai-apps' || page === 'apps') {
+                    // AI & Apps: Show only products with is_ai_app=1
+                    query += ` AND is_ai_app = 1`;
+                } else if (page === 'home' || page === 'main' || page === 'index') {
+                    // Home page: use a minimal, highly compatible filter to avoid driver issues
+                    // Keep placeholders minimal to prevent parameter mismatch errors in some SQLite drivers
+                    query += ` AND (
           display_pages LIKE '%' || :page || '%' OR
           display_pages = :page
         )`;
-                bindings.page = page;
-            }
-            else {
-                // For all other pages, avoid JSON functions for maximum compatibility
-                // Match by string fields and normalized forms only
-                query += ` AND (
+                    bindings.page = page;
+                } else {
+                    // For all other pages, avoid JSON functions for maximum compatibility
+                    // Match by string fields and normalized forms only
+                    query += ` AND (
           display_pages LIKE '%' || :page || '%' OR
           display_pages = :page OR
           page_type = :page OR
@@ -447,7 +457,8 @@ export function setupRoutes(app) {
           REPLACE(LOWER(page_type), ' ', '-') = LOWER(:page) OR
           ((display_pages IS NULL OR display_pages = '') AND (:page = 'prime-picks' OR :page = 'global-picks'))
         )`;
-                bindings.page = page;
+                    bindings.page = page;
+                }
             }
             if (category && category !== 'all') {
                 query += ` AND category = :category`;
@@ -477,85 +488,9 @@ export function setupRoutes(app) {
             let rawProducts = await retryDatabaseOperation(() => {
                 return sqliteDb.prepare(query).all(bindings);
             });
-            // If unified_content returns no rows, fall back to legacy products table
+            // No legacy fallback: honor unified_content only
             if (!rawProducts || rawProducts.length === 0) {
-                try {
-                    let fallbackQuery = `
-            SELECT 
-              id,
-              name as title,
-              description,
-              price,
-              original_price as originalPrice,
-              currency,
-              image_url as imageUrl,
-              affiliate_url as affiliateUrl,
-              category,
-              is_featured as isFeatured,
-              created_at as createdAt,
-              tags,
-              page_type,
-              display_pages,
-              status,
-              visibility,
-              processing_status
-            FROM products
-            WHERE (
-              status IN ('active','published','ready','processed','completed') OR status IS NULL
-            )
-            AND (
-              visibility IN ('public','visible') OR visibility IS NULL
-            )
-            AND (
-              processing_status != 'archived' OR processing_status IS NULL
-            )
-          `;
-                    const fallbackParams = [];
-                    if (page === 'top-picks') {
-                        fallbackQuery += ` AND is_featured = 1`;
-                    }
-                    else if (page === 'services') {
-                        fallbackQuery += ` AND is_service = 1`;
-                    }
-                    else if (page === 'apps-ai-apps' || page === 'apps') {
-                        fallbackQuery += ` AND is_ai_app = 1`;
-                    }
-                    else {
-                        fallbackQuery += ` AND (
-              display_pages LIKE '%' || ? || '%' OR
-              display_pages = ? OR
-              page_type = ? OR
-              REPLACE(LOWER(display_pages), ' ', '-') LIKE '%' || LOWER(?) || '%' OR
-              REPLACE(LOWER(page_type), ' ', '-') = LOWER(?) OR
-              ((display_pages IS NULL OR display_pages = '') AND (? = 'prime-picks' OR ? = 'global-picks'))
-            )`;
-                        fallbackParams.push(page, page, page, page, page, page, page);
-                    }
-                    if (category && category !== 'all') {
-                        fallbackQuery += ` AND category = ?`;
-                        fallbackParams.push(category);
-                    }
-                    fallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-                    fallbackParams.push(parsedLimit, parsedOffset);
-                    // Defensive: trim fallback params to match placeholders
-                    const placeholderCountFb = (fallbackQuery.match(/\?/g) || []).length;
-                    const safeParamsFb = fallbackParams.slice(0, placeholderCountFb);
-                    if (fallbackParams.length !== placeholderCountFb) {
-                        console.warn(`[SQL] Fallback param count mismatch: have ${fallbackParams.length}, need ${placeholderCountFb}. Trimming.`);
-                    }
-                    const fb = await retryDatabaseOperation(() => {
-                        // Use array-based parameter passing for broader SQLite driver compatibility
-                        return sqliteDb.prepare(fallbackQuery).all(safeParamsFb);
-                    });
-                    if (fb && fb.length > 0) {
-                        rawProducts = fb;
-                        productsSource = 'products';
-                        console.log(`[SQL] Fallback applied: using products table for page "${page}"`);
-                    }
-                }
-                catch (fallbackErr) {
-                    console.warn('[SQL] Fallback query on products table failed:', fallbackErr?.message || fallbackErr);
-                }
+                console.log(`[SQL] No fallback in production: unified_content returned 0 rows for page "${page}"`);
             }
             // Transform the data to match the expected frontend format with error handling
             const products = rawProducts.map((product) => {

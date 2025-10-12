@@ -199,13 +199,18 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
     }
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (scrollContainerRef.current) {
+  // Attach non-passive wheel listener to enable preventDefault without warnings
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onWheel = (e: any) => {
       e.preventDefault();
-      scrollContainerRef.current.scrollLeft += e.deltaY;
+      el.scrollLeft += e.deltaY;
       checkScrollButtons();
-    }
-  };
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel as EventListener);
+  }, [videos]);
 
   useEffect(() => {
     checkScrollButtons();
@@ -330,7 +335,6 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
           </button>
           <div
             ref={scrollContainerRef}
-            onWheel={handleWheel}
             className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
             style={{ 
               scrollbarWidth: 'none', 

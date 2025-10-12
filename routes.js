@@ -175,16 +175,36 @@ export function setupRoutes(app) {
             console.log(`Getting products for page: "${page}"`);
             let query = '';
             const params = [];
-            // Query unified_content table for all pages
-            query = `
+            // Special handling: Top Picks should come from unified_content only
+            if (page === 'top-picks') {
+                // Use unified_content with robust status/visibility and featured-only filter
+                query = `
+        SELECT * FROM unified_content 
+        WHERE (
+          status IN ('active','published','ready','processed','completed') OR status IS NULL
+        )
+        AND (
+          visibility IN ('public','visible') OR visibility IS NULL
+        )
+        AND (
+          processing_status != 'archived' OR processing_status IS NULL
+        )
+        AND (
+          is_featured = 1
+        )
+      `;
+            }
+            else {
+                // Default: query unified_content for other pages
+                query = `
         SELECT * FROM unified_content 
         WHERE (status = 'completed' OR status = 'active' OR status = 'processed' OR status IS NULL)
         AND (visibility = 'public' OR visibility IS NULL)
       `;
+            }
             // Apply page-specific filtering
             if (page === 'top-picks') {
-                // Featured Products: Show only products with is_featured=1
-                query += ` AND is_featured = 1`;
+                // Already handled by unified_content selection above (is_featured or display_pages)
             }
             else if (page === 'services') {
                 // Services: Show only products with is_service=1
@@ -224,7 +244,8 @@ export function setupRoutes(app) {
                 query += ` AND category = ?`;
                 params.push(category);
             }
-            query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+            // Order and pagination
+            query += ` ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
             params.push(parsedLimit, parsedOffset);
             // Debug logging for SQL and params
             try {
@@ -242,15 +263,45 @@ export function setupRoutes(app) {
             catch (logErr) {
                 // Ignore logging errors
             }
-            const rawProducts = await retryDatabaseOperation(() => {
+            let rawProducts = await retryDatabaseOperation(() => {
                 return sqliteDb.prepare(query).all(...params);
             });
+
+            // Fallback specifically for Top Picks: broaden criteria if primary returns no rows
+            if (page === 'top-picks' && (!rawProducts || rawProducts.length === 0)) {
+                console.log('Top Picks primary query returned 0 rows. Applying fallback selection.');
+                const fallbackQuery = `
+          SELECT *
+          FROM unified_content
+          WHERE (
+            is_featured = 1 OR 
+            CAST(is_featured AS TEXT) IN ('1','true','TRUE','yes','YES','y','Y') OR
+            COALESCE(is_featured, 0) = 1 OR
+            display_pages LIKE '%top-picks%' OR
+            page_type = 'top-picks'
+          )
+          AND (
+            (SELECT COUNT(*) FROM pragma_table_info('unified_content') WHERE name='processing_status') = 0
+            OR (processing_status != 'archived' OR processing_status IS NULL)
+          )
+          ORDER BY created_at DESC, id DESC
+          LIMIT ? OFFSET ?
+        `;
+                try {
+                    rawProducts = await retryDatabaseOperation(() => {
+                        return sqliteDb.prepare(fallbackQuery).all(parsedLimit, parsedOffset);
+                    });
+                }
+                catch (fallbackErr) {
+                    console.warn('Top Picks fallback query failed:', fallbackErr);
+                }
+            }
             // Transform the data to match the expected frontend format with error handling
             const products = rawProducts.map((product) => {
                 try {
                     let transformedProduct = {
                         id: product.id,
-                        name: product.title || 'Untitled Product',
+                        name: product.title || product.name || 'Untitled Product',
                         description: product.description || 'No description available',
                         price: product.price,
                         originalPrice: product.originalPrice,
@@ -262,7 +313,8 @@ export function setupRoutes(app) {
                         reviewCount: product.reviewCount || 0,
                         discount: product.discount,
                         isNew: product.isNew === 1,
-                        isFeatured: product.isFeatured === 1,
+                        isFeatured: (product.isFeatured === 1) || (product.is_featured === 1),
+                        is_featured: (product.isFeatured === 1) || (product.is_featured === 1),
                         createdAt: product.createdAt
                     };
                     // Parse the content field if it exists and is valid JSON (fallback)
@@ -314,9 +366,12 @@ export function setupRoutes(app) {
                             console.warn(`Failed to parse affiliate_urls for product ${product.id}:`, e);
                         }
                     }
-                    // Fallback to affiliateUrl field if affiliate_urls is not available
+                    // Fallbacks for affiliate URL
                     if (!transformedProduct.affiliateUrl && product.affiliateUrl) {
                         transformedProduct.affiliateUrl = product.affiliateUrl;
+                    }
+                    if (!transformedProduct.affiliateUrl && product.affiliate_url) {
+                        transformedProduct.affiliateUrl = product.affiliate_url;
                     }
                     return transformedProduct;
                 }
@@ -338,6 +393,7 @@ export function setupRoutes(app) {
                         discount: null,
                         isNew: false,
                         isFeatured: false,
+                        is_featured: false,
                         createdAt: product.createdAt || new Date().toISOString()
                     };
                 }
@@ -422,25 +478,261 @@ export function setupRoutes(app) {
             handleDatabaseError(error, res, "fetch categories");
         }
     });
-    // Get products by category for a specific page
+    // Get products by category with robust matching and fallbacks
     app.get("/api/products/category/:category", async (req, res) => {
         try {
             const { category } = req.params;
-            const { page = 'home', limit = 50, offset = 0 } = req.query;
-            console.log(`Getting products for category: "${category}", page: "${page}"`);
-            const products = sqliteDb.prepare(`
-        SELECT * FROM unified_content 
-        WHERE category = ?
-        AND (display_pages LIKE '%' || ? || '%' OR display_pages IS NULL OR display_pages = '')
-        AND (status = 'active' OR status IS NULL)
-        AND is_active = 1
-        ORDER BY created_at DESC 
-        LIMIT ? OFFSET ?
-      `).all(category, page, parseInt(limit), parseInt(offset));
+            const { limit = 50, offset = 0 } = req.query;
+
+            console.log(`Getting products for category: "${category}"`);
+
+            // Normalize category and build token list for partial matching
+            const categoryLower = String(category || '').toLowerCase();
+            let tokens = categoryLower
+                .replace(/[^a-z0-9 &-]/g, ' ')
+                .split(/[\s&/-]+/)
+                .map(t => t.trim())
+                .filter(Boolean);
+
+            // Add common synonyms for popular categories to improve matching
+            const SYNONYM_TOKENS = {
+                // Smartphones and phones
+                'smartphones': ['smartphone', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                'smartphone': ['smartphones', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                // Laptops
+                'laptops': ['laptop', 'notebook', 'notebooks'],
+                'laptop': ['laptops', 'notebook', 'notebooks'],
+                // Earphones / Headphones
+                'earphones': ['earbud', 'earbuds', 'headphone', 'headphones', 'headset'],
+                'headphones': ['earphone', 'earphones', 'earbud', 'earbuds', 'headset'],
+                // TVs
+                'television': ['tv', 'smart tv', 'led tv', 'oled tv'],
+                'tv': ['television', 'smart tv', 'led tv', 'oled tv'],
+                // Cameras
+                'camera': ['cameras', 'dslr', 'mirrorless'],
+                'cameras': ['camera', 'dslr', 'mirrorless'],
+                // Generic electronics synonyms
+                'electronics': ['electronic', 'gadgets', 'tech']
+            };
+            const extraSynonyms = new Set();
+            for (const t of tokens) {
+                const syns = SYNONYM_TOKENS[t];
+                if (Array.isArray(syns)) {
+                    for (const s of syns) extraSynonyms.add(s);
+                }
+            }
+            if (extraSynonyms.size > 0) {
+                tokens = Array.from(new Set([...tokens, ...extraSynonyms]));
+            }
+
+            // Special handling for canonical categories with broad inclusion
+            const isAppsCategory = [
+                'apps & ai apps', 'apps', 'ai apps', 'ai apps & services'
+            ].includes(categoryLower);
+            const isServicesCategory = [
+                'services', 'service', 'technology services'
+            ].includes(categoryLower);
+
+            let query = '';
+            const params = [];
+
+            if (isAppsCategory) {
+                query = `
+          SELECT * FROM unified_content
+          WHERE (
+            is_ai_app = 1
+            OR content_type IN ('app','ai-app')
+            OR category LIKE '%app%'
+            OR category LIKE '%App%'
+            OR category LIKE '%AI%'
+          )
+            AND (
+              status = 'active' OR status = 'published' OR status IS NULL
+            )
+            AND (
+              visibility IN ('public','visible') OR visibility IS NULL
+            )
+            AND (
+              processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
+            )
+        `;
+            } else if (isServicesCategory) {
+                query = `
+          SELECT * FROM unified_content
+          WHERE (
+            is_service = 1
+            OR content_type = 'service'
+            OR category LIKE '%service%'
+            OR category LIKE '%Service%'
+          )
+            AND (
+              status = 'active' OR status = 'published' OR status IS NULL
+            )
+            AND (
+              visibility IN ('public','visible') OR visibility IS NULL
+            )
+            AND (
+              processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
+            )
+        `;
+            } else {
+                // Default: exact match first, then broaden by tokens across category/subcategory/tags
+                query = `
+          SELECT * FROM unified_content
+          WHERE (
+            LOWER(category) = LOWER(?)
+            OR ${tokens.map(() => `LOWER(category) LIKE '%' || ? || '%'`).join(' OR ')}
+            OR ${tokens.map(() => `LOWER(subcategory) LIKE '%' || ? || '%'`).join(' OR ')}
+            OR ${tokens.map(() => `LOWER(tags) LIKE '%' || ? || '%'`).join(' OR ')}
+          )
+            AND (
+              status = 'active' OR status = 'published' OR status IS NULL
+            )
+            AND (
+              visibility IN ('public','visible') OR visibility IS NULL
+            )
+            AND (
+              processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
+            )
+        `;
+                params.push(category);
+                // Push tokens for category, subcategory, and tags (triplets)
+                for (const t of tokens) {
+                    params.push(t);
+                }
+                for (const t of tokens) {
+                    params.push(t);
+                }
+                for (const t of tokens) {
+                    params.push(t);
+                }
+            }
+
+            query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+            params.push(parseInt(String(limit)), parseInt(String(offset)));
+
+            let products = sqliteDb.prepare(query).all(...params);
+
+            // Fallbacks
+            if (!products || products.length === 0) {
+                if (isServicesCategory) {
+                    console.log('Services category empty. Applying inclusive fallback selection.');
+                    let fallbackQuery = `
+            SELECT * FROM unified_content
+            WHERE (
+              is_service = 1
+              OR category LIKE '%service%'
+              OR category LIKE '%Service%'
+              OR content_type = 'service'
+            )
+              AND (
+                status = 'active' OR status = 'published' OR status IS NULL
+              )
+              AND (
+                visibility IN ('public','visible') OR visibility IS NULL
+              )
+              AND (
+                processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
+              )
+          `;
+                    const fParams = [];
+                    fallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+                    fParams.push(parseInt(String(limit)), parseInt(String(offset)));
+                    products = sqliteDb.prepare(fallbackQuery).all(...fParams);
+                } else if (isAppsCategory) {
+                    console.log('Apps category empty. Applying inclusive fallback selection.');
+                    let fallbackQuery = `
+            SELECT * FROM unified_content
+            WHERE (
+              is_ai_app = 1
+              OR category LIKE '%app%'
+              OR category LIKE '%App%'
+              OR category LIKE '%AI%'
+              OR content_type IN ('app','ai-app')
+            )
+              AND (
+                status = 'active' OR status = 'published' OR status IS NULL
+              )
+              AND (
+                visibility IN ('public','visible') OR visibility IS NULL
+              )
+              AND (
+                processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
+              )
+          `;
+                    const fParams = [];
+                    fallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+                    fParams.push(parseInt(String(limit)), parseInt(String(offset)));
+                    products = sqliteDb.prepare(fallbackQuery).all(...fParams);
+                } else {
+                    // Parent-category fallback: include children if requested category is a parent
+                    try {
+                        const parentRow = sqliteDb.prepare(
+                            `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                        ).get(category);
+
+                        let targetParentId = parentRow?.id;
+                        if (!targetParentId) {
+                            // Try synonyms to canonical mapping (common variants)
+                            const SYNONYMS_TO_CANONICAL = {
+                                'electronics': 'Electronics & Gadgets',
+                                'tech': 'Electronics & Gadgets',
+                                'technology': 'Electronics & Gadgets',
+                                'home & kitchen': 'Home & Living',
+                                'home and kitchen': 'Home & Living',
+                                'beauty & personal care': 'Beauty',
+                                'personal care': 'Beauty',
+                                'apps and ai apps': 'Apps & AI Apps',
+                                'ai apps': 'Apps & AI Apps',
+                                'services': 'Services'
+                            };
+                            const canonical = SYNONYMS_TO_CANONICAL[categoryLower];
+                            if (canonical) {
+                                const row = sqliteDb.prepare(
+                                    `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                                ).get(canonical);
+                                targetParentId = row?.id;
+                            }
+                        }
+
+                        if (targetParentId) {
+                            const childRows = sqliteDb.prepare(
+                                `SELECT name FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY display_order ASC, name ASC`
+                            ).all(targetParentId);
+                            const childNames = (childRows || []).map(r => r.name).filter(Boolean);
+
+                            if (childNames.length > 0) {
+                                const placeholders = childNames.map(() => '?').join(',');
+                                let parentFallbackQuery = `
+                    SELECT * FROM unified_content
+                    WHERE (
+                      category IN (${placeholders})
+                      OR subcategory IN (${placeholders})
+                    )
+                      AND (
+                        status = 'active' OR status = 'published' OR status IS NULL
+                      )
+                      AND (
+                        visibility IN ('public','visible') OR visibility IS NULL
+                      )
+                      AND (
+                        processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
+                      )
+                  `;
+                                parentFallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+                                const pParams = [...childNames, ...childNames, parseInt(String(limit)), parseInt(String(offset))];
+                                products = sqliteDb.prepare(parentFallbackQuery).all(...pParams);
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Parent-category fallback failed:', e);
+                    }
+                }
+            }
+
             console.log(`Found ${products.length} products for category "${category}"`);
             res.json(products);
-        }
-        catch (error) {
+        } catch (error) {
             console.error('Error fetching products by category:', error);
             res.status(500).json({ message: 'Failed to fetch products by category' });
         }
@@ -520,6 +812,108 @@ export function setupRoutes(app) {
         catch (error) {
             console.error('Error fetching categories:', error);
             res.status(500).json({ message: 'Failed to fetch categories' });
+        }
+    });
+
+    // Subcategories for a given parent category name (robust, with canonical mapping and fallback)
+    app.get('/api/categories/subcategories', async (req, res) => {
+        try {
+            const parent = (req.query && req.query.parent) ? req.query.parent : '';
+            const parentInput = String(parent || '').trim();
+            if (!parentInput) {
+                return res.json([]);
+            }
+
+            const parentLower = parentInput.toLowerCase();
+            // Common synonyms mapped to canonical parent names in DB
+            const SYNONYMS_TO_CANONICAL = {
+                // Electronics
+                'electronics': 'Electronics & Gadgets',
+                'tech': 'Electronics & Gadgets',
+                'technology': 'Electronics & Gadgets',
+                // Home & Living
+                'home & kitchen': 'Home & Living',
+                'home and kitchen': 'Home & Living',
+                // Beauty
+                'beauty & personal care': 'Beauty',
+                'personal care': 'Beauty',
+                // Apps
+                'apps and ai apps': 'Apps & AI Apps',
+                'ai apps': 'Apps & AI Apps',
+                // Services
+                'services': 'Services',
+            };
+
+            // Try exact/case-insensitive parent lookup
+            let parentRow = sqliteDb.prepare(
+                `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+            ).get(parentInput);
+
+            // Try canonical mapping if not found
+            if (!(parentRow && parentRow.id)) {
+                const canonical = SYNONYMS_TO_CANONICAL[parentLower];
+                if (canonical) {
+                    parentRow = sqliteDb.prepare(
+                        `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                    ).get(canonical);
+                }
+            }
+
+            // If parent exists in categories table, return its children
+            if (parentRow && parentRow.id) {
+                const subcats = sqliteDb.prepare(
+                    `SELECT name, name as id, icon, color, description
+                     FROM categories
+                     WHERE parent_id = ? AND is_active = 1
+                     ORDER BY display_order ASC, name ASC`
+                ).all(parentRow.id);
+
+                if (Array.isArray(subcats) && subcats.length > 0) {
+                    return res.json(subcats);
+                }
+            }
+
+            // Fallback: derive subcategories from unified_content when categories table has no children
+            const tokens = parentLower.split(/[&/,\-,\s]+/).map(t => t.trim()).filter(Boolean);
+            let q = `
+                SELECT DISTINCT COALESCE(NULLIF(subcategory,''), category) as name
+                FROM unified_content
+                WHERE (status = 'active' OR status = 'published' OR status = 'completed' OR status IS NULL)
+                  AND (visibility = 'public' OR visibility = 'visible' OR visibility IS NULL)
+            `;
+            const params = [];
+            // Base match: exact category
+            q += ` AND (LOWER(category) = LOWER(?))`;
+            params.push(parentInput);
+            // Canonical exact match
+            const canonical = SYNONYMS_TO_CANONICAL[parentLower];
+            if (canonical) {
+                q += ` OR LOWER(category) = LOWER(?)`;
+                params.push(canonical);
+            }
+            // Token partials to catch variants
+            for (const t of tokens) {
+                q += ` OR LOWER(category) LIKE ?`;
+                params.push(`%${t}%`);
+            }
+            // Exclude parent names themselves from the derived list
+            q += ` AND LOWER(COALESCE(NULLIF(subcategory,''), category)) != LOWER(?)`;
+            params.push(parentInput);
+            if (canonical) {
+                q += ` AND LOWER(COALESCE(NULLIF(subcategory,''), category)) != LOWER(?)`;
+                params.push(canonical);
+            }
+            q += ` ORDER BY name ASC LIMIT 100`;
+
+            const rows = sqliteDb.prepare(q).all(...params);
+            const derived = (rows || [])
+                .map(r => ({ name: r.name, id: r.name }))
+                .filter(r => r.name && r.name.trim() !== '');
+
+            return res.json(derived);
+        } catch (error) {
+            console.error('Error fetching subcategories:', error);
+            res.status(500).json({ message: 'Failed to fetch subcategories' });
         }
     });
     // Browse categories endpoint - only shows categories with products
@@ -751,23 +1145,35 @@ export function setupRoutes(app) {
             params.push(parsedLimit, parsedOffset);
             const products = await retryDatabaseOperation(() => sqliteDb.prepare(query).all(...params));
             // Transform data for frontend
-            const transformedProducts = products.map((product) => ({
-                id: product.id,
-                name: product.title, // Use title as name
-                description: product.description || '',
-                price: product.price || '0',
-                originalPrice: product.originalPrice,
-                currency: product.currency || 'USD',
-                imageUrl: product.image_url || '/api/placeholder/300/300',
-                affiliateUrl: product.affiliate_url || '',
-                category: product.category || 'Uncategorized',
-                subcategory: product.subcategory || '',
-                rating: product.rating || '0',
-                reviewCount: product.reviewCount || 0,
-                discount: product.discount || 0,
-                isFeatured: product.isFeatured,
-                createdAt: product.createdAt
-            }));
+            const transformedProducts = products.map((product) => {
+                const featured = (() => {
+                    const v = typeof product.is_featured !== 'undefined' ? product.is_featured : product.isFeatured;
+                    if (typeof v === 'number') return v === 1;
+                    if (typeof v === 'string') {
+                        const s = v.trim().toLowerCase();
+                        return s === '1' || s === 'true' || s === 'yes' || s === 'y' || s === 'on';
+                    }
+                    return Boolean(v);
+                })();
+                return {
+                    id: product.id,
+                    name: product.title, // Use title as name
+                    description: product.description || '',
+                    price: product.price || '0',
+                    originalPrice: product.originalPrice,
+                    currency: product.currency || 'USD',
+                    imageUrl: product.image_url || '/api/placeholder/300/300',
+                    affiliateUrl: product.affiliate_url || '',
+                    category: product.category || 'Uncategorized',
+                    subcategory: product.subcategory || '',
+                    rating: product.rating || '0',
+                    reviewCount: product.reviewCount || 0,
+                    discount: product.discount || 0,
+                    isFeatured: featured,
+                    is_featured: featured,
+                    createdAt: product.createdAt
+                };
+            });
             res.json(transformedProducts);
         }
         catch (error) {
@@ -788,7 +1194,36 @@ export function setupRoutes(app) {
         LIMIT 10
       `).all();
             console.log(`Featured Products: Returning ${featuredProducts.length} featured products`);
-            res.json(featuredProducts);
+            const transformed = featuredProducts.map((product) => {
+                const featured = (() => {
+                    const v = typeof product.is_featured !== 'undefined' ? product.is_featured : product.isFeatured;
+                    if (typeof v === 'number') return v === 1;
+                    if (typeof v === 'string') {
+                        const s = v.trim().toLowerCase();
+                        return s === '1' || s === 'true' || s === 'yes' || s === 'y' || s === 'on';
+                    }
+                    return Boolean(v);
+                })();
+                return {
+                    id: product.id,
+                    name: product.title,
+                    description: product.description || '',
+                    price: product.price || '0',
+                    originalPrice: product.originalPrice,
+                    currency: product.currency || 'USD',
+                    imageUrl: product.image_url || '/api/placeholder/300/300',
+                    affiliateUrl: product.affiliate_url || '',
+                    category: product.category || 'Uncategorized',
+                    subcategory: product.subcategory || '',
+                    rating: product.rating || '0',
+                    reviewCount: product.reviewCount || 0,
+                    discount: product.discount || 0,
+                    isFeatured: featured,
+                    is_featured: featured,
+                    createdAt: product.createdAt
+                };
+            });
+            res.json(transformed);
         }
         catch (error) {
             console.error('Error fetching featured products:', error);

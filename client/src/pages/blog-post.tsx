@@ -6,6 +6,7 @@ import WidgetRenderer from '@/components/WidgetRenderer';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
+import ScrollNavigation from '@/components/scroll-navigation';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import { Loader2, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin, Link2, Tag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -361,6 +362,7 @@ export default function BlogPostPage() {
                       }
                       return url;
                     })();
+                    // Use the dedicated PDF viewer (iframe) as before
                     return (
                       <iframe
                         src={`/pdf-viewer.html?file=${encodeURIComponent(fileForViewer)}`}
@@ -437,6 +439,8 @@ export default function BlogPostPage() {
       <WidgetRenderer page={'blog-post'} position="footer-top" />
       <WidgetRenderer page={'blog-post'} position="footer-bottom" />
       <Footer />
+      {/* Fixed Elements */}
+      <ScrollNavigation />
     </div>
   );
 }

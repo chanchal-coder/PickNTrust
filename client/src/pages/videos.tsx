@@ -249,15 +249,20 @@ export default function VideosPage() {
     el.scrollBy({ left: delta, behavior: 'smooth' });
   };
 
-  const handleWheel = (e: any) => {
-    // Translate vertical wheel to horizontal scroll for grid view
+  // Attach non-passive wheel listener to enable preventDefault without warnings
+  useEffect(() => {
+    if (viewMode !== 'grid') return;
     const el = scrollContainerRef.current;
     if (!el) return;
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-      el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
-      e.preventDefault();
-    }
-  };
+    const onWheel = (e: any) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+        e.preventDefault();
+        el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel as EventListener);
+  }, [viewMode, filteredVideos]);
 
   if (isLoading) {
     return (
@@ -518,9 +523,8 @@ export default function VideosPage() {
               )}
               <div
                 ref={scrollContainerRef}
-                onWheel={viewMode === 'grid' ? handleWheel : undefined}
                 className={viewMode === 'grid' ? 'overflow-x-auto scrollbar-hide flex gap-8 pb-2' : 'space-y-8'}
-                style={viewMode === 'grid' ? { scrollBehavior: 'smooth' } : undefined}
+                style={viewMode === 'grid' ? { scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' } : undefined}
               >
               {filteredVideos.map((video: VideoContent, index: number) => {
                 const videoInfo = getVideoInfo(video.videoUrl, video.platform);

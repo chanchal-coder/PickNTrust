@@ -16,7 +16,7 @@ import {
   Calendar, TrendingUp, Shield, AlertTriangle, CheckCircle,
   Play, Pause, Settings, Activity, Timer, Workflow, Plus,
   Palette, Share2, Instagram, Facebook, MessageCircle, Send,
-  Twitter, Camera, Video, Image, Hash, Type, Clock3
+  Twitter, Camera, Video, Image, Hash, Type
 } from 'lucide-react';
 
 interface AutomationTask {
@@ -457,6 +457,54 @@ export default function AutomationManagement() {
     }
   });
 
+  // Backfill Canva Posts - filters and trigger
+  const [backfillContentType, setBackfillContentType] = useState<string>('');
+  const [backfillPageType, setBackfillPageType] = useState<string>('');
+  const [backfillCategory, setBackfillCategory] = useState<string>('');
+  const [backfillIsFeatured, setBackfillIsFeatured] = useState<boolean>(false);
+  const [backfillLimit, setBackfillLimit] = useState<number>(50);
+  const [backfillLoading, setBackfillLoading] = useState<boolean>(false);
+
+  const triggerBackfill = async () => {
+    try {
+      setBackfillLoading(true);
+      const password = getAdminPassword();
+      const payload: any = {
+        password,
+        platforms: canvaSettings.platforms || [],
+        caption: canvaSettings.defaultCaption || '',
+        hashtags: canvaSettings.defaultHashtags || ''
+      };
+      if (backfillContentType) payload.contentType = backfillContentType;
+      if (backfillPageType) payload.pageType = backfillPageType;
+      if (backfillCategory) payload.category = backfillCategory;
+      payload.isFeatured = !!backfillIsFeatured;
+      payload.limit = Number(backfillLimit) || 50;
+
+      const res = await fetch('/api/admin/canva/backfill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Failed to enqueue backfill');
+      }
+      toast({
+        title: 'Backfill Enqueued',
+        description: `Enqueued ${data.enqueued || 0}, skipped ${data.skipped || 0}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Backfill Failed',
+        description: error.message || 'Could not enqueue backfill posts.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
+
   // Update local state when data is fetched
   useEffect(() => {
     if (canvaSettingsData && !updateCanvaSettingsMutation.isPending) {
@@ -707,6 +755,20 @@ export default function AutomationManagement() {
                     className="data-[state=checked]:bg-green-500"
                     disabled={updateCanvaSettingsMutation.isPending}
                   />
+                </div>
+                <div className="mt-4">
+                  <Button
+                    onClick={triggerBackfill}
+                    disabled={backfillLoading}
+                    className="bg-white text-pink-600 hover:bg-pink-50 border-0"
+                  >
+                    {backfillLoading ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 mr-2" />
+                    )}
+                    Enqueue Backfill Posts
+                  </Button>
                 </div>
               </div>
 
@@ -1121,6 +1183,43 @@ export default function AutomationManagement() {
                        disabled={updateCanvaSettingsMutation.isPending}
                      />
                   </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-black mb-2 block">Page Type</Label>
+                    <Input
+                      placeholder="e.g. home, services, deals"
+                      value={backfillPageType}
+                      onChange={(e) => setBackfillPageType(e.target.value)}
+                      className="bg-white/20 border-white/30 text-black placeholder:text-gray-600 focus:bg-white/30 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-black mb-2 block">Category</Label>
+                    <Input
+                      placeholder="e.g. electronics, fashion"
+                      value={backfillCategory}
+                      onChange={(e) => setBackfillCategory(e.target.value)}
+                      className="bg-white/20 border-white/30 text-black placeholder:text-gray-600 focus:bg-white/30 transition-colors"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Label className="text-sm font-semibold text-black">Featured Only</Label>
+                    <Switch
+                      checked={backfillIsFeatured}
+                      onCheckedChange={setBackfillIsFeatured}
+                      className="data-[state=checked]:bg-pink-500"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-black mb-2 block">Max Posts</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={backfillLimit}
+                      onChange={(e) => setBackfillLimit(Math.max(1, Math.min(500, Number(e.target.value || 0))))}
+                      className="bg-white/20 border-white/30 text-black placeholder:text-gray-600 focus:bg-white/30 transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1152,7 +1251,26 @@ export default function AutomationManagement() {
                   </Button>
                 </div>
               </div>
-            </div>
+              {/* Step 5: Backfill Canva Posts */}
+              <div className="bg-white/15 backdrop-blur-sm p-4 rounded-lg border border-white/30 shadow-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="bg-white text-pink-600 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow-md">5</div>
+                 <h4 className="font-bold text-black text-base">Backfill Canva Posts</h4>
+                </div>
+                <p className="text-sm text-black font-medium mb-3">Select filters and enqueue pending posts for selected platforms.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-sm font-semibold text-black mb-2 block">Content Type</Label>
+                    <Input
+                      placeholder="e.g. product, blog, video"
+                      value={backfillContentType}
+                      onChange={(e) => setBackfillContentType(e.target.value)}
+                      className="bg-white/20 border-white/30 text-black placeholder:text-gray-600 focus:bg-white/30 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+              </div>
           )}
         </CardContent>
       </Card>

@@ -24,17 +24,20 @@ import {
 
 // Universal Subcategories Component - Works for any category
 function UniversalSubcategoriesSection({ categoryName }: { categoryName: string }) {
-  const { data: categories = [] } = useQuery({
-    queryKey: ['/api/categories/browse'],
-    queryFn: () => fetch('/api/categories/browse').then(res => res.json()),
+  // Fetch subcategories directly for the current category
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ['/api/categories/subcategories', categoryName],
+    queryFn: async () => {
+      const url = `/api/categories/subcategories?parent=${encodeURIComponent(categoryName)}`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: Boolean(categoryName?.trim()),
   });
 
-  // Find the current category and its subcategories
-  const currentCategory = categories.find((cat: any) => cat.name === categoryName);
-  const subcategories = categories.filter((cat: any) => cat.parentId === currentCategory?.id);
-
-  // Don't render if no category found or no subcategories
-  if (!currentCategory || subcategories.length === 0) {
+  // Don't render if no subcategories
+  if (!Array.isArray(subcategories) || subcategories.length === 0) {
     return null;
   }
 
@@ -219,6 +222,20 @@ export default function CategoryPage() {
     enabled: !!category,
   });
 
+  // Fetch subcategories for current category to decide rendering behavior
+  const { data: subcategoriesForCurrent = [] } = useQuery({
+    queryKey: ['/api/categories/subcategories', decodedCategory],
+    queryFn: async () => {
+      const url = `/api/categories/subcategories?parent=${encodeURIComponent(decodedCategory)}`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: Boolean(decodedCategory?.trim()),
+  });
+
+  const hasSubcategories = Array.isArray(subcategoriesForCurrent) && subcategoriesForCurrent.length > 0;
+
   // Filter and sort products based on user selections
   const filteredProducts = useMemo(() => {
     let filtered = [...allProducts];
@@ -290,7 +307,7 @@ export default function CategoryPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header Top above dynamic banner */}
         <WidgetRenderer page={'categories'} position="header-top" className="w-full" />
-        <PageBanner page="categories" />
+        <PageBanner page="categories" overrideLinkUrl={`${typeof window !== 'undefined' ? window.location.pathname + window.location.search : `/category/${encodeURIComponent(category || '')}`}`} />
         {/* Header Bottom below dynamic banner */}
         <WidgetRenderer page={'categories'} position="header-bottom" className="w-full" />
         <div className="flex items-center justify-center py-16">
@@ -308,7 +325,7 @@ export default function CategoryPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header Top above dynamic banner */}
         <WidgetRenderer page={'categories'} position="header-top" className="w-full" />
-        <PageBanner page="categories" />
+        <PageBanner page="categories" overrideLinkUrl={`${typeof window !== 'undefined' ? window.location.pathname + window.location.search : `/category/${encodeURIComponent(category || '')}`}`} />
         {/* Header Bottom below dynamic banner */}
         <WidgetRenderer page={'categories'} position="header-bottom" className="w-full" />
         <div className="flex items-center justify-center py-16">
@@ -332,72 +349,86 @@ export default function CategoryPage() {
       <div className="header-spacing">
       
       <CategoryNavigation currentCategory={category || ''} />
+
+      {/* Show subcategory cards for parent categories */}
+      <UniversalSubcategoriesSection categoryName={decodedCategory} />
       
+      {/* Only show product filters and grid when there are no subcategories */}
+      {!hasSubcategories && (
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Enhanced Filter Controls */}
           <div className="mb-8 bg-gradient-to-r from-white via-gray-50 to-white dark:from-gray-800 dark:via-gray-750 dark:to-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
+            <div className="flex items-center gap-3">
               {/* Filter Section */}
-              <div className="flex flex-wrap gap-4 items-center flex-1">
+              <div className="flex flex-nowrap gap-3 items-center flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap pr-16 pl-1 pb-3 min-w-0">
                 {/* Network Filter */}
-                <div className="flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+                <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-network-wired text-blue-500 text-sm"></i>
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Network</label>
                   </div>
-                  <select 
-                    value={selectedNetwork} 
-                    onChange={(e) => setSelectedNetwork(e.target.value)}
-                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[120px] [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
-                  >
-                    <option value="all">All Networks</option>
-                    {availableNetworks.map((network: string) => (
-                      <option key={String(network)} value={String(network)}>
-                        {getNetworkDisplayName(network)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={selectedNetwork} 
+                      onChange={(e) => setSelectedNetwork(e.target.value)}
+                      className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[120px] appearance-none pr-7 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                    >
+                      <option value="all">All Networks</option>
+                      {availableNetworks.map((network: string) => (
+                        <option key={String(network)} value={String(network)}>
+                          {getNetworkDisplayName(network)}
+                        </option>
+                      ))}
+                    </select>
+                    <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+                  </div>
                 </div>
                 
                 {/* Sort Filter */}
-                <div className="flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+                <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-sort text-green-500 text-sm"></i>
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sort</label>
                   </div>
-                  <select 
-                    value={sortBy} 
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[140px] [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
-                  >
-                    <option value="relevance">Relevance</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="newest">Newest First</option>
-                    <option value="discount">Best Discount</option>
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={sortBy} 
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[130px] appearance-none pr-7 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                    >
+                      <option value="relevance">Relevance</option>
+                      <option value="price-low">Price: Low to High</option>
+                      <option value="price-high">Price: High to Low</option>
+                      <option value="rating">Highest Rated</option>
+                      <option value="newest">Newest First</option>
+                      <option value="discount">Best Discount</option>
+                    </select>
+                    <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+                  </div>
                 </div>
                 
                 {/* Currency Filter */}
-                <div className="flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+                <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-coins text-purple-500 text-sm"></i>
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Currency</label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select 
-                      value={selectedCurrency} 
-                      onChange={(e) => setSelectedCurrency(e.target.value)}
-                      className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[100px] [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
-                    >
-                      <option value="all">All Currencies</option>
-                      <option value="INR">₹ Indian Rupee</option>
-                      <option value="USD">$ US Dollar</option>
-                      <option value="EUR">€ Euro</option>
-                      <option value="GBP">£ British Pound</option>
-                    </select>
+                    <div className="relative">
+                      <select 
+                        value={selectedCurrency} 
+                        onChange={(e) => setSelectedCurrency(e.target.value)}
+                        className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[100px] appearance-none pr-7 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                      >
+                        <option value="all">All Currencies</option>
+                        <option value="INR">₹ Indian Rupee</option>
+                        <option value="USD">$ US Dollar</option>
+                        <option value="EUR">€ Euro</option>
+                        <option value="GBP">£ British Pound</option>
+                      </select>
+                      <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+                    </div>
                     {selectedCurrency !== 'all' && (
                       <button
                         onClick={() => setConvertPrices(!convertPrices)}
@@ -415,52 +446,57 @@ export default function CategoryPage() {
                 </div>
                 
                 {/* Price Range Filter */}
-                <div className="flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+                <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-tag text-orange-500 text-sm"></i>
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Price</label>
                   </div>
-                  <select 
-                    value={priceRange} 
-                    onChange={(e) => setPriceRange(e.target.value)}
-                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[140px] [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
-                  >
-                    <option value="all">All Prices</option>
-                    {selectedCurrency === 'USD' ? (
-                      <>
-                        <option value="0-25">Under $25</option>
-                        <option value="25-100">$25 - $100</option>
-                        <option value="100-500">$100 - $500</option>
-                        <option value="500">Above $500</option>
-                      </>
-                    ) : selectedCurrency === 'EUR' ? (
-                      <>
-                        <option value="0-20">Under €20</option>
-                        <option value="20-100">€20 - €100</option>
-                        <option value="100-400">€100 - €400</option>
-                        <option value="400">Above €400</option>
-                      </>
-                    ) : selectedCurrency === 'GBP' ? (
-                      <>
-                        <option value="0-20">Under £20</option>
-                        <option value="20-100">£20 - £100</option>
-                        <option value="100-400">£100 - £400</option>
-                        <option value="400">Above £400</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="0-1000">Under ₹1,000</option>
-                        <option value="1000-5000">₹1,000 - ₹5,000</option>
-                        <option value="5000-20000">₹5,000 - ₹20,000</option>
-                        <option value="20000">Above ₹20,000</option>
-                      </>
-                    )}
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={priceRange} 
+                      onChange={(e) => setPriceRange(e.target.value)}
+                      className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[150px] appearance-none pr-8 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                    >
+                      <option value="all">All Prices</option>
+                      {selectedCurrency === 'USD' ? (
+                        <>
+                          <option value="0-25">Under $25</option>
+                          <option value="25-100">$25 - $100</option>
+                          <option value="100-500">$100 - $500</option>
+                          <option value="500">Above $500</option>
+                        </>
+                      ) : selectedCurrency === 'EUR' ? (
+                        <>
+                          <option value="0-20">Under €20</option>
+                          <option value="20-100">€20 - €100</option>
+                          <option value="100-400">€100 - €400</option>
+                          <option value="400">Above €400</option>
+                        </>
+                      ) : selectedCurrency === 'GBP' ? (
+                        <>
+                          <option value="0-20">Under £20</option>
+                          <option value="20-100">£20 - £100</option>
+                          <option value="100-400">£100 - £400</option>
+                          <option value="400">Above £400</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="0-1000">Under ₹1,000</option>
+                          <option value="1000-5000">₹1,000 - ₹5,000</option>
+                          <option value="5000-20000">₹5,000 - ₹20,000</option>
+                          <option value="20000">Above ₹20,000</option>
+                        </>
+                      )}
+                    </select>
+                    <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+                  </div>
                 </div>
+                {/* Spacer to prevent right-edge clipping of last filter */}
+                <div className="w-12 flex-shrink-0" aria-hidden="true"></div>
               </div>
               
               {/* Clear Filters & Results Count */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                 {/* Clear Filters Button */}
                 {(selectedNetwork !== 'all' || sortBy !== 'relevance' || selectedCurrency !== 'all' || convertPrices || priceRange !== 'all') && (
                   <button
@@ -551,6 +587,7 @@ export default function CategoryPage() {
           )}
         </div>
       </section>
+      )}
       
       {/* Related Categories Section - Hybrid Approach */}
       <section className="py-12 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

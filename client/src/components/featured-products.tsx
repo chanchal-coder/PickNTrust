@@ -431,13 +431,17 @@ export default function FeaturedProducts() {
     }
   };
 
-  // Handle mouse wheel scrolling
-  const handleWheel = (e: React.WheelEvent) => {
-    if (scrollContainerRef.current) {
+  // Attach non-passive wheel listener to enable preventDefault without warnings
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onWheel = (e: any) => {
       e.preventDefault();
-      scrollContainerRef.current.scrollBy({ left: e.deltaY, behavior: 'smooth' });
-    }
-  };
+      el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel as EventListener);
+  }, [filteredProducts]);
 
   return (
     <section id="featured-products" className="py-8 sm:py-12 lg:py-16 bg-gray-50 dark:bg-gray-900">
@@ -495,11 +499,12 @@ export default function FeaturedProducts() {
                 /* Desktop: Scrollable Products Container - Single Row */
                 <div 
                   ref={scrollContainerRef}
-                  onWheel={handleWheel}
                   className="hidden md:flex gap-4 overflow-x-auto pb-6 px-12 md:px-16"
                   style={{ 
                     scrollbarWidth: 'none', 
-                    msOverflowStyle: 'none'
+                    msOverflowStyle: 'none',
+                    WebkitOverflowScrolling: 'touch',
+                    touchAction: 'pan-x'
                   }}
                 >
               {filteredProducts.map((product: Product, index: number) => (

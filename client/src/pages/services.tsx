@@ -218,26 +218,36 @@ export default function Services() {
 
   // Apply client-side filtering for category, price, rating, and currency
   const filteredServices = displayServices.filter(service => {
-    // Filter by category
-    if (selectedCategory && service.category !== selectedCategory) {
-      return false;
+    // Normalize helper
+    const norm = (v: any) => String(v ?? '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+
+    // Filter by category (case/space insensitive)
+    if (selectedCategory) {
+      const svcCat = norm(service.category);
+      const selCat = norm(selectedCategory);
+      if (svcCat !== selCat) {
+        return false;
+      }
     }
     
-    // Filter by price range
-    const price = parseFloat(String(service.price || 0));
-    if (price < priceRange.min || price > priceRange.max) {
+    // Filter by price range (strip non-numeric characters)
+    const priceNum = parseFloat(String(service.price ?? '').toString().replace(/[^0-9.]/g, '')) || 0;
+    if (priceNum < priceRange.min || priceNum > priceRange.max) {
       return false;
     }
     
     // Filter by rating
-    const rating = parseFloat(String(service.rating || 0));
-    if (rating < minRating) {
+    const ratingNum = parseFloat(String(service.rating || 0)) || 0;
+    if (ratingNum < minRating) {
       return false;
     }
     
-    // Filter by currency
-    if (selectedCurrency !== 'ALL' && service.currency && service.currency !== selectedCurrency) {
-      return false;
+    // Filter by currency (case-insensitive)
+    if (selectedCurrency !== 'ALL') {
+      const svcCurrency = String(service.currency ?? '').trim().toUpperCase();
+      if (svcCurrency && svcCurrency !== String(selectedCurrency).trim().toUpperCase()) {
+        return false;
+      }
     }
     
     return true;

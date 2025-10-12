@@ -55,12 +55,74 @@ else
   cd "$APP_DIR"
 fi
 
+# === Safe backup of current static site ===
+mkdir -p "$APP_DIR/backups"
+TS=\$(date +"%Y%m%d-%H%M%S")
+if [ -d "$APP_DIR/dist/public" ]; then
+  echo "Creating backup of dist/public → backups/public-$TS.tar.gz"
+  tar -C "$APP_DIR/dist" -czf "$APP_DIR/backups/public-$TS.tar.gz" public || echo "Backup of public failed (continuing)"
+fi
+
 npm install
 node build-production.js
 
 pm2 delete pickntrust-backend 2>/dev/null || true
 pm2 start dist/server/server/index.js --name pickntrust-backend --env production
 pm2 save
+
+# === Seed canonical form flags and verify counts ===
+echo "Ensuring sqlite3 and seeding canonical form flags..."
+if command -v apt >/dev/null 2>&1; then
+  sudo apt install -y sqlite3 || true
+else
+  sudo dnf install -y sqlite || sudo yum install -y sqlite || true
+fi
+
+# Resolve database file path
+DB_FILE=""
+for p in "$APP_DIR/database.sqlite" "$APP_DIR/server/database.sqlite"; do
+  if [ -f "$p" ]; then DB_FILE="$p"; break; fi
+done
+if [ -z "$DB_FILE" ]; then
+  DB_FILE=$(find "$APP_DIR" -maxdepth 2 -name 'database.sqlite' | head -n 1 || true)
+fi
+echo "Database file: ${DB_FILE:-not found}"
+
+SEED_SQL="$APP_DIR/scripts/seed-form-flags.sql"
+if [ -n "$DB_FILE" ] && [ -f "$SEED_SQL" ]; then
+  echo "Applying seed-form-flags.sql to $DB_FILE..."
+  sqlite3 "$DB_FILE" < "$SEED_SQL" || echo "Seeding failed (continuing)"
+fi
+
+# Show DB counts
+if [ -n "$DB_FILE" ]; then
+  P_CNT=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM categories WHERE is_for_products=1 AND parent_id IS NULL;" || echo 0)
+  S_CNT=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM categories WHERE is_for_services=1 AND parent_id IS NULL;" || echo 0)
+  A_CNT=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM categories WHERE is_for_ai_apps=1 AND parent_id IS NULL;" || echo 0)
+  echo "DB counts => Products: $P_CNT, Services: $S_CNT, Apps & AI: $A_CNT"
+fi
+
+# Verify public API counts using Node
+node -e '
+const https = require("https"), http = require("http");
+const domain = process.env.DOMAIN || "'${DOMAIN}'";
+const proto = "https";
+function get(path){return new Promise((resolve)=>{
+  const url = `${proto}://${domain}${path}`;
+  (proto==="https"?https:http).get(url, (res)=>{
+    let data=""; res.on("data",d=>data+=d); res.on("end",()=>{try{
+      const j = JSON.parse(data); const arr = Array.isArray(j)?j:(j.data||[]);
+      resolve(Array.isArray(arr)?arr.length:0);
+    }catch(e){resolve(0);}});
+  }).on("error",()=>resolve(0));});}
+(async()=>{
+  const p = await get("/api/categories/forms/products");
+  const s = await get("/api/categories/forms/services");
+  const a = await get("/api/categories/forms/aiapps");
+  console.log(`API counts => Products: ${p}, Services: ${s}, Apps & AI: ${a}`);
+  if (p!==13 || s!==19 || a!==16) { process.exitCode = 1; }
+})();
+'
 
 sudo mkdir -p /var/lib/letsencrypt
 
