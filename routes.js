@@ -207,12 +207,28 @@ export function setupRoutes(app) {
                 // Already handled by unified_content selection above (is_featured or display_pages)
             }
             else if (page === 'services') {
-                // Services: Show only products with is_service=1
-                query += ` AND is_service = 1`;
+                // Services: Strictly use items tagged for the Services page
+                query += ` AND (
+          display_pages LIKE '%' || ? || '%' OR
+          display_pages = ?
+        )`;
+                params.push(page, page);
             }
-            else if (page === 'apps-ai-apps' || page === 'apps') {
-                // AI & Apps: Show only products with is_ai_app=1
-                query += ` AND is_ai_app = 1`;
+            else if (page === 'apps-ai-apps') {
+                // AI/Apps: Strictly use items tagged for the Apps & AI Apps page
+                query += ` AND (
+          display_pages LIKE '%' || ? || '%' OR
+          display_pages = ?
+        )`;
+                params.push(page, page);
+            }
+            else if (page === 'apps') {
+                // Apps: Strictly use items tagged for the Apps page
+                query += ` AND (
+          display_pages LIKE '%' || ? || '%' OR
+          display_pages = ?
+        )`;
+                params.push(page, page);
             }
             else if (page === 'click-picks') {
                 // Click Picks: Show products tagged for click-picks page
@@ -304,7 +320,7 @@ export function setupRoutes(app) {
                         name: product.title || product.name || 'Untitled Product',
                         description: product.description || 'No description available',
                         price: product.price,
-                        originalPrice: product.originalPrice,
+                        originalPrice: (product.original_price ?? product.originalPrice ?? null),
                         currency: product.currency || 'INR',
                         imageUrl: product.imageUrl,
                         affiliateUrl: product.affiliateUrl,
@@ -787,6 +803,46 @@ export function setupRoutes(app) {
         catch (error) {
             console.error('Error deleting category:', error);
             res.status(500).json({ message: 'Failed to delete category' });
+        }
+    });
+    // Bulk delete categories (delete selected IDs and their subcategories)
+    app.delete('/api/admin/categories/bulk-delete', async (req, res) => {
+        try {
+            const { password, ids } = req.body || {};
+            if (!await verifyAdminPassword(password)) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            if (!Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({ message: 'No category IDs provided' });
+            }
+            const placeholders = ids.map(() => '?').join(',');
+            const deleteChildrenSql = `DELETE FROM categories WHERE parent_id IN (${placeholders})`;
+            const deleteParentsSql = `DELETE FROM categories WHERE id IN (${placeholders})`;
+            const tx = sqliteDb.transaction((arr) => {
+                sqliteDb.prepare(deleteChildrenSql).run(...arr);
+                sqliteDb.prepare(deleteParentsSql).run(...arr);
+            });
+            tx(ids);
+            res.json({ message: 'Selected categories deleted successfully', deletedIds: ids });
+        }
+        catch (error) {
+            console.error('Error bulk deleting categories:', error);
+            res.status(500).json({ message: 'Failed to bulk delete categories' });
+        }
+    });
+    // Delete all categories (including subcategories)
+    app.delete('/api/admin/categories/delete-all', async (req, res) => {
+        try {
+            const { password } = req.body || {};
+            if (!await verifyAdminPassword(password)) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            sqliteDb.prepare('DELETE FROM categories').run();
+            res.json({ message: 'All categories deleted successfully' });
+        }
+        catch (error) {
+            console.error('Error deleting all categories:', error);
+            res.status(500).json({ message: 'Failed to delete all categories' });
         }
     });
     // Get all categories with flags and metadata (used by admin forms)

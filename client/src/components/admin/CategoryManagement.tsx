@@ -24,6 +24,7 @@ export default function CategoryManagement() {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: '',
     description: '',
@@ -184,6 +185,102 @@ export default function CategoryManagement() {
       });
     }
   });
+
+  // Bulk delete selected categories
+  const bulkDeleteCategoriesMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const adminPassword = 'pickntrust2025';
+      const response = await fetch('/api/admin/categories/bulk-delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword, ids }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to bulk delete categories');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      setSelectedIds([]);
+      toast({
+        title: 'Success',
+        description: 'Selected categories deleted successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to bulk delete categories',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Delete all categories
+  const deleteAllCategoriesMutation = useMutation({
+    mutationFn: async () => {
+      const adminPassword = 'pickntrust2025';
+      const response = await fetch('/api/admin/categories/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete all categories');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      setSelectedIds([]);
+      toast({
+        title: 'Success',
+        description: 'All categories deleted successfully!',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete all categories',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  };
+
+  const selectAll = () => {
+    const allIds = categories.map((cat: Category) => cat.id);
+    setSelectedIds(allIds);
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const handleBulkDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    if (confirm(`Delete ${selectedIds.length} selected categories (including their subcategories)?`)) {
+      bulkDeleteCategoriesMutation.mutate(selectedIds);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    if (confirm('Delete ALL categories and subcategories? This cannot be undone.')) {
+      deleteAllCategoriesMutation.mutate();
+    }
+  };
 
   // Reorder categories mutation - using fixed endpoint on port 5001
   const reorderCategoriesMutation = useMutation({
@@ -631,10 +728,54 @@ export default function CategoryManagement() {
       {/* Categories List */}
       <Card>
         <CardHeader>
-          <CardTitle>Manage Categories ({categories.length})</CardTitle>
-          <CardDescription className="text-blue-200">
-            View and manage all categories
-          </CardDescription>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle>Manage Categories ({categories.length})</CardTitle>
+              <CardDescription className="text-blue-200">
+                View and manage all categories
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAll}
+                className="border-gray-300 dark:border-gray-600"
+              >
+                <i className="fas fa-check-square mr-1" />
+                Select All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSelection}
+                className="border-gray-300 dark:border-gray-600"
+              >
+                <i className="fas fa-eraser mr-1" />
+                Clear
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedIds.length === 0 || bulkDeleteCategoriesMutation.isPending}
+                onClick={handleBulkDeleteSelected}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <i className="fas fa-trash mr-1" />
+                Delete Selected ({selectedIds.length})
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteAllCategoriesMutation.isPending}
+                onClick={handleDeleteAll}
+                className="bg-red-700 hover:bg-red-800"
+              >
+                <i className="fas fa-trash-alt mr-1" />
+                Delete All
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -677,6 +818,14 @@ export default function CategoryManagement() {
                               <i className={`fas ${isCategoryCollapsed(category.id) ? 'fa-chevron-right' : 'fa-chevron-down'} text-gray-600 dark:text-gray-400 text-sm`}></i>
                             </button>
                           )}
+                          {/* Selection checkbox */}
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={selectedIds.includes(category.id)}
+                            onChange={() => toggleSelect(category.id)}
+                            title="Select category"
+                          />
                           <div
                             className="w-12 h-12 rounded-lg flex items-center justify-center shadow-md"
                             style={{ backgroundColor: category.color }}
@@ -794,20 +943,28 @@ export default function CategoryManagement() {
                     </div>
 
                     {/* Subcategories */}
-                    {subcategoriesMap[category.id] && !isCategoryCollapsed(category.id) && (
-                      <div className="ml-8 space-y-2 animate-in slide-in-from-top-2 duration-200">
-                        {subcategoriesMap[category.id].map((subcategory: Category) => (
-                          <div
-                            key={subcategory.id}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-900/50"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center space-x-3 flex-1">
-                                <div
-                                  className="w-10 h-10 rounded-lg flex items-center justify-center shadow-md"
-                                  style={{ backgroundColor: subcategory.color }}
-                                >
-                                  <i className={`${subcategory.icon} text-white text-sm`}></i>
+                        {subcategoriesMap[category.id] && !isCategoryCollapsed(category.id) && (
+                          <div className="ml-8 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                            {subcategoriesMap[category.id].map((subcategory: Category) => (
+                              <div
+                                key={subcategory.id}
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-900/50"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center space-x-3 flex-1">
+                                    {/* Selection checkbox for subcategory */}
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4"
+                                      checked={selectedIds.includes(subcategory.id)}
+                                      onChange={() => toggleSelect(subcategory.id)}
+                                      title="Select subcategory"
+                                    />
+                                    <div
+                                      className="w-10 h-10 rounded-lg flex items-center justify-center shadow-md"
+                                      style={{ backgroundColor: subcategory.color }}
+                                    >
+                                      <i className={`${subcategory.icon} text-white text-sm`}></i>
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">

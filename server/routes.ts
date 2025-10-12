@@ -524,7 +524,7 @@ export function setupRoutes(app: express.Application) {
       const parsedOffset = Math.max(parseInt(offset as string) || 0, 0);
       
       console.log(`Getting products for page: "${page}"`);
-      
+
       // Special handling: Top Picks should serve curated products from unified_content
       if ((page || '').toLowerCase() === 'top-picks') {
         const ucBindings: Record<string, any> = {
@@ -645,6 +645,146 @@ export function setupRoutes(app: express.Application) {
         console.log(`Found ${products.length} unified_content products for "top-picks" (with fallback if needed)`);
         // Return curated items only; no fallback
         return res.json(products);
+      }
+
+      // Special handling: Services page should show items marked as services
+      const pageNorm = (page || '').trim().toLowerCase();
+      if (pageNorm === 'services' || pageNorm === 'service' || pageNorm === 'subscriptions') {
+        try {
+          const bindings: Record<string, any> = {
+            limit: Math.min(Math.max(parseInt(limit as string) || 50, 1), 100),
+            offset: Math.max(parseInt(offset as string) || 0, 0),
+          };
+          let svcQuery = `
+            SELECT *
+            FROM unified_content
+            WHERE (
+              is_service = 1 OR
+              LOWER(content_type) = 'service' OR
+              LOWER(category) LIKE '%service%'
+            )
+          `;
+          // Optional category filter
+          if (category && category !== 'all') {
+            svcQuery += ` AND category = :category`;
+            bindings.category = category;
+          }
+          // Include standard unified filters and ordering
+          svcQuery += buildUnifiedFilters();
+          svcQuery += ` ORDER BY created_at DESC LIMIT :limit OFFSET :offset`;
+
+          const rows = await retryDatabaseOperation(() => {
+            return sqliteDb.prepare(svcQuery).all(bindings) as UnifiedContent[];
+          });
+
+          const products = (rows || []).map((row: any) => {
+            const toIso = (v: any) => {
+              if (!v) return null;
+              let n = Number(v);
+              if (!isNaN(n)) {
+                if (n < 10_000_000_000) n = n * 1000; // seconds → ms
+                return new Date(n).toISOString();
+              }
+              try { return new Date(v).toISOString(); } catch { return null; }
+            };
+            return {
+              id: row.id,
+              name: row.title || 'Untitled Service',
+              description: row.description || '',
+              price: row.price,
+              originalPrice: row.original_price || row.originalPrice,
+              currency: row.currency || 'INR',
+              imageUrl: toProxiedImage(row.image_url || row.imageUrl),
+              affiliateUrl: row.affiliate_url,
+              category: row.category,
+              rating: Number(row.rating) || 0,
+              reviewCount: Number(row.reviewCount) || 0,
+              discount: row.discount,
+              isService: true,
+              createdAt: toIso(row.created_at) || new Date().toISOString(),
+              hasTimer: Boolean(row.has_timer) && Boolean(row.timer_duration),
+              timerDuration: row.timer_duration ?? null,
+              timerStartTime: toIso(row.timer_start_time),
+              pricingType: (row as any).pricing_type ?? (row as any).pricingType,
+              monthlyPrice: (row as any).monthly_price ?? (row as any).monthlyPrice,
+              yearlyPrice: (row as any).yearly_price ?? (row as any).yearlyPrice,
+              isFree: (row as any).is_free ?? undefined,
+              priceDescription: (row as any).price_description ?? undefined,
+            };
+          });
+
+          console.log(`Found ${products.length} unified_content products for "services" page`);
+          return res.json(products);
+        } catch (svcErr) {
+          console.warn('Services page query failed, proceeding to generic page filters:', svcErr);
+          // Fall through to generic page query below
+        }
+      }
+
+      // Special handling: Apps page should show items marked as AI apps
+      if (pageNorm === 'apps' || pageNorm === 'apps-ai-apps' || pageNorm === 'app') {
+        try {
+          const bindings: Record<string, any> = {
+            limit: Math.min(Math.max(parseInt(limit as string) || 50, 1), 100),
+            offset: Math.max(parseInt(offset as string) || 0, 0),
+          };
+          let appsQuery = `
+            SELECT *
+            FROM unified_content
+            WHERE (
+              is_ai_app = 1 OR
+              LOWER(content_type) = 'app' OR
+              LOWER(category) LIKE '%app%'
+            )
+          `;
+          if (category && category !== 'all') {
+            appsQuery += ` AND category = :category`;
+            bindings.category = category;
+          }
+          appsQuery += buildUnifiedFilters();
+          appsQuery += ` ORDER BY created_at DESC LIMIT :limit OFFSET :offset`;
+
+          const rows = await retryDatabaseOperation(() => {
+            return sqliteDb.prepare(appsQuery).all(bindings) as UnifiedContent[];
+          });
+
+          const products = (rows || []).map((row: any) => {
+            const toIso = (v: any) => {
+              if (!v) return null;
+              let n = Number(v);
+              if (!isNaN(n)) {
+                if (n < 10_000_000_000) n = n * 1000; // seconds → ms
+                return new Date(n).toISOString();
+              }
+              try { return new Date(v).toISOString(); } catch { return null; }
+            };
+            return {
+              id: row.id,
+              name: row.title || 'Untitled App',
+              description: row.description || '',
+              price: row.price,
+              originalPrice: row.original_price || row.originalPrice,
+              currency: row.currency || 'INR',
+              imageUrl: toProxiedImage(row.image_url || row.imageUrl),
+              affiliateUrl: row.affiliate_url,
+              category: row.category,
+              rating: Number(row.rating) || 0,
+              reviewCount: Number(row.reviewCount) || 0,
+              discount: row.discount,
+              isAIApp: true,
+              createdAt: toIso(row.created_at) || new Date().toISOString(),
+              hasTimer: Boolean(row.has_timer) && Boolean(row.timer_duration),
+              timerDuration: row.timer_duration ?? null,
+              timerStartTime: toIso(row.timer_start_time),
+            };
+          });
+
+          console.log(`Found ${products.length} unified_content products for "apps" page`);
+          return res.json(products);
+        } catch (appsErr) {
+          console.warn('Apps page query failed, proceeding to generic page filters:', appsErr);
+          // Fall through to generic page query below
+        }
       }
       
       let query = '';
