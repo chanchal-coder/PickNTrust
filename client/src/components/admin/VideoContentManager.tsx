@@ -45,12 +45,15 @@ interface NavTab {
 }
 
 export default function VideoContentManager() {
+  // Track editing state for existing videos
+  const [editingVideoId, setEditingVideoId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('any-website');
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [thumbnailMode, setThumbnailMode] = useState<'auto' | 'manual' | 'upload'>('auto');
+  const [manualPagesInput, setManualPagesInput] = useState('');
   
   const [videoData, setVideoData] = useState({
     title: '',
@@ -69,6 +72,18 @@ export default function VideoContentManager() {
     ctaText: '',
     ctaUrl: ''
   });
+
+  // Manual page slugs helpers
+  const normalizeSlug = (raw: string) => {
+    const s = String(raw || '').toLowerCase().trim();
+    if (!s) return '';
+    return s.replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+  };
+  const parseManualPages = (input: string) =>
+    (String(input || '')
+      .split(',')
+      .map(p => normalizeSlug(p))
+      .filter(Boolean));
 
   // Load ALL categories from DB for video categorization (no filtering)
   const { data: uiCategories = [] } = useQuery<any[]>({
@@ -256,16 +271,34 @@ export default function VideoContentManager() {
     }
   };
 
-  // Handle video file upload
+  // Helper to build absolute media URL when needed
+  const getBackendBaseUrl = () => {
+    const envBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
+    if (envBase) return envBase;
+    const origin = window.location.origin;
+    // In dev, switch Vite port 5173 to backend 5000
+    if (origin.includes(':5173')) return origin.replace(':5173', ':5000');
+    return origin;
+  };
+
+  const toAbsoluteMediaUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/')) return getBackendBaseUrl() + url;
+    return url;
+  };
+
+  // Handle video file upload (send to backend and store served URL)
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const supportedVideoTypes = [
-      'video/mp4', 'video/webm', 'video/ogg', 'video/mov', 'video/avi', 
+      'video/mp4', 'video/webm', 'video/ogg', 'video/mov', 'video/avi',
       'video/wmv', 'video/flv', 'video/mkv', 'video/m4v', 'video/3gp'
     ];
-    
+
     if (!supportedVideoTypes.includes(file.type)) {
       toast({
         title: 'Invalid Video Format',
@@ -285,26 +318,35 @@ export default function VideoContentManager() {
     }
 
     setUploadingVideo(true);
-    
+
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setVideoData({ ...videoData, videoUrl: result, platform: 'file-upload' });
-        setUploadingVideo(false);
-        
-        toast({
-          title: 'Success',
-          description: 'Video uploaded successfully!',
-        });
-      };
-      
-      reader.readAsDataURL(file);
-    } catch (error) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Unexpected response (not JSON): ${text.slice(0, 200)}…`);
+      }
+      if (!res.ok || !data?.url) throw new Error(data?.message || 'Upload failed');
+
+      // Store relative URL from backend and compute absolute for preview
+      const relativeUrl = data.url as string; // e.g., /uploads/filename.mp4
+      setVideoData({ ...videoData, videoUrl: relativeUrl, platform: 'file-upload' });
+      setUploadingVideo(false);
+
+      toast({
+        title: 'Success',
+        description: 'Video uploaded successfully!',
+      });
+    } catch (error: any) {
       setUploadingVideo(false);
       toast({
         title: 'Error',
-        description: 'Failed to upload video',
+        description: String(error?.message || error) || 'Failed to upload video',
         variant: 'destructive',
       });
     }
@@ -318,7 +360,7 @@ export default function VideoContentManager() {
       return (
         <div className="relative">
           <video 
-            src={url} 
+            src={toAbsoluteMediaUrl(url)} 
             className="w-full h-32 object-cover rounded"
             controls={false}
             muted
@@ -402,6 +444,7 @@ export default function VideoContentManager() {
   // Create dynamic pages array with safety checks
   const availablePages = [
     { value: 'home', label: 'Home Page', description: 'Main website homepage' },
+    { value: 'trending', label: 'Trending Page', description: 'Trending products and content' },
     { value: 'services', label: 'Services Page', description: 'Services and subscriptions' },
     { value: 'apps', label: 'Apps Page', description: 'Apps and AI tools' },
     { value: 'blog', label: 'Blog Page', description: 'Blog articles and posts' },
@@ -474,11 +517,86 @@ export default function VideoContentManager() {
         ctaText: '',
         ctaUrl: ''
       });
+      setManualPagesInput('');
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to add video content',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Update video mutation
+  const updateVideoMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const payload = {
+        password: 'pickntrust2025',
+        title: data.title,
+        description: data.description || '',
+        category: data.category || '',
+        tags: data.tags ? data.tags.split(',').map((tag: string) => tag.trim()) : [],
+        videoUrl: data.videoUrl,
+        thumbnailUrl: data.thumbnailUrl || '',
+        platform: data.platform,
+        duration: data.duration || '',
+        hasTimer: Boolean(data.hasTimer),
+        timerDuration: data.hasTimer ? parseInt(data.timerDuration) : null,
+        pages: data.pages || [],
+        showOnHomepage: Boolean(data.showOnHomepage),
+        ctaText: data.ctaText || '',
+        ctaUrl: data.ctaUrl || ''
+      };
+
+      // Append critical fields to query string for proxy compatibility on EC2
+      const qsPages = encodeURIComponent((payload.pages || []).join(','));
+      const qsShow = payload.showOnHomepage ? 'true' : 'false';
+      const url = `/api/admin/video-content/${id}?password=pickntrust2025&pages=${qsPages}&showOnHomepage=${qsShow}`;
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update video');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Updated!',
+        description: 'Video content updated successfully.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/video-content'] });
+      setEditingVideoId(null);
+      setVideoData({
+        title: '',
+        description: '',
+        category: '',
+        tags: '',
+        videoUrl: '',
+        thumbnailUrl: '',
+        platform: 'any-website',
+        duration: '',
+        customFields: {},
+        hasTimer: false,
+        timerDuration: '24',
+        pages: [],
+        showOnHomepage: true,
+        ctaText: '',
+        ctaUrl: ''
+      });
+      setManualPagesInput('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update video content',
         variant: 'destructive',
       });
     }
@@ -561,7 +679,13 @@ export default function VideoContentManager() {
       return;
     }
 
-    addVideoMutation.mutate({ ...videoData, platform: activeTab });
+    const extraPages = parseManualPages(manualPagesInput);
+    const mergedPages = Array.from(new Set([...(videoData.pages || []), ...extraPages]));
+    if (editingVideoId) {
+      updateVideoMutation.mutate({ id: editingVideoId, data: { ...videoData, platform: activeTab, pages: mergedPages } });
+    } else {
+      addVideoMutation.mutate({ ...videoData, platform: activeTab, pages: mergedPages });
+    }
   };
 
   const handleDeleteVideo = (videoId: number) => {
@@ -962,6 +1086,27 @@ export default function VideoContentManager() {
                   <p className="text-xs text-blue-400 mt-2">
                     <i className="fas fa-sparkles"></i> Video will appear on homepage (if checked) and all selected pages
                   </p>
+                  {/* Manual Slugs Input */}
+                  <div className="mt-4">
+                    <Label className="text-white font-medium mb-2 block"><i className="fas fa-keyboard"></i> Manual page slugs (comma-separated)</Label>
+                    <Input
+                      value={manualPagesInput}
+                      onChange={(e) => setManualPagesInput(e.target.value)}
+                      placeholder="e.g., videos, apps, services"
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                    <p className="text-xs text-purple-400 mt-2">
+                      <i className="fas fa-info-circle"></i> These slugs will be added along with selected pages when you save.
+                    </p>
+                    {(() => {
+                      const preview = Array.from(new Set([...(videoData.pages || []), ...parseManualPages(manualPagesInput)]));
+                      return (
+                        <p className="text-xs text-green-400 mt-1">
+                          <i className="fas fa-list"></i> Effective pages: {preview.length ? preview.join(', ') : 'none'}
+                        </p>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1062,14 +1207,26 @@ export default function VideoContentManager() {
               )}
             </div>
 
-            {/* Submit Button */}
-             <div className="flex justify-end">
+            {/* Submit / Save Buttons */}
+             <div className="flex justify-end gap-2">
+               {editingVideoId && (
+                 <Button
+                   type="button"
+                   variant="outline"
+                   className="border-gray-600 text-gray-200"
+                   onClick={() => { setEditingVideoId(null); }}
+                 >
+                   Cancel Edit
+                 </Button>
+               )}
                <Button 
                  type="submit"
-                 disabled={addVideoMutation.isPending}
+                 disabled={editingVideoId ? updateVideoMutation.isPending : addVideoMutation.isPending}
                  className="bg-green-600 hover:bg-green-700 text-white px-8"
                >
-                 {addVideoMutation.isPending ? 'Adding Video...' : 'Add Video Content'}
+                 {editingVideoId
+                   ? (updateVideoMutation.isPending ? 'Saving Changes...' : 'Save Changes')
+                   : (addVideoMutation.isPending ? 'Adding Video...' : 'Add Video Content')}
                </Button>
              </div>
           </form>
@@ -1173,7 +1330,7 @@ export default function VideoContentManager() {
                            variant="ghost" 
                            size="sm" 
                            className="text-gray-400 hover:text-white"
-                           onClick={() => window.open(video.videoUrl, '_blank')}
+                           onClick={() => window.open(toAbsoluteMediaUrl(video.videoUrl), '_blank')}
                            title="View video"
                          >
                            <Eye className="w-4 h-4" />
@@ -1200,6 +1357,7 @@ export default function VideoContentManager() {
                                ctaText: video.ctaText || '',
                                ctaUrl: video.ctaUrl || ''
                              });
+                             setEditingVideoId(video.id);
                              setActiveTab(video.platform);
                              if (video.thumbnailUrl) {
                                if (video.thumbnailUrl.includes('youtube.com') || video.thumbnailUrl.includes('vimeo.com')) {

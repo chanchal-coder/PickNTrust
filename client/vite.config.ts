@@ -73,15 +73,17 @@ export default defineConfig({
     }
   },
   server: {
-    // Use a clean port to avoid collisions with other instances
+    // Dev must run on 5173 per local setup
     port: 5173,
     strictPort: true,
-    host: true,
+    // Bind explicitly to IPv4 localhost to avoid ::1-only binding on Windows
+    host: "127.0.0.1",
+    hmr: { host: "127.0.0.1" },
     cors: true,
     fs: { strict: false, deny: [] },
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -102,12 +104,13 @@ export default defineConfig({
             }
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            proxyReq.setHeader('Origin', 'http://localhost:5173');
+            // Ensure Origin header matches the dev server port
+            proxyReq.setHeader('Origin', 'http://127.0.0.1:5173');
           });
         },
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
         ws: false,

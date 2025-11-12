@@ -1,5 +1,5 @@
 Param(
-  [string]$Server = "ec2-user@51.20.55.153",
+  [string]$Server = "ec2-user@16.171.161.251",
   [string]$KeyPath = "C:\Users\sharm\.ssh\pnt08.pem"
 )
 
@@ -32,9 +32,9 @@ done
 pm2 status || true
 '@
 
-& ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "bash -lc \"$remote\""
+& ssh -i $KeyPath -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $Server "bash -lc \"$remote\""
 
 # Tail backend logs to capture errors
-& ssh -i $KeyPath -o StrictHostKeyChecking=no $Server "bash -lc 'pm2 logs pickntrust-backend --lines 120'"
+& ssh -i $KeyPath -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $Server "bash -lc 'pm2 logs pickntrust-backend --lines 120'"
 
 Write-Host "Done." -ForegroundColor Green

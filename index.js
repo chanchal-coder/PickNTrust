@@ -470,9 +470,22 @@ app.use((req, res, next) => {
                         try {
                             // Read static HTML and inject active meta tags into <head>
                             let html = fs.readFileSync(indexPath, 'utf-8');
-                            const activeTags = sqliteDb.prepare(`SELECT name, content FROM meta_tags WHERE is_active = 1 ORDER BY provider ASC`).all();
+                            const activeTags = sqliteDb.prepare(`SELECT name, content, raw_html FROM meta_tags WHERE is_active = 1 ORDER BY provider ASC`).all();
+                            const sanitizeRaw = (raw) => {
+                                if (!raw) return null;
+                                const s = String(raw).trim();
+                                const lower = s.toLowerCase();
+                                if (!lower.startsWith('<meta')) return null;
+                                if (lower.includes('<script') || lower.includes('<iframe') || lower.includes('onerror=') || lower.includes('onload=')) {
+                                    return null;
+                                }
+                                return s;
+                            };
                             const injection = activeTags
-                                .map(t => `<meta name="${t.name}" content="${t.content}" data-injected="server" />`)
+                                .map(t => {
+                                    const safeRaw = sanitizeRaw(t.raw_html);
+                                    return safeRaw ? safeRaw : `<meta name="${t.name}" content="${t.content}" data-injected="server" />`;
+                                })
                                 .join('\n');
                             // Insert right after the opening <head> tag to satisfy verification crawlers
                             if (html.includes('<head>')) {

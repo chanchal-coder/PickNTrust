@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,8 @@ export default function SimplifiedBlogForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddingPost, setIsAddingPost] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newPost, setNewPost] = useState({
     title: '',
@@ -409,6 +411,97 @@ export default function SimplifiedBlogForm() {
     }
   });
 
+  // Update blog post mutation
+  const updateBlogPostMutation = useMutation({
+    mutationFn: async (postData: any) => {
+      if (!editingPostId) {
+        throw new Error('No blog post selected for editing');
+      }
+      try {
+        const adminPassword = 'pickntrust2025';
+        const tagsArray = postData.tags
+          .split(',')
+          .map((tag: string) => tag.trim())
+          .filter((tag: string) => tag.length > 0);
+
+        const payload = {
+          password: adminPassword,
+          title: postData.title,
+          excerpt: postData.excerpt,
+          content: postData.content,
+          category: postData.category,
+          tags: JSON.stringify(tagsArray),
+          imageUrl: postData.imageUrl || '',
+          pdfUrl: postData.pdfUrl || null,
+          videoUrl: postData.videoUrl || null,
+          readTime: postData.readTime || '3 min read',
+          slug: postData.slug || postData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          hasTimer: !!postData.hasTimer,
+          timerDuration: postData.hasTimer ? postData.timerDuration : null,
+          publishedAt: postData.publishDate ? new Date(postData.publishDate).toISOString() : undefined,
+        };
+
+        const response = await fetch(`/api/admin/blog/${editingPostId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+          } else {
+            const errorText = await response.text();
+            console.error('Non-JSON error response:', errorText);
+            throw new Error(`Server error: ${response.status} ${response.statusText}. Check server logs.`);
+          }
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/blog'] });
+      toast({
+        title: 'Saved',
+        description: 'Blog post updated successfully!',
+      });
+      // Reset edit state and form
+      setIsEditing(false);
+      setEditingPostId(null);
+      setNewPost({
+        title: '',
+        excerpt: '',
+        content: '',
+        category: '',
+        tags: '',
+        imageUrl: '',
+        pdfUrl: '',
+        videoUrl: '',
+        readTime: '3 min read',
+        slug: '',
+        publishDate: new Date().toISOString().split('T')[0],
+        hasTimer: false,
+        timerDuration: '24'
+      });
+      setIsAddingPost(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update blog post',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Delete blog post mutation
   const deleteBlogPostMutation = useMutation({
     mutationFn: async (postId: number) => {
@@ -444,6 +537,42 @@ export default function SimplifiedBlogForm() {
     }
   });
 
+  // Auto-open edit form if a pending edit is requested via localStorage
+  useEffect(() => {
+    try {
+      const pendingIdRaw = (typeof window !== 'undefined') ? window.localStorage.getItem('pending-edit-blog-id') : null;
+      const pendingId = pendingIdRaw ? Number(pendingIdRaw) : null;
+      if (pendingId && Array.isArray(blogPosts) && blogPosts.length > 0) {
+        const target = (blogPosts as any[]).find((p: any) => Number(p.id) === pendingId);
+        if (target) {
+          handleEditPost(target as any);
+          window.localStorage.removeItem('pending-edit-blog-id');
+        }
+      }
+    } catch {}
+  }, [Array.isArray(blogPosts) ? blogPosts.map((p: any) => p.id).join(',') : blogPosts]);
+
+  // Also support opening edit form via query param (?edit=<id>) for robust deep-linking
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const editIdRaw = params.get('edit');
+      const editId = editIdRaw ? Number(editIdRaw) : null;
+      if (editId && Array.isArray(blogPosts) && blogPosts.length > 0) {
+        const target = (blogPosts as any[]).find((p: any) => Number(p.id) === editId);
+        if (target) {
+          handleEditPost(target as any);
+          // Clean the URL so repeated renders don't re-trigger
+          params.delete('edit');
+          const url = new URL(window.location.href);
+          url.search = params.toString();
+          window.history.replaceState(null, '', url.toString());
+        }
+      }
+    } catch {}
+  }, [Array.isArray(blogPosts) ? blogPosts.map((p: any) => p.id).join(',') : blogPosts]);
+
   const handleAddPost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.title.trim()) {
@@ -464,6 +593,23 @@ export default function SimplifiedBlogForm() {
     addBlogPostMutation.mutate(newPost);
   };
 
+  const handleUpdatePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isEditing || !editingPostId) {
+      toast({ title: 'Error', description: 'No post selected for editing', variant: 'destructive' });
+      return;
+    }
+    if (!newPost.title.trim()) {
+      toast({ title: 'Error', description: 'Title is required', variant: 'destructive' });
+      return;
+    }
+    if (!newPost.content.trim() && !newPost.pdfUrl) {
+      toast({ title: 'Error', description: 'Content or PDF is required', variant: 'destructive' });
+      return;
+    }
+    updateBlogPostMutation.mutate(newPost);
+  };
+
   const handleDeletePost = (postId: number) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
       deleteBlogPostMutation.mutate(postId);
@@ -471,21 +617,42 @@ export default function SimplifiedBlogForm() {
   };
 
   const handleEditPost = (post: BlogPost) => {
+    // Robustly parse tags from various stored formats
+    let tagsCsv = '';
+    if (Array.isArray((post as any).tags)) {
+      tagsCsv = ((post as any).tags as string[]).join(', ');
+    } else if (typeof (post as any).tags === 'string') {
+      const raw = String((post as any).tags);
+      try {
+        const parsed = JSON.parse(raw);
+        tagsCsv = Array.isArray(parsed) ? parsed.join(', ') : raw;
+      } catch {
+        tagsCsv = raw;
+      }
+    }
+
+    // Safely derive publish date
+    const pdRaw: any = (post as any).publishedAt;
+    const pd = pdRaw ? new Date(pdRaw) : new Date();
+    const publishDate = isNaN(pd.getTime()) ? new Date().toISOString().split('T')[0] : pd.toISOString().split('T')[0];
+
     setNewPost({
       title: post.title,
       excerpt: post.excerpt,
       content: post.content,
       category: post.category,
-      tags: typeof post.tags === 'string' ? JSON.parse(post.tags).join(', ') : post.tags,
-      imageUrl: post.imageUrl,
+      tags: tagsCsv,
+      imageUrl: (post as any).imageUrl || (post as any).thumbnailUrl || '',
       pdfUrl: (post as any).pdfUrl || '',
       videoUrl: (post as any).videoUrl || '',
       readTime: post.readTime,
       slug: post.slug,
-      publishDate: new Date(post.publishedAt).toISOString().split('T')[0],
-      hasTimer: post.hasTimer || false,
-      timerDuration: post.timerDuration || '24'
+      publishDate,
+      hasTimer: !!post.hasTimer,
+      timerDuration: String((post as any).timerDuration || '24')
     });
+    setIsEditing(true);
+    setEditingPostId(post.id);
     setIsAddingPost(true);
     
     toast({
@@ -529,15 +696,24 @@ export default function SimplifiedBlogForm() {
         <Card className="bg-gray-900 text-white border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-400">
-              <Plus className="w-5 h-5" />
-              Create New Blog Post
+              {isEditing ? (
+                <>
+                  <i className="fas fa-edit"></i>
+                  Edit Blog Post
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  Create New Blog Post
+                </>
+              )}
             </CardTitle>
             <CardDescription className="text-gray-300">
-              Add engaging content with high-quality image support (up to 10MB) and optional auto-delete timer
+              {isEditing ? 'Update content and media. Changes apply immediately.' : 'Add engaging content with high-quality image support (up to 10MB) and optional auto-delete timer'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <form onSubmit={handleAddPost} className="space-y-6">
+            <form onSubmit={isEditing ? handleUpdatePost : handleAddPost} className="space-y-6">
               <div className="flex gap-2">
                 <Button type="button" variant={usePdf ? 'outline' : 'default'} onClick={() => setUsePdf(false)} className={usePdf ? 'bg-transparent' : 'bg-blue-600'}>
                   Content Mode
@@ -808,17 +984,25 @@ export default function SimplifiedBlogForm() {
                   <Button 
                     type="button"
                     variant="outline"
-                    onClick={() => setIsAddingPost(false)}
+                    onClick={() => {
+                      setIsAddingPost(false);
+                      if (isEditing) {
+                        setIsEditing(false);
+                        setEditingPostId(null);
+                      }
+                    }}
                     className="text-gray-400 border-gray-600 hover:bg-gray-800"
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit"
-                    disabled={addBlogPostMutation.isPending}
+                    disabled={isEditing ? updateBlogPostMutation.isPending : addBlogPostMutation.isPending}
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    {addBlogPostMutation.isPending ? 'Publishing...' : 'Publish Blog Post'}
+                    {isEditing 
+                      ? (updateBlogPostMutation.isPending ? 'Saving...' : 'Save Changes')
+                      : (addBlogPostMutation.isPending ? 'Publishing...' : 'Publish Blog Post')}
                   </Button>
                 </div>
               </div>
@@ -887,13 +1071,30 @@ export default function SimplifiedBlogForm() {
                     >
                       <i className="fas fa-external-link-alt text-gray-300"></i>
                     </button>
-                    <button
-                      onClick={() => handleEditPost(post)}
+                    <a
+                      href={`/admin/blog?edit=${post.id}`}
+                      onClick={(e) => {
+                        try {
+                          // Attempt client-side edit first for fast UX
+                          e.preventDefault();
+                          handleEditPost(post);
+                          // Also set a fallback so a full reload still opens the editor
+                          if (typeof window !== 'undefined') {
+                            window.localStorage.setItem('pending-edit-blog-id', String(post.id));
+                            const url = new URL(window.location.href);
+                            url.searchParams.set('edit', String(post.id));
+                            window.history.replaceState(null, '', url.toString());
+                          }
+                        } catch {
+                          // If anything goes wrong, allow default navigation
+                          // so the query param can be picked up on load
+                        }
+                      }}
                       className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
                       title="Edit blog post"
                     >
                       <i className="fas fa-edit text-gray-300"></i>
-                    </button>
+                    </a>
                     <button
                       onClick={() => handleDeletePost(post.id)}
                       disabled={deleteBlogPostMutation.isPending}

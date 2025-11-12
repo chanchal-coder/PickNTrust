@@ -1,5 +1,6 @@
 // No default React import needed with modern JSX transform
-import { formatPrice as formatCurrencyPrice, type CurrencyCode } from '@/utils/currency';
+import { type CurrencyCode, formatPrice as formatCurrencyPrice } from '@/utils/currency';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface PriceTagProps {
   product: any;
@@ -8,6 +9,7 @@ interface PriceTagProps {
   freeClass?: string; // FREE text color
   helperClass?: string; // helper text (e.g., both monthly/yearly)
   showTypeIndicator?: boolean; // show non-standard pricing type label
+  forceGlobalCurrency?: boolean; // when true, convert to currentCurrency
 }
 
 const getNumeric = (value: any): number => {
@@ -20,16 +22,6 @@ const getNumeric = (value: any): number => {
   return 0;
 };
 
-const formatProductPrice = (price?: string | number, productCurrency?: string) => {
-  // Validate currency code and fallback to INR if invalid
-  const validCurrencies: CurrencyCode[] = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'SGD', 'CNY', 'KRW'];
-  const currency: CurrencyCode = validCurrencies.includes(productCurrency as CurrencyCode) 
-    ? (productCurrency as CurrencyCode) 
-    : 'INR';
-  const numeric = getNumeric(price);
-  return formatCurrencyPrice(numeric, currency);
-};
-
 export default function PriceTag({
   product,
   colorClass = 'text-blue-600',
@@ -37,7 +29,20 @@ export default function PriceTag({
   freeClass = 'text-green-600',
   helperClass = 'text-xs text-gray-500',
   showTypeIndicator = true,
+  forceGlobalCurrency = false,
 }: PriceTagProps) {
+  const { currentCurrency, convertPrice, formatPrice } = useCurrency();
+
+  const formatProductPrice = (price?: string | number, productCurrency?: string) => {
+    const numeric = getNumeric(price);
+    const from: CurrencyCode = (String(productCurrency || 'INR').toUpperCase() as CurrencyCode);
+    if (forceGlobalCurrency) {
+      const converted = convertPrice(numeric, from, currentCurrency);
+      return formatPrice(converted, currentCurrency);
+    }
+    // Default: show in product's original currency
+    return formatCurrencyPrice(numeric, from);
+  };
   const {
     price,
     originalPrice,

@@ -129,6 +129,8 @@ function fixDatabase() {
       const existingColumns = productColumns.map(col => col.name);
       
       const requiredColumns = [
+        { name: 'subcategory', type: 'TEXT' },
+        { name: 'currency', type: "TEXT DEFAULT 'INR'" },
         { name: 'originalPrice', type: 'TEXT' },
         { name: 'imageUrl', type: 'TEXT' },
         { name: 'affiliateUrl', type: 'TEXT' },

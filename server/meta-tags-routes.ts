@@ -39,6 +39,26 @@ async function verifyAdminPassword(password: string): Promise<boolean> {
   }
 }
 
+// Utility: extract name/content from a raw <meta> tag if possible
+function parseNameContent(raw: string): { name?: string; content?: string } {
+  try {
+    const s = raw.trim();
+    const lower = s.toLowerCase();
+    if (!lower.startsWith('<meta')) return {};
+    if (lower.includes('<script') || lower.includes('<iframe') || lower.includes('onerror=') || lower.includes('onload=')) {
+      return {};
+    }
+    const nameMatch = s.match(/\bname\s*=\s*"([^"]+)"/i) || s.match(/\bproperty\s*=\s*"([^"]+)"/i);
+    const contentMatch = s.match(/\bcontent\s*=\s*"([^"]+)"/i);
+    return {
+      name: nameMatch ? nameMatch[1] : undefined,
+      content: contentMatch ? contentMatch[1] : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 // Get all meta tags
 router.get('/api/admin/meta-tags', async (req, res) => {
   try {
@@ -49,7 +69,7 @@ router.get('/api/admin/meta-tags', async (req, res) => {
     }
 
     const tags = sqliteDb.prepare(`
-      SELECT id, name, content, provider, purpose, is_active as isActive, 
+      SELECT id, name, content, provider, purpose, raw_html as rawHtml, is_active as isActive, 
              created_at as createdAt, updated_at as updatedAt
       FROM meta_tags 
       ORDER BY provider ASC, created_at DESC
@@ -65,7 +85,7 @@ router.get('/api/admin/meta-tags', async (req, res) => {
 router.get('/api/meta-tags/active', async (req, res) => {
   try {
     const tags = sqliteDb.prepare(`
-      SELECT name, content, provider, purpose
+      SELECT name, content, provider, purpose, raw_html as rawHtml
       FROM meta_tags 
       WHERE is_active = 1
       ORDER BY provider ASC
@@ -86,17 +106,40 @@ router.post('/api/admin/meta-tags', async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const { name, content, provider, purpose, isActive = true } = metaTagData;
-    
-    if (!name || !content || !provider || !purpose) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Missing required fields: name, content, provider, purpose' 
+    const { name, content, provider, purpose, isActive = true, rawHtml } = metaTagData as any;
+
+    let finalProvider = provider || 'Custom';
+    let finalPurpose = purpose || 'Ownership Verification';
+
+    let finalName = name;
+    let finalContent = content;
+    let finalRawHtml = (typeof rawHtml === 'string' && rawHtml.trim().length > 0) ? rawHtml.trim() : null;
+
+    if (finalRawHtml) {
+      const parsed = parseNameContent(finalRawHtml);
+      if (!parsed.name || !parsed.content) {
+        // If parsing fails, require name+content to be present
+        if (!finalName || !finalContent) {
+          return res.status(400).json({
+            success: false,
+            error: 'Provide rawHtml containing <meta ... name="..." content="..."> or supply name and content explicitly.'
+          });
+        }
+      } else {
+        finalName = finalName || parsed.name;
+        finalContent = finalContent || parsed.content;
+      }
+    }
+
+    if (!finalName || !finalContent) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: name and content (or use rawHtml with a valid <meta> tag)'
       });
     }
 
     // Check if meta tag with same name already exists
-    const existing = sqliteDb.prepare('SELECT id FROM meta_tags WHERE name = ?').get(name);
+    const existing = sqliteDb.prepare('SELECT id FROM meta_tags WHERE name = ?').get(finalName);
     if (existing) {
       return res.status(400).json({ 
         success: false, 
@@ -106,14 +149,14 @@ router.post('/api/admin/meta-tags', async (req, res) => {
 
     const currentTime = Math.floor(Date.now() / 1000);
     const result = sqliteDb.prepare(`
-      INSERT INTO meta_tags (name, content, provider, purpose, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(name, content, provider, purpose, isActive ? 1 : 0, currentTime, currentTime);
+      INSERT INTO meta_tags (name, content, provider, purpose, raw_html, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(finalName, finalContent, finalProvider, finalPurpose, finalRawHtml, isActive ? 1 : 0, currentTime, currentTime);
     
     res.json({ 
       success: true, 
       message: 'Meta tag created successfully',
-      metaTag: { id: result.lastInsertRowid, name, content, provider, purpose, isActive }
+      metaTag: { id: result.lastInsertRowid, name: finalName, content: finalContent, provider: finalProvider, purpose: finalPurpose, rawHtml: finalRawHtml, isActive }
     });
   } catch (error) {
     console.error('Error creating meta tag:', error);
@@ -131,7 +174,7 @@ router.put('/api/admin/meta-tags/:id', async (req, res) => {
     }
 
     const id = parseInt(req.params.id);
-    const { name, content, provider, purpose, isActive } = updates;
+    const { name, content, provider, purpose, isActive, rawHtml } = updates as any;
     
     // Check if meta tag exists
     const existing = sqliteDb.prepare('SELECT id FROM meta_tags WHERE id = ?').get(id);
@@ -158,6 +201,7 @@ router.put('/api/admin/meta-tags/:id', async (req, res) => {
     if (content !== undefined) { updateFields.push('content = ?'); updateValues.push(content); }
     if (provider !== undefined) { updateFields.push('provider = ?'); updateValues.push(provider); }
     if (purpose !== undefined) { updateFields.push('purpose = ?'); updateValues.push(purpose); }
+    if (rawHtml !== undefined) { updateFields.push('raw_html = ?'); updateValues.push(rawHtml || null); }
     if (isActive !== undefined) { updateFields.push('is_active = ?'); updateValues.push(isActive ? 1 : 0); }
     
     updateFields.push('updated_at = ?');

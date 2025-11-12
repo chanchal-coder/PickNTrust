@@ -91,7 +91,7 @@ export default function BrowseCategoryProductCard({
   // Helper function to safely format prices with proper currency type
   const formatProductPrice = (price?: string | number | number | undefined, currency?: string): string => {
     const numericPrice = typeof price === "string" ? parseFloat(price.replace(/[^\d.-]/g, "")) || 0 : price;
-    const currencyCode = (currency as CurrencyCode) || 'INR';
+    const currencyCode = ((currency || 'USD').toString().toUpperCase() as CurrencyCode);
     return formatPrice(numericPrice, currencyCode);
   };
 
@@ -262,13 +262,18 @@ export default function BrowseCategoryProductCard({
           const currentPrice = parseToFloat(currentSource.price);
           const originalPrice = parseToFloat(currentSource.originalPrice);
           const dbDiscount = product.discount ? parseFloat(product.discount.toString()) : 0;
-          
-          // Use database discount if available, otherwise calculate from prices
-          const discountPercentage = dbDiscount > 0 ? dbDiscount : 
-            (originalPrice > currentPrice && originalPrice > 0) ? 
-              Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-          
-          return discountPercentage > 0 ? (
+
+          // Only show discount when both prices are present and valid
+          const hasValidPrices = originalPrice > 0 && currentPrice > 0 && originalPrice > currentPrice;
+
+          // Use database discount if available (and sane), otherwise calculate from prices
+          const discountPercentage = dbDiscount > 0 && dbDiscount < 100
+            ? dbDiscount
+            : hasValidPrices
+              ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+              : 0;
+
+          return discountPercentage > 0 && hasValidPrices ? (
             <Badge className="bg-red-500 text-white text-xs font-bold px-2 py-1 shadow-lg">
               -{discountPercentage}% OFF
             </Badge>

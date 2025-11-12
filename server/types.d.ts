@@ -102,8 +102,8 @@ export interface UnifiedContent {
   isFeatured?: boolean | number;
   display_order?: number;
   displayOrder?: number;
-  display_pages?: string;
-  displayPages?: string;
+  display_pages?: string | string[];
+  displayPages?: string | string[];
   has_timer?: boolean | number;
   hasTimer?: boolean | number;
   timer_duration?: number | null;
@@ -165,7 +165,7 @@ export interface MappedUnifiedContent {
   is_featured?: boolean | number; // snake_case for backward compatibility
   isNew?: boolean | number; // New flag to match routes mapping
   displayOrder?: number; // Already camelCase in UnifiedContent
-  displayPages?: string; // Already camelCase in UnifiedContent
+  displayPages?: string | string[]; // Already camelCase in UnifiedContent
   createdAt?: number; // Already camelCase in UnifiedContent
   updatedAt?: number; // Already camelCase in UnifiedContent
   // Frontend-specific flags
@@ -247,6 +247,12 @@ declare global {
       [key: string]: string | undefined;
     }
   }
+}
+
+// Vite React plugin shim for server-side TypeScript to avoid ts2307
+declare module '@vitejs/plugin-react' {
+  const plugin: any;
+  export default plugin;
 }
 
 // Utility types

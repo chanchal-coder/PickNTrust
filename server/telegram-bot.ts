@@ -72,10 +72,15 @@ class TelegramBotManager {
       return;
     }
 
-    console.log('🤖 Initializing Telegram bot (webhook-only mode)...');
+    const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+    const forcePolling = ['1','true','yes'].includes(String(process.env.BOT_POLLING || '').toLowerCase());
+    const usePolling = forcePolling || isDev;
+    console.log(`🤖 Initializing Telegram bot (${usePolling ? 'polling' : 'webhook-only'} mode)...`);
     
-    // Bot configuration - prefer MASTER_BOT_TOKEN, fallback to TELEGRAM_BOT_TOKEN
-    const BOT_TOKEN = process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+    // Bot configuration - prefer DEV token in development, otherwise master/telelgram token
+    const BOT_TOKEN = (isDev && process.env.MASTER_BOT_TOKEN_DEV)
+      ? process.env.MASTER_BOT_TOKEN_DEV
+      : (process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN);
     
     if (!BOT_TOKEN) {
       console.error('❌ MASTER_BOT_TOKEN/TELEGRAM_BOT_TOKEN not found in environment variables');
@@ -94,40 +99,49 @@ class TelegramBotManager {
         this.bot = null;
       }
 
-      // Initialize bot in webhook mode (no polling)
-      this.bot = new TelegramBot(BOT_TOKEN, { 
-        polling: false,
-        webHook: false
-      });
-      
-      console.log('✅ Telegram bot initialized successfully in webhook mode (polling disabled)');
-      this.isInitialized = true;
-
-      // Ensure master webhook is configured
-      try {
-        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
-        const webhookUrl = `${baseUrl}/webhook/master/${BOT_TOKEN}`;
-        console.log(`🔗 Ensuring webhook is set: ${webhookUrl}`);
-
-        // Clear any existing webhook to avoid conflicts
-        await this.bot.deleteWebHook();
-
-        // Set webhook to master endpoint
-        await this.bot.setWebHook(webhookUrl, {
-          allowed_updates: ['message', 'channel_post', 'edited_channel_post']
-        });
-
-        // Verify webhook status
-        const info = await this.bot.getWebHookInfo();
-        console.log('📊 Webhook info', {
-          url: (info as any).url,
-          pending_update_count: (info as any).pending_update_count,
-          has_custom_certificate: (info as any).has_custom_certificate,
-          max_connections: (info as any).max_connections,
-        });
-      } catch (err: any) {
-        console.warn('⚠️ Failed to configure master webhook:', err?.message || err);
+      if (usePolling) {
+        // Initialize bot in polling mode for local development
+        this.bot = new TelegramBot(BOT_TOKEN, { polling: true });
+        console.log('✅ Telegram bot initialized successfully in polling mode');
+        // Ensure webhook is cleared so polling receives updates
+        try {
+          await this.bot.deleteWebHook();
+          const info = await this.bot.getWebHookInfo();
+          console.log('📊 Webhook cleared for polling', {
+            url: (info as any).url,
+            pending_update_count: (info as any).pending_update_count,
+          });
+        } catch (err: any) {
+          console.warn('⚠️ Failed to clear webhook for polling:', err?.message || err);
+        }
+      } else {
+        // Initialize bot in webhook mode (no polling) for production
+        this.bot = new TelegramBot(BOT_TOKEN, { polling: false, webHook: false });
+        console.log('✅ Telegram bot initialized successfully in webhook mode (polling disabled)');
+        // Ensure master webhook is configured
+        try {
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
+          const webhookUrl = `${baseUrl}/webhook/master/${BOT_TOKEN}`;
+          console.log(`🔗 Ensuring webhook is set: ${webhookUrl}`);
+          // Clear any existing webhook to avoid conflicts
+          await this.bot.deleteWebHook();
+          // Set webhook to master endpoint
+          await this.bot.setWebHook(webhookUrl, {
+            allowed_updates: ['message', 'channel_post', 'edited_channel_post']
+          });
+          // Verify webhook status
+          const info = await this.bot.getWebHookInfo();
+          console.log('📊 Webhook info', {
+            url: (info as any).url,
+            pending_update_count: (info as any).pending_update_count,
+            has_custom_certificate: (info as any).has_custom_certificate,
+            max_connections: (info as any).max_connections,
+          });
+        } catch (err: any) {
+          console.warn('⚠️ Failed to configure master webhook:', err?.message || err);
+        }
       }
+      this.isInitialized = true;
 
       // Setup event handlers
       this.setupEventHandlers();
@@ -143,7 +157,7 @@ class TelegramBotManager {
           const info = await this.bot.getWebHookInfo();
           const msg = `✅ <b>Bot Initialized</b>\n` +
             `• Bot: <code>${me.username}</code> (ID: ${me.id})\n` +
-            `• Mode: webhook-only\n` +
+            `• Mode: ${usePolling ? 'polling' : 'webhook-only'}\n` +
             `• Webhook: <code>${(info as any).url || baseUrl}</code>\n` +
             `• Pending: ${(info as any).pending_update_count || 0}\n` +
             `• Env: <code>${process.env.NODE_ENV || 'unknown'}</code>`;
@@ -264,8 +278,25 @@ const sendTelegramNotification = async (channelId: string, message: string, opti
       console.log('🔕 BOT_SILENT enabled: Skipping sending channel message');
       return false;
     }
+    // Append fallback text for uncertain/missing price (single-item or any message)
+    let messageToSend = message;
+    try {
+      const urls = (message.match(/https?:\/\/[^\s]+/g) || []);
+      const basic = extractBasicProductInfo(message, urls);
+      const numeric = (v: any) => {
+        if (!v) return 0;
+        const m = String(v).match(/[\d,]+(?:\.\d+)?/);
+        return m ? parseFloat(m[0].replace(/,/g, '')) : 0;
+      };
+      const hasPrice = numeric(basic.price) > 0;
+      const alreadyHasFallback = /See price on website/i.test(messageToSend);
+      if (!hasPrice && !alreadyHasFallback) {
+        messageToSend = `${messageToSend}\nSee price on website`;
+      }
+    } catch {}
+
     console.log(`📤 Sending message to channel ${channelId}...`);
-    const result = await currentBot.sendMessage(channelId, message, {
+    const result = await currentBot.sendMessage(channelId, messageToSend, {
       parse_mode: 'HTML',
       disable_web_page_preview: false,
       ...options
@@ -347,8 +378,110 @@ const CHANNEL_CONFIGS = {
     affiliateTag: '{{URL}}{{SEP}}ref=sicvppak',
     platform: 'deodap',
     pageSlug: 'loot-box'
+  },
+  '-1003170300695': {
+    pageName: 'Trending',
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'trending'
+  }
+  ,
+  // New channels (Apps & AI Apps, Top Picks, Services)
+  '-1003414218904': {
+    pageName: 'Apps & AI Apps',
+    // Reference usernames provided: @pntaiapps
+    username: 'pntaiapps',
+    active_usernames: ['pntaiapps'],
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    // Accepts both apps-ai-apps and apps in backend filters
+    pageSlug: 'apps-ai-apps'
+  },
+  '-1003488288404': {
+    pageName: 'Top Picks',
+    // Reference username: @toppickspnt
+    username: 'toppickspnt',
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'top-picks'
+  },
+  '-1003487271664': {
+    pageName: 'Services',
+    // Reference usernames provided: @cardsservicespnt
+    username: 'cardsservicespnt',
+    active_usernames: ['cardsservicespnt'],
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'services'
+  }
+  ,
+  // Travel Picks
+  '-1003047967930': {
+    pageName: 'Travel Picks',
+    // Reference username: @travelpnt
+    username: 'travelpnt',
+    active_usernames: ['travelpnt'],
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'travel-picks'
+  }
+  ,
+  // New channels (user-provided)
+  '-1003334486961': {
+    pageName: 'Fresh Picks',
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'fresh-picks'
+  },
+  '-1003427184585': {
+    pageName: "Artist's Corner",
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'artists-corner'
+  },
+  '-1003324087381': {
+    pageName: 'OTT Hub',
+    affiliateTag: '',
+    platform: 'multiple',
+    platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+    pageSlug: 'ott-hub'
   }
 };
+
+// Resolve a channelId by pageSlug or pageName
+function resolveChannelIdForPage(params: { pageSlug?: string; pageName?: string }): string | null {
+  const { pageSlug, pageName } = params || {};
+  // Handle common aliases: map top-picks -> prime-picks, etc.
+  const slugAliases: Record<string, string> = {
+    'top-picks': 'prime-picks',
+    'primepicks': 'prime-picks',
+  };
+  let slugLc = String(pageSlug || '').toLowerCase().trim();
+  if (slugLc && slugAliases[slugLc]) slugLc = slugAliases[slugLc];
+  const nameLc = String(pageName || '').toLowerCase().trim();
+  
+  // Overrides: explicit pageSlug -> channelId mapping
+  // Enables multiple page slugs to target the same Telegram channel for outbound posts
+  const PAGE_CHANNEL_OVERRIDES: Record<string, string> = {
+    'fresh-picks': '-1003334486961',
+    'artists-corner': '-1003427184585',
+    'ott-hub': '-1003324087381'
+  };
+  if (slugLc && PAGE_CHANNEL_OVERRIDES[slugLc]) return PAGE_CHANNEL_OVERRIDES[slugLc];
+
+  for (const [channelId, cfg] of Object.entries(CHANNEL_CONFIGS)) {
+    if (slugLc && String(cfg.pageSlug || '').toLowerCase() === slugLc) return channelId;
+    if (nameLc && String(cfg.pageName || '').toLowerCase() === nameLc) return channelId;
+  }
+  return null;
+}
 
 // Enhanced URL detection regex patterns
 const URL_PATTERNS = {
@@ -438,7 +571,7 @@ function convertToEarnkaro(url: string): string {
 }
 
 // Extract product information from message using URL processing service
-async function extractProductInfo(message: string): Promise<{
+async function extractProductInfo(message: string, pageSlug: string = ''): Promise<{
   title?: string;
   price?: string;
   originalPrice?: string;
@@ -478,7 +611,7 @@ async function extractProductInfo(message: string): Promise<{
     const firstUrl = urls[0];
     console.log(`🔍 Processing URL with URL processing service: ${firstUrl}`);
     
-    const processingResult = await urlProcessingService.processURL(firstUrl);
+    const processingResult = await urlProcessingService.processURL(firstUrl, pageSlug || '');
     
     if (processingResult.success && processingResult.productCard) {
       const productCard = processingResult.productCard;
@@ -501,6 +634,43 @@ async function extractProductInfo(message: string): Promise<{
     // Fallback to basic extraction
     return extractBasicProductInfo(message, urls);
   }
+}
+
+type ParsedItem = { title: string; url: string };
+function parseMultiItemTelegramMessage(text: string): { items: ParsedItem[]; discountLine?: string } {
+  const lines = String(text || '').split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  const items: ParsedItem[] = [];
+  let discountLine: string | undefined;
+  const urlRegex = /(https?:\/\/[^\s]+|(?:bit\.ly|tinyurl\.com|goo\.gl|t\.co|short\.link|amzn\.to|fkrt\.it|myntra\.com\/m|flipkart\.com\/dl|a\.co)[^\s]*)/i;
+  const isCodeLine = (l: string) => /(use\s+code|code:)/i.test(l);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (isCodeLine(line)) {
+      discountLine = line.replace(/`/g, '').trim();
+      continue;
+    }
+    if (urlRegex.test(line)) {
+      continue;
+    }
+    let nextIdx = -1;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (lines[j].length === 0) continue;
+      nextIdx = j;
+      break;
+    }
+    if (nextIdx === -1) continue;
+    const nextLine = lines[nextIdx];
+    const urlMatch = nextLine.replace(/`/g, '').match(urlRegex);
+    if (!urlMatch) continue;
+    const url = urlMatch[0];
+    const title = line.replace(/`/g, '').trim();
+    if (title && url) {
+      items.push({ title, url });
+      i = nextIdx;
+    }
+  }
+  return { items, discountLine };
 }
 
 // Fallback basic extraction method
@@ -541,7 +711,7 @@ function extractBasicProductInfo(message: string, urls: string[]): {
     return {
       title,
       urls: urls,
-      description: `Product available at: ${url}`
+      description: ''
     };
   }
 
@@ -642,8 +812,15 @@ function extractBasicProductInfo(message: string, urls: string[]): {
   if (multipleRupeeMatches) {
     const matches = multipleRupeeMatches[0].match(/₹([\d,]+(?:\.\d+)?)\s*₹([\d,]+(?:\.\d+)?)/);
     if (matches) {
-      price = `₹${matches[1]}`;
-      originalPrice = `₹${matches[2]}`;
+      const a = parseFloat(matches[1].replace(/,/g, ''));
+      const b = parseFloat(matches[2].replace(/,/g, ''));
+      // Assign smaller as current price, larger as original price
+      if (!isNaN(a) && !isNaN(b)) {
+        const small = Math.min(a, b);
+        const large = Math.max(a, b);
+        price = `₹${small}`;
+        originalPrice = `₹${large}`;
+      }
     }
   }
   
@@ -668,7 +845,19 @@ function extractBasicProductInfo(message: string, urls: string[]): {
         if (secondMatch[2] && secondMatch[2].toLowerCase() === 'k') {
           originalPriceValue = (parseFloat(originalPriceValue) * 1000).toString();
         }
-        originalPrice = `₹${originalPriceValue}`;
+        // Ensure larger value is originalPrice
+        const pNum = parseFloat((price || '').replace(/₹|,/g, ''));
+        const oNum = parseFloat(originalPriceValue);
+        if (!isNaN(pNum) && !isNaN(oNum)) {
+          if (oNum >= pNum) {
+            originalPrice = `₹${originalPriceValue}`;
+          } else {
+            originalPrice = price;
+            price = `₹${originalPriceValue}`;
+          }
+        } else {
+          originalPrice = `₹${originalPriceValue}`;
+        }
       }
     } else if (rupeeMatches && rupeeMatches.length === 1) {
       const singleMatch = rupeeMatches[0].match(/₹([\d,]+(?:\.\d+)?)(k?)/i);
@@ -679,6 +868,24 @@ function extractBasicProductInfo(message: string, urls: string[]): {
         }
         price = `₹${priceValue}`;
       }
+    }
+  }
+
+  // Pattern 2b: Rs or INR formats
+  if (!price) {
+    const rsPriceMatch = message.match(/(?:Rs\.?|INR)\s*([\d,]+(?:\.\d+)?)(k?)/i);
+    if (rsPriceMatch) {
+      let val = rsPriceMatch[1].replace(/,/g, '');
+      if (rsPriceMatch[2] && rsPriceMatch[2].toLowerCase() === 'k') val = (parseFloat(val) * 1000).toString();
+      price = `₹${val}`;
+    }
+  }
+  if (!originalPrice) {
+    const rsOrigMatch = message.match(/(?:MRP|Reg\s*@|Regular|List)\s*:?\s*(?:₹|Rs\.?|INR)?\s*([\d,]+(?:\.\d+)?)(k?)/i);
+    if (rsOrigMatch) {
+      let val = rsOrigMatch[1].replace(/,/g, '');
+      if (rsOrigMatch[2] && rsOrigMatch[2].toLowerCase() === 'k') val = (parseFloat(val) * 1000).toString();
+      originalPrice = `₹${val}`;
     }
   }
   
@@ -804,10 +1011,9 @@ function convertUrls(urls: string[], config: any): string[] {
   for (const url of urls) {
     console.log(`🔄 Converting URL: ${url}`);
     
-    // Loot Box requirement: do NOT convert links, keep exactly as posted
-    // Only bypass conversion for loot-box page
-    if (config?.pageSlug === 'loot-box') {
-      console.log('🎁 Loot Box page detected — bypassing affiliate conversion, preserving original URL');
+    // Only bypass conversion for trending page
+    if (config?.pageSlug === 'trending') {
+      console.log('🔥 Trending page — bypassing affiliate conversion, preserving original URL');
       convertedUrls.push(url);
       continue;
     }
@@ -851,19 +1057,18 @@ function convertUrls(urls: string[], config: any): string[] {
               break;
             default:
               console.log(`⚠️ Unknown primary platform ${primaryPlatform}, falling back to cuelinks`);
-              convertedUrls.push(convertToCuelinks(url)); // Default fallback
+              convertedUrls.push(convertToCuelinks(url));
           }
         } else {
-          console.log(`⚠️ No platforms array found in config, defaulting to cuelinks`);
-          convertedUrls.push(convertToCuelinks(url)); // Default to cuelinks
+          console.log('⚠️ No platforms configured for multiple, falling back to cuelinks');
+          convertedUrls.push(convertToCuelinks(url));
         }
         break;
       default:
-        // Even for unknown platforms, try to convert through cuelinks
-        convertedUrls.push(convertToCuelinks(url));
+        console.log(`⚠️ Unknown platform ${config.platform}, returning original URL`);
+        convertedUrls.push(url);
+        break;
     }
-    
-    console.log(`✅ Converted to: ${convertedUrls[convertedUrls.length - 1]}`);
   }
   
   return convertedUrls;
@@ -881,6 +1086,18 @@ async function extractImageUrl(msg: any): Promise<string | null> {
       console.error('Error getting photo link:', error);
     }
   }
+  return null;
+}
+
+// Detect currency from a text string containing symbols or ISO codes
+function detectCurrencyFromText(text?: any): string | null {
+  if (!text) return null;
+  const s = String(text).toUpperCase();
+  if (s.includes('₹') || s.includes('INR') || s.includes(' RS') || s.startsWith('RS')) return 'INR';
+  if (s.includes('$') || s.includes('USD')) return 'USD';
+  if (s.includes('€') || s.includes('EUR')) return 'EUR';
+  if (s.includes('£') || s.includes('GBP')) return 'GBP';
+  if (s.includes('¥') || s.includes('JPY')) return 'JPY';
   return null;
 }
 
@@ -962,25 +1179,73 @@ async function updateChannelPostStatus(channelPostId: number, isProcessed: boole
 // Save product to database
 async function saveProductToDatabase(productData: any, channelConfig: any, channelPostId?: number, productInfo?: any) {
   try {
+    // Prefer the scraper's `name` field for title, fallback to any `title`
+    const effectiveTitle = (productData?.name || productData?.title || 'Product from Telegram');
+    // Detect currency from provided fields if not explicitly set
+    const detectCurrencyFromText = (text?: any): string | null => {
+      if (!text) return null;
+      const s = String(text).toUpperCase();
+      if (s.includes('₹') || s.includes('INR') || s.includes(' RS') || s.startsWith('RS')) return 'INR';
+      if (s.includes('$') || s.includes('USD')) return 'USD';
+      if (s.includes('€') || s.includes('EUR')) return 'EUR';
+      if (s.includes('£') || s.includes('GBP')) return 'GBP';
+      if (s.includes('¥') || s.includes('JPY')) return 'JPY';
+      return null;
+    };
     // Extract numeric price values
     const priceMatch = productData.price?.match(/[\d,]+/);
     const originalPriceMatch = productData.originalPrice?.match(/[\d,]+/);
     
-    const numericPrice = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : 0;
+    const numericPrice = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
     const numericOriginalPrice = originalPriceMatch ? parseFloat(originalPriceMatch[0].replace(/,/g, '')) : null;
     
     // Calculate discount if both prices are available
-    const discount = (numericOriginalPrice && numericPrice && numericOriginalPrice > numericPrice) 
+    const discount = (numericOriginalPrice !== null && numericPrice !== null && numericOriginalPrice > numericPrice) 
       ? Math.round(((numericOriginalPrice - numericPrice) / numericOriginalPrice) * 100)
       : null;
     
     // Apply smart categorization for bot/RSS automation
     const categorization = categorizeForAutomation(
-      productData.title || 'Product from Telegram',
+      effectiveTitle,
       productData.description || '',
       channelConfig.pageSlug,
       channelConfig.platform
     );
+    
+    // Ensure displayPages is a normalized array and include smart defaults
+    const normalizeSlugLocal = (s: any) => String(s)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    let providedPages: string[] = [];
+    // Accept pages from productData.displayPages or productData.pages in various formats
+    const rawPages: any = (productData as any)?.displayPages ?? (productData as any)?.pages ?? null;
+    if (Array.isArray(rawPages)) {
+      providedPages = rawPages.map((p: any) => normalizeSlugLocal(p)).filter(Boolean);
+    } else if (typeof rawPages === 'string' && rawPages.length) {
+      try {
+        const parsed = JSON.parse(rawPages);
+        if (Array.isArray(parsed)) {
+          providedPages = parsed.map((p: any) => normalizeSlugLocal(p)).filter(Boolean);
+        } else {
+          providedPages = rawPages.split(',').map((s: string) => normalizeSlugLocal(s)).filter(Boolean);
+        }
+      } catch {
+        providedPages = rawPages.split(',').map((s: string) => normalizeSlugLocal(s)).filter(Boolean);
+      }
+    }
+
+    const basePages = [
+      normalizeSlugLocal(channelConfig.pageSlug),
+      ...providedPages,
+    ];
+    const finalPages = Array.from(new Set([
+      ...basePages,
+    ])).filter(Boolean);
+    // Attach to categorization to avoid crashes on spread/join downstream
+    (categorization as any).displayPages = finalPages;
     
     console.log(`🤖 Smart categorization result:`, {
       title: productData.title,
@@ -997,6 +1262,33 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
     const convertedAffiliateUrls = convertUrls(sourceUrls, channelConfig);
     const affiliateUrlToSave = convertedAffiliateUrls[0] || (sourceUrls[0] || '');
     
+    // Determine currency to save
+    const currencyToSave = (
+      (productData.currency ? String(productData.currency).toUpperCase() : null) ||
+      detectCurrencyFromText(productData.price) ||
+      detectCurrencyFromText(productData.originalPrice) ||
+      'INR'
+    );
+
+    // Schema guard: ensure columns used by API filters exist
+    try {
+      const dbPathForSchema = getDatabasePath();
+      const dbForSchema = new Database(dbPathForSchema);
+      const tableInfo = dbForSchema.prepare("PRAGMA table_info(unified_content)").all();
+      const hasCol = (name: string) => tableInfo.some((c: any) => String(c.name) === name);
+      const statements: string[] = [];
+      if (!hasCol('status')) statements.push("ALTER TABLE unified_content ADD COLUMN status TEXT DEFAULT 'active'");
+      if (!hasCol('visibility')) statements.push("ALTER TABLE unified_content ADD COLUMN visibility TEXT DEFAULT 'public'");
+      if (!hasCol('processing_status')) statements.push("ALTER TABLE unified_content ADD COLUMN processing_status TEXT DEFAULT 'completed'");
+      if (statements.length) {
+        const tx = dbForSchema.transaction((stmts: string[]) => {
+          for (const s of stmts) dbForSchema.prepare(s).run();
+        });
+        tx(statements);
+      }
+      dbForSchema.close();
+    } catch {}
+
     // Use raw SQL insert matching the actual unified_content table schema
     const insertSQL = `
       INSERT INTO unified_content (
@@ -1010,10 +1302,10 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
     `;
     
     const values = [
-      productData.title || 'Product from Telegram',
+      effectiveTitle,
       productData.description || '',
-      numericPrice.toString(),
-      numericOriginalPrice?.toString() || null,
+      numericPrice !== null ? numericPrice.toString() : null,
+      numericOriginalPrice !== null ? numericOriginalPrice.toString() : null,
       productData.imageUrl || 'https://via.placeholder.com/300x300?text=Product',
       affiliateUrlToSave,
       'product',
@@ -1026,12 +1318,21 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
       '4.0',
       100,
       discount,
-      'INR',
+      currencyToSave,
       null, // gender
       1, // is_active
       categorization.isFeatured ? 1 : 0, // Smart featured detection
       0, // display_order
-      JSON.stringify(Array.from(new Set([channelConfig.pageSlug, ...categorization.displayPages]))), // Ensure channel page appears
+      JSON.stringify(
+        Array.from(new Set(((categorization as any).displayPages || [])
+          .map((p: any) => String(p || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9-]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+          )
+        )).filter(Boolean)
+      ),
       0, // has_timer
       null, // timer_duration
       null, // timer_start_time
@@ -1053,7 +1354,7 @@ async function saveProductToDatabase(productData: any, channelConfig: any, chann
     console.log(`✅ Product saved to unified_content for ${channelConfig.pageName}:`, productData.title || 'Product from Telegram');
     console.log(`📊 Product ID: ${result.lastInsertRowid}, Page: ${channelConfig.pageSlug}, Channel Post ID: ${channelPostId}`);
     console.log(`🎯 Auto-categorized as: Featured=${categorization.isFeatured}, Service=${categorization.isService}, AI/App=${categorization.isAIApp}`);
-    console.log(`📄 Will appear on pages: ${categorization.displayPages.join(', ')}`);
+    console.log(`📄 Will appear on pages: ${((categorization as any).displayPages || []).join(', ')}`);
     
     return result.lastInsertRowid;
     
@@ -1093,23 +1394,49 @@ async function processMessage(msg) {
   
   let channelConfig = CHANNEL_CONFIGS[chatId];
   
-  // Safe fallback: derive a default config so unknown channels still post to site
+  // Quarantine fallback: route unknown channels into a dedicated hidden page
   if (!channelConfig) {
     const title = (msg.chat?.title || '').trim();
-    const slugify = (s: string) => s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 40) || 'value-picks';
-    const derivedSlug = title ? slugify(title) : 'value-picks';
-    channelConfig = {
-      pageName: title || 'Value Picks',
-      affiliateTag: '',
-      platform: 'multiple',
-      platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
-      pageSlug: derivedSlug
-    } as any;
-    console.log(`ℹ️ Using fallback channel config for ${chatId}:`, channelConfig);
+    const titleLc = title.toLowerCase();
+    // Title-based routing for public channels where ID is not yet registered
+    const TITLE_TO_SLUG: Record<string, string> = {
+      'fresh picks': 'fresh-picks',
+      'fresh-picks': 'fresh-picks',
+      "artist's corner": 'artists-corner',
+      'artists corner': 'artists-corner',
+      'artists-corner': 'artists-corner',
+      'ott hub': 'ott-hub',
+      'ott-hub': 'ott-hub'
+    };
+    const mappedSlug = TITLE_TO_SLUG[titleLc];
+
+    if (mappedSlug) {
+      channelConfig = {
+        pageName: title || 'Mapped Channel',
+        affiliateTag: '',
+        platform: 'multiple',
+        platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+        pageSlug: mappedSlug
+      } as any;
+      console.warn(`ℹ️ Unknown channel ${chatId} (${title}). Routing by title to '${mappedSlug}'.`);
+    } else {
+      channelConfig = {
+        pageName: 'Fallback',
+        affiliateTag: '',
+        platform: 'multiple',
+        platforms: ['cuelinks', 'inrdeals', 'earnkaro'],
+        pageSlug: 'fallback'
+      } as any;
+      console.warn(`⚠️ Unknown channel ${chatId} (${title}). Routing to 'fallback' page.`);
+      try {
+        await notifyAdmin(
+          `⚠️ <b>Unknown Channel Routed</b>\n` +
+          `• Channel ID: <code>${chatId}</code>\n` +
+          `• Title: <code>${title || 'N/A'}</code>\n` +
+          `• Routed Page: <code>fallback</code>`
+        );
+      } catch {}
+    }
   }
   
   console.log(`✅ Processing message from ${channelConfig.pageName} (${chatId})`);
@@ -1132,6 +1459,34 @@ async function processMessage(msg) {
   }
   
   console.log(`📝 Message text for processing: ${messageText.substring(0, 200)}...`);
+
+  const multi = parseMultiItemTelegramMessage(messageText);
+  if (multi.items && multi.items.length > 1) {
+    try {
+      for (const it of multi.items) {
+        let postMsg = `${it.title}\n${it.url}`;
+        try {
+          const basic = extractBasicProductInfo(postMsg, [it.url]);
+          const numeric = (v: any) => {
+            if (!v) return 0;
+            const m = String(v).match(/[\d,]+(?:\.\d+)?/);
+            return m ? parseFloat(m[0].replace(/,/g, '')) : 0;
+          };
+          const priceOk = numeric(basic.price) > 0;
+          if (!priceOk) {
+            postMsg = `${postMsg}\nSee price on website`;
+          }
+        } catch {}
+        await sendTelegramNotification(chatId, postMsg, { disable_web_page_preview: false });
+      }
+      if (multi.discountLine) {
+        await sendTelegramNotification(chatId, multi.discountLine);
+      }
+      // Don't return here; continue to process and save individual products below
+    } catch (multiErr) {
+      console.warn('⚠️ Multi-item posting encountered an error, falling back to normal processing:', (multiErr as any)?.message || multiErr);
+    }
+  }
   
   // Capture URLs present only in Telegram entities (e.g., text_link), and merge into text
   function extractEntityUrls(m: any): string[] {
@@ -1160,12 +1515,54 @@ async function processMessage(msg) {
   }
   
   // Extract product information using URL processing service
-  const productInfo = await extractProductInfo(messageText);
+  const productInfo = await extractProductInfo(messageText, channelConfig.pageSlug || '');
   
   if (productInfo.urls.length === 0) {
     console.log('⚠️ No URLs found via text parsing');
     if (entityUrls.length === 0) {
-      console.log('❌ No URLs found in entities either, skipping...');
+      console.log('❌ No URLs found in entities either. Falling back to minimal product save.');
+      // Save minimal channel post and product so page still shows the post
+      const channelPostId = await saveToChannelPosts(msg, channelConfig, messageText, []);
+      if (!channelPostId) {
+        console.error('❌ Failed to save message to channel_posts in fallback path, aborting...');
+        await notifyAdmin(
+          `❌ <b>Channel Post Save Failed (Fallback)</b>\n` +
+          `• Channel: <code>${channelConfig.pageName}</code> (${chatId})\n` +
+          `• Message ID: <code>${msg.message_id}</code>`
+        );
+        return;
+      }
+
+      // Try to get Telegram photo URL
+      const imageUrl = await extractImageUrl(msg);
+
+      // Derive a basic title from the first meaningful line
+      const lines = (messageText || '').split('\n').map(l => l.trim()).filter(Boolean);
+      const firstLine = lines[0]?.replace(/[✨🎯🔥⚡️🎉💥🚀💰❌✅]/g, '').trim();
+      const basicInfo = extractBasicProductInfo(messageText || '', []);
+      const fallbackTitle = firstLine && firstLine.length > 10 && !firstLine.startsWith('http')
+        ? firstLine
+        : (basicInfo.title || 'Product from Telegram');
+
+      try {
+        const productId = await saveProductToDatabase({
+          name: fallbackTitle,
+          title: fallbackTitle,
+          description: (messageText || '').substring(0, 300).replace(/https?:\/\/[^\s]+/g, '').replace(/\s{2,}/g, ' ').trim(),
+          price: basicInfo.price || null,
+          originalPrice: basicInfo.originalPrice || null,
+          discount: basicInfo.discount || null,
+          imageUrl: imageUrl || '/api/placeholder/300/300',
+          urls: [],
+          currency: 'INR'
+        }, channelConfig, Number(channelPostId));
+
+        await updateChannelPostStatus(Number(channelPostId), true, false);
+        console.log(`✅ Fallback product saved for ${channelConfig.pageName} - Channel Post ID: ${channelPostId}, Product ID: ${productId}`);
+      } catch (fallbackErr: any) {
+        console.error('❌ Fallback save failed:', fallbackErr?.message || fallbackErr);
+        await updateChannelPostStatus(Number(channelPostId), false, false, fallbackErr?.message || String(fallbackErr));
+      }
       return;
     }
     // Fallback: use entity URLs directly
@@ -1208,41 +1605,85 @@ async function processMessage(msg) {
     }
     
     let productData;
-    
+
     // If URL processing service provided complete product data, use it
     if (productInfo.productData) {
-      // For photo messages, enhance title with message text if URL processing didn't get a good title
+      // Start with URL processing title
       let enhancedTitle = productInfo.productData.name;
-      
-      if (msg.photo && msg.photo.length > 0 && messageText) {
-        // Extract a better title from the message text for photo posts
-        const lines = messageText.split('\n').filter(line => line.trim());
-        const firstLine = lines[0]?.replace(/[✨🎯🔥⚡️🎉💥🚀💰❌✅]/g, '').trim();
-        
-        // Use message text title if it's more descriptive than URL-extracted title
-        if (firstLine && firstLine.length > 10 && !firstLine.startsWith('http') && 
-            (!enhancedTitle || enhancedTitle.length < 20 || enhancedTitle === 'Product from Telegram')) {
-          enhancedTitle = firstLine;
+
+      // Derive a better title from message text for both photo and text-only posts
+      if (messageText) {
+        const fallbackInfo = extractBasicProductInfo(messageText, productInfo.urls || []);
+        const fallbackTitle = (fallbackInfo?.title || '').trim();
+        const genericTitles = new Set([
+          'Product from Telegram',
+          'Product from unknown',
+          'Product from amazon.in',
+          'Product from amazon.com',
+          'Page Not Found',
+          'Amazon Product'
+        ]);
+
+        // Use fallback title when URL-derived title is generic or too short
+        if (
+          (!enhancedTitle || enhancedTitle.length < 12 || genericTitles.has(enhancedTitle)) &&
+          fallbackTitle && !genericTitles.has(fallbackTitle) && !fallbackTitle.startsWith('http')
+        ) {
+          enhancedTitle = fallbackTitle;
+        }
+
+        // For photo posts, also consider the first meaningful line as title
+        if (msg.photo && msg.photo.length > 0) {
+          const lines = messageText.split('\n').filter(line => line.trim());
+          const firstLine = lines[0]?.replace(/[✨🎯🔥⚡️🎉💥🚀💰❌✅]/g, '').trim();
+          if (firstLine && firstLine.length > 10 && !firstLine.startsWith('http') &&
+              (!enhancedTitle || enhancedTitle.length < 20 || genericTitles.has(enhancedTitle))) {
+            enhancedTitle = firstLine;
+          }
         }
       }
-      
+
       // Prioritize product image from URL processing service over Telegram photo
       let finalImageUrl = productInfo.productData.imageUrl;
-      
+
       // Only use Telegram image if no product image was found from URL processing
       if (!finalImageUrl || finalImageUrl.includes('placeholder') || finalImageUrl.includes('via.placeholder')) {
         finalImageUrl = imageUrl || '/api/placeholder/300/300';
       }
-      
+
       console.log(`📸 Image URL decision: Product=${productInfo.productData.imageUrl}, Telegram=${imageUrl}, Final=${finalImageUrl}`);
-      
+
       productData = {
         ...productInfo.productData,
         title: enhancedTitle,
+        // Strip any raw URLs from description to keep link out of body
+        description: (productInfo.productData.description || '').replace(/https?:\/\/[^\s]+/g, '').replace(/\s{2,}/g, ' ').trim(),
         imageUrl: finalImageUrl,
         messageId: msg.message_id,
         hasPhoto: !!(msg.photo && msg.photo.length > 0)
       };
+
+      // Reconcile price/original price with message context if scraper is missing or inconsistent
+      try {
+        const msgLevel = extractBasicProductInfo(messageText, productInfo.urls || []);
+        const toNum = (s: any) => {
+          if (!s) return null;
+          const m = String(s).match(/[\d,]+(?:\.\d+)?/);
+          return m ? parseFloat(m[0].replace(/,/g, '')) : null;
+        };
+        const sp = toNum(productInfo.productData.price);
+        const so = toNum(productInfo.productData.originalPrice);
+        const mp = toNum(msgLevel.price);
+        const mo = toNum(msgLevel.originalPrice);
+
+        // Prefer message-level when scraper failed or clearly wrong
+        if ((sp === null || sp <= 0) && mp !== null) {
+          productData.price = msgLevel.price;
+        }
+        if ((so === null || (sp !== null && so !== null && so < sp)) && mo !== null) {
+          productData.originalPrice = msgLevel.originalPrice;
+        }
+      } catch {}
     } else {
       // Fallback: Convert URLs to affiliate links and use basic product info
       const affiliateUrls = convertUrls(productInfo.urls || [], channelConfig);
@@ -1271,17 +1712,135 @@ async function processMessage(msg) {
         price: enhancedProductInfo.price || null,
         originalPrice: enhancedProductInfo.originalPrice || null,
         discount: enhancedProductInfo.discount || null,
-        description: enhancedProductInfo.description || '',
+        // Strip raw URLs so link appears only in CTA
+        description: (enhancedProductInfo.description || '').replace(/https?:\/\/[^\s]+/g, '').replace(/\s{2,}/g, ' ').trim(),
         urls: affiliateUrls,
         imageUrl: imageUrl || '/api/placeholder/300/300',
         messageId: msg.message_id,
         hasPhoto: !!(msg.photo && msg.photo.length > 0),
         // Ensure price data is preserved from basic extraction
-        currency: 'INR',
+        currency:
+          (productData?.currency ? String(productData.currency).toUpperCase() : null) ||
+          detectCurrencyFromText(enhancedProductInfo.price) ||
+          detectCurrencyFromText(enhancedProductInfo.originalPrice) ||
+          'INR',
         name: enhancedProductInfo.title || 'Product from Telegram'
       };
     }
     
+    // If there are multiple URLs or parsed items, save one product per URL
+    const multiItems = (multi.items && multi.items.length > 1)
+      ? multi.items.map(it => ({ title: it.title, url: it.url }))
+      : [];
+
+    const urlList = productInfo.urls || [];
+
+    if (multiItems.length > 0 || (urlList.length > 1)) {
+      const itemsToProcess = multiItems.length > 0
+        ? multiItems
+        : urlList.map(u => ({ title: null as any, url: u }));
+
+      console.log(`🧩 Processing multi-item save: count=${itemsToProcess.length}`);
+
+      for (let idx = 0; idx < itemsToProcess.length; idx++) {
+        const item = itemsToProcess[idx];
+        const singleText = item.title ? `${item.title}\n${item.url}` : `${item.url}`;
+        let singleInfo: any;
+        try {
+          singleInfo = await extractProductInfo(singleText, channelConfig.pageSlug || '');
+        } catch (e) {
+          console.warn('⚠️ extractProductInfo failed for single item, falling back:', (e as any)?.message || e);
+          singleInfo = { urls: [item.url] };
+        }
+
+        // Reuse Telegram image for all items when available
+        const singleImageUrl = imageUrl || '/api/placeholder/300/300';
+
+        let singleProductData: any;
+        if (singleInfo && singleInfo.productData) {
+          // Prefer processed product data
+          let enhancedTitle = singleInfo.productData.name || (item.title || productData.title);
+          // Handle generic titles
+          const genericTitles = new Set([
+            'Product from Telegram',
+            'Product from unknown',
+            'Page Not Found',
+            'Amazon Product'
+          ]);
+          if (!enhancedTitle || enhancedTitle.length < 12 || genericTitles.has(enhancedTitle)) {
+            enhancedTitle = item.title || productData.title || enhancedTitle || 'Product from Telegram';
+          }
+
+          singleProductData = {
+            ...singleInfo.productData,
+            title: enhancedTitle,
+            description: (singleInfo.productData.description || '').replace(/https?:\/\/[^\s]+/g, '').replace(/\s{2,}/g, ' ').trim(),
+            imageUrl: singleInfo.productData.imageUrl || singleImageUrl,
+            urls: convertUrls([item.url], channelConfig),
+            messageId: msg.message_id,
+            hasPhoto: !!(msg.photo && msg.photo.length > 0),
+            name: enhancedTitle
+          };
+
+          // Reconcile with full message context for prices if missing/invalid
+          try {
+            const msgLevel = extractBasicProductInfo(messageText, [item.url]);
+            const toNum = (s: any) => {
+              if (!s) return null;
+              const m = String(s).match(/[\d,]+(?:\.\d+)?/);
+              return m ? parseFloat(m[0].replace(/,/g, '')) : null;
+            };
+            const sp = toNum(singleInfo.productData.price);
+            const so = toNum(singleInfo.productData.originalPrice);
+            const mp = toNum(msgLevel.price);
+            const mo = toNum(msgLevel.originalPrice);
+            if ((sp === null || sp <= 0) && mp !== null) {
+              singleProductData.price = msgLevel.price;
+            }
+            if ((so === null || (sp !== null && so !== null && so < sp)) && mo !== null) {
+              singleProductData.originalPrice = msgLevel.originalPrice;
+            }
+          } catch {}
+        } else {
+          // Fallback build from single URL
+          const fallbackInfo = extractBasicProductInfo(singleText, [item.url]);
+          singleProductData = {
+            title: (item.title || fallbackInfo.title || productData.title || 'Product from Telegram'),
+            price: fallbackInfo.price || productData.price || null,
+            originalPrice: fallbackInfo.originalPrice || productData.originalPrice || null,
+            discount: fallbackInfo.discount || productData.discount || null,
+            description: (fallbackInfo.description || productData.description || '').replace(/https?:\/\/[^\s]+/g, '').replace(/\s{2,}/g, ' ').trim(),
+            urls: convertUrls([item.url], channelConfig),
+            imageUrl: singleImageUrl,
+            messageId: msg.message_id,
+            hasPhoto: !!(msg.photo && msg.photo.length > 0),
+            currency:
+              (productData?.currency ? String(productData.currency).toUpperCase() : null) ||
+              detectCurrencyFromText(fallbackInfo.price) ||
+              detectCurrencyFromText(fallbackInfo.originalPrice) ||
+              'INR',
+            name: (item.title || fallbackInfo.title || productData.title || 'Product from Telegram')
+          };
+        }
+
+        console.log('📦 Saving single item product:', {
+          idx,
+          title: singleProductData.title,
+          url: (singleProductData.urls && singleProductData.urls[0]) || item.url,
+          hasPhoto: singleProductData.hasPhoto
+        });
+
+        try {
+          await saveProductToDatabase(singleProductData, channelConfig, Number(channelPostId), singleInfo);
+        } catch (saveErr) {
+          console.error('❌ Failed to save single item product:', (saveErr as any)?.message || saveErr);
+        }
+      }
+
+      await updateChannelPostStatus(Number(channelPostId), true, false);
+      return;
+    }
+
     // Log enhanced product data for debugging
     console.log('📦 Enhanced product data:', {
       title: productData.title,
@@ -1292,7 +1851,7 @@ async function processMessage(msg) {
       urlCount: productData.urls?.length || 0
     });
     
-    // Save to unified_content database
+    // Save to unified_content database for single-URL messages
     const productId = await saveProductToDatabase(productData, channelConfig, Number(channelPostId), productInfo);
     
     // Update channel_posts status to processed
@@ -1317,4 +1876,4 @@ async function processMessage(msg) {
 }
 
 // Export the bot, functions, and TelegramBotManager
-export { bot, sendTelegramNotification, TelegramBotManager };
+export { bot, sendTelegramNotification, TelegramBotManager, CHANNEL_CONFIGS, resolveChannelIdForPage };

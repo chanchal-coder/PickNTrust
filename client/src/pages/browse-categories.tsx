@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
@@ -60,7 +60,28 @@ export default function BrowseCategories() {
   });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { toast } = useToast();
-
+  const [, setLocation] = useLocation();
+  const [selectedParent, setSelectedParent] = useState<string>('');
+  
+  // Fetch subcategories when a parent category is selected
+  const { data: subcategories = [], isFetching: fetchingSubcats } = useQuery({
+    queryKey: ['/api/categories/subcategories', selectedParent],
+    queryFn: async () => {
+      const parent = selectedParent?.trim();
+      if (!parent) return [];
+      try {
+        const res = await fetch(`/api/categories/subcategories?parent=${encodeURIComponent(parent)}`);
+        if (!res.ok) return [];
+        return res.json();
+      } catch (err) {
+        console.error('Error fetching subcategories:', err);
+        return [];
+      }
+    },
+    enabled: Boolean(selectedParent?.trim()),
+    staleTime: 5 * 60 * 1000,
+  });
+  
   // Vibrant color palette without grey colors - now using database colors
   const vibrantColorPalette = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#FF69B4', '#32CD32',
@@ -69,24 +90,51 @@ export default function BrowseCategories() {
     '#8A2BE2', '#FF1493', '#00FF7F', '#FF6347', '#4169E1'
   ];
 
+  // Defensive: treat low-saturation hex colors as grey and ignore them
+  const looksGrey = (hex?: string) => {
+    const s = String(hex || '').trim().toLowerCase();
+    if (!s.startsWith('#') || (s.length !== 7 && s.length !== 4)) return false;
+    const h = s.slice(1);
+    const to255 = (i: number) => {
+      if (s.length === 4) {
+        const c = h[i];
+        return parseInt(c + c, 16);
+      }
+      return parseInt(h.slice(i * 2, i * 2 + 2), 16);
+    };
+    const r = to255(0), g = to255(1), b = to255(2);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max; // 0..1
+    return sat < 0.15 && max < 235; // low saturation, avoid near-white
+  };
+
+  // Sanitize icons: ensure FontAwesome, fallback to fas fa-tag
+  const sanitizeIcon = (icon?: string) => {
+    const s = String(icon || '').trim();
+    if (!s || s.startsWith('mdi-') || !s.includes('fa-')) return 'fas fa-tag';
+    return s;
+  };
+
   // Function to get vibrant category color
   const getVibrantCategoryColor = (index: number, categoryColor?: string) => {
-    // Always use database color if available, otherwise use vibrant palette
-    if (categoryColor && categoryColor.startsWith('#')) {
+    // Use database color only if it's not greyish
+    if (categoryColor && categoryColor.startsWith('#') && !looksGrey(categoryColor)) {
       return categoryColor;
     }
     // Fallback to vibrant palette
     return vibrantColorPalette[index % vibrantColorPalette.length];
   };
 
-  // Fetch categories from API
+  // Fetch categories from API with fallback: if browse returns empty, use DB categories
   const { data: categories = [], isLoading, error } = useQuery<Category[]>({
-    queryKey: ['/api/categories/browse', selectedType],
+    queryKey: ['/api/categories/browse-or-db', selectedType],
     queryFn: async (): Promise<Category[]> => {
       try {
-        let url = '/api/categories/browse';
+        // Primary: browse endpoint (may be empty if unified_content has no rows)
+        let browseUrl = '/api/categories/browse';
         const params = new URLSearchParams();
-        
+
         // Map UI selectedType to backend-supported type values
         const apiType =
           selectedType === 'product' ? 'products' :
@@ -97,16 +145,34 @@ export default function BrowseCategories() {
         if (apiType !== 'all') {
           params.append('type', apiType);
         }
-        
+
         if (params.toString()) {
-          url += '?' + params.toString();
+          browseUrl += '?' + params.toString();
         }
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
+
+        const resBrowse = await fetch(browseUrl);
+        const dataBrowse = resBrowse.ok ? await resBrowse.json() : [];
+
+        // If browse has categories, use it
+        if (Array.isArray(dataBrowse) && dataBrowse.length > 0) {
+          return dataBrowse as Category[];
         }
-        return response.json();
+
+        // Fallback: always show admin-managed DB categories (parents only)
+        const resAll = await fetch('/api/categories');
+        if (!resAll.ok) return [];
+        const all = await resAll.json();
+        const parents = Array.isArray(all) ? all.filter((c: any) => !c.parentId) : [];
+
+        // Optionally filter parents by selected type using flags
+        const typedParents = parents.filter((c: any) => {
+          if (apiType === 'products') return c.isForProducts || (!c.isForServices && !c.isForAIApps);
+          if (apiType === 'services') return c.isForServices;
+          if (apiType === 'aiapps') return c.isForAIApps;
+          return true; // 'all'
+        });
+
+        return typedParents as Category[];
       } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -278,6 +344,53 @@ export default function BrowseCategories() {
             </div>
           </div>
 
+          {/* Subcategories rail */}
+
+          {/* Subcategories rail: appears when a parent category is selected */}
+          {selectedParent && (
+            <section className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {selectedParent} Categories
+                </h2>
+                <button
+                  onClick={() => setSelectedParent('')}
+                  className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+              {fetchingSubcats ? (
+                <div className="text-gray-500 dark:text-gray-400">Loading subcategories…</div>
+              ) : Array.isArray(subcategories) && subcategories.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {subcategories.map((sub: any) => (
+                    <Link
+                      key={sub.id || sub.name || String(sub)}
+                      href={`/category/${encodeURIComponent(sub.name || String(sub))}`}
+                      onClick={() => setSelectedParent('')}
+                    >
+                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-green-600/10 text-green-700 dark:text-green-300 border border-green-600/30 hover:bg-green-600/20">
+                        <i className="fas fa-tag text-xs"></i>
+                        {sub.name || String(sub)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-600 dark:text-gray-400">No subcategories found.</span>
+                  <button
+                    onClick={() => setLocation(`/category/${encodeURIComponent(selectedParent)}`)}
+                    className="px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  >
+                    View {selectedParent} Products
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Categories Grid */}
           {categoriesToDisplay.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -294,7 +407,6 @@ export default function BrowseCategories() {
                   }}
                 >
                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden border-2 hover:border-green-500">
-                    
                     {/* Category Header with Icon */}
                     <div 
                       className="relative p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
@@ -307,7 +419,7 @@ export default function BrowseCategories() {
                       {/* Category Icon */}
                       <div className="text-center mb-4">
                         <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                          <i className={`${category.icon || 'fas fa-tag'} text-3xl text-white drop-shadow-lg`}></i>
+                          <i className={`${sanitizeIcon(category.icon)} text-3xl text-white drop-shadow-lg`}></i>
                         </div>
                         
                         {/* Category Type Badge */}
@@ -346,30 +458,12 @@ export default function BrowseCategories() {
                         </p>
                       )}
 
-                      {/* Product Counts */}
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Total Products:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {category.total_products_count || 0}
-                          </span>
-                        </div>
-                        
-                        {/* Show breakdown for services/apps when present */}
-                        {((category.apps_count || 0) + (category.services_count || 0)) > 0 && (
-                          <div className="text-xs text-gray-500 dark:text-gray-500">
-                            {(category.apps_count || 0) > 0 && <span className="mr-2">Apps: {category.apps_count}</span>}
-                            {(category.services_count || 0) > 0 && <span className="mr-2">Services: {category.services_count}</span>}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Browse Button */}
-                      <button className="w-full bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white font-semibold py-3 px-4 rounded-lg transition-all transform hover:scale-105 border border-white/30 hover:border-white/50 shadow-lg">
-                        <i className="fas fa-arrow-right mr-2"></i>
-                        Browse Category
-                      </button>
+                      {/* Removed product counts and action buttons to show only name and description */}
+                      {/* (No counts, no Browse button, no View Subcategories button in card listing) */}
                       
+                      {/* Removed Browse Button per requirement: show only name and description */}
+                      
+                      {/* Removed View Subcategories button in card listing */}
                       {/* Created info removed: field not provided by backend here */}
                     </div>
                   </div>

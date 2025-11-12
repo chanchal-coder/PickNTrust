@@ -1,0 +1,82 @@
+Merimaa — Ops Notes for PickNTrust Website + Bot (EC2)
+
+This is a backup copy of the primary merimaa notes.
+
+Goal
+- Keep backend and bot continuously running, serve latest build reliably, and simplify future maintenance.
+
+Core Processes
+- Backend: `pickntrust-backend` via PM2 (Node v20), serves API and static from `dist/public`.
+- Bot: `pickntrust-bot` via PM2, webhook mode at `https://www.pickntrust.com/webhook/master/<TOKEN>`.
+- Static: Nginx proxies to `127.0.0.1:5000` and serves `/assets` directly from `dist/public`.
+
+Environment & Paths
+- `NODE_ENV=production`, `PORT=5000`, `FRONTEND_STATIC_DIR=dist/public`.
+- Bot secrets: `MASTER_BOT_TOKEN`, optional `ALLOWED_BOT_TOKENS`, `ALERT_CHAT_ID`.
+- Project dir: `/home/ec2-user/pickntrust` (PM2 cwd).
+- Database: `database.sqlite` under project; ensure permissions for `ec2-user`.
+
+Deployment (fast path)
+1) Build locally: `npm run build` (client to `dist/public`, server to `dist/server`).
+2) Package: `tar -czf dist-full.tar.gz dist`.
+3) Upload: `scp dist-full.tar.gz ec2-user@<ip>:/home/ec2-user/pickntrust/`.
+4) On EC2: `cd ~/pickntrust && tar -xzf dist-full.tar.gz`.
+5) PM2: `pm2 delete pickntrust-backend || true` then `pm2 start ecosystem.config.cjs --only pickntrust-backend --update-env`.
+6) Save: `pm2 save`.
+
+Bot Ops
+- Start: `pm2 start ecosystem.config.cjs --only pickntrust-bot --update-env`.
+- Logs: `pm2 logs pickntrust-bot --lines 120`.
+- Ensure webhook shows URL set to domain and `pending_update_count` = 0.
+- Never commit tokens; rotate immediately if leaked.
+
+PM2 Persistence
+- Register startup: `sudo pm2 startup -u ec2-user --hp /home/ec2-user` (one-time), then `pm2 save`.
+- After any change: `pm2 restart pickntrust-backend`, `pm2 restart pickntrust-bot`, then `pm2 save`.
+- Install logrotate: `pm2 install pm2-logrotate` to prevent large logs.
+
+Health & Checks
+- Backend health: `curl http://127.0.0.1:5000/health` → `{ status: 'ok' }`.
+- Public API status: `https://pickntrust.com/api/status` → `200`.
+- Category endpoints: `/api/categories/forms/products`, `/services`, `/aiapps` → `200`.
+- Placeholder endpoint: `/api/placeholder/:w/:h?text=...&bg=...&fg=...` → SVG `200`.
+- Static hashed assets (e.g. `/assets/vendor-*.js`) return `200`.
+
+Nginx Basics
+- Proxy upstream must target `127.0.0.1:5000`.
+- Set headers: `X-Forwarded-Proto`, `X-Forwarded-For`.
+- Increase body size if needed: `client_max_body_size 10M;`.
+
+Database Practices
+- Enable WAL (if not already), schedule backups.
+- Vacuum occasionally to reduce size: `VACUUM`.
+- Verify tables: `unified_content`, `meta_tags`, advertiser tables.
+
+Monitoring & Alerts
+- Consider cron to ping `/health` and alert on non-200.
+- Add ALERT_CHAT_ID to notify via bot on deploy or errors (optional).
+
+Security Notes
+- Restrict admin endpoints by auth and/or IP if possible.
+- Keep `.env` on server; do not commit secrets.
+- HTTPS cert on domain must remain valid; webhook requires HTTPS.
+
+Troubleshooting
+- If bot exits: check PM2 logs, verify `MASTER_BOT_TOKEN`, re-run `pm2 start` and `pm2 save`.
+- If static returns 404: confirm `FRONTEND_STATIC_DIR` is `dist/public` and assets exist.
+- If API 404 for placeholder: server must mount `/api/placeholder` (now implemented in `server/index.ts`).
+
+Quick Commands (EC2)
+- `pm2 status` — list processes.
+- `pm2 logs pickntrust-backend --lines 120` — backend logs.
+- `pm2 logs pickntrust-bot --lines 120` — bot logs.
+- `pm2 restart pickntrust-backend && pm2 restart pickntrust-bot && pm2 save` — refresh after updates.
+
+Recent Updates — Telegram Channels (Apps, Top Picks, Services)
+- Apps & AI Apps: `-1003414218904` (`@pntaiapps`) → `apps-ai-apps` page
+- Top Picks: `-1003488288404` (`@toppickspnt`) → `top-picks` page
+- Services: `-1003487271664` (`@cardsservicespnt`) → `services` page
+- Notes: Posts from these channels are auto-tagged to the mapped slugs; the website continues reading from `unified_content` normally. Restart bot via PM2 after config changes.
+
+Deployment Script Reference
+- Run `deploy-to-domain.ps1` with: `-Server ec2-user@16.171.161.251 -KeyPath C:\Users\sharm\.ssh\pnt08.pem -Domain pickntrust.com`.

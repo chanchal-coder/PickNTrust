@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { CURRENCIES } from '@/contexts/CurrencyContext';
 
 interface Category {
   id: number;
@@ -20,6 +21,10 @@ interface SidebarProps {
   availableCategories?: string[];
   selectedCategory?: string;
   selectedCurrency?: string;
+  // Gender filter props (optional, shown only when provided)
+  availableGenders?: string[];
+  selectedGender?: string;
+  onGenderChange?: (gender: string) => void;
 }
 
 const categories = [
@@ -87,16 +92,14 @@ const brands = [
 
 const currencies = [
   { code: 'ALL', label: 'All Currencies', symbol: '🌍' },
-  { code: 'USD', label: 'US Dollar', symbol: '$' },
-  { code: 'EUR', label: 'Euro', symbol: '€' },
-  { code: 'GBP', label: 'British Pound', symbol: '£' },
-  { code: 'INR', label: 'Indian Rupee', symbol: '₹' },
-  { code: 'JPY', label: 'Japanese Yen', symbol: '¥' },
-  { code: 'CAD', label: 'Canadian Dollar', symbol: 'C$' },
-  { code: 'AUD', label: 'Australian Dollar', symbol: 'A$' }
+  ...Object.entries(CURRENCIES).map(([code, info]) => ({
+    code,
+    label: info.name,
+    symbol: info.symbol,
+  }))
 ];
 
-export default function Sidebar({ onCategoryChange, onPriceRangeChange, onRatingChange, onCurrencyChange, availableCategories = [], selectedCategory = '', selectedCurrency = 'INR' }: SidebarProps) {
+export default function Sidebar({ onCategoryChange, onPriceRangeChange, onRatingChange, onCurrencyChange, availableCategories = [], selectedCategory = '', selectedCurrency = 'INR', availableGenders = [], selectedGender = 'all', onGenderChange }: SidebarProps) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All Products');
   const [selectedRating, setSelectedRating] = useState<number>(0);
@@ -155,7 +158,7 @@ export default function Sidebar({ onCategoryChange, onPriceRangeChange, onRating
     setIsCurrencyExpanded(true);
     onCategoryChange?.('');
     onPriceRangeChange?.(0, Infinity);
-    onCurrencyChange?.('INR');
+    onCurrencyChange?.('ALL');
   };
 
   return (
@@ -180,7 +183,7 @@ export default function Sidebar({ onCategoryChange, onPriceRangeChange, onRating
             <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">Categories</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="space-y-2">
+            <div className="space-y-2 sidebar-scroll category-scroll-10">
               {/* All Categories Option */}
               <button
                 onClick={() => handleCategorySelect('')}
@@ -216,14 +219,88 @@ export default function Sidebar({ onCategoryChange, onPriceRangeChange, onRating
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
 
-        {/* Currency Filter - Collapsible */}
+      {/* Gender Filter (conditionally shown) */}
+      {Array.isArray(availableGenders) && availableGenders.length > 0 && typeof onGenderChange === 'function' && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
-            <button
-              onClick={() => setIsCurrencyExpanded(!isCurrencyExpanded)}
+            <CardTitle className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <i className="fas fa-venus-mars text-pink-500"></i>
+              Gender
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {/* Top-level genders */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {['all','men','women','unisex'].map((g) => {
+                const isActive = (selectedGender || 'all') === g;
+                const label = g === 'all' ? 'All' : g.charAt(0).toUpperCase() + g.slice(1);
+                return (
+                  <button
+                    key={g}
+                    onClick={() => onGenderChange && onGenderChange(g)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                      isActive
+                        ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Kids group always visible: Girls, Boys, All Kids */}
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <i className="fas fa-child text-green-500"></i>
+                Kids
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => onGenderChange && onGenderChange('girls')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                    (selectedGender || 'all') === 'girls'
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Girls
+                </button>
+                <button
+                  onClick={() => onGenderChange && onGenderChange('boys')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                    (selectedGender || 'all') === 'boys'
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Boys
+                </button>
+                <button
+                  onClick={() => onGenderChange && onGenderChange('kids')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                    (selectedGender || 'all') === 'kids'
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All Kids
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Currency Filter - Collapsible */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <button
+            onClick={() => setIsCurrencyExpanded(!isCurrencyExpanded)}
               className="w-full flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg p-2 -m-2 transition-colors"
             >
               <CardTitle className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">

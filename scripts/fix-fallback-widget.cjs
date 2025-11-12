@@ -41,20 +41,23 @@ try {
     process.exit(0);
   }
 
-  // Check for an active PrimePicks header widget
-  const existing = db
-    .prepare(
-      "SELECT id, name, is_active, show_on_desktop, show_on_mobile FROM widgets WHERE target_page = ? AND position = ? AND is_active = 1 LIMIT 1"
-    )
-    .get('prime-picks', 'header');
+  // Helper to ensure a header widget exists for a specific header position
+  function ensureHeaderWidgetForPage(page, displayName, codeClass, bgColor, loadingText, position = 'header-top') {
+    const existing = db
+      .prepare(
+        "SELECT id, name, is_active, show_on_desktop, show_on_mobile FROM widgets WHERE target_page = ? AND position = ? AND is_active = 1 LIMIT 1"
+      )
+      .get(page, position);
 
-  if (existing) {
-    log(`Found active PrimePicks header widget (ID ${existing.id}, name: ${existing.name}). Ensuring desktop/mobile flags are enabled.`);
-    db.prepare(
-      'UPDATE widgets SET show_on_desktop = 1, show_on_mobile = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-    ).run(existing.id);
-  } else {
-    log('No active PrimePicks header widget found. Creating fallback widget...');
+    if (existing) {
+      log(`Found active ${displayName} ${position} widget (ID ${existing.id}, name: ${existing.name}). Ensuring desktop/mobile flags are enabled.`);
+      db.prepare(
+        'UPDATE widgets SET show_on_desktop = 1, show_on_mobile = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+      ).run(existing.id);
+      return existing.id;
+    }
+
+    log(`No active ${displayName} ${position} widget found. Creating fallback widget...`);
     const insert = db.prepare(
       `INSERT INTO widgets (
         name, code, target_page, position, is_active, display_order,
@@ -62,14 +65,14 @@ try {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
     );
 
-    const code = `\n<div class="primepicks-fallback-banner" style="width:100%;padding:12px;background:#4F46E5;color:white;text-align:center">\n  PrimePicks deals loading...\n</div>\n`;
-    const customCss = '.primepicks-fallback-banner{font-weight:600;letter-spacing:0.2px}';
+    const code = `\n<div class="${codeClass}" style="width:100%;padding:12px;background:${bgColor};color:white;text-align:center">\n  ${loadingText}\n</div>\n`;
+    const customCss = `.${codeClass}{font-weight:600;letter-spacing:0.2px}`;
 
     const result = insert.run(
-      'PrimePicks Fallback Banner',
+      `${displayName} Fallback Banner`,
       code,
-      'prime-picks',
-      'header',
+      page,
+      position,
       1,
       0,
       '100%',
@@ -77,16 +80,57 @@ try {
       1,
       1
     );
-    log(`Created fallback widget with ID ${result.lastInsertRowid}`);
+    log(`Created ${displayName} ${position} fallback widget with ID ${result.lastInsertRowid}`);
+    return result.lastInsertRowid;
   }
 
-  // Final verification
-  const verify = db.prepare(
-    "SELECT id, name, is_active, show_on_desktop, show_on_mobile FROM widgets WHERE target_page = ? AND position = ? ORDER BY id DESC LIMIT 3"
-  ).all('prime-picks', 'header');
-  verify.forEach(w => {
-    log(`Widget ID ${w.id} name=${w.name} active=${w.is_active} desktop=${w.show_on_desktop} mobile=${w.show_on_mobile}`);
-  });
+  // Ensure Prime Picks fallback header (both header-top and header-bottom)
+  ensureHeaderWidgetForPage(
+    'prime-picks',
+    'PrimePicks',
+    'primepicks-fallback-banner',
+    '#4F46E5',
+    'PrimePicks deals loading...',
+    'header-top'
+  );
+  ensureHeaderWidgetForPage(
+    'prime-picks',
+    'PrimePicks',
+    'primepicks-fallback-banner',
+    '#4F46E5',
+    'PrimePicks deals loading...',
+    'header-bottom'
+  );
+
+  // Ensure Top Picks fallback header (both header-top and header-bottom)
+  ensureHeaderWidgetForPage(
+    'top-picks',
+    'Top Picks',
+    'toppicks-fallback-banner',
+    '#F59E0B',
+    'Top Picks loading...',
+    'header-top'
+  );
+  ensureHeaderWidgetForPage(
+    'top-picks',
+    'Top Picks',
+    'toppicks-fallback-banner',
+    '#F59E0B',
+    'Top Picks loading...',
+    'header-bottom'
+  );
+
+  // Final verification for both pages and both header positions
+  for (const p of ['prime-picks', 'top-picks']) {
+    for (const pos of ['header-top', 'header-bottom']) {
+      const verify = db.prepare(
+        "SELECT id, name, is_active, show_on_desktop, show_on_mobile FROM widgets WHERE target_page = ? AND position = ? ORDER BY id DESC LIMIT 3"
+      ).all(p, pos);
+      verify.forEach(w => {
+        log(`[${p}:${pos}] Widget ID ${w.id} name=${w.name} active=${w.is_active} desktop=${w.show_on_desktop} mobile=${w.show_on_mobile}`);
+      });
+    }
+  }
 
   db.close();
   log('Done.');

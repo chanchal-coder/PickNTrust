@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { useState, useMemo, useEffect } from "react";
+import UniversalFilterSidebar from '@/components/UniversalFilterSidebar';
 import { useToast } from '@/hooks/use-toast';
 
 // Route params interface
@@ -21,6 +22,7 @@ import {
   getCurrencySymbol, 
   formatPriceWithConversion 
 } from '@/utils/currencyConversion';
+import { inferGender } from "@/utils/gender";
 
 // Universal Subcategories Component - Works for any category
 function UniversalSubcategoriesSection({ categoryName }: { categoryName: string }) {
@@ -193,6 +195,8 @@ export default function CategoryPage() {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('all');
+  const [location] = useLocation();
+  const [selectedGender, setSelectedGender] = useState<string>('all');
 
   // Scroll to top when component mounts or category changes
   useEffect(() => {
@@ -208,12 +212,19 @@ export default function CategoryPage() {
   const [selectedCurrency, setSelectedCurrency] = useState('all');
   const [convertPrices, setConvertPrices] = useState(false);
   const [priceRange, setPriceRange] = useState('all');
+  const [selectedNetworks, setSelectedNetworks] = useState<string[]>([]);
+  // Detect gender variants available in products for conditional rendering
+  // (Declared after products query to avoid referencing before initialization)
 
   // Fetch products from all networks for this category using real-time endpoint
   const { data: allProducts = [], isLoading } = useQuery({
-    queryKey: [`/api/products/category/${category}`, 'all'],
+    queryKey: ['/api/products/category', category, 'all', selectedGender],
     queryFn: async () => {
-      const response = await fetch(`/api/products/category/${encodeURIComponent(category || '')}?page=all`);
+      const baseUrl = `/api/products/category/${encodeURIComponent(category || '')}?page=all`;
+      const url = selectedGender && selectedGender !== 'all'
+        ? `${baseUrl}&gender=${encodeURIComponent(selectedGender)}`
+        : baseUrl;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
@@ -221,6 +232,47 @@ export default function CategoryPage() {
     },
     enabled: !!category,
   });
+
+  // Infer and normalize gender variants available in products for conditional rendering
+  const availableGenders = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    (allProducts as any[]).forEach((p: any) => {
+      const g = inferGender(p);
+      if (g) set.add(g);
+    });
+    if ((set.has('boys') || set.has('girls')) && !set.has('kids')) {
+      set.add('kids');
+    }
+    const order = ['men','women','kids','boys','girls','unisex'];
+    const filtered = order.filter(g => set.has(g));
+    return ['all', ...filtered];
+  }, [allProducts]);
+  const hasGenderVariants = useMemo(() => availableGenders.length > 0, [availableGenders]);
+
+  // Read gender from query param and normalize common→unisex
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const g = (params.get('gender') || '').toLowerCase();
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized || 'all');
+  }, [category, location]);
+
+  const handleGenderChange = (g: string) => {
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    if (normalized === 'all') {
+      params.delete('gender');
+    } else {
+      params.set('gender', normalized);
+    }
+    const basePath = typeof window !== 'undefined' ? window.location.pathname : `/category/${encodeURIComponent(category || '')}`;
+    const query = params.toString();
+    const newUrl = query ? `${basePath}?${query}` : basePath;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newUrl);
+    }
+  };
 
   // Fetch subcategories for current category to decide rendering behavior
   const { data: subcategoriesForCurrent = [] } = useQuery({
@@ -241,7 +293,9 @@ export default function CategoryPage() {
     let filtered = [...allProducts];
     
     // Filter by network
-    if (selectedNetwork !== 'all') {
+    if (selectedNetworks && selectedNetworks.length > 0) {
+      filtered = filtered.filter(product => selectedNetworks.includes(product.source));
+    } else if (selectedNetwork !== 'all') {
       filtered = filtered.filter(product => product.source === selectedNetwork);
     }
     
@@ -297,9 +351,11 @@ export default function CategoryPage() {
   }, [allProducts, selectedNetwork, sortBy, selectedCurrency, convertPrices, priceRange]);
 
   // Get unique networks from products
-  const availableNetworks = useMemo(() => {
-    const networks = new Set(allProducts.map((product: any) => product.source || 'main'));
-    return Array.from(networks);
+  const availableNetworks = useMemo<string[]>(() => {
+    const networks = new Set<string>(
+      (allProducts as any[]).map((product: any) => String(product.source || 'main'))
+    );
+    return Array.from(networks.values());
   }, [allProducts]);
 
   if (isLoading) {
@@ -339,7 +395,11 @@ export default function CategoryPage() {
   }
 
   return (
-    <UniversalPageLayout pageId="category">
+    <UniversalPageLayout 
+      pageId="category"
+      enableContentOverlays={false}
+      enableFloatingOverlays={false}
+    >
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header Top above dynamic banner */}
         <WidgetRenderer page={'categories'} position="header-top" className="w-full" />
@@ -354,11 +414,208 @@ export default function CategoryPage() {
       <UniversalSubcategoriesSection categoryName={decodedCategory} />
       
       {/* Only show product filters and grid when there are no subcategories */}
-      {!hasSubcategories && (
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Enhanced Filter Controls */}
-          <div className="mb-8 bg-gradient-to-r from-white via-gray-50 to-white dark:from-gray-800 dark:via-gray-750 dark:to-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+  {!hasSubcategories && (
+  <section className="py-16">
+    <div className="max-w-7xl mx-auto pl-[1px] pr-4 sm:pr-6 lg:pr-8">
+      {/* Compact Filter Toolbar (hidden; filters moved to left sidebar) */}
+      <div className="hidden">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Gender Group - shown only when products have gender variants */}
+          {hasGenderVariants && (
+            <div className="relative flex items-center gap-2 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-venus-mars text-pink-500 text-sm"></i>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Gender</label>
+              </div>
+              <div className="flex items-center gap-2">
+                {availableGenders.map((key) => {
+                  const labelMap: Record<string,string> = {
+                    all: 'All', men: 'Men', women: 'Women', boy: 'Boy', girl: 'Girl', kids: 'Kids', unisex: 'Unisex'
+                  };
+                  const isActive = (selectedGender || 'all') === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleGenderChange(key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                        isActive
+                          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                          : 'bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {labelMap[key] || key}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {/* Filter Section */}
+          <div className="flex flex-nowrap gap-3 items-center flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap pr-4 pl-1 pb-1 min-w-0">
+            {/* Network Filter */}
+            <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-network-wired text-blue-500 text-sm"></i>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Network</label>
+              </div>
+              <div className="relative">
+                <select 
+                  value={selectedNetwork} 
+                  onChange={(e) => setSelectedNetwork(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[120px] appearance-none pr-7 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                >
+                  <option value="all">All Networks</option>
+                  {availableNetworks.map((network: string) => (
+                    <option key={String(network)} value={String(network)}>
+                      {getNetworkDisplayName(network)}
+                    </option>
+                  ))}
+                </select>
+                <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+              </div>
+            </div>
+            
+            {/* Sort Filter */}
+            <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-sort text-green-500 text-sm"></i>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sort</label>
+              </div>
+              <div className="relative">
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[130px] appearance-none pr-7 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Highest Rated</option>
+                  <option value="newest">Newest First</option>
+                  <option value="discount">Best Discount</option>
+                </select>
+                <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+              </div>
+            </div>
+            
+            {/* Currency Filter */}
+            <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-coins text-purple-500 text-sm"></i>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Currency</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <select 
+                    value={selectedCurrency} 
+                    onChange={(e) => setSelectedCurrency(e.target.value)}
+                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[100px] appearance-none pr-7 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                  >
+                    <option value="all">All Currencies</option>
+                    <option value="INR">₹ Indian Rupee</option>
+                    <option value="USD">$ US Dollar</option>
+                    <option value="EUR">€ Euro</option>
+                    <option value="GBP">£ British Pound</option>
+                  </select>
+                  <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+                </div>
+                {selectedCurrency !== 'all' && (
+                  <button
+                    onClick={() => setConvertPrices(!convertPrices)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      convertPrices 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300'
+                    } hover:scale-105`}
+                  >
+                    <i className="fas fa-exchange-alt text-xs"></i>
+                    <span>{convertPrices ? 'Converting' : 'Convert All'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Price Range Filter */}
+            <div className="relative flex-shrink-0 flex items-center gap-3 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-tag text-orange-500 text-sm"></i>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Price</label>
+              </div>
+              <div className="relative">
+                <select 
+                  value={priceRange} 
+                  onChange={(e) => setPriceRange(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer min-w-[150px] appearance-none pr-8 [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
+                >
+                  <option value="all">All Prices</option>
+                  {selectedCurrency === 'USD' ? (
+                    <>
+                      <option value="0-25">Under $25</option>
+                      <option value="25-100">$25 - $100</option>
+                      <option value="100-500">$100 - $500</option>
+                      <option value="500">Above $500</option>
+                    </>
+                  ) : selectedCurrency === 'EUR' ? (
+                    <>
+                      <option value="0-20">Under €20</option>
+                      <option value="20-100">€20 - €100</option>
+                      <option value="100-400">€100 - €400</option>
+                      <option value="400">Above €400</option>
+                    </>
+                  ) : selectedCurrency === 'GBP' ? (
+                    <>
+                      <option value="0-20">Under £20</option>
+                      <option value="20-100">£20 - £100</option>
+                      <option value="100-400">£100 - £400</option>
+                      <option value="400">Above £400</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="0-1000">Under ₹1,000</option>
+                      <option value="1000-5000">₹1,000 - ₹5,000</option>
+                      <option value="5000-20000">₹5,000 - ₹20,000</option>
+                      <option value="20000">Above ₹20,000</option>
+                    </>
+                  )}
+                </select>
+                <i className="fas fa-chevron-down pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 text-xs"></i>
+              </div>
+            </div>
+            {/* Spacer to prevent right-edge clipping of last filter */}
+            <div className="w-6 flex-shrink-0" aria-hidden="true"></div>
+          </div>
+          
+          {/* Clear Filters & Results Count */}
+          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+            {/* Clear Filters Button */}
+            {(selectedNetwork !== 'all' || sortBy !== 'relevance' || selectedCurrency !== 'all' || convertPrices || priceRange !== 'all') && (
+              <button
+                onClick={() => {
+                  setSelectedNetwork('all');
+                  setSortBy('relevance');
+                  setSelectedCurrency('all');
+                  setConvertPrices(false);
+                  setPriceRange('all');
+                }}
+                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-4 py-2 rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <i className="fas fa-times text-sm"></i>
+                <span className="text-sm font-bold">Clear Filters</span>
+              </button>
+            )}
+            
+            {/* Results Count */}
+            <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-xl shadow-md">
+              <i className="fas fa-search text-sm"></i>
+              <span className="text-sm font-bold">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Legacy mobile filter bar removed; compact toolbar above covers all viewports */}
+          <div className="hidden">
             <div className="flex items-center gap-3">
               {/* Filter Section */}
               <div className="flex flex-nowrap gap-3 items-center flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap pr-16 pl-1 pb-3 min-w-0">
@@ -524,67 +781,106 @@ export default function CategoryPage() {
               </div>
             </div>
           </div>
-          
-          {filteredProducts && filteredProducts.length > 0 ? (
-             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-               {filteredProducts.map((product: any) => {
-                 // Check if product is part of a bundle (multiple products)
-                 const isBundle = product.totalInGroup && Number(product.totalInGroup) > 1;
-                 
-                 if (isBundle) {
+          {/* Grid layout with left-side sidebar on desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left-side Filter Sidebar on desktop */}
+            <div className="lg:col-span-3 hidden lg:block">
+              <UniversalFilterSidebar
+                showNetworks={true}
+                categorySelectionMode="single"
+                // currency & price
+                selectedCurrency={selectedCurrency}
+                setSelectedCurrency={setSelectedCurrency}
+                convertPrices={convertPrices}
+                setConvertPrices={setConvertPrices}
+                priceRange={priceRange}
+                setPriceRange={setPriceRange}
+                // gender
+                availableGenders={availableGenders}
+                selectedGender={selectedGender}
+                setSelectedGender={handleGenderChange}
+                // networks
+                availableNetworks={availableNetworks}
+                selectedNetworks={selectedNetworks}
+                setSelectedNetworks={setSelectedNetworks}
+                // results & clear
+                resultsCount={filteredProducts.length}
+                onClearFilters={() => {
+                  setSelectedNetwork('all');
+                  setSortBy('relevance');
+                  setSelectedCurrency('all');
+                  setConvertPrices(false);
+                  setPriceRange('all');
+                  setSelectedNetworks([]);
+                }}
+                className="sticky top-24"
+              />
+            </div>
+            {/* Products Grid */}
+            <div className="lg:col-span-9">
+            {filteredProducts && filteredProducts.length > 0 ? (
+               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                 {filteredProducts.map((product: any) => {
+                   // Check if product is part of a bundle (multiple products)
+                   const isBundle = product.totalInGroup && Number(product.totalInGroup) > 1;
+                   
+                   if (isBundle) {
+                     return (
+                       <BundleProductCard 
+                         key={product.id} 
+                         product={product} 
+                         source="category" 
+                       />
+                     );
+                   } else {
                    return (
-                     <BundleProductCard 
-                       key={product.id} 
-                       product={product} 
-                       source="category" 
-                     />
-                   );
-                 } else {
-                 return (
-                     <AmazonProductCard 
-                       key={product.id} 
-                       product={{
-                         id: product.id,
-                         name: product.name || product.title,
-                         description: product.description || '',
-                         price: product.price,
-                         originalPrice: product.originalPrice || product.original_price,
-                         currency: product.currency || 'INR',
-                         imageUrl: product.imageUrl || product.image_url,
-                         affiliateUrl: product.affiliateUrl || product.affiliate_url,
-                         category: product.category,
-                         rating: product.rating,
-                         reviewCount: product.reviewCount || product.review_count,
-                         discount: product.discount,
-                         isNew: product.isNew,
-                         isFeatured: product.isFeatured,
-                         affiliate_network: product.affiliate_network || product.networkBadge,
-                         networkBadge: product.networkBadge,
-                         affiliateNetwork: product.affiliateNetwork || product.affiliateNetworkName || 'Category Network',
-                         // Pricing fields with snake_case fallbacks
-                         pricingType: product.pricingType || product.pricing_type,
-                         monthlyPrice: product.monthlyPrice ?? product.monthly_price,
-                         yearlyPrice: product.yearlyPrice ?? product.yearly_price,
-                         isFree: product.isFree ?? product.is_free,
-                         priceDescription: product.priceDescription ?? product.price_description,
-                         sourceType: 'category',
-                         source: 'category',
-                         displayPages: ['category']
-                       }}
-                     />
-                   );
-                 }
-               })}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i className="fas fa-search text-4xl text-gray-400"></i>
+                       <AmazonProductCard 
+                         key={product.id} 
+                         product={{
+                           id: product.id,
+                           name: product.name || product.title,
+                           description: product.description || '',
+                           price: product.price,
+                           originalPrice: product.originalPrice || product.original_price,
+                           currency: product.currency || 'INR',
+                           imageUrl: product.imageUrl || product.image_url,
+                           affiliateUrl: product.affiliateUrl || product.affiliate_url,
+                           category: product.category,
+                           rating: product.rating,
+                           reviewCount: product.reviewCount || product.review_count,
+                           discount: product.discount,
+                           isNew: product.isNew,
+                           isFeatured: product.isFeatured,
+                           affiliate_network: product.affiliate_network || product.networkBadge,
+                           networkBadge: product.networkBadge,
+                           affiliateNetwork: product.affiliateNetwork || product.affiliateNetworkName || 'Category Network',
+                           // Pricing fields with snake_case fallbacks
+                           pricingType: product.pricingType || product.pricing_type,
+                           monthlyPrice: product.monthlyPrice ?? product.monthly_price,
+                           yearlyPrice: product.yearlyPrice ?? product.yearly_price,
+                           isFree: product.isFree ?? product.is_free,
+                           priceDescription: product.priceDescription ?? product.price_description,
+                           sourceType: 'category',
+                           source: 'category',
+                           displayPages: ['category']
+                         }}
+                       />
+                     );
+                   }
+                 })}
               </div>
-              <h3 className="text-2xl font-bold text-gray-600 mb-4">No Products Found</h3>
-              <p className="text-gray-500">We're working on adding more products to this category.</p>
+            ) : (
+              <div className="text-center py-16">
+                <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <i className="fas fa-search text-4xl text-gray-400"></i>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-600 mb-4">No Products Found</h3>
+                <p className="text-gray-500">We're working on adding more products to this category.</p>
+              </div>
+            )}
             </div>
-          )}
+            
+          </div>
         </div>
       </section>
       )}

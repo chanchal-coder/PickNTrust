@@ -16,6 +16,9 @@ interface VideoContent {
   category: string;
   tags: string[];
   duration?: string;
+  // Display control
+  showOnHomepage?: boolean;
+  pages?: string[];
   ctaText?: string; // CTA button text
   ctaUrl?: string; // CTA button URL
   createdAt: string;
@@ -121,7 +124,8 @@ export default function VideosSection() {
     },
   });
 
-  const displayVideos = videos || [];
+  // Only show videos explicitly marked for homepage
+  const displayVideos = (videos || []).filter((v: any) => Boolean(v?.showOnHomepage));
 
   // Horizontal scroll helpers for desktop
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -184,8 +188,24 @@ export default function VideosSection() {
     }
   };
 
+  // Build absolute URL for media served from backend
+  const getBackendBaseUrl = () => {
+    const envBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
+    if (envBase) return envBase;
+    const origin = window.location.origin;
+    return origin.includes(':5173') ? origin.replace(':5173', ':5000') : origin;
+  };
+  const toAbsoluteMediaUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/')) return getBackendBaseUrl() + url;
+    return url;
+  };
+
   const handleVideoClick = (video: VideoContent) => {
-    window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
+    const url = toAbsoluteMediaUrl(video.videoUrl);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Removed custom per-platform share handler in favor of EnhancedShare component
@@ -409,7 +429,7 @@ export default function VideosSection() {
                               e.stopPropagation();
                               window.open(video.ctaUrl, '_blank');
                             }}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-3 rounded-lg hover:shadow-lg transition-all duration-300 text-xs z-10 relative"
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-3 rounded-lg hover:shadow-lg transition-all duration-300 text-xs z-10 relative whitespace-nowrap"
                             style={{ minWidth: '80px' }}
                           >
                             <i className="fas fa-external-link-alt mr-1"></i>
@@ -421,7 +441,7 @@ export default function VideosSection() {
                             e.stopPropagation();
                             handleVideoClick(video);
                           }}
-                          className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-xs"
+                          className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-xs whitespace-nowrap"
                         >
                           <i className="fas fa-play mr-1"></i>Watch Now
                         </button>
@@ -516,7 +536,7 @@ export default function VideosSection() {
                       e.stopPropagation();
                       handleVideoClick(video);
                     }}
-                    className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2 px-3 rounded-lg transition-all duration-300 text-sm mb-2"
+                    className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2 px-3 rounded-lg transition-all duration-300 text-sm mb-2 whitespace-nowrap"
                   >
                     <i className="fas fa-play mr-1"></i>Watch Now
                   </button>

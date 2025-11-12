@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { CURRENCIES } from '@/contexts/CurrencyContext';
 
 interface CurrencyFilterProps {
   selectedCurrency: string;
@@ -30,10 +31,11 @@ const CurrencyFilter: FC<CurrencyFilterProps> = ({
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-gray-800 dark:[&>option]:text-gray-100"
         >
           <option value="all">All Currencies</option>
-          <option value="INR">₹ Indian Rupee</option>
-          <option value="USD">$ US Dollar</option>
-          <option value="EUR">€ Euro</option>
-          <option value="GBP">£ British Pound</option>
+          {Object.entries(CURRENCIES).map(([code, info]) => (
+            <option key={code} value={code}>
+              {info.symbol} {info.name}
+            </option>
+          ))}
         </select>
         
         {/* Conversion Toggle */}

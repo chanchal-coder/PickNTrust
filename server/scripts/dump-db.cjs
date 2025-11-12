@@ -1,0 +1,10 @@
+﻿const fs = require('fs');
+const path = require('path');
+const Database = require('better-sqlite3');
+const db = new Database(path.join(process.cwd(), 'database.sqlite'));
+const categories = db.prepare('SELECT id, name, display_order, is_active, icon, color, description FROM categories ORDER BY display_order, name').all();
+fs.writeFileSync('tmp-categories.json', JSON.stringify(categories, null, 2));
+const unified = db.prepare('SELECT * FROM unified_content').all();
+fs.writeFileSync('tmp-unified.json', JSON.stringify(unified, null, 2));
+db.close();
+console.log('Dumped', { categories: categories.length, unified: unified.length });

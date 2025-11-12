@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import GenderSelectionModal from "./GenderSelectionModal";
@@ -7,9 +7,11 @@ export default function Categories() {
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [, setLocation] = useLocation();
 
-  // Fetch categories from browse API which has product counts
-  const { data: apiCategories, isLoading, error } = useQuery({
+  // Deprecated for display: browse API may hide inactive parents
+  // Kept as a fallback only
+  const { data: apiCategories } = useQuery({
     queryKey: ['/api/categories/browse'],
     queryFn: async () => {
       const response = await fetch('/api/categories/browse');
@@ -18,8 +20,28 @@ export default function Categories() {
       }
       return response.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000, // refresh every 60s to reflect admin updates
+    gcTime: 10 * 60 * 1000,
+  });
+
+  // Primary source: admin-managed categories (always show DB categories)
+  const { data: allCategories } = useQuery({
+    queryKey: ['/api/categories', 'home-parent-categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) {
+        throw new Error('Failed to fetch all categories');
+      }
+      return response.json();
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000, // refresh every 60s to reflect admin updates
+    gcTime: 10 * 60 * 1000,
   });
 
   // Categories that require gender selection
@@ -39,72 +61,23 @@ export default function Categories() {
   };
 
   const handleGenderSelect = (gender: string) => {
-    setShowGenderModal(false);
-    // Navigate to category with gender parameter
-    // Use proper navigation instead of direct window.location
-        window.location.href = `/category/${encodeURIComponent(selectedCategory)}?gender=${gender}`;
+    if (selectedCategory) {
+      setLocation(`/category/${encodeURIComponent(selectedCategory)}?gender=${gender}`);
+      setSelectedCategory('');
+      setShowGenderModal(false);
+    }
   };
 
-  if (isLoading) {
-    return (
-      <section id="categories" className="py-16 bg-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Browse Categories
-            </h2>
-            <p className="text-slate-300 text-lg">
-              Loading categories...
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 gap-4 sm:gap-6">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="bg-slate-700 rounded-[20px] p-4 sm:p-6 h-40 sm:h-44 animate-pulse">
-                <div className="w-8 h-8 bg-slate-600 rounded mb-4 mx-auto"></div>
-                <div className="h-4 bg-slate-600 rounded mb-2"></div>
-                <div className="h-3 bg-slate-600 rounded"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error || !apiCategories || !Array.isArray(apiCategories) || apiCategories.length === 0) {
-    return (
-      <section id="categories" className="py-16 bg-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Browse Categories
-            </h2>
-            <p className="text-slate-300 text-lg">
-              Discover amazing deals across all categories
-            </p>
-          </div>
-          <div className="text-center py-12">
-            <div className="mb-8">
-              <i className="fas fa-tags text-6xl text-slate-600 mb-4"></i>
-              <h3 className="text-2xl font-bold text-slate-400 mb-2">
-                No Categories Available
-              </h3>
-              <p className="text-slate-500 mb-6">
-                Categories are being set up. Please check back soon!
-              </p>
-              <Link 
-                href="/admin"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Add Categories (Admin)
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  // Compute total parent count for Show More label using allCategories (fallback to apiCategories)
+  const totalParentCount = (() => {
+    if (Array.isArray(allCategories)) {
+      return allCategories.filter((c: any) => !c.parentId).length;
+    }
+    if (Array.isArray(apiCategories)) {
+      return apiCategories.filter((c: any) => !c.parentId).length;
+    }
+    return 0;
+  })();
 
   return (
     <section id="categories" className="py-16 bg-slate-800">
@@ -122,76 +95,89 @@ export default function Categories() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 gap-4 sm:gap-6">
-          {(showAllCategories ? apiCategories : apiCategories.slice(0, 12)).map((category: any, index: number) => {
-            const totalProducts = category.total_products_count || 0;
-            const hasProducts = totalProducts > 0;
-            
-            return (
-            <Link 
-              key={category.id}
-              href={`/category/${encodeURIComponent(category.name)}`}
-              className="group block"
-              onClick={(e) => handleCategoryClick(e, category.name)}
-            >
-              <div 
-                className={`
-                  relative overflow-hidden rounded-[20px] p-4 sm:p-6 text-center
-                  h-40 sm:h-44 flex flex-col justify-center
-                  transform transition-all duration-300 ease-out
-                  hover:scale-105 hover:shadow-2xl hover:shadow-black/20
-                  shadow-lg shadow-black/10
-                  ${category.name === 'Apps & AI Apps' 
-                    ? 'ring-2 ring-yellow-400/50 shadow-yellow-400/20' 
-                    : ''
-                  }
-                  ${genderSpecificCategories.includes(category.name) 
-                    ? 'ring-2 ring-purple-400/50 shadow-purple-400/20' 
-                    : ''
-                  }
-
-                `}
-                style={{ 
-                  background: `linear-gradient(135deg, ${getVibrantColor(index, category.name)}, ${getVibrantColor(index, category.name)}E6)`
-                }}
+          {(() => {
+            // Always derive from full DB categories list, fall back to browse if needed
+            const parentCategories = Array.isArray(allCategories)
+              ? allCategories.filter((c: any) => !c.parentId)
+              : (Array.isArray(apiCategories) ? apiCategories.filter((c: any) => !c.parentId) : []);
+            const list = showAllCategories ? parentCategories : parentCategories.slice(0, 12);
+            return list.map((category: any, index: number) => {
+              const iconClass = (category.icon && String(category.icon).trim().length > 0)
+                ? String(category.icon)
+                : getCategoryIcon(category.name, index);
+              const baseColor = (category.color && String(category.color).trim().length > 0)
+                ? String(category.color)
+                : getVibrantColor(index, category.name);
+              const gradient = `linear-gradient(135deg, ${baseColor}, ${baseColor}E6)`;
+              return (
+              <Link 
+                key={category.id}
+                href={`/category/${encodeURIComponent(category.name)}`}
+                className="group block"
+                onClick={(e) => handleCategoryClick(e, category.name)}
               >
-                {/* Remove all badges - no product count badge, no network count badge, no gender badge, no special badges */}
+                <div 
+                  className={`
+                    relative overflow-hidden rounded-[20px] p-4 sm:p-6 text-center
+                    h-40 sm:h-44 flex flex-col justify-center
+                    transform transition-all duration-300 ease-out
+                    hover:scale-105 hover:shadow-2xl hover:shadow-black/20
+                    shadow-lg shadow-black/10
+                    ${category.name === 'Apps & AI Apps' 
+                      ? 'ring-2 ring-yellow-400/50 shadow-yellow-400/20' 
+                      : ''
+                    }
+                    ${genderSpecificCategories.includes(category.name) 
+                      ? 'ring-2 ring-purple-400/50 shadow-purple-400/20' 
+                      : ''
+                    }
 
-                {/* Inner highlight effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-[20px]"></div>
-                
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center justify-center h-full">
-                  <div className="mb-2 sm:mb-3">
-                    <i className={`${getCategoryIcon(category.name, index)} text-2xl sm:text-3xl text-white drop-shadow-lg`}></i>
+                  `}
+                  style={{ 
+                    background: gradient
+                  }}
+                >
+                  {/* Remove all badges - no product count badge, no network count badge, no gender badge, no special badges */}
+
+                  {/* Inner highlight effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-[20px]"></div>
+                  
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full">
+                    <div className="mb-2 sm:mb-3">
+                      <i className={`${iconClass} text-2xl sm:text-3xl text-white drop-shadow-lg`}></i>
+                    </div>
+                    <h3 className="font-bold text-white text-xs sm:text-sm mb-1 leading-tight drop-shadow-sm line-clamp-2">
+                      {category.name}
+                    </h3>
+                    {(() => {
+                      const desc = (category.description || '').trim();
+                      const fallback = category.isForServices
+                        ? `Professional services for ${category.name}`
+                        : (category.isForAIApps
+                            ? `AI apps and tools for ${category.name}`
+                            : `Products and tools for ${category.name}`);
+                      return (
+                        <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-2 text-center px-2">
+                          {desc || fallback}
+                        </p>
+                      );
+                    })()}
+                    {/* Removed child category chips from parent cards per requirement */}
+                    {/* Child category chips removed: show only parent name and description */}
                   </div>
-                  <h3 className="font-bold text-white text-xs sm:text-sm mb-1 leading-tight drop-shadow-sm line-clamp-2">
-                    {category.name}
-                  </h3>
-                  {(() => {
-                    const desc = (category.description || '').trim();
-                    const fallback = category.isForServices
-                      ? `Professional services for ${category.name}`
-                      : (category.isForAIApps
-                          ? `AI apps and tools for ${category.name}`
-                          : `Products and tools for ${category.name}`);
-                    return (
-                      <p className="text-white/90 text-[10px] sm:text-xs leading-tight drop-shadow-sm line-clamp-2 text-center px-2">
-                        {desc || fallback}
-                      </p>
-                    );
-                  })()}
-                </div>
 
-                {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[20px]"></div>
-              </div>
-            </Link>
-            );
-          })}
+                  {/* Hover effect overlay */}
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[20px]"></div>
+                </div>
+              </Link>
+              );
+            });
+          })()}
         </div>
 
         {/* Show More / Show Less Button */}
-        {apiCategories && apiCategories.length > 12 && (
+        {totalParentCount > 12 && (
           <div className="text-center mt-8">
             <button
               onClick={() => setShowAllCategories(!showAllCategories)}
@@ -203,10 +189,15 @@ export default function Categories() {
                   <i className="fas fa-chevron-up ml-2 transition-transform duration-300"></i>
                 </>
               ) : (
-                <>
-                  <span>Show More ({apiCategories.length - 12} more categories)</span>
-                  <i className="fas fa-chevron-down ml-2 transition-transform duration-300"></i>
-                </>
+                (() => {
+                  const count = Math.max(totalParentCount - 12, 0);
+                  return (
+                    <>
+                      <span>Show More ({count} more categories)</span>
+                      <i className="fas fa-chevron-down ml-2 transition-transform duration-300"></i>
+                    </>
+                  );
+                })()
               )}
             </button>
           </div>

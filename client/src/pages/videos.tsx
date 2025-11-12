@@ -526,7 +526,21 @@ export default function VideosPage() {
                 style={viewMode === 'grid' ? { scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' } : undefined}
               >
               {filteredVideos.map((video: VideoContent, index: number) => {
-                const videoInfo = getVideoInfo(video.videoUrl, video.platform);
+  // Resolve backend media URL for uploaded files
+  const getBackendBaseUrl = () => {
+    const envBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
+    if (envBase) return envBase;
+    const origin = window.location.origin;
+    return origin.includes(':5173') ? origin.replace(':5173', ':5000') : origin;
+  };
+  const toAbsoluteMediaUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/')) return getBackendBaseUrl() + url;
+    return url;
+  };
+  const videoInfo = getVideoInfo(video.videoUrl, video.platform);
                 
                 return (
                   <div 
@@ -545,7 +559,7 @@ export default function VideosPage() {
                             {videoInfo ? (
                               <div 
                                 className="w-full h-full bg-gradient-to-br from-gray-900 to-black relative cursor-pointer group/thumb overflow-hidden"
-                                onClick={() => window.open(video.videoUrl, '_blank')}
+            onClick={() => window.open(toAbsoluteMediaUrl(video.videoUrl), '_blank')}
                               >
                                 <img 
                                   src={video.thumbnailUrl || videoInfo?.thumbnailUrl || 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400&q=80'} 
@@ -734,13 +748,13 @@ export default function VideosPage() {
                               
                                    
                                    {/* Enhanced Watch Video Button */}
-                                   {getVideoInfo(video.videoUrl, video.platform) ? (
+            {getVideoInfo(video.videoUrl, video.platform) ? (
                                      <Button 
                                        size="sm" 
                                        asChild
                                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                                      >
-                                       <a href={video.videoUrl} target="_blank" rel="noopener noreferrer">
+              <a href={toAbsoluteMediaUrl(video.videoUrl)} target="_blank" rel="noopener noreferrer">
                                          <Play className="w-3 h-3 mr-1" />
                                          Watch Video
                                        </a>

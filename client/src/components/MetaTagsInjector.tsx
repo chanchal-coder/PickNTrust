@@ -10,6 +10,7 @@ interface MetaTag {
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+  rawHtml?: string;
 }
 
 export default function MetaTagsInjector() {
@@ -64,12 +65,31 @@ export default function MetaTagsInjector() {
       }
     };
 
+    const createFromRawHtml = (rawHtml: string) => {
+      const s = (rawHtml || '').trim();
+      if (!s.toLowerCase().startsWith('<meta')) return;
+      const container = document.createElement('div');
+      container.innerHTML = s;
+      const el = container.querySelector('meta');
+      if (!el) return;
+      // Prevent scripts or event handlers
+      ['onload','onerror'].forEach(attr => el.removeAttribute(attr));
+      el.setAttribute('data-injected', 'true');
+      el.setAttribute('data-purpose', 'ownership-verification');
+      document.head.appendChild(el);
+      createdTags.push(el as HTMLMetaElement);
+    };
+
     // Inject all active meta tags
     metaTags.forEach((tag: MetaTag) => {
       // Check if tag is active (default to true if not specified)
       const isActive = tag.is_active !== undefined ? tag.is_active : true;
       if (isActive) {
-        createOrUpdateMetaTag(tag.name, tag.content);
+        if (tag.rawHtml && tag.rawHtml.trim().length > 0) {
+          createFromRawHtml(tag.rawHtml);
+        } else {
+          createOrUpdateMetaTag(tag.name, tag.content);
+        }
       }
     });
 

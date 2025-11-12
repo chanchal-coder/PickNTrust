@@ -1,0 +1,2 @@
+name,description,price,original_price,currency,image_url,affiliate_url,is_featured,is_service,is_ai_app,display_pages
+Sample Product One,Test product for page posting,19.99,29.99,USD,https://example.com/img.jpg,https://example.com/buy,,false,false,false,"home, trending, loot-box"

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
-import { useCurrency, getCurrencySymbol, CurrencyCode } from '@/contexts/CurrencyContext';
+import { useCurrency, CurrencyCode } from '@/contexts/CurrencyContext';
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
 import EnhancedPriceTag from '@/components/EnhancedPriceTag';
 import EnhancedShare from '@/components/enhanced-share';
@@ -117,13 +117,14 @@ export default function CardsAppsServices() {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const queryClient = useQueryClient();
 
-  // Helper function to format product price without conversion (displays original currency)
-  const formatProductPrice = (price?: string | number | number | undefined, productCurrency?: string) => {
-    const numPrice = typeof price === 'string' ? parseFloat(price.replace(/,/g, '')) : price;
-    const originalCurrency = (productCurrency as CurrencyCode) || 'INR';
-    
-    // Always display in the product's original currency (no conversion)
-    return formatCurrencyPrice(numPrice, originalCurrency);
+  // Currency formatter: default to product's original currency (no conversion)
+  const { currentCurrency } = useCurrency();
+  const formatProductPrice = (price?: string | number, productCurrency?: string) => {
+    const numeric = typeof price === 'string' 
+      ? parseFloat(String(price).replace(/[^\d.-]/g, '')) || 0 
+      : (price || 0);
+    const from: CurrencyCode = (String(productCurrency || 'INR').trim().toUpperCase() as CurrencyCode);
+    return formatCurrencyPrice(numeric, from);
   };
 
   // Check admin status
@@ -173,34 +174,46 @@ export default function CardsAppsServices() {
     queryKey: ['/api/products/page/services', getDailyRotationOffset()],
     queryFn: async () => {
       try {
-        // Fetch latest services from services page (filters by isService=true)
-        const response = await fetch('/api/products/page/services');
-        if (!response.ok) {
-          console.log('Services page API failed, showing coming soon message');
+        // Primary: Services page source (filters by isService=true)
+        const res1 = await fetch('/api/products/page/services');
+        if (res1.ok) {
+          const data = await res1.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const rotationOffset = getDailyRotationOffset() % data.length;
+            const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
+            const previewData = rotatedData.slice(0, 8);
+            if (previewData.length > 0) {
+              console.log(`Services: Showing ${previewData.length} from /api/products/page/services (total ${data.length})`);
+              return previewData;
+            }
+          }
+        } else {
+          console.log('Services page API failed with status', res1.status);
+        }
+
+        // Fallback: unified services endpoint
+        const res2 = await fetch('/api/services');
+        if (!res2.ok) {
+          console.log('Fallback /api/services failed with status', res2.status);
           return [];
         }
-        const data = await response.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-           // Apply daily rotation - show different services each day
-           const rotationOffset = getDailyRotationOffset() % data.length; // Ensure offset doesn't exceed data length
-           const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
-           // Return first 6 services for home page preview, or all available if less than 6
-           const previewData = rotatedData.slice(0, 6);
-           
-           // CRITICAL: If we have ANY real data, return it instead of fallback
-           if (previewData.length > 0) {
-             console.log(`Services: Showing ${previewData.length} real services from services page (total available: ${data.length})`);
-             return previewData;
-           }
-         }
-         
-         console.log('Services: No real data available from services page, showing coming soon message');
-          return [];
+        const data2 = await res2.json();
+        const list = Array.isArray(data2) ? data2 : (Array.isArray(data2?.services) ? data2.services : []);
+        const servicesOnly = list.filter((item: any) => item && (item.isService === true || String(item.content_type).toLowerCase() === 'service'));
+        if (servicesOnly.length > 0) {
+          const rotationOffset = getDailyRotationOffset() % servicesOnly.length;
+          const rotatedData = [...servicesOnly.slice(rotationOffset), ...servicesOnly.slice(0, rotationOffset)];
+          const previewData = rotatedData.slice(0, 8);
+          console.log(`Services: Showing ${previewData.length} from /api/services (total ${servicesOnly.length})`);
+          return previewData;
+        }
+
+        console.log('Services: No data available from either source');
+        return [];
       } catch (error) {
-          console.log('Services page API error, showing coming soon message:', error);
-          return [];
-        }
+        console.log('Services API error:', error);
+        return [];
+      }
     },
     retry: 1,
     staleTime: 1000 * 60 * 60, // Cache for 1 hour, but rotation changes daily
@@ -263,7 +276,10 @@ export default function CardsAppsServices() {
   }, [displayServices]);
 
   const handleAffiliateClick = (service: Product) => {
-    window.open(service.affiliateUrl, '_blank', 'noopener,noreferrer');
+    const url = service.affiliateUrl || service.affiliate_url;
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleWishlistToggle = (service: Product) => {
@@ -325,7 +341,12 @@ export default function CardsAppsServices() {
 
   const handleShare = (platform: string, service: Product) => {
     const serviceUrl = `${window.location.origin}`;
-    const serviceText = `Check out this amazing service: ${service.name} - ${service.price === '0' ? 'FREE' : `₹${service.price}/month`} at PickNTrust!`;
+    const suffix = service.pricingType === 'monthly' || service.pricingType === 'Monthly Subscription' ? '/month'
+      : service.pricingType === 'yearly' || service.pricingType === 'Yearly Subscription' ? '/year' : '';
+    const priceText = (String(service.price) === '0' || String(service.pricingType).toLowerCase() === 'free')
+      ? 'FREE'
+      : `${formatProductPrice(service.price, service.currency)}${suffix}`;
+    const serviceText = `Check out this amazing service: ${service.name} - ${priceText} at PickNTrust!`;
     
     let shareUrl = '';
     
@@ -343,7 +364,8 @@ export default function CardsAppsServices() {
         shareUrl = `https://web.whatsapp.com/channel/0029Vb6osphADTODpfUO4h0C`;
         break;
       case 'instagram':
-        const instagramText = `<i className="fas fa-credit-card"></i> Amazing Service Alert! ${service.name}\n\n<i className="fas fa-dollar-sign"></i> Price: ${service.price === '0' ? 'FREE' : `₹${service.price}/month`}${service.originalPrice ? ` (was ₹${service.originalPrice})` : ''}\n\n<i className="fas fa-sparkles"></i> Get the best services at PickNTrust\n\n#PickNTrust #Services #${service.category.replace(/\s+/g, '')}`;
+        const originalText = service.originalPrice ? ` (was ${formatProductPrice(service.originalPrice, service.currency)})` : '';
+        const instagramText = `<i className="fas fa-credit-card"></i> Amazing Service Alert! ${service.name}\n\n<i className="fas fa-dollar-sign"></i> Price: ${priceText}${originalText}\n\n<i className="fas fa-sparkles"></i> Get the best services at PickNTrust\n\n#PickNTrust #Services #${String(service.category || '').replace(/\s+/g, '')}`;
         navigator.clipboard.writeText(instagramText + '\n\n' + serviceUrl);
         const instagramUrl = 'https://www.instagram.com/';
         window.open(instagramUrl, '_blank');
@@ -468,7 +490,7 @@ export default function CardsAppsServices() {
                 }`}>
                   <div className="w-full h-32 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
                     <img 
-                      src={service.imageUrl} 
+                      src={service.imageUrl || service.image_url} 
                       alt={service.name} 
                       className="w-full h-full object-contain p-2" 
                       onError={(e) => {
@@ -517,7 +539,7 @@ export default function CardsAppsServices() {
                           name: service.name,
                           description: service.description,
                           price: service.price,
-                          imageUrl: service.imageUrl,
+                          imageUrl: service.imageUrl || service.image_url,
                           category: service.category,
                           affiliateUrl: service.affiliateUrl || service.affiliate_url
                         }}
@@ -547,7 +569,7 @@ export default function CardsAppsServices() {
                           name: service.name,
                           description: service.description,
                           price: service.price,
-                          imageUrl: service.imageUrl,
+                          imageUrl: service.imageUrl || service.image_url,
                           category: service.category,
                           affiliateUrl: service.affiliateUrl || service.affiliate_url
                         }}
@@ -558,14 +580,21 @@ export default function CardsAppsServices() {
                     </div>
                   )}
 
-                  {/* Discount Badge */}
-                  {service.discount && (
-                    <div className="flex justify-start">
-                      <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {service.discount}% OFF
-                      </span>
-                    </div>
-                  )}
+                  {/* Discount Badge - show ONLY when both original and current prices are valid */}
+                  {(() => {
+                    const originalVal = Number((service as any).originalPrice || (service as any).original_price || 0);
+                    const currentVal = Number(service.price || 0);
+                    const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+                    if (!hasValidPrices) return null;
+                    const pct = Math.round(((originalVal - currentVal) / originalVal) * 100);
+                    return pct > 0 ? (
+                      <div className="flex justify-start">
+                        <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          -{pct}% OFF
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
                   
                   {/* Rating */}
                   <div className="flex items-center">

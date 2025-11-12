@@ -64,6 +64,7 @@ const staticPages = [
   { value: 'categories', label: 'Categories Page' },
   { value: 'blog', label: 'Blog Page' },
   { value: 'videos', label: 'Videos Page' },
+  { value: 'trending', label: 'Trending Page' },
   { value: 'wishlist', label: 'Wishlist Page' },
   { value: 'contact', label: 'Contact Page' },
   { value: 'admin', label: 'Admin Panel' },
@@ -79,6 +80,9 @@ const productPages = [
   { value: 'loot-box', label: 'Loot Box' },
   { value: 'deals-hub', label: 'Deals Hub' },
   { value: 'travel-picks', label: 'Travel Picks' },
+  { value: 'fresh-picks', label: 'Fresh Picks' },
+  { value: 'artists-corner', label: "Artist's Corner" },
+  { value: 'ott-hub', label: 'OTT Hub' },
 ];
 
 // Note: Travel subcategories are now fetched dynamically from API

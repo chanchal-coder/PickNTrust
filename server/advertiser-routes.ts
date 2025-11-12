@@ -85,6 +85,19 @@ router.get('/public/ads', (req: Request, res: Response) => {
   }
 });
 
+// Track ad click (lightweight stub to avoid 404s and enable basic analytics)
+router.post('/track-click', (req: Request, res: Response) => {
+  try {
+    const { id, title, type, page } = (req.body || {}) as any;
+    console.log('Ad click tracked', { id, title, type, page, ts: new Date().toISOString() });
+    // In future, persist to ad_performance or a dedicated clicks table.
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Track click error:', error);
+    res.status(500).json({ error: 'Failed to track click' });
+  }
+});
+
 // Register new advertiser
 router.post('/register', async (req: Request, res: Response) => {
   try {

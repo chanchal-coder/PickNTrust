@@ -7,9 +7,15 @@ import { Router } from 'express';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 const router = Router();
 const dbPath = path.join(process.cwd(), 'database.sqlite');
+
+// Define __dirname for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Robust static config path resolution to handle different deployment CWDs
 function resolveStaticConfigPath(): string | null {
@@ -24,7 +30,13 @@ function resolveStaticConfigPath(): string | null {
     }
   }
 
+  // Prefer built assets location if FRONTEND_STATIC_DIR is set
+  const frontDir = process.env.FRONTEND_STATIC_DIR;
+  const frontConfig = frontDir ? path.join(frontDir, 'config', 'banners.json') : null;
+
   const candidates = [
+    // Built dist/public config if available
+    ...(frontConfig ? [frontConfig] : []),
     // Relative to current working directory (PM2/systemd start location)
     path.join(process.cwd(), 'client', 'src', 'config', 'banners.json'),
     // Relative to compiled server directory
@@ -265,6 +277,9 @@ router.put('/api/admin/banners/:id(\\d+)', (req, res) => {
 // Import all static banners from config into the dynamic database
 router.post('/api/admin/banners/import-static', (req, res) => {
   try {
+    const allowDuplicates = !!(req.body && (req.body.allowDuplicates === true || req.body.allowDuplicates === 'true'));
+    // Default to replacing existing dynamic banners with the static set for exact match
+    const replaceExisting = !(req.body && (req.body.replaceExisting === false || req.body.replaceExisting === 'false'));
     const staticPath = resolveStaticConfigPath();
     if (!staticPath || !fs.existsSync(staticPath)) {
       if (process.env.DEBUG_BANNERS === '1') {
@@ -277,6 +292,22 @@ router.post('/api/admin/banners/import-static', (req, res) => {
     const config = JSON.parse(configData);
 
     const db = new Database(dbPath);
+
+    // If replacing, clear existing dynamic banners for pages present in static config
+    if (replaceExisting) {
+      try {
+        const pages = Object.keys(config);
+        const delStmt = db.prepare('DELETE FROM banners WHERE page = ?');
+        const transaction = db.transaction(() => {
+          for (const p of pages) {
+            delStmt.run(p);
+          }
+        });
+        transaction();
+      } catch (e) {
+        console.warn('[banners] import-static: failed to clear existing banners before import:', e instanceof Error ? e.message : e);
+      }
+    }
 
     const insert = db.prepare(`
       INSERT INTO banners (
@@ -317,15 +348,21 @@ router.post('/api/admin/banners/import-static', (req, res) => {
         const iconType = icon ? 'fontawesome' : 'none';
         const iconPosition = 'left';
 
-        const backgroundGradient = typeof b.gradient === 'string' && b.gradient.trim().length > 0 
+        const hasGradient = typeof b.gradient === 'string' && b.gradient.trim().length > 0;
+        const backgroundGradient = hasGradient 
           ? `bg-gradient-to-r ${b.gradient.trim()}` 
           : '';
-        const useGradient = backgroundGradient ? 1 : 0;
+        const lowerImage = (typeof imageUrl === 'string' ? imageUrl : '').toLowerCase();
+        const isRealImage = !!(typeof imageUrl === 'string' && imageUrl.trim().length > 0)
+          && !lowerImage.includes('via.placeholder.com')
+          && !lowerImage.includes('transparent')
+          && !(lowerImage.includes('data:image') && lowerImage.includes('base64'));
+        const useGradient = (hasGradient && !isRealImage) ? 1 : 0;
         const backgroundOpacity = 100;
-        const imageDisplayType = 'image';
+        const imageDisplayType = isRealImage ? 'image' : (hasGradient ? 'text-only' : 'image');
         const unsplashQuery = '';
 
-        const exists = existsStmt.get(page, title, imageUrl) as { cnt: number };
+        const exists = allowDuplicates ? { cnt: 0 } : (existsStmt.get(page, title, imageUrl) as { cnt: number });
         if (!exists || exists.cnt === 0) {
           try {
             insert.run(
@@ -355,10 +392,15 @@ router.post('/api/admin/banners/import-static', (req, res) => {
     });
 
     db.close();
-    res.json({ success: true, imported: importedCount });
+    res.json({ success: true, imported: importedCount, allowDuplicates, replaceExisting });
   } catch (error) {
     console.error('Error importing static banners:', error);
-    res.status(500).json({ success: false, error: 'Failed to import static banners' });
+    // Include details to diagnose DB/insert errors quickly
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to import static banners',
+      details: (error instanceof Error ? error.message : String(error))
+    });
   }
 });
 

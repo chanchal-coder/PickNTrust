@@ -175,6 +175,7 @@ sudo tee /etc/nginx/conf.d/pickntrust.conf > /dev/null << 'NGINXFILE'
 server {
     listen 80;
     server_name 51.21.253.229;
+    client_max_body_size 100M;
     
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -207,6 +208,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        proxy_request_buffering off;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }

@@ -1,65 +1,49 @@
 import { useQuery } from '@tanstack/react-query';
 
-interface RawWidget {
+interface Widget {
   id: number;
   name: string;
-  body?: string;
-  code?: string;
-  target_page: string;
   position: string;
   is_active: number | boolean;
-  display_order?: number;
-  max_width?: string;
-  custom_css?: string;
   show_on_mobile?: number | boolean;
   show_on_desktop?: number | boolean;
-  external_link?: string;
 }
 
-// Detect whether a page has any active widgets visible to the current device
-export function useHasActiveWidgets(page: string) {
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+// Detect current device type once per mount
+function useIsMobile(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+}
+
+// Returns true if the given page has any active widgets visible on the current device
+export default function useHasActiveWidgets(page: string) {
+  const isMobile = useIsMobile();
 
   return useQuery<boolean>({
-    queryKey: ['has-widgets', page, isMobile],
+    queryKey: ['/api/widgets/page-has-active', page, isMobile ? 'mobile' : 'desktop'],
     queryFn: async () => {
-      const positions = [
-        'body',
-        'product-grid-top',
-        'product-grid-bottom',
-        'content-top',
-        'content-middle',
-        'content-bottom'
-      ];
+      // Fetch all active widgets for the page
+      const res = await fetch(`/api/widgets/${page}`);
+      if (!res.ok) {
+        // Treat errors as "no widgets" to keep layout stable
+        return false;
+      }
+      const widgets: Widget[] = await res.json();
 
-      const fetches = positions.map(async (pos) => {
-        try {
-          const res = await fetch(`/api/widgets/${page}/${pos}`);
-          if (!res.ok) return [] as RawWidget[];
-          return (await res.json()) as RawWidget[];
-        } catch {
-          return [] as RawWidget[];
-        }
-      });
+      if (!Array.isArray(widgets) || widgets.length === 0) return false;
 
-      const results = await Promise.all(fetches);
-      const widgets = results.flat();
-
-      // Visible if active and device visibility matches
+      // Filter by device visibility if flags are present
       const visible = widgets.some((w) => {
-        const active = Boolean(w.is_active);
-        const showMobile = w.show_on_mobile === undefined ? true : Boolean(w.show_on_mobile);
-        const showDesktop = w.show_on_desktop === undefined ? true : Boolean(w.show_on_desktop);
-        const deviceOk = isMobile ? showMobile : showDesktop;
-        return active && deviceOk;
+        const active = Boolean((w as any).is_active ?? true);
+        if (!active) return false;
+        const showMobile = (w.show_on_mobile === undefined) ? true : Boolean(w.show_on_mobile);
+        const showDesktop = (w.show_on_desktop === undefined) ? true : Boolean(w.show_on_desktop);
+        return isMobile ? showMobile : showDesktop;
       });
 
       return visible;
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
-
-export default useHasActiveWidgets;

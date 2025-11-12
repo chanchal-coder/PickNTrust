@@ -350,17 +350,19 @@ export default function BlogPostPage() {
                   const isOfficeDoc = /(\.docx?$|\.xlsx?$|\.pptx?$)/i.test(url);
                   if (isPdf) {
                     const fileForViewer = (() => {
-                      if (typeof window !== 'undefined') {
-                        if (url.startsWith('/uploads/')) {
-                          // Keep relative path so dev proxy (/uploads -> backend) works
-                          return url;
+                      const makeAbsolute = (u: string) => {
+                        if (typeof window !== 'undefined' && u.startsWith('/')) {
+                          return window.location.origin + u;
                         }
-                        if (url.startsWith('/')) {
-                          // Make other root-relative paths absolute to current origin
-                          return window.location.origin + url;
-                        }
+                        return u;
+                      };
+                      // If served from our uploads, keep direct path
+                      if (url.startsWith('/uploads/')) {
+                        return url;
                       }
-                      return url;
+                      const abs = makeAbsolute(url);
+                      // Route non-local PDFs through API proxy to ensure correct headers/CORS behind Nginx
+                      return `/api/pdf-proxy?url=${encodeURIComponent(abs)}`;
                     })();
                     // Use the dedicated PDF viewer (iframe) as before
                     return (

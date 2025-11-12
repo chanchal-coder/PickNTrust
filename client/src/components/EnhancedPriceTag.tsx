@@ -1,5 +1,6 @@
 // No default React import needed with modern JSX transform
-import { formatPrice as formatCurrencyPrice, type CurrencyCode } from '@/utils/currency';
+import { type CurrencyCode, formatPrice as formatCurrencyPrice } from '@/utils/currency';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface EnhancedPriceTagProps {
   product: any;
@@ -10,6 +11,7 @@ interface EnhancedPriceTagProps {
   discountClass?: string; // discount badge color
   showTypeIndicator?: boolean; // show non-standard pricing type label
   showDiscountBadge?: boolean; // show discount percentage badge
+  forceGlobalCurrency?: boolean; // when true, convert to currentCurrency
 }
 
 const getNumeric = (value: any): number => {
@@ -22,15 +24,7 @@ const getNumeric = (value: any): number => {
   return 0;
 };
 
-const formatProductPrice = (price?: string | number, productCurrency?: string) => {
-  // Validate currency code and fallback to INR if invalid
-  const validCurrencies: CurrencyCode[] = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'SGD', 'CNY', 'KRW'];
-  const currency: CurrencyCode = validCurrencies.includes(productCurrency as CurrencyCode) 
-    ? (productCurrency as CurrencyCode) 
-    : 'INR';
-  const numeric = getNumeric(price);
-  return formatCurrencyPrice(numeric, currency);
-};
+// Helper will be defined inside the component to access currency context
 
 const calculateDiscount = (originalPrice: any, currentPrice: any): number => {
   const original = getNumeric(originalPrice);
@@ -51,7 +45,21 @@ export default function EnhancedPriceTag({
   discountClass = 'bg-red-600 text-white px-2 py-1 rounded text-xs font-bold',
   showTypeIndicator = true,
   showDiscountBadge = true,
+  forceGlobalCurrency = false,
 }: EnhancedPriceTagProps) {
+  const { currentCurrency, convertPrice, formatPrice } = useCurrency();
+
+  const formatProductPrice = (price?: string | number, productCurrency?: string) => {
+    const numeric = getNumeric(price);
+    const from: CurrencyCode = (String(productCurrency || 'INR').trim().toUpperCase() as CurrencyCode);
+    if (forceGlobalCurrency) {
+      const converted = convertPrice(numeric, from, currentCurrency);
+      return formatPrice(converted, currentCurrency);
+    }
+    // Default: show in product's original currency
+    return formatCurrencyPrice(numeric, from);
+  };
+
   const {
     price,
     originalPrice,
@@ -64,15 +72,10 @@ export default function EnhancedPriceTag({
     discount, // explicit discount from database
   } = product || {};
 
-  // Derive an effective original price when only discount is provided
+  // Effective original price: only use provided original price (do not derive from discount)
   const effectiveOriginalPrice = (() => {
     const originalNum = getNumeric(originalPrice);
-    const priceNum = getNumeric(price);
-    const explicitDiscount = getNumeric(discount);
     if (originalNum > 0) return originalPrice;
-    if (explicitDiscount > 0 && priceNum > 0 && explicitDiscount < 100) {
-      return Math.round(priceNum / (1 - explicitDiscount / 100));
-    }
     return null;
   })();
 
@@ -85,9 +88,9 @@ export default function EnhancedPriceTag({
   const hasComplexPricing = isFree || pricingType === 'free' || hasMonthly || hasYearly || 
     (pricingType && pricingType !== 'one-time' && pricingType !== 'One-time Payment');
   
-  // Calculate discount percentage
+  // Calculate discount percentage ONLY when both original and current prices exist
   const calculatedDiscount = calculateDiscount(effectiveOriginalPrice ?? originalPrice, price);
-  const finalDiscount = getNumeric(discount) > 0 ? getNumeric(discount) : calculatedDiscount;
+  const finalDiscount = calculatedDiscount;
 
   // FREE pricing
   if (isFree || pricingType === 'free') {

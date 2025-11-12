@@ -11,11 +11,11 @@ import GlobalTitleTooltip from "@/components/ui/global-title-tooltip";
 // Minimal safe-mode page to isolate routing/CSS issues
 function SafePage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#0b1220', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Safe Mode Page</h1>
         <p style={{ marginBottom: 12 }}>Routing and rendering are working.</p>
-        <a href="/" style={{ color: '#2563eb', textDecoration: 'underline' }}>Go to Home</a>
+        <a href="/" style={{ color: '#93c5fd', textDecoration: 'underline' }}>Go to Home</a>
       </div>
     </div>
   );
@@ -42,10 +42,10 @@ class ErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-            <p className="text-gray-600 mb-4">The application encountered an error.</p>
+            <p className="text-gray-300 mb-4">The application encountered an error.</p>
             <button
               onClick={() => window.location.reload()}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -74,39 +74,42 @@ class ErrorBoundary extends Component<
   }
 }
 // Import Home directly to avoid lazy-load issues on the root route
+// Keep Home eagerly imported to ensure the root route is always available
 import Home from "@/pages/home";
-import Category from "@/pages/category";
-import Admin from "@/pages/admin";
-import BotAdmin from "@/pages/BotAdmin";
-import Wishlist from "@/pages/wishlist";
-import Blog from "@/pages/blog";
-import BlogPost from "@/pages/blog-post";
-import Videos from "@/pages/videos";
-import HowItWorks from "@/pages/how-it-works";
-import TermsOfService from "@/pages/terms-of-service";
-import PrivacyPolicy from "@/pages/privacy-policy";
-import Search from "@/pages/search";
-import TopPicks from "@/pages/top-picks";
-import Services from "@/pages/services";
-import Apps from "@/pages/apps";
-import LootBox from "@/pages/loot-box";
-import GlobalPicks from "@/pages/global-picks";
-import TravelPicks from "@/pages/travel-picks";
-import Flights from "@/pages/flights";
-import Hotels from "@/pages/hotels";
-import PrimePicks from "@/pages/prime-picks";
-import CuePicks from "@/pages/cue-picks";
-import Advertise from "@/pages/advertise";
-import AdvertiseRegister from "@/pages/advertise-register";
-import AdvertiseCheckout from "@/pages/advertise-checkout";
-import AdvertiseDashboard from "@/pages/advertise-dashboard";
-import Explore from "@/pages/explore";
-import ValuePicks from "@/pages/value-picks";
-import ClickPicks from "@/pages/click-picks";
-import DealsHub from "@/pages/deals-hub";
-import BrowseCategories from "@/pages/browse-categories";
-import DynamicPage from "@/pages/DynamicPage";
-import AdminPaymentsPage from "@/pages/admin-payments";
+// Lazy-load all non-root pages to prevent a single broken module from blocking App import
+const Category = lazy(() => import("@/pages/category"));
+const Admin = lazy(() => import("@/pages/admin"));
+const BotAdmin = lazy(() => import("@/pages/BotAdmin"));
+const Wishlist = lazy(() => import("@/pages/wishlist"));
+const Blog = lazy(() => import("@/pages/blog"));
+const BlogPost = lazy(() => import("@/pages/blog-post"));
+const Videos = lazy(() => import("@/pages/videos"));
+const HowItWorks = lazy(() => import("@/pages/how-it-works"));
+const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
+const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
+const Search = lazy(() => import("@/pages/search"));
+const TopPicks = lazy(() => import("@/pages/top-picks"));
+const Trending = lazy(() => import("@/pages/trending"));
+const Services = lazy(() => import("@/pages/services"));
+const Apps = lazy(() => import("@/pages/apps"));
+const LootBox = lazy(() => import("@/pages/loot-box"));
+const GlobalPicks = lazy(() => import("@/pages/global-picks"));
+const TravelPicks = lazy(() => import("@/pages/travel-picks"));
+const Flights = lazy(() => import("@/pages/flights"));
+const Hotels = lazy(() => import("@/pages/hotels"));
+const PrimePicks = lazy(() => import("@/pages/prime-picks"));
+const CuePicks = lazy(() => import("@/pages/cue-picks"));
+const Advertise = lazy(() => import("@/pages/advertise"));
+const AdvertiseRegister = lazy(() => import("@/pages/advertise-register"));
+const AdvertiseCheckout = lazy(() => import("@/pages/advertise-checkout"));
+const AdvertiseDashboard = lazy(() => import("@/pages/advertise-dashboard"));
+const Explore = lazy(() => import("@/pages/explore"));
+const ValuePicks = lazy(() => import("@/pages/value-picks"));
+const ClickPicks = lazy(() => import("@/pages/click-picks"));
+const DealsHub = lazy(() => import("@/pages/deals-hub"));
+const BrowseCategories = lazy(() => import("@/pages/browse-categories"));
+const DynamicPage = lazy(() => import("@/pages/DynamicPage"));
+const AdminPaymentsPage = lazy(() => import("@/pages/admin-payments"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -151,10 +154,44 @@ function App() {
     setTimeout(checkForIssues, 1000);
   }, []);
 
+  // Hide initial HTML overlays once React mounts
+  useEffect(() => {
+    try {
+      const topbar = document.getElementById('debug-topbar');
+      const loader = document.getElementById('initial-loader');
+      if (topbar) {
+        topbar.style.opacity = '0';
+        topbar.style.transition = 'opacity 150ms ease-out';
+        setTimeout(() => { try { topbar.remove(); } catch {} }, 160);
+      }
+      if (loader) {
+        loader.style.opacity = '0';
+        loader.style.pointerEvents = 'none';
+        loader.style.transition = 'opacity 150ms ease-out';
+        setTimeout(() => { try { loader.remove(); } catch {} }, 160);
+      }
+    } catch (e) {
+      console.warn('Overlay cleanup failed:', e);
+    }
+  }, []);
+
   // Detect widget safe-mode (dev-only) to inform users when overlays are disabled
   const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const widgetsSafeMode = (urlParams.get('widgetsSafeMode') === '1') || (typeof window !== 'undefined' && localStorage.getItem('widgetsSafeMode') === 'true');
-  const forceAppBaseline = urlParams.get('forceAppBaseline') === '1' || (typeof window !== 'undefined' && localStorage.getItem('forceAppBaseline') === 'true');
+  // Restrict baseline screen to development only to avoid persisting across builds
+  const isDev = import.meta.env.DEV;
+  // Only honor baseline via URL param in dev to avoid persistence via localStorage
+  const forceAppBaseline = isDev && (urlParams.get('forceAppBaseline') === '1');
+
+  // In production, proactively clear any leftover debug flags from previous dev runs
+  useEffect(() => {
+    if (!isDev && typeof window !== 'undefined') {
+      try { localStorage.removeItem('forceAppBaseline'); } catch {}
+      try { localStorage.removeItem('widgetsSafeMode'); } catch {}
+      try { localStorage.removeItem('widgetsSafeModeFull'); } catch {}
+      try { localStorage.removeItem('forceSafeApp'); } catch {}
+    }
+  }, [isDev]);
 
   // Diagnostic baseline: render minimal content to isolate App composition issues
   if (forceAppBaseline) {
@@ -193,7 +230,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <CurrencyProvider>
             <WishlistProvider>
-              <div className="min-h-screen bg-white dark:bg-gray-900" style={{ minHeight: '100vh' }}>
+              <div className="min-h-screen bg-gray-900 text-white" style={{ minHeight: '100vh', background: '#0b1220', color: '#fff' }}>
                 {import.meta.env.DEV && widgetsSafeMode && (
                   <div style={{ position: 'fixed', top: 34, left: 0, right: 0, padding: '6px 10px', background: '#a7f3d0', color: '#064e3b', fontWeight: 600, zIndex: 10000, textAlign: 'center' }}>
                     Widgets Safe-Mode: overlay widgets are disabled (dev).
@@ -248,6 +285,7 @@ function App() {
                   <Route path="/privacy-policy" component={PrivacyPolicy} />
                   <Route path="/search" component={Search} />
                   <Route path="/top-picks" component={TopPicks} />
+                  <Route path="/trending" component={Trending} />
                   <Route path="/services" component={Services} />
                   <Route path="/apps" component={Apps} />
                   <Route path="/loot-box" component={LootBox} />

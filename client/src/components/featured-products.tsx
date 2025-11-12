@@ -106,7 +106,7 @@ export default function FeaturedProducts() {
             // Apply daily rotation - show different products each day
             const rotationOffset = getDailyRotationOffset() % data.length;
             const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
-            const previewData = rotatedData.slice(0, 6);
+            const previewData = rotatedData.slice(0, 8);
             console.log(`Featured Products: Showing ${previewData.length} featured products from top-picks`);
             return previewData;
           }
@@ -159,7 +159,7 @@ export default function FeaturedProducts() {
   // Helper function to format product price without conversion (displays original currency)
   const formatProductPrice = (price?: string | number | number | undefined, productCurrency?: string) => {
     const numPrice = typeof price === "string" ? parseFloat(price.replace(/[^\d.-]/g, "")) : price;
-    const originalCurrency = (productCurrency as CurrencyCode) || 'INR';
+    const originalCurrency = (productCurrency?.toString().toUpperCase() as CurrencyCode) || 'USD';
     
     // Always display in the product's original currency (no conversion)
     return formatCurrencyPrice(numPrice, originalCurrency);
@@ -191,15 +191,28 @@ export default function FeaturedProducts() {
     setShareModalOpen(true);
   };
   
-  const handleConfirmShare = () => {
-    if (selectedProduct) {
-      // TODO: Implement actual sharing based on admin panel automation settings
-      alert(`✅ Sharing "${selectedProduct.name}" to all configured platforms!`);
-      console.log('Share confirmed for:', selectedProduct.id, selectedProduct.name);
-      // Here you would call the API: await shareToAllPlatforms(selectedProduct.id, adminPlatformSettings);
+  const handleConfirmShare = async () => {
+    try {
+      if (selectedProduct) {
+        const { sendProductToTelegram } = await import('@/utils/telegram');
+        await sendProductToTelegram({
+          id: selectedProduct.id,
+          name: selectedProduct.name,
+          description: selectedProduct.description,
+          price: selectedProduct.price,
+          originalPrice: (selectedProduct as any).originalPrice,
+          imageUrl: selectedProduct.imageUrl || (selectedProduct as any).image_url,
+          affiliateUrl: selectedProduct.affiliateUrl || (selectedProduct as any).affiliate_url,
+        }, { pageSlug: 'top-picks' });
+      }
+      alert('✅ Shared to Telegram');
+    } catch (err) {
+      console.error('Telegram share failed:', err);
+      alert('❌ Telegram share failed');
+    } finally {
+      setShareModalOpen(false);
+      setSelectedProduct(null);
     }
-    setShareModalOpen(false);
-    setSelectedProduct(null);
   };
   
   const handleCloseModal = () => {
@@ -603,14 +616,21 @@ export default function FeaturedProducts() {
                     </div>
                   )}
 
-                  {/* Discount Badge */}
-                  {product.discount && (
-                    <div className="flex justify-start">
-                      <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {product.discount}% OFF
-                      </span>
-                    </div>
-                  )}
+                  {/* Discount Badge - show ONLY when both original and current prices are valid */}
+                  {(() => {
+                    const originalVal = Number((product as any).originalPrice || (product as any).original_price || 0);
+                    const currentVal = Number(product.price || 0);
+                    const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+                    if (!hasValidPrices) return null;
+                    const pct = Math.round(((originalVal - currentVal) / originalVal) * 100);
+                    return pct > 0 ? (
+                      <div className="flex justify-start">
+                        <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          -{pct}% OFF
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
                   
                   {/* Rating */}
                   <div className="flex items-center">
@@ -705,12 +725,19 @@ export default function FeaturedProducts() {
                   </div>
                   {/* Badges */}
                   <div className="absolute top-2 left-2 flex flex-col gap-1">
-                    {/* Discount Badge */}
-                    {product.discount && product.discount > 0 && (
-                      <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        -{product.discount}% OFF
-                      </span>
-                    )}
+                    {/* Discount Badge - show ONLY when both original and current prices are valid */}
+                    {(() => {
+                      const originalVal = Number(product.originalPrice || (product as any).original_price || 0);
+                      const currentVal = Number(product.price || 0);
+                      const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+                      if (!hasValidPrices) return null;
+                      const pct = Math.round(((originalVal - currentVal) / originalVal) * 100);
+                      return pct > 0 ? (
+                        <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          -{pct}% OFF
+                        </span>
+                      ) : null;
+                    })()}
                     {/* New Badge */}
                     {product.isNew && (
                       <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">

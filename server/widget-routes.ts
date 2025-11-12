@@ -74,6 +74,7 @@ router.get('/api/widgets/:page/:position', async (req: Request, res: Response) =
       WHERE target_page = ? 
         AND position IN (${placeholders}) 
         AND is_active = 1
+        AND LOWER(name) NOT LIKE '%fallback%'
         AND LOWER(name) NOT LIKE '%test%'
         AND (description IS NULL OR LOWER(description) NOT LIKE '%test%')
       ORDER BY display_order
@@ -95,6 +96,7 @@ router.get('/api/widgets/:page', async (req: Request, res: Response) => {
       SELECT * FROM widgets 
       WHERE target_page = ? 
         AND is_active = 1
+        AND LOWER(name) NOT LIKE '%fallback%'
         AND LOWER(name) NOT LIKE '%test%'
         AND (description IS NULL OR LOWER(description) NOT LIKE '%test%')
       ORDER BY position, display_order

@@ -86,6 +86,26 @@ const PAGE_METADATA: Record<string, Omit<PageInfo, 'id' | 'path'>> = {
     icon: '📦',
     description: 'Mystery deals and surprises'
   },
+  'fresh-picks': {
+    name: 'Fresh Picks',
+    icon: '🌱',
+    description: 'Latest and freshest curated selections'
+  },
+  "artists-corner": {
+    name: "Artist's Corner",
+    icon: '🎨',
+    description: 'Creative picks, art and design highlights'
+  },
+  'ott-hub': {
+    name: 'OTT Hub',
+    icon: '📺',
+    description: 'Streaming platforms and entertainment hub'
+  },
+  trending: {
+    name: 'Trending',
+    icon: '📈',
+    description: 'Most popular and trending products'
+  },
   flights: {
     name: 'Flights',
     icon: '🛫',

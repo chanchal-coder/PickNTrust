@@ -1,25 +1,20 @@
-// Admin configuration
-// Note: In production, these should be fetched from a secure API endpoint
-// Client-side code cannot access server environment variables directly
+// Centralized admin configuration helpers
 
-export const ADMIN_CONFIG = {
-  // For development - in production, fetch from secure API
-  PASSWORD: import.meta.env.VITE_ADMIN_PASSWORD || 'pickntrust2025',
-  
-  // API endpoint to validate admin credentials
-  VALIDATE_ENDPOINT: '/api/admin/auth',
-  
-  // Security note: Never expose real credentials in client code
-  // This is a temporary solution - implement proper authentication
-};
+// Align with login storage key used across admin flows
+export const ADMIN_PASSWORD_KEY = 'pickntrust-admin-password';
 
-// Helper function to get admin password
-export const getAdminPassword = (): string => {
-  // In production, this should make an API call to get a session token
-  // instead of using a hardcoded password
-  return ADMIN_CONFIG.PASSWORD;
-};
+export function getAdminPassword(): string {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      // Primary key used by admin login flow
+      const primary = window.localStorage.getItem(ADMIN_PASSWORD_KEY);
+      if (primary && primary.trim().length > 0) return primary.trim();
 
-// TODO: Implement proper authentication with JWT tokens
-// TODO: Move password validation to server-side only
-// TODO: Use secure session management
+      // Backward-compatible fallback key
+      const legacy = window.localStorage.getItem('adminPassword');
+      if (legacy && legacy.trim().length > 0) return legacy.trim();
+    }
+  } catch {}
+  // Fallback to empty string; callers can prompt for password when missing
+  return '';
+}

@@ -165,29 +165,49 @@ class TravelPicksBot {
 
     try {
       console.log('🧳 Initializing Travel Picks bot...');
+      const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+      const forcePolling = ['1','true','yes'].includes(String(process.env.TRAVEL_BOT_POLLING || '').toLowerCase());
+      const usePolling = forcePolling || isDev;
 
+      // Choose dev token if present to avoid conflicts
+      const token = (isDev && process.env.TRAVEL_PICKS_BOT_TOKEN_DEV)
+        ? process.env.TRAVEL_PICKS_BOT_TOKEN_DEV
+        : TRAVEL_BOT_CONFIG.botToken;
       // Initialize bot
-      this.bot = new TelegramBot(TRAVEL_BOT_CONFIG.botToken, { polling: false });
+      this.bot = new TelegramBot(token, { polling: usePolling });
 
-      // Configure webhook to master endpoint
-      try {
-        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
-        const webhookUrl = `${baseUrl}/webhook/master/${TRAVEL_BOT_CONFIG.botToken}`;
+      if (usePolling) {
+        try {
+          await this.bot.deleteWebHook();
+          const info = await this.bot.getWebHookInfo();
+          console.log('🧳 Travel bot running in polling mode; webhook cleared', {
+            url: (info as any).url,
+            pending_update_count: (info as any).pending_update_count,
+          });
+        } catch (err: any) {
+          console.warn('⚠️ Failed to clear Travel Picks webhook:', err?.message || err);
+        }
+      } else {
+        // Configure webhook to master endpoint in production
+        try {
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pickntrust.com';
+          const webhookUrl = `${baseUrl}/webhook/master/${TRAVEL_BOT_CONFIG.botToken}`;
 
-        await this.bot.deleteWebHook();
-        await this.bot.setWebHook(webhookUrl, {
-          allowed_updates: ['message', 'channel_post', 'edited_channel_post']
-        });
+          await this.bot.deleteWebHook();
+          await this.bot.setWebHook(webhookUrl, {
+            allowed_updates: ['message', 'channel_post', 'edited_channel_post']
+          });
 
-        const info = await this.bot.getWebHookInfo();
-        console.log('🧳 Travel bot webhook info', {
-          url: (info as any).url,
-          pending_update_count: (info as any).pending_update_count,
-          has_custom_certificate: (info as any).has_custom_certificate,
-          max_connections: (info as any).max_connections,
-        });
-      } catch (err: any) {
-        console.warn('⚠️ Failed to configure Travel Picks webhook:', err?.message || err);
+          const info = await this.bot.getWebHookInfo();
+          console.log('🧳 Travel bot webhook info', {
+            url: (info as any).url,
+            pending_update_count: (info as any).pending_update_count,
+            has_custom_certificate: (info as any).has_custom_certificate,
+            max_connections: (info as any).max_connections,
+          });
+        } catch (err: any) {
+          console.warn('⚠️ Failed to configure Travel Picks webhook:', err?.message || err);
+        }
       }
 
       // Set up message handlers
@@ -466,7 +486,10 @@ class TravelPicksBot {
 
       // Also insert into unified_content so Travel Picks page shows items
       try {
-        const displayPagesArr = ['travel', productData.category].filter((v) => v && v.length > 0);
+      // Ensure posts render on the correct Travel Picks page
+      // Use the canonical client slug `travel-picks` instead of generic `travel`
+      const displayPagesArr = ['travel-picks', productData.category]
+        .filter((v) => v && v.length > 0);
         const tags = JSON.stringify({
           source: 'travel-bot',
           affiliate_network: productData.affiliate_network,

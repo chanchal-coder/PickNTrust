@@ -1,690 +1,230 @@
-import { fetch as undiciFetch, Headers as UndiciHeaders, Request as UndiciRequest, Response as UndiciResponse, FormData as UndiciFormData } from "undici";
-// Provide global fetch & Web APIs if missing, and a minimal File shim
-const g = globalThis as any;
-if (!g.fetch) g.fetch = undiciFetch;
-if (!g.Headers) g.Headers = UndiciHeaders;
-if (!g.Request) g.Request = UndiciRequest;
-if (!g.Response) g.Response = UndiciResponse;
-if (!g.FormData) g.FormData = UndiciFormData;
-if (typeof g.File === "undefined") {
-  class FileShim {
-    name: string;
-    lastModified: number;
-    constructor(_bits: any[], name: string, options: any = {}) {
-      this.name = String(name);
-      this.lastModified = options?.lastModified ?? Date.now();
-    }
-  }
-  g.File = FileShim;
-}
-
-import express, { type Request, Response, NextFunction } from "express";
+import express from 'express';
 import { loadEnv } from './config/env-loader.js';
-// Load environment variables from multiple candidate locations (robust on EC2)
+// Load environment variables from .env early so webhook auth works
 loadEnv();
-import cors from "cors";
-import { setupRoutes } from "./routes.js";
-import { serveStatic, log } from "./vite.js";
-import path from "path";
-import { fileURLToPath } from "url";
-// Initialize Telegram bot module unconditionally; it will self-guard on env/token
-import('./telegram-bot.js').then(() => {
-  console.log('🤖 Telegram bot module loaded');
-}).catch(err => {
-  console.warn('⚠️ Failed to load Telegram bot module:', err?.message || err);
-});
-import { sqliteDb } from "./db.js";
-
-// Initialize URL Processing Routes for manual URL processing
-import { setupURLProcessingRoutes } from './url-processing-routes.js';
-
-// Initialize Image Proxy Service for authentic product images
-import { imageProxyService } from './image-proxy-service.js';
-
-// Initialize Category Cleanup Service for automatic category management
-import { CategoryCleanupService } from './category-cleanup-service.js';
-
-// Banner routes for dynamic banner management
-import bannerRoutes from './banner-routes.js';
-import staticBannerRoutes from './static-banner-routes.js';
-
-// Import credential management routes
-import credentialRoutes from './credential-routes.js';
-import metaTagsRoutes from './meta-tags-routes.js';
-import rssFeedsRoutes from './rss-feeds-routes.js';
-import aggregationService from './rss-aggregation-service.js';
-
-// Import advertiser routes for advertising system
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { setupVite, serveStatic } from './vite.js';
+import { storage } from './storage.js';
+import { setupRoutes as setupAdminRoutes } from './routes-final.js';
 import advertiserRoutes from './advertiser-routes.js';
-import paymentRoutes from './payment-routes.js';
-import pagesRoutes from './routes/pages-routes.js';
-import widgetRoutes from './widget-routes.js';
 import adRequestRoutes from './ad-request-routes.js';
-import { setupSocialMediaRoutes } from './social-media-routes.js';
-import botStatusRoutes from './bot-status-routes.js';
-import botProcessingRoutes from './bot-processing-routes.js';
+import { TelegramBotManager } from './telegram-bot.js';
+import { travelPicksBot } from './travel-picks-bot.js';
+
+// Routers
+import pagesRouter from './routes/pages-routes.js';
+import currencyRouter from './routes/currency.js';
+import widgetRouter from './widget-routes.js';
+import bannerRouter from './banner-routes.js';
+import staticBannerRouter from './static-banner-routes.js';
+import imageProxyRouter from './image-proxy.js';
+import metaTagsRouter from './meta-tags-routes.js';
 import canvaAdminRouter from './canva-admin-routes.js';
-import canvaBackfillRouter from './canva-backfill-routes.js';
-import { createSocialMediaPoster } from './social-media-poster.js';
-// sqliteDb already imported above; avoid duplicate identifier
 
-
-
-// Fix __dirname for ES modules
+// ESM dirname
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = dirname(__filename);
 
-const app = express();
-// Comprehensive CORS configuration
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // In production, check against allowed origins
-    if (process.env.NODE_ENV === 'production') {
-      // Allow localhost in production for admin/testing
-      const allowedOrigins = [
-        'http://localhost:5000',
-        'http://127.0.0.1:5000'
-      ];
-      // Permit any localhost/127.0.0.1 port explicitly
-      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(origin || '');
-      if (isLocalhost || (origin && allowedOrigins.includes(origin))) {
-        return callback(null, true);
-      } else {
-        return callback(null, false);
-      }
-    } else {
-      // In development, allow localhost and 127.0.0.1 on common ports
-      const devAllowed = [
-        'http://localhost:5000',
-        'http://127.0.0.1:5000',
-        'http://localhost:5173',
-        'http://127.0.0.1:5173'
-      ];
-      if (origin && (devAllowed.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(origin))) {
-        return callback(null, true);
-      }
-      return callback(null, true);
+const PORT = Number(process.env.PORT || 5000);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+async function start() {
+  const app = express();
+
+  // Core middleware
+  app.use(cors());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true }));
+
+  // Health endpoint
+  app.get('/health', (req, res) => {
+    res.json({ ok: true, env: NODE_ENV, port: PORT });
+  });
+
+  // API health endpoint (explicit under /api to avoid SPA fallthrough)
+  app.get('/api/health', (req, res) => {
+    res.json({ ok: true, env: NODE_ENV, port: PORT });
+  });
+
+  // API status endpoint with runtime details
+  app.get('/api/status', (req, res) => {
+    res.json({
+      ok: true,
+      env: NODE_ENV,
+      port: PORT,
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    });
+  });
+
+  // Uploads static (used by various routes)
+  // Prefer serving from built public directory so Nginx can also serve `/uploads`
+  const uploadDirCandidates = [
+    process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : '',
+    path.resolve(process.cwd(), 'dist', 'public', 'uploads'),
+    path.resolve(__dirname, '..', 'public', 'uploads'),
+    path.resolve(__dirname, '..', 'uploads'), // fallback
+  ].filter(Boolean);
+  const fs = await import('fs');
+  let uploadDir = uploadDirCandidates.find(p => {
+    try { return fs.existsSync(path.dirname(p)); } catch { return false; }
+  }) || uploadDirCandidates[uploadDirCandidates.length - 1];
+  try { if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true }); } catch {}
+  app.use('/uploads', express.static(uploadDir));
+
+  // Mount API routers
+  app.use('/api/pages', pagesRouter);
+  app.use('/api/currency', currencyRouter);
+  app.use(widgetRouter); // defines /api/widgets and /api/admin/widgets
+  app.use(bannerRouter); // defines /api/banners
+  app.use(staticBannerRouter); // defines /api/banners/static
+  app.use(imageProxyRouter); // defines /api/image-proxy
+  app.use(metaTagsRouter); // defines /api/meta-tags
+  // Canva admin routes (settings, test, etc.)
+  app.use(canvaAdminRouter);
+
+  // Lightweight placeholder image endpoint (SVG)
+  // Keeps UI stable when image URLs are missing
+  app.get('/api/placeholder/:width/:height', (req, res) => {
+    try {
+      const width = Math.max(parseInt(String(req.params.width || '300'), 10) || 300, 1);
+      const height = Math.max(parseInt(String(req.params.height || '300'), 10) || 300, 1);
+      const text = String((req.query as any).text || 'No Image');
+      const bg = String((req.query as any).bg || '#e5e7eb'); // Tailwind gray-200
+      const fg = String((req.query as any).fg || '#6b7280'); // Tailwind gray-500
+
+      res.setHeader('Content-Type', 'image/svg+xml');
+      const fontSize = Math.max(Math.min(Math.floor(width / 10), 24), 12);
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect width="100%" height="100%" fill="${bg}"/>
+  <g fill="${fg}" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" text-anchor="middle">
+    <text x="50%" y="50%" dominant-baseline="middle">${text}</text>
+  </g>
+</svg>`);
+    } catch (err) {
+      console.error('Error generating placeholder image:', err);
+      res.status(500).end();
     }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-  allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "X-Requested-With", 
-    "Accept", 
-    "Origin",
-    "Cache-Control",
-    "X-File-Name",
-    "X-HTTP-Method-Override",
-    "If-Modified-Since",
-    "X-Forwarded-For",
-    "X-Real-IP",
-    "x-admin-password",
-    "X-Admin-Password"
-  ],
-  exposedHeaders: ["Content-Length", "X-Foo", "X-Bar"],
-  credentials: true,
-  maxAge: 86400, // 24 hours
-  preflightContinue: false,
-  optionsSuccessStatus: 200
-}));
+  });
 
-// Additional CORS headers for maximum compatibility
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Set origin header based on request
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
+  // Announcements are provided by admin routes; avoid fallback endpoints that shadow real handlers
+
+  // Advertiser and Explore ads routes
+  // Mount advertiser management and public ads under /api/advertisers
+  app.use('/api/advertisers', advertiserRoutes);
+  // Mount ad requests and Explore ads config (absolute paths inside the router)
+  app.use(adRequestRoutes);
+
+  // Mount admin/product routes to support admin product creation and related endpoints
+  try {
+    setupAdminRoutes(app as any, storage as any);
+    console.log('🔧 Admin routes mounted');
+  } catch (e) {
+    console.error('Failed to mount admin routes:', e);
+  }
+
+  // Telegram webhook endpoint (master and travel bots share this path)
+  app.post('/webhook/master/:token', async (req, res) => {
+    try {
+      const update = req.body || {};
+      const token = String(req.params.token || '');
+
+      // Basic telemetry
+      console.log('📥 Telegram webhook hit', {
+        tokenPrefix: token.substring(0, 10) + '...',
+        hasMessage: !!update.message,
+        hasChannelPost: !!update.channel_post,
+        hasEditedChannelPost: !!update.edited_channel_post
+      });
+
+      // Authorization: accept master token, allowed list, or dev bypass in non-production
+      const expectedToken = process.env.MASTER_BOT_TOKEN;
+      const allowedTokensEnv = (process.env.ALLOWED_BOT_TOKENS || '')
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+      const additionalEnvTokens = [
+        process.env.VALUE_PICKS_BOT_TOKEN,
+        process.env.PRIME_PICKS_BOT_TOKEN,
+        process.env.CUE_PICKS_BOT_TOKEN,
+        process.env.CLICK_PICKS_BOT_TOKEN,
+        process.env.GLOBAL_PICKS_BOT_TOKEN,
+        process.env.DEALS_HUB_BOT_TOKEN,
+        process.env.LOOT_BOX_BOT_TOKEN,
+        process.env.TRAVEL_PICKS_BOT_TOKEN
+      ].filter(Boolean) as string[];
+      const allowedTokensSet = new Set<string>([...allowedTokensEnv, ...additionalEnvTokens]);
+      const isDevMode = (process.env.NODE_ENV || 'development') !== 'production';
+      const devToken = process.env.DEV_WEBHOOK_TOKEN || 'dev';
+      const allowAnyToken = process.env.ALLOW_ANY_BOT_TOKEN === 'true';
+      const isAuthorized = allowAnyToken || token === expectedToken || allowedTokensSet.has(token) || (isDevMode && token === devToken);
+      if (!isAuthorized) {
+        console.error('❌ Invalid webhook token: not in allowed list');
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const botManager = TelegramBotManager.getInstance();
+      let handled = false;
+
+      // Prefer channel_post updates; fall back to message/edited_channel_post
+      const post = update.channel_post || update.message || update.edited_channel_post;
+      if (post && post.chat && post.chat.id) {
+        const chatId = String(post.chat.id);
+        const travelStatus = travelPicksBot.getStatus();
+
+        if (chatId === travelStatus.channelId) {
+          // Route Travel Picks channel posts to travel bot
+          await travelPicksBot.processMessage(post);
+          handled = true;
+        } else {
+          // Route all other posts/messages to master bot manager
+          await botManager.processMessage(post);
+          handled = true;
+        }
+      }
+
+      // Acknowledge quickly; processing is synchronous above but guarded
+      return res.status(200).json({ ok: true, handled });
+    } catch (err: any) {
+      console.error('❌ Telegram webhook error:', err?.message || err);
+      return res.status(200).json({ ok: true, handled: false });
+    }
+  });
+
+  // Start HTTP server (bind explicitly to IPv4 localhost to avoid ::1-only binding on Windows)
+  const server = app.listen(PORT, '127.0.0.1', () => {
+    console.log(`🚀 Server listening on http://127.0.0.1:${PORT}`);
+  });
+
+  // Extra diagnostics: log server errors immediately
+  server.on('error', (err) => {
+    console.error('❌ HTTP server error:', err);
+  });
+
+  // Frontend dev/prod serving
+  if (NODE_ENV !== 'production') {
+    try {
+      await setupVite(app, server as any);
+      console.log('🎯 Vite dev middleware active');
+    } catch (e) {
+      console.error('Vite setup failed:', e);
+    }
   } else {
-    res.header('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH,HEAD');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin, Cache-Control, X-File-Name, X-HTTP-Method-Override, If-Modified-Since, X-Forwarded-For, X-Real-IP, x-admin-password, X-Admin-Password');
-  res.header('Access-Control-Expose-Headers', 'Content-Length, X-Foo, X-Bar');
-  res.header('Access-Control-Max-Age', '86400');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-  
-  next();
-});
-
-// Tolerant body parsing for admin-auth to avoid JSON SyntaxError
-// Parse admin-auth body as text so route can safely JSON.parse or fall back
-app.use('/api/admin/auth', express.text({ type: '*/*', limit: '1mb' }));
-
-// Increase request size limits to handle image uploads (50MB limit)
-app.use(express.json({
-  limit: '50mb',
-  verify: (req: any, _res, buf) => {
     try {
-      (req as any).__rawBody = buf ? buf.toString() : '';
-    } catch {
-      (req as any).__rawBody = '';
+      serveStatic(app);
+      console.log('📦 Serving static client from dist/public');
+    } catch (e) {
+      console.error('Static serving failed:', e);
     }
   }
-}));
-app.use(express.urlencoded({
-  extended: false,
-  limit: '50mb',
-  verify: (req: any, _res, buf) => {
-    try {
-      (req as any).__rawBody = buf ? buf.toString() : '';
-    } catch {
-      (req as any).__rawBody = '';
-    }
-  }
-}));
-
-// Ensure admin-auth sees a string body if raw is available
-app.use('/api/admin/auth', (req: any, _res, next) => {
-  if (typeof req.body !== 'string' && typeof (req as any).__rawBody === 'string' && (req as any).__rawBody.length > 0) {
-    req.body = (req as any).__rawBody;
-  }
-  next();
-});
-
-// Tolerant body parsing for admin nav-tabs to avoid JSON SyntaxError
-// Only parse JSON payloads as text so urlencoded requests remain handled by express.urlencoded
-app.use('/api/admin/nav-tabs', express.text({ type: 'application/json', limit: '1mb' }));
-app.use('/api/admin/nav-tabs', (req: any, _res, next) => {
-  try {
-    if (typeof req.body === 'string' && req.body.length > 0) {
-      try {
-        req.body = JSON.parse(req.body);
-      } catch {
-        // If parsing fails, fall back to rawBody if available
-        const raw = (req as any).__rawBody;
-        if (typeof raw === 'string' && raw.length > 0) {
-          try {
-            req.body = JSON.parse(raw);
-          } catch {
-            req.body = {};
-          }
-        } else {
-          req.body = {};
-        }
-      }
-    } else if (typeof req.body !== 'object') {
-      // When body is not an object, attempt to parse rawBody
-      const raw = (req as any).__rawBody;
-      if (typeof raw === 'string' && raw.length > 0) {
-        try {
-          req.body = JSON.parse(raw);
-        } catch {
-          req.body = {};
-        }
-      } else {
-        req.body = {};
-      }
-    }
-  } catch {
-    // Ensure body is an object so route handlers don't crash
-    req.body = {};
-  }
-  next();
-});
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      // Extra diagnostics for admin auth password parsing on EC2
-      if (path === "/api/admin/auth") {
-        try {
-          const headerPwd = (req.headers as any)["x-admin-password"] || null;
-          const queryPwd = typeof (req.query as any)?.password === 'string' ? (req.query as any).password : null;
-          const ct = (req.headers as any)["content-type"] || null;
-          console.log('[admin-auth][pre] details', { headerPwd, queryPwd, ct, method: req.method });
-        } catch {}
-      }
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
-
-(async () => {
-  const { DatabaseStorage } = await import("./storage.js");
-  const storage = new DatabaseStorage();
-  
-  await setupRoutes(app);
-  
-  // Setup URL processing routes for manual URL processing
-  setupURLProcessingRoutes(app);
-  console.log('🔗 URL processing routes initialized');
-  
-  app.use(bannerRoutes); // Re-enabled for dynamic banner management
-  app.use(staticBannerRoutes); // Mount static banner management routes
-  app.use(credentialRoutes);
-  app.use(metaTagsRoutes);
-  app.use(rssFeedsRoutes);
-  app.use('/api/advertisers', advertiserRoutes); // Advertising system routes
-  app.use('/api/payments', paymentRoutes); // Payment and checkout routes
-  app.use('/api/pages', pagesRoutes); // Dynamic pages API routes
-  app.use(widgetRoutes); // Widget management and retrieval routes
-  app.use(adRequestRoutes); // Ad requests + Explore ads config routes
-  app.use(botStatusRoutes); // Bot status monitoring endpoint
-  app.use(botProcessingRoutes); // Admin toggle for global bot processing
-  app.use(canvaAdminRouter); // Canva automation admin routes
-  app.use(canvaBackfillRouter); // Canva backfill routes
-  
-  // Admin routes for social media posting and credential checks
-  setupSocialMediaRoutes(app);
-  console.log('📣 Social media admin routes initialized');
-  console.log('🔐 Credential management routes initialized');
-  console.log('🏷️ Meta tags management routes initialized');
-  console.log('📡 RSS feeds management routes initialized');
-  console.log('📢 Advertiser management routes initialized');
-  console.log('💳 Payment routes initialized');
-  console.log('📄 Pages routes initialized');
-  console.log('🧩 Widget routes initialized');
-  console.log('🤖 Bot status route initialized');
-  console.log('⚙️ Bot processing admin routes initialized');
-
-  // Setup image proxy routes for authentic product images
-  imageProxyService.setupRoutes(app);
-  console.log('🖼️ Image proxy service initialized for authentic product images');
-
-  // Background scheduler: process pending social posts based on Canva settings
-  try {
-    const isProd = (process.env.NODE_ENV || 'development') === 'production';
-    const enableBackground = process.env.ENABLE_BACKGROUND_SERVICES === 'true' || isProd;
-    if (enableBackground) {
-      const socialMediaPoster = createSocialMediaPoster(sqliteDb);
-      const getDelayMs = async () => {
-        try {
-          const s: any = await storage.getCanvaSettings();
-          const enabled = !!(s?.isEnabled ?? s?.is_enabled);
-          const scheduleType = s?.scheduleType ?? s?.schedule_type ?? 'immediate';
-          const delayMin = Number(s?.scheduleDelayMinutes ?? s?.schedule_delay_minutes ?? 15);
-          const baseMs = Math.max(1, delayMin) * 60 * 1000;
-          return enabled ? (scheduleType === 'scheduled' ? baseMs : 5 * 60 * 1000) : 0;
-        } catch (e) {
-          console.warn('⚠️ Failed to read Canva settings for scheduler; using default 15m:', e);
-          return 15 * 60 * 1000;
-        }
-      };
-
-      let intervalMs = await getDelayMs();
-      if (intervalMs > 0) {
-        console.log(`🕒 Starting social auto-post scheduler (interval ${Math.round(intervalMs/60000)}m)`);
-        setInterval(async () => {
-          try {
-            const currentMs = await getDelayMs();
-            if (currentMs === 0) {
-              // Disabled; skip run
-              return;
-            }
-            await socialMediaPoster.processPendingPosts();
-          } catch (err) {
-            console.error('Social auto-post scheduler error:', err);
-          }
-        }, intervalMs);
-      } else {
-        console.log('⏸️ Social auto-post scheduler disabled via Canva settings.');
-      }
-    } else {
-      console.log('⏸️ Background services disabled; social auto-post scheduler not started.');
-    }
-  } catch (err) {
-    console.error('Failed to initialize social auto-post scheduler:', err);
-  }
-  
-  // Root route: Always fall through to SPA fallback for meta tag injection and client routing
-  app.get('/', (_req: Request, _res: Response, next: NextFunction) => {
-    return next();
-  });
-
-// Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    services: {
-      database: 'connected'
-    }
-  });
-});
-
-// API status endpoint
-app.get('/api/status', (_req: Request, res: Response) => {
-  res.json({ 
-    status: 'operational',
-    version: '1.0.0',
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
-});
-
-// Bot status endpoint (explicit mounting to ensure full fields are returned)
-app.get('/api/bot/status', async (_req: Request, res: Response) => {
-  try {
-    const env = process.env.NODE_ENV || 'unknown';
-    const token = process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
-    const hasToken = Boolean(token);
-
-    let initialized = false;
-    let webhook: { url?: string; pending_update_count?: number } | undefined;
-
-    if (hasToken) {
-      try {
-        const apiUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
-        const resp = await fetch(apiUrl);
-        if (resp.ok) {
-          const data: any = await resp.json();
-          const info = data?.result || {};
-          webhook = {
-            url: info?.url,
-            pending_update_count: info?.pending_update_count,
-          };
-          initialized = Boolean(info?.url);
-        } else {
-          console.warn('⚠️ Telegram API getWebhookInfo failed:', resp.status, resp.statusText);
-        }
-      } catch (err) {
-        console.warn('⚠️ Failed to query Telegram API for status:', (err as any)?.message || err);
-      }
-    }
-
-    res.json({ initialized, hasToken, env, webhook });
-  } catch (e: any) {
-    console.warn('⚠️ /api/bot/status failed:', e?.message || e);
-    res.json({ initialized: false });
-  }
-});
-
-// Debug: list mounted routes for troubleshooting
-app.get('/api/debug/routes', (_req: Request, res: Response) => {
-  const routes: Array<{ method: string; path: string }> = [];
-  const stack = (app as any)._router?.stack || [];
-  for (const layer of stack) {
-    if (layer.route && layer.route.path) {
-      const methods = Object.keys(layer.route.methods || {});
-      for (const m of methods) {
-        routes.push({ method: m.toUpperCase(), path: layer.route.path });
-      }
-    }
-  }
-  res.json({ count: routes.length, routes });
-});
-
-app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-  const isJsonParseError = err instanceof SyntaxError && (err as any).status === 400 && 'body' in err;
-  const status = isJsonParseError ? 400 : (err.status || err.statusCode || 500);
-  const message = isJsonParseError ? 'Invalid JSON payload' : (err.message || "Internal Server Error");
-
-  // Log structured error details for debugging
-  console.error('Request Error:', {
-    url: req.url,
-    method: req.method,
-    status,
-    message,
-    headers: req.headers
-  });
-
-  res.status(status).json({ message });
-});
-
-// Environment configuration
-const isDevelopment = process.env.NODE_ENV !== 'production';
-// Enable background services (cleanup, RSS aggregation) only in production unless explicitly enabled
-const ENABLE_BACKGROUND_SERVICES = process.env.ENABLE_BACKGROUND_SERVICES === 'true' || process.env.NODE_ENV === 'production';
-const PORT = process.env.PORT || 5000;
-const FRONTEND_URL = process.env.FRONTEND_URL || (isDevelopment ? 'http://localhost:5173' : '');
-
-// Log environment information
-console.log(`🌍 Environment: ${isDevelopment ? 'Development' : 'Production'}`);
-console.log(`🚀 Server will start on port: ${PORT}`);
-if (isDevelopment) {
-  console.log(`🎨 Frontend URL: ${FRONTEND_URL}`);
 }
 
-// Backend server startup
-const port = parseInt(process.env.PORT || '5000', 10);
-const server = app.listen(port, '0.0.0.0', async () => {
-  console.log(`✅ Backend server running on http://localhost:${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
-  console.log(`🔧 API status: http://localhost:${port}/api/status`);
-  
-  if (isDevelopment) {
-    console.log(`\n🎯 Development Mode Active:`);
-    console.log(`   • Backend API: http://localhost:${port}`);
-    console.log(`   • Frontend: Integrated with backend (or run separately on port 5173)`);
-    console.log(`   • Use 'npm run dev:separate' for separate frontend server`);
-  } else {
-    console.log(`\n🏭 Production Mode Active:`);
-    console.log(`   • Serving static frontend files`);
-    console.log(`   • All requests handled by this server`);
-  }
-
-  // Setup development or production mode after server is created
-  if (isDevelopment) {
-    // Setup Vite in development - this handles all static assets and SPA routing
-    import("./vite.js").then(async ({ setupVite }) => {
-      console.log('🔧 Setting up Vite development server...');
-      try {
-        await setupVite(app, server);
-        console.log('✅ Vite development server configured');
-        console.log(`🌐 Frontend available at: http://localhost:${port}`);
-        console.log('🔧 For separate frontend dev server, run: cd client && npm run dev');
-      } catch (error) {
-        console.error('❌ Failed to setup Vite:', error);
-        console.log('💡 Fallback: You can run frontend separately with: cd client && npm run dev');
-      }
-    }).catch(error => {
-      console.error('❌ Failed to import Vite module:', error);
-      console.log('💡 Fallback: You can run frontend separately with: cd client && npm run dev');
-    });
-  } else {
-    // Production mode - serve static files and handle SPA routing
-    const fs = await import('fs');
-    // In production, compiled server lives at dist/server/server/index.js
-    // Static client assets live at dist/public. Resolve accordingly.
-    const publicPath = process.env.FRONTEND_STATIC_DIR
-      ? path.resolve(process.env.FRONTEND_STATIC_DIR)
-      : path.resolve(__dirname, "../../public");
-    console.log(`📁 Frontend static dir resolved to: ${publicPath}`);
-    
-    if (fs.existsSync(publicPath)) {
-      console.log(`📁 Setting up static file serving from: ${publicPath}`);
-      
-      // Set proper MIME types for JavaScript files
-      // Important: Disable default index.html serving so SPA fallback can inject meta tags
-      app.use(express.static(publicPath, {
-        index: false,
-        setHeaders: (res, filePath) => {
-          // Content-Type hints to avoid incorrect MIME on some proxies
-          if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
-            res.setHeader('Content-Type', 'application/javascript');
-            // Strong cache for hashed assets to prevent partial update mismatches
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-          } else if (filePath.endsWith('.css')) {
-            res.setHeader('Content-Type', 'text/css');
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-          } else if (/[.-](png|jpg|jpeg|gif|webp|svg|ico|woff2|woff|ttf)$/i.test(filePath)) {
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-          }
-        }
-      }));
-      
-      // SPA fallback - serve index.html for client-side routes
-      app.get('*', (req, res, next) => {
-        // Skip API routes (defensive across proxies/middlewares)
-        const urlPath = (req as any).originalUrl || req.url || req.path || '';
-        if (/^\/api(\/|$)/.test(urlPath)) {
-          return next();
-        }
-        
-        // Skip static files (files with extensions)
-        if (path.extname(urlPath)) {
-          return next();
-        }
-        
-        const indexPath = path.join(publicPath, 'index.html');
-        if (fs.existsSync(indexPath)) {
-          try {
-            // Read static HTML and inject active meta tags into <head>
-            let html = fs.readFileSync(indexPath, 'utf-8');
-            const activeTags = sqliteDb.prepare(
-              `SELECT name, content FROM meta_tags WHERE is_active = 1 ORDER BY provider ASC`
-            ).all() as { name: string; content: string }[];
-            const injection = activeTags
-              .map(t => `<meta name="${t.name}" content="${t.content}" data-injected="server" />`)
-              .join('\n');
-            // Insert right after the opening <head> tag to satisfy verification crawlers
-            if (html.includes('<head>')) {
-              html = html.replace('<head>', `<head>\n${injection}\n`);
-            } else if (html.includes('<head ')) {
-              // Handle cases like <head lang="en">
-              html = html.replace(/<head[^>]*>/i, (match) => `${match}\n${injection}\n`);
-            }
-            // index.html must never be cached to ensure latest hashed assets are referenced
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            res.setHeader('Cache-Control', 'no-store, must-revalidate');
-            return res.send(html);
-          } catch (err) {
-            console.error('Error injecting meta tags into index.html:', err);
-            res.setHeader('Cache-Control', 'no-store, must-revalidate');
-            return res.sendFile(indexPath);
-          }
-        } else {
-          res.status(404).json({ error: 'Frontend not built. Run npm run build first.' });
-        }
-      });
-    } else {
-      console.warn('⚠️ Public directory not found. Frontend may not be built.');
-    }
-  }
-
-  if (ENABLE_BACKGROUND_SERVICES) {
-    // Initialize Category Cleanup Service for automatic category management
-    try {
-      console.log('Cleanup Starting Category Cleanup Service...');
-      CategoryCleanupService.initializeOnServerStart();
-      console.log('Success Category cleanup service initialized');
-    } catch (error) {
-      console.error('Error Failed to initialize Category Cleanup Service:', error);
-    }
-
-    // Initialize RSS Aggregation Service for automatic RSS feed processing
-    try {
-      console.log('📡 Starting RSS Aggregation Service...');
-      aggregationService.start();
-      console.log('✅ RSS aggregation service initialized with automatic scheduling');
-    } catch (error) {
-      console.error('❌ Failed to initialize RSS Aggregation Service:', error);
-    }
-
-    // Initialize Social Media Auto-Poster scheduler
-    try {
-      const socialMediaPoster = createSocialMediaPoster(sqliteDb);
-
-      // Read Canva settings to determine scheduling
-      const settings = sqliteDb.prepare(
-        `SELECT 
-           is_enabled as isEnabled, 
-           schedule_type as scheduleType, 
-           schedule_delay_minutes as delay
-         FROM canva_settings 
-         ORDER BY id DESC 
-         LIMIT 1`
-      ).get() as any;
-
-      const isEnabled = Boolean(settings?.isEnabled);
-      const scheduleType = (settings?.scheduleType || 'immediate') as string;
-      const delayMinutes = Number(settings?.delay) || 0;
-      const defaultIntervalMinutes = 15;
-      const intervalMs = scheduleType === 'scheduled' && delayMinutes > 0
-        ? delayMinutes * 60 * 1000
-        : defaultIntervalMinutes * 60 * 1000;
-
-      if (isEnabled) {
-        console.log(`📣 Starting Social Media Auto-Poster scheduler (every ${Math.round(intervalMs/60000)}m)...`);
-        setInterval(async () => {
-          try {
-            const result = await socialMediaPoster.processPendingPosts();
-            if (result.processed > 0) {
-              console.log(`📣 Auto-Poster processed: ${result.successful} successful, ${result.failed} failed of ${result.processed}`);
-            }
-          } catch (err) {
-            console.error('❌ Social Media Auto-Poster scheduler error:', err);
-          }
-        }, intervalMs);
-      } else {
-        console.log('⏸️ Social Media Auto-Poster disabled in settings; scheduler not started.');
-      }
-    } catch (error) {
-      console.error('❌ Failed to initialize Social Media Auto-Poster scheduler:', error);
-    }
-  } else {
-    console.log('⏸️ Skipping background services in development (set ENABLE_BACKGROUND_SERVICES=true to enable).');
-  }
+// Run
+start().catch((err) => {
+  console.error('Fatal server start error:', err);
+  process.exit(1);
 });
-
-// Graceful shutdown handling
-const gracefulShutdown = (signal: string) => {
-  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-  
-  server.close((err) => {
-    if (err) {
-      console.error('❌ Error during server shutdown:', err);
-      process.exit(1);
-    }
-    
-    console.log('✅ Server closed successfully');
-    console.log('👋 Goodbye!');
-    process.exit(0);
-  });
-  
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('⚠️  Forced shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Handle uncaught exceptions and rejections
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  // Do not exit; keep server alive to avoid downtime
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Do not exit; keep server alive to avoid downtime
-});
-})();

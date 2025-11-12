@@ -6,9 +6,9 @@ Overview
 
 Deployment Flow (deploy-to-domain.ps1 or deploy-domain.sh)
 - Build: `npm run build` produces `dist/public` (client) and `dist/server` (backend).
-- Client publish (atomic): uploads a tarball, extracts to `public_new`, then swaps to `public` in one move to avoid 404s.
+- Client publish: served from `dist/public` via Nginx. Artifacts are uploaded under `dist/public` alongside backend; atomic swap to `public` is deprecated.
 - Nginx: config is refreshed and validated; SPA and cache headers keep assets visible after swaps.
-- Backend: uploads `dist` and `ecosystem.config.cjs`, installs prod deps, then starts via PM2.
+- Backend: uploads `dist` and `ecosystem.config.cjs`, installs prod deps, ensures `.env` sets `DATABASE_URL=file:./database.sqlite`, then starts via PM2.
 - Bot isolation: the Telegram bot runs as a separate PM2 app so its crash cannot affect the website.
 - Health checks: verifies `/health`, bundles, and widgets; logs are tailed to confirm startup.
 
@@ -26,11 +26,11 @@ What these scripts do
 PM2 Management
 - Start/refresh: `pm2 start ecosystem.config.cjs` or `pm2 restart pickntrust-backend`.
 - Bot: `pm2 restart pickntrust-bot` is included; runs independently from the website.
-- Persist across reboot: `pm2 save` and `pmebsit2 startup systemd -u ec2-user` are executed.
+- Persist across reboot: `pm2 save` and `pm2 startup systemd -u ec2-user --hp /home/ec2-user` are executed.
 - Log rotation: `pm2 install pm2-logrotate` with sane defaults to keep logs tidy.
 
 Services and Isolation
-- Website (Nginx + static assets): serves `/home/ec2-user/pickntrust/public`. Atomic swaps avoid intermediate 404s.
+- Website (Nginx + static assets): serves `/home/ec2-user/pickntrust/dist/public`. Cache headers on index prevent stale loads post-deploy.
 - Backend API (`pickntrust-backend`): listens on port `5000`, uses SQLite at `./database.sqlite`.
 - Telegram bot (`pickntrust-bot`): independent PM2 process; crashes do not affect the website.
 - Autosharing/Canva: implemented in backend services; they ride with the backend. Backend crashes are auto-restarted by PM2; failures won’t break static site.
@@ -56,11 +56,12 @@ Health Checks
 - Widgets: `https://pickntrust.com/api/widgets/prime-picks/header` returns non-empty JSON.
 
 Troubleshooting
-- 404 assets during deploy: atomic swap avoids this; if seen, re-run deploy to rebuild `public_new` and swap.
-- Backend not starting: check `pm2 status` then `pm2 logs pickntrust-backend --lines 100`; confirm Node 18 installed.
-- Bot token issues: ensure `MASTER_BOT_TOKEN` in environment; restart with `pm2 restart pickntrust-bot`.
-- Widgets missing: run `node scripts/fix-fallback-widget.cjs` in `/home/ec2-user/pickntrust`.
-- Nginx errors: validate with `sudo nginx -t` and reload with `sudo systemctl reload nginx`.
+- 404 assets during deploy: With `dist/public` as root, cache headers on `index.html` prevent stale loads; if assets mismatch, re-run deploy to rebuild `dist/public`.
+- Backend not starting: Use `pm2 status` then `pm2 logs pickntrust-backend --lines 100`; confirm Node 18 and correct working directory.
+- Database path mismatch: Ensure `.env` sets `DATABASE_URL=file:./database.sqlite`. Without it, server may resolve `dist/server/database.sqlite`; fix env or update server DB path resolution.
+- Categories missing: Run `seed-form-flags.sql` and verify `/api/categories/*` endpoints show expected flags and counts. If PM2 uses the wrong DB, correct path then rerun seeding.
+- Widgets missing: Run `node scripts/fix-fallback-widget.cjs` in `/home/ec2-user/pickntrust`.
+- Nginx errors: Validate with `sudo nginx -t` and reload with `sudo systemctl reload nginx`.
 
 EC2 Runtime Notes
 - Node.js 18 is installed system-wide (dnf/yum/apt) to avoid NVM surprises.
@@ -128,3 +129,60 @@ Steps (from Windows PowerShell)
 Notes
 - No data loss: only Nginx config and PM2 app process.
 - Certbot uses webroot at /var/lib/letsencrypt (ACME challenge kept via HTTP).
+
+Top Picks Trigger — Reference
+---------------------------------
+- Purpose: automatically add `top-picks` to `display_pages` whenever a product in `unified_content` is marked featured (`is_featured` set true). Also ensures `status` defaults to `active` and `visibility` to `public` for featured items.
+- Install (one-time): `node scripts/run-add-top-picks-triggers.cjs` — installs triggers from `scripts/add-top-picks-triggers.sql` into the current `database.sqlite`.
+- Backfill existing featured rows: run `scripts/tag-top-picks.sql` against the DB to add missing `top-picks` for already-featured products.
+- Verify: `node check-display-pages.cjs` or run `server/check-pages.sql` in SQLite to confirm `TOP_PICKS` counts and recent items include `top-picks` in `display_pages`.
+- Persistence: this is a one-time setup; triggers persist across deployments. Only re-run after a database reset or if you switch to a new DB file.
+
+Static Banners — Config & Import
+---------------------------------
+- Source file (before build): `client/src/config/banners.json`
+- Build output (served by Nginx): `dist/public/config/banners.json`
+- Resolver/env (PM2 ecosystem):
+  - `FRONTEND_STATIC_DIR=/home/ec2-user/pickntrust/dist/public`
+  - `STATIC_BANNERS_PATH=/home/ec2-user/pickntrust/dist/public/config/banners.json`
+  - Optional: `DEBUG_BANNERS=1` (server logs the resolved path and fallbacks)
+
+Endpoints
+- Inspect resolved static config: `GET /api/admin/banners/static-config`
+- Write static config file: `POST /api/admin/banners/static-config` with body `{ config: { ... } }`
+- Import static into DB: `POST /api/admin/banners/import-static` with body `{ replaceExisting: boolean, allowDuplicates: boolean }`
+
+Behavior
+- Import applies to any page keys present in `banners.json` (e.g., `home`, `services`, `products`).
+- Pages missing from `banners.json` won’t receive static banners; they will show none or fallback.
+- If env vars aren’t applied, the server uses fallback static file (e.g., “Welcome / Top Deals / Premium Services”).
+
+Post-Deploy Alignment (recommended)
+1) Ensure PM2 starts via `ecosystem.config.cjs` so envs apply:
+   - Run: `powershell -File .\scripts\pm2-refresh-ecosystem.ps1` (remotely runs `pm2 delete pickntrust-backend && pm2 start ecosystem.config.cjs --update-env`)
+2) Verify static resolver:
+   - Run: `powershell -File .\scripts\get-static-config.ps1` and check it shows smartphone/kitchen/fashion banners from `dist/public/config/banners.json`.
+3) Import static to DB without duplicates:
+   - Run: `powershell -File .\scripts\trigger-import-static.ps1` (uses `replaceExisting=true`, `allowDuplicates=false`).
+4) Confirm dynamic banners:
+   - Check: `GET /api/banners/home` returns smartphone/kitchen/fashion entries.
+
+Troubleshooting
+- Seeing “Welcome / Deals / Services” after deploy:
+  - Restart backend with ecosystem envs: `pm2 delete pickntrust-backend && pm2 start ecosystem.config.cjs --update-env && pm2 save`.
+  - Verify static path with `/api/admin/banners/static-config`.
+  - Ensure `/home/ec2-user/pickntrust/dist/public/config/banners.json` exists and is from the latest build.
+  - Re-run import with `replaceExisting=true`, `allowDuplicates=false`.
+- Duplicate rows after import:
+  - Use `allowDuplicates=false` to avoid new inserts; use `replaceExisting=true` to overwrite existing rows.
+- Add banners for more pages:
+  - Add arrays for those pages in `client/src/config/banners.json`, rebuild/deploy, then import.
+
+Admin Alternative
+- You can manage page-specific banners in the Admin Banner Management UI (writes directly to DB; no deploy required). Use the static import only to seed/realign from `banners.json`.
+Admin Checks — Browse Categories
+- Verify forms endpoints: `https://www.pickntrust.com/api/categories/forms/products`, `https://www.pickntrust.com/api/categories/forms/services`, `https://www.pickntrust.com/api/categories/forms/aiapps`.
+- Expected counts: Products = 13, Services = 19, Apps & AI = 16.
+- If mismatched, reseed and promote parents:
+  `powershell -ExecutionPolicy Bypass -File scripts\deploy-seed-form-flags.ps1 -Server ec2-user@<EC2-IP> -KeyPath C:\Users\sharm\.ssh\pnt08.pem -DbPath /home/ec2-user/pickntrust/database.sqlite -ApiBase https://www.pickntrust.com`.
+- Re-verify counts and keep logs for audit.

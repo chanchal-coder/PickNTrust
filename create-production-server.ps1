@@ -19,8 +19,8 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Database setup
-const db = new sqlite3.Database('./pickntrust.db', (err) => {
+// Database setup (use the real production DB file)
+const db = new sqlite3.Database('./database.sqlite', (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
   } else {
@@ -41,12 +41,26 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'PickNTrust API is running' });
 });
 
-// Products API
+// Products API (unified_content only)
 app.get('/api/products', (req, res) => {
   const query = \`
-    SELECT id, title, price, image_url, category, rating, reviews_count, 
-           discount_percentage, original_price, is_featured, created_at
-    FROM products 
+    SELECT 
+      id,
+      title,
+      price,
+      image_url,
+      category,
+      rating,
+      review_count AS reviews_count,
+      discount AS discount_percentage,
+      original_price,
+      is_featured,
+      created_at
+    FROM unified_content
+    WHERE 
+      (status IN ('active','published') OR status IS NULL)
+      AND (visibility IN ('public','visible') OR visibility IS NULL)
+      AND (processing_status != 'archived' OR processing_status IS NULL)
     ORDER BY created_at DESC 
     LIMIT 50
   \`;
@@ -61,13 +75,26 @@ app.get('/api/products', (req, res) => {
   });
 });
 
-// Featured products
+// Featured products (unified_content only)
 app.get('/api/products/featured', (req, res) => {
   const query = \`
-    SELECT id, title, price, image_url, category, rating, reviews_count, 
-           discount_percentage, original_price, created_at
-    FROM products 
-    WHERE is_featured = 1 
+    SELECT 
+      id,
+      title,
+      price,
+      image_url,
+      category,
+      rating,
+      review_count AS reviews_count,
+      discount AS discount_percentage,
+      original_price,
+      created_at
+    FROM unified_content 
+    WHERE 
+      is_featured = 1 
+      AND (status IN ('active','published') OR status IS NULL)
+      AND (visibility IN ('public','visible') OR visibility IS NULL)
+      AND (processing_status != 'archived' OR processing_status IS NULL)
     ORDER BY created_at DESC 
     LIMIT 20
   \`;
@@ -82,12 +109,19 @@ app.get('/api/products/featured', (req, res) => {
   });
 });
 
-// Categories API
+// Categories API (unified_content only)
 app.get('/api/categories', (req, res) => {
   const query = \`
-    SELECT DISTINCT category, COUNT(*) as count
-    FROM products 
-    WHERE category IS NOT NULL AND category != ''
+    SELECT 
+      category, 
+      COUNT(*) AS count
+    FROM unified_content 
+    WHERE 
+      category IS NOT NULL 
+      AND TRIM(category) != ''
+      AND (status IN ('active','published') OR status IS NULL)
+      AND (visibility IN ('public','visible') OR visibility IS NULL)
+      AND (processing_status != 'archived' OR processing_status IS NULL)
     GROUP BY category 
     ORDER BY count DESC
   \`;
@@ -102,7 +136,7 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-// Search products
+// Search products (unified_content only)
 app.get('/api/search', (req, res) => {
   const { q } = req.query;
   if (!q) {
@@ -110,10 +144,23 @@ app.get('/api/search', (req, res) => {
   }
   
   const query = \`
-    SELECT id, title, price, image_url, category, rating, reviews_count, 
-           discount_percentage, original_price, created_at
-    FROM products 
-    WHERE title LIKE ? OR category LIKE ? OR description LIKE ?
+    SELECT 
+      id, 
+      title, 
+      price, 
+      image_url, 
+      category, 
+      rating, 
+      review_count AS reviews_count, 
+      discount AS discount_percentage, 
+      original_price, 
+      created_at
+    FROM unified_content 
+    WHERE 
+      (title LIKE ? OR category LIKE ? OR description LIKE ?)
+      AND (status IN ('active','published') OR status IS NULL)
+      AND (visibility IN ('public','visible') OR visibility IS NULL)
+      AND (processing_status != 'archived' OR processing_status IS NULL)
     ORDER BY created_at DESC 
     LIMIT 50
   \`;

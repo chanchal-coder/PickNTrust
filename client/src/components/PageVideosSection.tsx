@@ -90,18 +90,73 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
         const allVideos = await allResponse.json();
         
         // Filter videos that should appear on this page
-        return allVideos.filter((video: VideoContent) => {
+        return allVideos.filter((video: any) => {
+          // Helper: normalize slug (lowercase, hyphenate, collapse non-alphanumerics)
+          const normalizeSlug = (s: string) => {
+            const base = String(s || '')
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '');
+            // Synonyms mapping
+            switch (base) {
+              case 'apps-ai-apps':
+              case 'apps-ai':
+              case 'ai-apps':
+                return 'apps';
+              case 'prime-picks':
+              case 'prime-pick':
+                return 'prime-picks';
+              case 'value-picks':
+              case 'value-pick':
+                return 'value-picks';
+              case 'top-picks':
+              case 'top-pick':
+                return 'top-picks';
+              case 'travel-picks':
+              case 'travel-pick':
+                return 'travel-picks';
+              case 'click-picks':
+              case 'click-pick':
+                return 'click-picks';
+              case 'cue-picks':
+              case 'cue-pick':
+                return 'cue-picks';
+              case 'blogs':
+                return 'blog';
+              default:
+                return base;
+            }
+          };
+
+          // Normalize pages: handle array, JSON string, or CSV string
+          let pagesArr: string[] = [];
+          const raw = (video?.pages ?? video?.displayPages ?? video?.display_pages ?? '') as any;
+          if (Array.isArray(raw)) {
+            pagesArr = raw as string[];
+          } else if (typeof raw === 'string') {
+            const trimmed = raw.trim();
+            if (trimmed.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) pagesArr = parsed as string[];
+              } catch {}
+            }
+            if (pagesArr.length === 0) {
+              pagesArr = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+            }
+          }
+
+          // Normalize slugs
+          const normalizedPages = pagesArr.map(normalizeSlug).filter(Boolean);
+          const pageSlug = normalizeSlug(String(page));
+
           // Show on homepage if showOnHomepage is true and page is 'home'
-          if (page === 'home' && video.showOnHomepage) {
+          if (pageSlug === 'home' && Boolean(video.showOnHomepage)) {
             return true;
           }
-          
+
           // Show on specific pages if the page is in the pages array
-          if (video.pages && Array.isArray(video.pages)) {
-            return video.pages.includes(page);
-          }
-          
-          return false;
+          return normalizedPages.includes(pageSlug);
         });
       } catch {
         return [];
@@ -149,10 +204,24 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
 
   // Render section even if there are no videos; show an empty-state UI instead
 
+  // Helpers to resolve backend media URLs
+  const getBackendBaseUrl = () => {
+    const envBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
+    if (envBase) return envBase;
+    const origin = window.location.origin;
+    return origin.includes(':5173') ? origin.replace(':5173', ':5000') : origin;
+  };
+  const toAbsoluteMediaUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/')) return getBackendBaseUrl() + url;
+    return url;
+  };
   // Function to handle video click
   const handleVideoClick = (video: VideoContent) => {
     if (video.videoUrl) {
-      window.open(video.videoUrl, '_blank');
+      window.open(toAbsoluteMediaUrl(video.videoUrl), '_blank');
     }
   };
 
@@ -162,10 +231,10 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
       navigator.share({
         title: video.title,
         text: video.description,
-        url: video.videoUrl,
+        url: toAbsoluteMediaUrl(video.videoUrl),
       });
     } else {
-      navigator.clipboard.writeText(video.videoUrl);
+      navigator.clipboard.writeText(toAbsoluteMediaUrl(video.videoUrl));
       toast({
         title: 'Link Copied',
         description: 'Video link has been copied to clipboard.',
@@ -438,22 +507,22 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
                       )}
                     </div>
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-700 w-full">
+                      <div className="flex flex-wrap gap-2 min-w-0">
                         {video.tags.slice(0, 2).map((tag, index) => (
                           <span key={index} className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded text-xs">
                             #{tag}
                           </span>
                         ))}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2 shrink-0">
                         {video.ctaText && video.ctaUrl && (
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               window.open(video.ctaUrl, '_blank');
                             }}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-3 rounded-lg hover:shadow-lg transition-all duration-300 text-xs z-10 relative"
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-3 rounded-lg hover:shadow-lg transition-all duration-300 text-xs z-10 relative whitespace-nowrap"
                             style={{ minWidth: '80px' }}
                           >
                             <i className="fas fa-external-link-alt mr-1"></i>
@@ -478,7 +547,7 @@ export default function PageVideosSection({ page, title }: PageVideosSectionProp
                             e.stopPropagation();
                             handleVideoClick(video);
                           }}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-xs"
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 text-xs whitespace-nowrap"
                         >
                           <i className="fas fa-play mr-1"></i>Watch Now
                         </button>

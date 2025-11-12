@@ -1,0 +1,14 @@
+/* Minimal custom stylesheet to ensure link reference resolves in production */
+:root {
+  --pnt-bg: #0b1220;
+  --pnt-fg: #e5e7eb;
+}
+
+/* Safe defaults */
+html, body {
+  background: var(--pnt-bg);
+  color: var(--pnt-fg);
+}
+
+/* Hide initial loader gracefully if present */
+#initial-loader { display: none; }

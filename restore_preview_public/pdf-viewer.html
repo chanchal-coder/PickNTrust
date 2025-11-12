@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF Viewer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: #111;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+      .viewer-container {
+        max-width: 1024px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .page {
+        position: relative;
+        width: 100%;
+        margin: 0 auto 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+      }
+      canvas {
+        display: block;
+        width: 100% !important;
+        height: auto !important;
+      }
+      .link-layer a {
+        position: absolute;
+        display: block;
+        z-index: 5;
+        background: transparent;
+        border: 0;
+        text-decoration: none;
+        /* Optional visual debugging: */
+        /* outline: 1px dashed rgba(0,0,0,0.15); */
+      }
+      .loading {
+        text-align: center;
+        padding: 24px;
+        color: #3b82f6;
+      }
+      .error {
+        text-align: center;
+        padding: 24px;
+        color: #ef4444;
+      }
+    </style>
+    <!-- PDF.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script>
+      // Configure worker
+      if (window['pdfjsLib']) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      }
+      function getParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+      }
+      function showLink(fileUrl) {
+        const errorEl = document.getElementById('error');
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Open file in a new tab';
+        link.style.display = 'inline-block';
+        link.style.marginTop = '8px';
+        link.style.color = '#2563eb';
+        errorEl.appendChild(link);
+      }
+      async function renderPDF() {
+        const fileUrl = getParam('file');
+        const container = document.getElementById('viewer');
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+
+        if (!fileUrl) {
+          loadingEl.style.display = 'none';
+          errorEl.textContent = 'No file provided';
+          errorEl.style.display = 'block';
+          return;
+        }
+        try {
+          // Quick HEAD check for visibility and status
+          try {
+            const headResp = await fetch(fileUrl, { method: 'HEAD' }).catch(() => null);
+            if (headResp) {
+              if (!headResp.ok) {
+                console.warn('HEAD status for file:', headResp.status);
+              }
+              const ct = headResp.headers.get('content-type') || '';
+              if (!/application\/pdf/i.test(ct)) {
+                console.warn('Unexpected Content-Type for PDF:', ct);
+              }
+            }
+          } catch {}
+
+          // Fetch as ArrayBuffer to avoid proxy range/streaming issues
+          const resp = await fetch(fileUrl).catch((e) => {
+            console.warn('GET failed for PDF:', e);
+            return null;
+          });
+          if (!resp || !resp.ok) {
+            loadingEl.style.display = 'none';
+            errorEl.textContent = 'Failed to load PDF';
+            errorEl.style.display = 'block';
+            showLink(fileUrl);
+            return;
+          }
+          const buf = await resp.arrayBuffer();
+          if (!buf || buf.byteLength === 0) {
+            loadingEl.style.display = 'none';
+            errorEl.textContent = 'Invalid PDF (empty file)';
+            errorEl.style.display = 'block';
+            showLink(fileUrl);
+            return;
+          }
+
+          const pdf = await pdfjsLib.getDocument({
+            data: buf,
+            withCredentials: false,
+            disableRange: true,
+            disableStream: true
+          }).promise;
+          loadingEl.style.display = 'none';
+
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1 });
+            const containerWidth = container.clientWidth || 1024;
+            const scale = containerWidth / viewport.width;
+            const scaledViewport = page.getViewport({ scale });
+
+            // Per-page container
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            pageDiv.style.height = scaledViewport.height + 'px';
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.floor(scaledViewport.width);
+            canvas.height = Math.floor(scaledViewport.height);
+            const ctx = canvas.getContext('2d');
+
+            pageDiv.appendChild(canvas);
+            container.appendChild(pageDiv);
+
+            await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+
+            // Render link annotations as overlay anchors
+            const annotations = await page.getAnnotations();
+            const linkLayer = document.createElement('div');
+            linkLayer.className = 'link-layer';
+            linkLayer.style.position = 'absolute';
+            linkLayer.style.left = 0;
+            linkLayer.style.top = 0;
+            linkLayer.style.width = scaledViewport.width + 'px';
+            linkLayer.style.height = scaledViewport.height + 'px';
+
+            annotations.forEach(a => {
+              // Only process link-type annotations
+              const isLink = a.subtype === 'Link' || a.url || a.dest;
+              if (!isLink || !a.rect) return;
+
+              const rect = pdfjsLib.Util.normalizeRect(a.rect);
+              const [x1, y1, x2, y2] = scaledViewport.convertToViewportRectangle(rect);
+              const left = Math.min(x1, x2);
+              const top = Math.min(y1, y2);
+              const width = Math.abs(x2 - x1);
+              const height = Math.abs(y2 - y1);
+
+              const anchor = document.createElement('a');
+              // Prefer explicit URL; fall back to destination name when available
+              if (a.url) {
+                try {
+                  // Ensure absolute URL and open in new tab
+                  const normalized = new URL(a.url, window.location.origin).toString();
+                  anchor.href = normalized;
+                } catch (e) {
+                  anchor.href = a.url;
+                }
+              } else {
+                anchor.href = '#';
+              }
+              anchor.target = '_blank';
+              anchor.rel = 'noopener noreferrer';
+              anchor.style.left = left + 'px';
+              anchor.style.top = top + 'px';
+              anchor.style.width = width + 'px';
+              anchor.style.height = height + 'px';
+              linkLayer.appendChild(anchor);
+            });
+
+            pageDiv.appendChild(linkLayer);
+          }
+        } catch (err) {
+          console.error('PDF render error', err);
+          loadingEl.style.display = 'none';
+          const msg = (err && (err.message || String(err))) || 'Failed to load PDF';
+          errorEl.innerHTML = 'Failed to load PDF<br/><span style="font-size:12px;color:#6b7280">' + msg + '</span>';
+          errorEl.style.display = 'block';
+          // Fallback: try native embed
+          try {
+            const embed = document.createElement('embed');
+            embed.src = fileUrl;
+            embed.type = 'application/pdf';
+            embed.style.width = '100%';
+            embed.style.minHeight = '600px';
+            container.appendChild(embed);
+          } catch (e2) {
+            console.warn('Native embed fallback failed:', e2);
+          }
+          showLink(fileUrl);
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', renderPDF);
+    </script>
+  </head>
+  <body>
+    <div class="viewer-container">
+      <div id="loading" class="loading">Loading PDF…</div>
+      <div id="error" class="error" style="display:none"></div>
+      <div id="viewer" class="viewer"></div>
+    </div>
+  </body>
+</html>

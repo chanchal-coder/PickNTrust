@@ -137,6 +137,42 @@ const AVAILABLE_PAGES: PageInfo[] = [
     isActive: true
   },
   {
+    id: 'fresh-picks',
+    name: 'Fresh Picks',
+    icon: '🌱',
+    description: 'Latest and freshest curated selections',
+    path: '/fresh-picks',
+    category: 'picks',
+    isActive: true
+  },
+  {
+    id: 'artists-corner',
+    name: "Artist's Corner",
+    icon: '🎨',
+    description: 'Creative picks, art and design highlights',
+    path: '/artists-corner',
+    category: 'picks',
+    isActive: true
+  },
+  {
+    id: 'ott-hub',
+    name: 'OTT Hub',
+    icon: '📺',
+    description: 'Streaming platforms and entertainment hub',
+    path: '/ott-hub',
+    category: 'picks',
+    isActive: true
+  },
+  {
+    id: 'trending',
+    name: 'Trending',
+    icon: '📈',
+    description: 'Trending products and popular items',
+    path: '/trending',
+    category: 'picks',
+    isActive: true
+  },
+  {
     id: 'deals-hub',
     name: 'Deals Hub',
     icon: '🔥',

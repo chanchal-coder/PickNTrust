@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 // Using canonical header widgets via WidgetRenderer and banners
 import ScrollNavigation from "@/components/scroll-navigation";
@@ -7,7 +7,7 @@ import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
 
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 import URLProcessor from "@/components/URLProcessor";
 import { AdminBulkDelete } from "@/components/AdminBulkDelete";
@@ -21,6 +21,7 @@ import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { inferGender } from "@/utils/gender";
 
 interface Product {
   id: number | string;
@@ -97,8 +98,12 @@ export default function PrimePicks() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  // Maintain numeric bounds for filtering
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: Infinity});
+  // String key for UniversalFilterSidebar's price range
+  const [priceRangeKey, setPriceRangeKey] = useState<string>('all');
   const [minRating, setMinRating] = useState<number>(0);
+  const [selectedGender, setSelectedGender] = useState<string | null>('all');
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -143,8 +148,36 @@ export default function PrimePicks() {
     refetchInterval: false, // Disable auto-refresh to prevent conflicts
   });
 
-  // Apply client-side filtering for price and rating
+  // Compute available genders from products
+  const availableGenders = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    (allPrimeProducts || []).forEach((p: any) => {
+      const g = inferGender(p);
+      if (!g) return;
+      if (g === 'boys' || g === 'girls') {
+        set.add('kids');
+        set.add(g);
+      } else if (['men','women','unisex','kids'].includes(g)) {
+        set.add(g);
+      }
+    });
+    const ordered = ['men','women','unisex','kids','girls','boys'];
+    return Array.from(set).sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b));
+  }, [allPrimeProducts]);
+
+  // Apply client-side filtering for gender, price, and rating
   const filteredProducts = allPrimeProducts.filter(product => {
+    // Filter by gender first
+    if (selectedGender && selectedGender !== 'all') {
+      const g = inferGender(product);
+      if (selectedGender === 'kids') {
+        if (!(g === 'boys' || g === 'girls' || g === 'kids')) {
+          return false;
+        }
+      } else if (g !== selectedGender) {
+        return false;
+      }
+    }
     // Filter by price range
     const price = parseFloat(product.price);
     if (price < priceRange.min || price > priceRange.max) {
@@ -163,12 +196,32 @@ export default function PrimePicks() {
     setSelectedCategory(category);
   };
 
-  const handlePriceRangeChange = (min: number, max: number) => {
-    setPriceRange({min, max});
+  const mapPriceRangeKeyToBounds = (key: string): { min: number; max: number } => {
+    switch (key) {
+      case '0-500': return { min: 0, max: 500 };
+      case '500-1000': return { min: 500, max: 1000 };
+      case '1000-2500': return { min: 1000, max: 2500 };
+      case '2500-5000': return { min: 2500, max: 5000 };
+      case '5000': return { min: 5000, max: Infinity };
+      case 'all':
+      default: return { min: 0, max: Infinity };
+    }
+  };
+
+  const handleSetPriceRangeKey = (key: string) => {
+    setPriceRangeKey(key);
+    setPriceRange(mapPriceRangeKeyToBounds(key));
   };
 
   const handleRatingChange = (rating: number) => {
     setMinRating(rating);
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCategory('');
+    setMinRating(0);
+    handleSetPriceRangeKey('all');
+    setSelectedGender('all');
   };
 
   // Check admin status
@@ -258,11 +311,28 @@ export default function PrimePicks() {
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>
             <div className="mt-4">
-              <Sidebar 
-                onCategoryChange={handleCategoryChange}
-                onPriceRangeChange={handlePriceRangeChange}
-                onRatingChange={handleRatingChange}
+              <UniversalFilterSidebar
+                showCurrency={false}
+                showNetworks={false}
+                showGender={true}
+                showPriceRange={true}
+                showCategories={true}
+                showRating={false}
+                showResultsCount={true}
+                showClearButton={true}
+                priceRange={priceRangeKey}
+                setPriceRange={handleSetPriceRangeKey}
+                categorySelectionMode="single"
                 availableCategories={availableCategories}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                availableGenders={availableGenders}
+                selectedGender={selectedGender}
+                setSelectedGender={setSelectedGender}
+                minRating={minRating}
+                setMinRating={setMinRating}
+                resultsCount={filteredProducts.length}
+                onClearFilters={handleClearFilters}
               />
             </div>
           </SheetContent>
@@ -279,15 +349,32 @@ export default function PrimePicks() {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* Sidebar (desktop only) */}
           <div className="hidden md:block">
-            <Sidebar 
-              onCategoryChange={handleCategoryChange}
-              onPriceRangeChange={handlePriceRangeChange}
-              onRatingChange={handleRatingChange}
+            <UniversalFilterSidebar
+              showCurrency={false}
+              showNetworks={false}
+              showGender={true}
+              showPriceRange={true}
+              showCategories={true}
+              showRating={false}
+              showResultsCount={true}
+              showClearButton={true}
+              priceRange={priceRangeKey}
+              setPriceRange={handleSetPriceRangeKey}
+              categorySelectionMode="single"
               availableCategories={availableCategories}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              availableGenders={availableGenders}
+              selectedGender={selectedGender}
+              setSelectedGender={setSelectedGender}
+              minRating={minRating}
+              setMinRating={setMinRating}
+              resultsCount={filteredProducts.length}
+              onClearFilters={handleClearFilters}
             />
           </div>
           {/* Products Grid */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-6 max-w-none">
         {/* Product Grid Top Widgets */}
         <SafeWidgetRenderer page={"prime-picks"} position="product-grid-top" />
         {/* Overlay anchor: content and floating widgets should overlay product cards only */}
@@ -372,9 +459,9 @@ export default function PrimePicks() {
                 </div>
               )
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 w-full max-w-none">
                 {filteredProducts.map((product) => (
-                  <div key={product.id} className="relative">
+                  <div key={product.id} className="relative min-w-0">
                     {/* Checkbox overlay for bulk delete mode */}
                     {bulkDeleteMode && isAdmin && (
                       <div className="absolute top-2 right-2 z-20">

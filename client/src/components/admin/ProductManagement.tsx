@@ -274,6 +274,11 @@ export default function ProductManagement() {
   // Create dynamic pages array from navigation tabs
   const dynamicPages = [
     { id: 'home', label: '<i className="fas fa-home"></i> Home Page', description: 'Main website' },
+    { id: 'trending', label: 'Trending', description: 'Trending products page' },
+    // Ensure newly added dynamic pages are available even before backend nav-tabs exist
+    { id: 'fresh-picks', label: 'Fresh Picks', description: 'Latest and freshest curated selections' },
+    { id: 'artists-corner', label: "Artist's Corner", description: 'Creative picks, art and design highlights' },
+    { id: 'ott-hub', label: 'OTT Hub', description: 'Streaming, OTT platforms and entertainment' },
     ...(Array.isArray(navTabs) ? navTabs : [])
       .filter(tab => tab.is_active)
       .sort((a, b) => a.display_order - b.display_order)
@@ -424,8 +429,8 @@ export default function ProductManagement() {
         isFree: Boolean(productData.isFree),
         priceDescription: productData.customPricingDetails?.trim() || null,
         
-        // Display pages selection
-        displayPages: productData.displayPages || []
+        // Display pages selection: ensure 'apps' is included when App is checked
+        displayPages: Array.from(new Set([...(productData.displayPages || []), Boolean(productData.isAIApp) ? 'apps' : null].filter(Boolean)))
       };
 
       console.log('Sending product data:', payload);
@@ -460,6 +465,8 @@ export default function ProductManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/categories/services'] });
       // Invalidate AI Apps products to refresh Apps & AI Apps section
       queryClient.invalidateQueries({ queryKey: ['/api/products/apps'] });
+      // Also invalidate the page-scoped Apps & AI endpoint used by the Apps page
+      queryClient.invalidateQueries({ queryKey: ['/api/products/page/apps-ai-apps'] });
       // Also invalidate with daily rotation offset for home page
       queryClient.invalidateQueries({ predicate: (query) => 
         query.queryKey[0] === '/api/products/apps' 
@@ -481,7 +488,7 @@ export default function ProductManagement() {
       });
       
       // Invalidate all page-specific queries for real-time updates
-      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks', 'trending'];
       pages.forEach(page => {
         queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -634,6 +641,9 @@ export default function ProductManagement() {
         yearlyPrice: finalYearlyPrice || null,
         isFree: Boolean(productData.isFree),
         priceDescription: productData.customPricingDetails?.trim() || null
+        ,
+        // Include display pages on update to sync page tags with flags
+        displayPages: Array.from(new Set([...(productData.displayPages || []), Boolean(productData.isAIApp) ? 'apps' : null].filter(Boolean)))
       };
 
       console.log('Updating product data:', payload);
@@ -666,11 +676,13 @@ export default function ProductManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/categories/products'] });
       queryClient.invalidateQueries({ queryKey: ['/api/categories/services'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products/apps'] });
+      // Also invalidate the page-scoped Apps & AI endpoint used by the Apps page
+      queryClient.invalidateQueries({ queryKey: ['/api/products/page/apps-ai-apps'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products/services'] });
       
       // Invalidate all page-specific queries for real-time updates
-      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks', 'trending'];
       pages.forEach(page => {
         queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -825,7 +837,7 @@ export default function ProductManagement() {
       });
       
       // Invalidate all page-specific queries for real-time updates
-      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+      const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks', 'trending'];
       pages.forEach(page => {
         queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -866,11 +878,13 @@ export default function ProductManagement() {
     if (activeTab === 'services' || activeTab === 'apps') {
       // For services and AI apps, price is only required if it's not free and pricing type requires it
       if (!newProduct.isFree && newProduct.pricingType !== 'free') {
-        const needsPrice = newProduct.pricingType === 'one-time' || newProduct.pricingType === 'custom';
-        const needsMonthlyPrice = newProduct.pricingType === 'monthly' || newProduct.pricingType === 'custom';
-        const needsYearlyPrice = newProduct.pricingType === 'yearly' || newProduct.pricingType === 'custom';
-        
-        if (needsPrice && !newProduct.price.trim()) {
+        // For custom pricing, all explicit price fields are optional
+        const isCustomPricing = newProduct.pricingType === 'custom';
+        const needsPrice = newProduct.pricingType === 'one-time';
+        const needsMonthlyPrice = newProduct.pricingType === 'monthly';
+        const needsYearlyPrice = newProduct.pricingType === 'yearly';
+
+        if (!isCustomPricing && needsPrice && !newProduct.price.trim()) {
           toast({
             title: 'Validation Error',
             description: 'Price is required for this pricing type',
@@ -878,8 +892,8 @@ export default function ProductManagement() {
           });
           return;
         }
-        
-        if (needsMonthlyPrice && !newProduct.monthlyPrice.trim()) {
+
+        if (!isCustomPricing && needsMonthlyPrice && !newProduct.monthlyPrice.trim()) {
           toast({
             title: 'Validation Error',
             description: 'Monthly price is required for this pricing type',
@@ -887,8 +901,8 @@ export default function ProductManagement() {
           });
           return;
         }
-        
-        if (needsYearlyPrice && !newProduct.yearlyPrice.trim()) {
+
+        if (!isCustomPricing && needsYearlyPrice && !newProduct.yearlyPrice.trim()) {
           toast({
             title: 'Validation Error',
             description: 'Yearly price is required for this pricing type',
@@ -977,7 +991,11 @@ export default function ProductManagement() {
 
   const handleShare = (platform: string, product: Product) => {
     const productUrl = `${window.location.origin}`;
-    const productText = `Check out this amazing deal: ${product.name} - ₹${product.price}${product.originalPrice ? ` (was ₹${product.originalPrice})` : ''} at PickNTrust!`;
+    // Ensure currency is a valid CurrencyCode for formatter
+    const displayCurrency: CurrencyCode = (String(product.currency || 'INR').toUpperCase() as CurrencyCode);
+    const currentPrice = formatCurrencyPrice(Number(product.price) || 0, displayCurrency);
+    const originalPriceText = product.originalPrice ? ` (was ${formatCurrencyPrice(Number(product.originalPrice) || 0, displayCurrency)})` : '';
+    const productText = `Check out this amazing deal: ${product.name} - ${currentPrice}${originalPriceText} at PickNTrust!`;
     
     let shareUrl = '';
     
@@ -2125,7 +2143,7 @@ export default function ProductManagement() {
               <li>`price` and `original_price` can include symbols; they are normalized.</li>
               <li>
                 `display_pages` accepts comma-separated page slugs. Common slugs:
-                <span className="ml-1 font-mono">prime-picks, cue-picks, value-picks, click-picks, global-picks, travel-picks, deals-hub, loot-box, top-picks, services, apps, homepage</span>
+                <span className="ml-1 font-mono">prime-picks, cue-picks, value-picks, click-picks, global-picks, travel-picks, deals-hub, loot-box, top-picks, services, apps, homepage, trending</span>
               </li>
             </ul>
           </div>
@@ -2188,7 +2206,7 @@ export default function ProductManagement() {
                             });
                             clearSelection();
                             queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-                            const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+                            const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks', 'trending'];
                             pages.forEach(page => {
                               queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
                               queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });
@@ -2235,7 +2253,7 @@ export default function ProductManagement() {
                           queryClient.invalidateQueries({ queryKey: ['/api/products'] });
                           
                           // Invalidate all page-specific queries for real-time updates
-                          const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks'];
+                          const pages = ['prime-picks', 'cue-picks', 'value-picks', 'click-picks', 'deals-hub', 'loot-box', 'top-picks', 'global-picks', 'trending'];
                           pages.forEach(page => {
                             queryClient.invalidateQueries({ queryKey: [`/api/products/page/${page}`] });
                             queryClient.invalidateQueries({ queryKey: [`/api/categories/page/${page}`] });

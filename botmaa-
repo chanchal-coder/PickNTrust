@@ -1,0 +1,157 @@
+PickNTrust Bot — Full Setup, Operations, and Troubleshooting Guide
+
+Overview
+- Purpose: A Telegram polling bot that ingests messages from configured channels and writes to SQLite tables for the website.
+- Primary script: `start-bot-fixed.cjs` (CommonJS, runs under PM2 in production).
+- Data flow: Telegram → `channel_posts` (optional) → processing → `unified_content` for site consumption.
+
+Key Files
+- `/var/www/pickntrust/start-bot-fixed.cjs`: Bot runtime script (production server).
+- `start-bot-fixed.cjs` (repo root): Source version to deploy to server.
+- `/var/www/pickntrust/package.json`: Must contain dependencies: `better-sqlite3`, `dotenv`, `node-telegram-bot-api`, `undici`, `express`, `cors`, `sqlite3`.
+- `/var/www/pickntrust/node_modules/`: Production modules directory used by the bot.
+- `/var/www/pickntrust/.env`: Environment file containing credentials and channel IDs.
+- `/var/www/pickntrust/database.sqlite` → symlink to `/home/ec2-user/pickntrust/database.sqlite` (shared DB between app and bot).
+- PM2 logs: `/home/ec2-user/.pm2/logs/pickntrust-bot-out.log` and `/home/ec2-user/.pm2/logs/pickntrust-bot-error.log`.
+
+Server Environment
+- OS: Amazon Linux on EC2 (user `ec2-user`).
+- Node: `v20.19.5` via NVM (`/home/ec2-user/.nvm/versions/node/v20.19.5/bin`).
+- PM2: Installed globally, manages `pickntrust-bot` and `pickntrust-backend`.
+- PM2 home: `/home/ec2-user/.pm2`.
+- Working directory: `/var/www/pickntrust`.
+- Important env vars: `NODE_ENV=production`, `MASTER_BOT_TOKEN`, `PORT=5000`, `DATABASE_URL=file:/home/ec2-user/pickntrust/database.sqlite`.
+
+Dependencies (production)
+- `better-sqlite3`: Fast SQLite driver used by the bot.
+- `dotenv`: Loads `.env` variables.
+- `node-telegram-bot-api`: Telegram polling client.
+- `undici`: HTTP client (pulled by tooling or used by fetch polyfills; PM2 instrumentation may reference it).
+- `express`, `cors`, `sqlite3`: Present for broader app, not essential to bot logic but safe to keep.
+
+Required package.json (server)
+{
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7",
+    "dotenv": "^16.3.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "undici": "^5.28.4"
+  }
+}
+
+Initial Setup (one‑time)
+1) SSH into server: `ssh -i <pem> ec2-user@<host>`.
+2) Ensure working dir: `cd /var/www/pickntrust`.
+3) Fix/verify `package.json` as above (actual JSON, not JS syntax).
+4) Install modules: `npm install --omit=dev`.
+5) Verify modules: `ls -la node_modules/{better-sqlite3,dotenv,node-telegram-bot-api,undici}`.
+6) Create/verify DB symlink: `ln -sf /home/ec2-user/pickntrust/database.sqlite /var/www/pickntrust/database.sqlite`.
+7) PM2 plugin (optional): `pm2 install pm2-logrotate`.
+
+Environment (.env) format
+- `MASTER_BOT_TOKEN=<telegram_bot_token>`
+- Optional channel IDs (defaults provided but override when available):
+  - `PRIME_PICKS_CHANNEL_ID=-1002955338551`
+  - `CUELINKS_CHANNEL_ID=-1002982344997`
+  - `VALUE_PICKS_CHANNEL_ID=-1003017626269`
+  - `CLICK_PICKS_CHANNEL_ID=-1002981205504`
+  - `GLOBAL_PICKS_CHANNEL_ID=-1002902496654`
+  - `DEALS_HUB_CHANNEL_ID=-1003029983162`
+  - `LOOT_BOX_CHANNEL_ID=-1002991047787`
+
+Starting and Managing the Bot (PM2)
+- Start (production):
+  - `cd /var/www/pickntrust`
+  - `NODE_PATH=/var/www/pickntrust/node_modules pm2 start start-bot-fixed.cjs --name pickntrust-bot --update-env`
+- Stop: `pm2 stop pickntrust-bot`
+- Restart: `pm2 restart pickntrust-bot`
+- Delete: `pm2 delete pickntrust-bot`
+- Persist PM2 state: `pm2 save`
+- Status: `pm2 ls` (check `online`, uptime, restart count)
+- Describe process: `pm2 describe pickntrust-bot`
+
+Logs
+- Stream: `pm2 logs pickntrust-bot --lines 100`
+- Error file: `/home/ec2-user/.pm2/logs/pickntrust-bot-error.log`
+- Out file: `/home/ec2-user/.pm2/logs/pickntrust-bot-out.log`
+
+Bot Behavior (start-bot-fixed.cjs)
+- Loads env from `.env` using `dotenv`.
+- Validates `MASTER_BOT_TOKEN`; exits if missing (local/interactive).
+- Connects to `database.sqlite` under `/var/www/pickntrust` (symlink to home).
+- Detects presence of `channel_posts` table; if missing, runs in `unified_content`‑only mode.
+- Polls Telegram channels configured via env; on each message:
+  - Logs basic details.
+  - Saves original to `channel_posts` (if table exists).
+  - Processes URLs to create affiliate links (except Loot Box: preserves original URLs).
+  - Writes a record to `unified_content` with title/description/price/image/affiliate_url.
+  - Marks the `channel_posts` row as processed and posted.
+- Health monitoring: 30‑second interval logs recent `channel_posts` counts.
+- Errors: logs `error` and `polling_error`; global handlers log unhandled errors.
+
+Signal Handling (production)
+- Robust guards added:
+  - `SIGTERM`: graceful shutdown; closes polling and DB, then exits.
+  - `SIGINT` under PM2/non‑TTY: ignored to prevent accidental restarts.
+  - `SIGINT` in interactive TTY (local dev): graceful exit.
+- Rationale: PM2 may send signals during lifecycle; ignoring `SIGINT` in non‑TTY avoids unintended exit loops. Use `pm2 stop`/`pm2 restart` for controlled lifecycle.
+
+Troubleshooting Checklist
+1) `MODULE_NOT_FOUND` errors for `dotenv`, `node-telegram-bot-api`, `undici`:
+   - Ensure they appear under `/var/www/pickntrust/node_modules`.
+   - Fix `package.json` (must be valid JSON) and run `npm install --omit=dev`.
+   - Set `NODE_PATH=/var/www/pickntrust/node_modules` when starting under PM2.
+2) Undici stack traces referencing `/home/ec2-user/pickntrust/node_modules/...`:
+   - Remove conflicting dir: `rm -rf /home/ec2-user/pickntrust/node_modules`.
+   - Always run bot from `/var/www/pickntrust`.
+3) Invalid `package.json` (EJSONPARSE):
+   - JSON must have quoted keys and values; no trailing commas; no bare identifiers.
+4) Bot exits/restarts unexpectedly:
+   - Use `pm2 ls` to see uptime and restart count.
+   - Tail PM2 logs; look for `SIGTERM`/`SIGINT` logs and stack traces.
+   - Verify `.env` contains `MASTER_BOT_TOKEN` and correct channel IDs.
+5) Database path issues:
+   - Ensure symlink exists from `/var/www/pickntrust/database.sqlite` → `/home/ec2-user/pickntrust/database.sqlite`.
+   - Bot uses `__dirname/database.sqlite` (production path `/var/www/pickntrust`).
+6) Node/NVM path conflicts:
+   - Use PM2 with Node from NVM: `which node` should resolve to `/home/ec2-user/.nvm/versions/node/.../bin/node`.
+
+Operational Tips
+- After any dependency or script change: `pm2 restart pickntrust-bot` and review logs.
+- Persist PM2 list after changes: `pm2 save`.
+- Keep `.env` secure; never commit tokens.
+- Use `pm2-logrotate` to manage log sizes in production.
+
+End‑to‑End Setup From Scratch
+1) Upload repo to `/var/www/pickntrust`.
+2) Create/verify `.env` with `MASTER_BOT_TOKEN` and channel IDs.
+3) Write valid `package.json` (as above); run `npm install --omit=dev`.
+4) Ensure DB symlink exists (or copy DB file as needed).
+5) Start bot via PM2 with `NODE_PATH` pointing to `/var/www/pickntrust/node_modules`.
+6) Check logs for successful start; ensure bot listens and does not auto‑exit.
+7) Save PM2 process list and optionally enable logrotate.
+8) Test message ingestion from monitored channels; verify DB tables receive entries.
+
+Command Cheat Sheet
+- Start: `NODE_PATH=/var/www/pickntrust/node_modules pm2 start start-bot-fixed.cjs --name pickntrust-bot --update-env`
+- Stop: `pm2 stop pickntrust-bot`
+- Restart: `pm2 restart pickntrust-bot`
+- Delete: `pm2 delete pickntrust-bot`
+- Logs: `pm2 logs pickntrust-bot --lines 100`
+- Error log file: `tail -n 200 /home/ec2-user/.pm2/logs/pickntrust-bot-error.log`
+- Status: `pm2 ls`
+- Describe: `pm2 describe pickntrust-bot`
+
+Security Notes
+- `.env` must not be committed or shared.
+- Restrict file permissions on `.env` and database files when possible.
+- Keep PEM keys secure and limited to deployment operators.
+
+Notes and Pitfalls
+- Windows PowerShell quoting can break remote heredocs; prefer single quotes in SSH commands.
+- `jq` may not be installed on server; use `cat`/`sed` for validation.
+- PM2 instrumentation can involve `require-in-the-middle` and reference `undici`; incorrect `node_modules` locations will cause confusing stack traces.
+- Always start and run from `/var/www/pickntrust` to keep module resolution consistent.

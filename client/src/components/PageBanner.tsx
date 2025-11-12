@@ -3,6 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+interface BannerButton {
+  text: string;
+  url: string;
+  style?: 'primary' | 'secondary' | 'outline' | 'none';
+}
+
 interface Banner {
   id: number;
   title: string;
@@ -12,6 +18,7 @@ interface Banner {
   buttonText?: string;
   showHomeLink?: number;
   homeLinkText?: string;
+  buttons?: BannerButton[];
   isActive: boolean;
   display_order: number;
   page: string;
@@ -193,8 +200,9 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
   const resolveFaIconClass = (icon?: string, slug?: string) => (
     isFontAwesomeClass(icon) ? (icon as string) : getPageIcon(slug || page)
   );
-  // Sanitize CTA text to remove emojis so only FA icon shows
-  const cleanButtonText = (text?: string) => (text || '').replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim();
+  // Sanitize CTA text: avoid Unicode property escapes which can crash in some environments
+  // For maximum compatibility, leave text unchanged and rely on icon classes for visuals
+  const cleanButtonText = (text?: string) => (text || '').trim();
 
   // Remove test data - using real API data now
 
@@ -240,8 +248,8 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
     retry: false,
   });
 
-  // Use API data for all pages
-  const finalBanners = banners;
+  // Use API data for all pages; guard against undefined/non-array
+  const finalBanners = Array.isArray(banners) ? banners : [];
 
   // Filter active banners and sort by display order
   const activeBanners: Banner[] = finalBanners
@@ -294,14 +302,14 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
   const goToPrevious = () => {
     setIsAutoPlaying(false);
     setCurrentBannerIndex((prev) => 
-      prev === 0 ? activeBanners.length - 1 : prev - 1
+      prev === 0 ? (allBanners.length > 0 ? allBanners.length - 1 : 0) : prev - 1
     );
     setTimeout(() => setIsAutoPlaying(true), 10000); // Resume auto-play after 10s
   };
 
   const goToNext = () => {
     setIsAutoPlaying(false);
-    setCurrentBannerIndex((prev) => (prev + 1) % activeBanners.length);
+    setCurrentBannerIndex((prev) => (allBanners.length > 0 ? (prev + 1) % allBanners.length : 0));
     setTimeout(() => setIsAutoPlaying(true), 10000); // Resume auto-play after 10s
   };
 
@@ -339,6 +347,16 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
     }
   };
 
+  const handleButtonUrlClick = (url?: string) => {
+    const targetUrl = url || '';
+    if (!targetUrl) return;
+    if (targetUrl.startsWith('http')) {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.href = targetUrl;
+    }
+  };
+
 
 
   // Don't render if no banners at all
@@ -362,10 +380,10 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
               index < currentBannerIndex ? '-translate-x-full' : 'translate-x-full'
             }`}
           >
-            {/* Background: respect imported gradient/image/text-only for all pages */}
+            {/* Background: image with optional gradient overlay, or pure gradient for text-only */}
             <div className="absolute inset-0">
               {(() => {
-                const opacity = (((banner as any).backgroundOpacity ?? 100) as number) / 100;
+                const baseOpacity = (((banner as any).backgroundOpacity ?? 100) as number) / 100;
                 const imageDisplayType = (banner as any).imageDisplayType || 'image';
                 const useGradient = !!(banner as any).useGradient;
                 const bgGradient = (banner as any).backgroundGradient as string | undefined;
@@ -373,64 +391,67 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
                 const toProxy = (url: string) => {
                   if (!url) return url;
                   const trimmed = url.trim();
-                  // Only proxy external URLs; keep local/uploads untouched
                   return /^https?:\/\//i.test(trimmed)
                     ? `/api/image-proxy?url=${encodeURIComponent(trimmed)}&width=1280&height=400&quality=90&format=webp`
                     : trimmed;
                 };
 
-                // If text-only or explicitly using gradient, render gradient
-                if (imageDisplayType === 'text-only' || useGradient) {
-                  const gradientClass = bgGradient && bgGradient.trim().length > 0
-                    ? bgGradient
-                    : `bg-gradient-to-r ${fallbackBanner?.gradient || 'from-gray-600 to-gray-800'}`;
+                const gradientClass = bgGradient && bgGradient.trim().length > 0
+                  ? bgGradient
+                  : `bg-gradient-to-r ${fallbackBanner?.gradient || 'from-gray-600 to-gray-800'}`;
+                const shouldOverlayGradient = imageDisplayType === 'image-gradient' || (useGradient && imageDisplayType !== 'text-only');
+                const overlayOpacity = Math.min(baseOpacity, 0.6);
+
+                // For text-only, render pure gradient as base
+                if (imageDisplayType === 'text-only') {
                   return (
-                    <div className={`w-full h-full ${gradientClass}`} style={{ opacity }}></div>
+                    <>
+                      <div className={`w-full h-full ${gradientClass}`} style={{ opacity: baseOpacity }}></div>
+                      <div className="absolute inset-0 bg-black/20"></div>
+                    </>
                   );
                 }
 
-                // Unsplash image mode
-                if (imageDisplayType === 'unsplash' && (banner as any).unsplashQuery) {
-                  return (
-                    <img
-                      src={`https://picsum.photos/1200/400?random=${encodeURIComponent((banner as any).unsplashQuery)}`}
-                      alt={banner.title || 'Banner image'}
-                      className="w-full h-full object-cover"
-                      style={{ opacity }}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
-                    />
-                  );
-                }
+                // Base layer: image, unsplash, bg color, or fallback gradient
+                const baseLayer = (() => {
+                  if (imageDisplayType === 'unsplash' && (banner as any).unsplashQuery) {
+                    return (
+                      <img
+                        src={`https://picsum.photos/1200/400?random=${encodeURIComponent((banner as any).unsplashQuery)}`}
+                        alt={banner.title || 'Banner image'}
+                        className="w-full h-full object-cover"
+                        style={{ opacity: baseOpacity }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
+                      />
+                    );
+                  }
+                  if (banner.imageUrl) {
+                    return (
+                      <img
+                        src={toProxy(banner.imageUrl)}
+                        alt={banner.title || 'Banner image'}
+                        className="w-full h-full object-cover"
+                        style={{ opacity: baseOpacity }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
+                      />
+                    );
+                  }
+                  if (bgColor) {
+                    return <div className="w-full h-full" style={{ backgroundColor: bgColor, opacity: baseOpacity }}></div>;
+                  }
+                  return <div className={`w-full h-full ${gradientClass}`} style={{ opacity: baseOpacity }}></div>;
+                })();
 
-                // Custom image
-                if (banner.imageUrl) {
-                  return (
-                    <img
-                      src={toProxy(banner.imageUrl)}
-                      alt={banner.title || 'Banner image'}
-                      className="w-full h-full object-cover"
-                      style={{ opacity }}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/api/placeholder/1200/400?text=Banner'; }}
-                    />
-                  );
-                }
-
-                // Background color fallback if provided
-                if (bgColor) {
-                  return (
-                    <div className="w-full h-full" style={{ backgroundColor: bgColor, opacity }}></div>
-                  );
-                }
-
-                // Final gradient fallback
                 return (
-                  <div
-                    className={`w-full h-full bg-gradient-to-r ${banner.id === 0 ? (fallbackBanner?.gradient || 'from-gray-600 to-gray-800') : 'from-gray-600 to-gray-800'}`}
-                    style={{ opacity }}
-                  ></div>
+                  <>
+                    {baseLayer}
+                    {shouldOverlayGradient && (
+                      <div className={`absolute inset-0 ${gradientClass}`} style={{ opacity: overlayOpacity }}></div>
+                    )}
+                    <div className="absolute inset-0 bg-black/20"></div>
+                  </>
                 );
               })()}
-              <div className="absolute inset-0 bg-black/20"></div>
             </div>
 
             {/* Content */}
@@ -449,7 +470,10 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
                 
                 {/* Title with Side Icons (hide when empty) */}
                 {banner.title && banner.title.trim().length > 0 && (
-                  <h1 className="text-3xl md:text-5xl font-bold mb-2 text-shadow-lg flex items-center justify-center gap-4">
+                  <h1
+                    className={`text-3xl md:text-5xl font-bold mb-2 text-shadow-lg flex items-center justify-center gap-4 ${(banner as any).textStyle === 'gradient' ? `bg-clip-text text-transparent ${((banner as any).textGradient || '')}` : ''}`}
+                    style={(banner as any).textStyle === 'gradient' ? undefined : { color: (banner as any).textColor || undefined }}
+                  >
                     {/* Left Icon */}
                     {(() => {
                       const resolvedIcon = resolveFaIconClass(banner.icon, page);
@@ -474,7 +498,10 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
                   </h1>
                 )}
                 {banner.subtitle && banner.subtitle.trim().length > 0 && (
-                  <p className="text-xl md:text-2xl font-semibold mb-4 text-yellow-300">
+                  <p
+                    className={`text-xl md:text-2xl font-semibold mb-4 ${(banner as any).textStyle === 'gradient' ? `bg-clip-text text-transparent ${((banner as any).textGradient || '')}` : ''}`}
+                    style={(banner as any).textStyle === 'gradient' ? undefined : { color: (banner as any).textColor || undefined }}
+                  >
                     {banner.subtitle}
                   </p>
                 )}
@@ -488,29 +515,69 @@ export default function PageBanner({ page, className = '', overrideLinkUrl }: Pa
                       {banner.homeLinkText || 'Back to Home'}
                     </a>
                   ) : null}
-                  {banner.buttonText && (
-                    <button
-                      onClick={() => handleButtonClick(banner)}
-                      className="inline-flex items-center px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-full transition-all transform hover:scale-105 shadow-lg"
-                    >
-                      <i className={`${
-                        page === 'top-picks' ? 'fas fa-star' :
-                        page === 'prime-picks' ? 'fas fa-crown' :
-                        page === 'value-picks' ? 'fas fa-gem' :
-                        page === 'click-picks' ? 'fas fa-mouse-pointer' :
-                        page === 'cue-picks' ? 'fas fa-bullseye' :
-                        page === 'global-picks' ? 'fas fa-globe' :
-                        page === 'deals-hub' ? 'fas fa-fire' :
-                        page === 'loot-box' ? 'fas fa-box-open' :
-                        page === 'services' ? 'fas fa-cogs' :
-                        page === 'categories' ? 'fas fa-th-large' :
-                        page === 'browse-categories' ? 'fas fa-layer-group' :
-                        page === 'travel-picks' ? 'fas fa-plane' :
-                        (page === 'apps' || page === 'apps-ai') ? 'fas fa-robot' :
-                        'fas fa-star'
-                      } mr-2`}></i>
-                      {cleanButtonText(banner.buttonText)}
-                    </button>
+                  {Array.isArray(banner.buttons) && banner.buttons.filter(btn => (btn.text || '').trim() && (btn.url || '').trim() && (btn.style ?? 'primary') !== 'none').length > 0 ? (
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                      {banner.buttons!.filter(btn => (btn.text || '').trim() && (btn.url || '').trim() && (btn.style ?? 'primary') !== 'none').map((btn, idx) => {
+                        const style = btn.style || 'primary';
+                        const classes = style === 'primary'
+                          ? 'inline-flex items-center px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-full transition-all transform hover:scale-105 shadow-lg'
+                          : style === 'secondary'
+                          ? 'inline-flex items-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-full transition-all'
+                          : style === 'outline'
+                          ? 'inline-flex items-center px-6 py-3 bg-transparent border-2 border-white text-white rounded-full hover:bg-white/20 transition-all'
+                          : 'hidden';
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleButtonUrlClick(btn.url)}
+                            className={classes}
+                          >
+                            <i className={`${
+                              page === 'top-picks' ? 'fas fa-star' :
+                              page === 'prime-picks' ? 'fas fa-crown' :
+                              page === 'value-picks' ? 'fas fa-gem' :
+                              page === 'click-picks' ? 'fas fa-mouse-pointer' :
+                              page === 'cue-picks' ? 'fas fa-bullseye' :
+                              page === 'global-picks' ? 'fas fa-globe' :
+                              page === 'deals-hub' ? 'fas fa-fire' :
+                              page === 'loot-box' ? 'fas fa-box-open' :
+                              page === 'services' ? 'fas fa-cogs' :
+                              page === 'categories' ? 'fas fa-th-large' :
+                              page === 'browse-categories' ? 'fas fa-layer-group' :
+                              page === 'travel-picks' ? 'fas fa-plane' :
+                              (page === 'apps' || page === 'apps-ai') ? 'fas fa-robot' :
+                              'fas fa-star'
+                            } mr-2`}></i>
+                            {cleanButtonText(btn.text)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    banner.buttonText && (
+                      <button
+                        onClick={() => handleButtonClick(banner)}
+                        className="inline-flex items-center px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-full transition-all transform hover:scale-105 shadow-lg"
+                      >
+                        <i className={`${
+                          page === 'top-picks' ? 'fas fa-star' :
+                          page === 'prime-picks' ? 'fas fa-crown' :
+                          page === 'value-picks' ? 'fas fa-gem' :
+                          page === 'click-picks' ? 'fas fa-mouse-pointer' :
+                          page === 'cue-picks' ? 'fas fa-bullseye' :
+                          page === 'global-picks' ? 'fas fa-globe' :
+                          page === 'deals-hub' ? 'fas fa-fire' :
+                          page === 'loot-box' ? 'fas fa-box-open' :
+                          page === 'services' ? 'fas fa-cogs' :
+                          page === 'categories' ? 'fas fa-th-large' :
+                          page === 'browse-categories' ? 'fas fa-layer-group' :
+                          page === 'travel-picks' ? 'fas fa-plane' :
+                          (page === 'apps' || page === 'apps-ai') ? 'fas fa-robot' :
+                          'fas fa-star'
+                        } mr-2`}></i>
+                        {cleanButtonText(banner.buttonText)}
+                      </button>
+                    )
                   )}
                 </div>
               </div>

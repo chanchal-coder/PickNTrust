@@ -218,33 +218,40 @@ export function ProductCard({
     <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
       {/* Product Image */}
       <div className="relative">
-        <img 
-          src={(product.imageUrl || product.image_url || "")} 
-          alt={product.name} 
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-        />
+        {(() => {
+          const raw = product.imageUrl || product.image_url || '';
+          if (raw) {
+            const proxied = `/api/image-proxy?url=${encodeURIComponent(raw)}&width=640&height=360&quality=80&format=webp`;
+            return (
+              <img
+                src={proxied}
+                alt={product.name}
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            );
+          }
+          return (
+            <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <div className="text-gray-400 text-sm">No image available</div>
+            </div>
+          );
+        })()}
         
-        {/* Badges */}
+      {/* Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {/* Discount Badge - Calculated from price difference */}
+          {/* Discount Badge - show ONLY when both original and current prices are valid */}
           {(() => {
             const originalPriceValue = getNumericValue(product.originalPrice || product.original_price);
             const priceValue = getNumericValue(product.price);
-            const discountValue = getNumericValue(product.discount);
-            
-            // Calculate discount percentage from price difference if both prices are available
-            let calculatedDiscount = 0;
-            if (originalPriceValue > 0 && priceValue > 0 && originalPriceValue > priceValue) {
-              calculatedDiscount = Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100);
-            }
-            
-            // Use calculated discount if available, otherwise use API discount value
-            const displayDiscount = calculatedDiscount > 0 ? calculatedDiscount : discountValue;
-            
-            return displayDiscount > 0 ? (
+
+            const hasValidPrices = originalPriceValue > 0 && priceValue > 0 && originalPriceValue > priceValue;
+            if (!hasValidPrices) return null;
+
+            const calculatedDiscount = Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100);
+            return calculatedDiscount > 0 ? (
               <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-2 py-1 shadow-lg animate-pulse">
-                {displayDiscount}% OFF
+                {calculatedDiscount}% OFF
               </Badge>
             ) : null;
           })()}

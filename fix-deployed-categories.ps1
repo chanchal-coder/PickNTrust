@@ -1,8 +1,10 @@
-Param()
+Param(
+  [Parameter(Mandatory=$true)][string]$Server,
+  [Parameter(Mandatory=$true)][string]$KeyPath,
+  [string]$DbPath = "/home/ec2-user/pickntrust/database.sqlite"
+)
 
 # Fix deployed categories schema and test API endpoints
-$SERVER = "ubuntu@51.21.112.211"
-$KEY_PATH = "C:\Users\sharm\OneDrive\Desktop\Apps\pntkey.pem"
 
 Write-Host "=== FIXING DEPLOYED CATEGORIES SCHEMA ===" -ForegroundColor Green
 
@@ -10,7 +12,7 @@ $remoteScript = @'
 #!/bin/bash
 set -e
 
-DB="/home/ubuntu/database.sqlite"
+DB="__DB_PATH__"
 echo "DB file: $DB"
 
 if [ ! -f "$DB" ]; then
@@ -126,17 +128,18 @@ echo "=== pm2 logs (fallback, last 200) ==="
 pm2 logs pickntrust-backend --lines 200 --nostream || true
 '@
 
-# Write the remote script locally
+# Write the remote script locally with DB path injected
 $remotePath = "/tmp/fix-deployed-categories.sh"
 $localTemp = "temp-fix-deployed-categories.sh"
-$remoteScript | Out-File -FilePath $localTemp -Encoding UTF8
+$scriptBody = $remoteScript.Replace("__DB_PATH__", $DbPath)
+$scriptBody | Out-File -FilePath $localTemp -Encoding UTF8
 
 try {
   Write-Host "Copying fix script to server..." -ForegroundColor Yellow
-  scp -i "$KEY_PATH" -o StrictHostKeyChecking=no $localTemp "${SERVER}:$remotePath"
+  scp -i "$KeyPath" -o StrictHostKeyChecking=no $localTemp "${Server}:$remotePath"
 
   Write-Host "Executing fix script on server..." -ForegroundColor Yellow
-  ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no $SERVER "sed -i 's/\r$//' $remotePath && bash $remotePath"
+  ssh -i "$KeyPath" -o StrictHostKeyChecking=no $Server "sed -i 's/\r$//' $remotePath && bash $remotePath"
 }
 finally {
   Remove-Item $localTemp -Force -ErrorAction SilentlyContinue

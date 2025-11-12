@@ -16,14 +16,15 @@ interface FilterSidebarProps {
   setSelectedNetworks?: (networks: string[]) => void;
   availableNetworks?: string[];
   
+  // Gender filter
+  availableGenders?: string[];
+  selectedGender?: string | null;
+  setSelectedGender?: (gender: string | null) => void;
+  
   // Category filters
   selectedCategories?: string[];
   setSelectedCategories?: (categories: string[]) => void;
   availableCategories?: string[];
-  
-  // Rating filter
-  minRating?: number;
-  setMinRating?: (rating: number) => void;
   
   // Results count
   resultsCount?: number;
@@ -44,11 +45,12 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   selectedNetworks = [],
   setSelectedNetworks,
   availableNetworks = [],
+  availableGenders = [],
+  selectedGender = 'all',
+  setSelectedGender,
   selectedCategories = [],
   setSelectedCategories,
   availableCategories = [],
-  minRating = 0,
-  setMinRating,
   resultsCount,
   onClearFilters,
   className = ''
@@ -58,8 +60,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
     convertPrices || 
     priceRange !== 'all' || 
     selectedNetworks.length > 0 || 
-    selectedCategories.length > 0 || 
-    minRating > 0;
+    selectedCategories.length > 0;
 
   const handleNetworkToggle = (network: string) => {
     if (!setSelectedNetworks) return;
@@ -82,9 +83,10 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   };
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 ${className}`}>
+    <div className={`w-full md:w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto block ${className}`}>
+      <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <i className="fas fa-filter text-blue-500"></i>
           Filters
@@ -94,20 +96,86 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         {hasActiveFilters && (
           <button
             onClick={onClearFilters}
-            className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200"
+            className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors duration-200"
           >
-            <i className="fas fa-times text-xs"></i>
-            Clear All
+            <i className="fas fa-broom text-xs"></i>
+            Clear all
           </button>
         )}
       </div>
       
       {/* Results Count */}
       {resultsCount !== undefined && (
-        <div className="mb-6 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+        <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
           <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300">
             <i className="fas fa-search text-xs"></i>
             <span>{resultsCount} {resultsCount === 1 ? 'product' : 'products'} found</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Gender Filter (with Kids suboptions) */}
+      {availableGenders.length > 0 && setSelectedGender && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <i className="fas fa-venus-mars text-pink-500 text-sm"></i>
+            Gender
+          </h3>
+          {/* Top-level: All, Men, Women, Unisex (always visible) */}
+          <div className="flex flex-wrap gap-2 mb-2">
+            {['all','men','women','unisex'].map((g) => {
+              const labelMap: Record<string,string> = { all: 'All', men: 'Men', women: 'Women', unisex: 'Unisex' };
+              const isActive = (selectedGender || 'all') === g;
+              return (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGender && setSelectedGender(g)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                    isActive
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {labelMap[g]}
+                </button>
+              );
+            })}
+          </div>
+          {/* Kids group always visible: Girls, Boys, All Kids */}
+          <div>
+            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Kids</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedGender && setSelectedGender('girls')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                  (selectedGender || 'all') === 'girls'
+                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Girls
+              </button>
+              <button
+                onClick={() => setSelectedGender && setSelectedGender('boys')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                  (selectedGender || 'all') === 'boys'
+                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Boys
+              </button>
+              <button
+                onClick={() => setSelectedGender && setSelectedGender('kids')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                  (selectedGender || 'all') === 'kids'
+                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                All Kids
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -162,7 +230,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
             <i className="fas fa-th-large text-green-500 text-sm"></i>
             Categories
           </h3>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 sidebar-scroll category-scroll-10">
             {availableCategories.map((category) => (
               <label 
                 key={category} 
@@ -184,50 +252,8 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       )}
       
       {/* Rating Filter */}
-      {setMinRating && (
-        <div className="mb-6">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <i className="fas fa-star text-yellow-500 text-sm"></i>
-            Minimum Rating
-          </h3>
-          <div className="space-y-2">
-            {[4, 3, 2, 1].map((rating) => (
-              <label 
-                key={rating} 
-                className="flex items-center cursor-pointer group hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200"
-              >
-                <input 
-                  type="radio" 
-                  name="minRating" 
-                  value={rating}
-                  checked={minRating === rating}
-                  onChange={() => setMinRating(rating)}
-                  className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 focus:ring-yellow-500 dark:focus:ring-yellow-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />
-                <span className="ml-3 flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors duration-200">
-                  {Array.from({ length: rating }, (_, i) => (
-                    <i key={i} className="fas fa-star text-yellow-400 text-xs"></i>
-                  ))}
-                  <span className="ml-1">& up</span>
-                </span>
-              </label>
-            ))}
-            <label className="flex items-center cursor-pointer group hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200">
-              <input 
-                type="radio" 
-                name="minRating" 
-                value={0}
-                checked={minRating === 0}
-                onChange={() => setMinRating(0)}
-                className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 focus:ring-yellow-500 dark:focus:ring-yellow-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-              />
-              <span className="ml-3 text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors duration-200">
-                All Ratings
-              </span>
-            </label>
-          </div>
-        </div>
-      )}
+      {/* Rating filter removed as requested */}
+      </div>
     </div>
   );
 };

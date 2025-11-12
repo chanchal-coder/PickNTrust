@@ -860,10 +860,29 @@ export function setupRoutes(app) {
                 const defaultIcon = categoryData.icon || '📦';
                 const defaultColor = categoryData.color || '#3B82F6';
                 const defaultDescription = categoryData.description || '';
+
+                // Map boolean flags from client to integer columns
+                const isForProducts = categoryData.isForProducts === true ? 1 : 0;
+                const isForServices = categoryData.isForServices === true ? 1 : 0;
+                const isForAIApps = categoryData.isForAIApps === true ? 1 : 0;
+
                 const result = sqliteDb.prepare(`
-          INSERT INTO categories (name, icon, color, description, display_order, is_active)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(normalizedName, defaultIcon, defaultColor, defaultDescription, categoryData.displayOrder || 0, categoryData.isActive !== false ? 1 : 0);
+          INSERT INTO categories (
+            name, icon, color, description, display_order, is_active,
+            is_for_products, is_for_services, is_for_ai_apps
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+                    normalizedName,
+                    defaultIcon,
+                    defaultColor,
+                    defaultDescription,
+                    categoryData.displayOrder || 0,
+                    categoryData.isActive !== false ? 1 : 0,
+                    isForProducts,
+                    isForServices,
+                    isForAIApps
+                );
                 return res.json({ id: result.lastInsertRowid, ...categoryData, name: normalizedName, icon: defaultIcon, color: defaultColor, description: defaultDescription });
             }
             catch (dbErr) {
@@ -907,9 +926,23 @@ export function setupRoutes(app) {
             icon = COALESCE(?, icon),
             color = COALESCE(?, color),
             display_order = ?,
-            is_active = ?
+            is_active = ?,
+            is_for_products = COALESCE(?, is_for_products),
+            is_for_services = COALESCE(?, is_for_services),
+            is_for_ai_apps = COALESCE(?, is_for_ai_apps)
           WHERE id = ?
-        `).run(normalizedName, categoryData.description ?? null, categoryData.icon ?? null, categoryData.color ?? null, categoryData.displayOrder || 0, categoryData.isActive !== false ? 1 : 0, id);
+        `).run(
+                    normalizedName,
+                    categoryData.description ?? null,
+                    categoryData.icon ?? null,
+                    categoryData.color ?? null,
+                    categoryData.displayOrder || 0,
+                    categoryData.isActive !== false ? 1 : 0,
+                    (categoryData.isForProducts === true ? 1 : (categoryData.isForProducts === false ? 0 : null)),
+                    (categoryData.isForServices === true ? 1 : (categoryData.isForServices === false ? 0 : null)),
+                    (categoryData.isForAIApps === true ? 1 : (categoryData.isForAIApps === false ? 0 : null)),
+                    id
+                );
                 return res.json({ id, ...categoryData, name: normalizedName });
             }
             catch (dbErr) {
@@ -1292,32 +1325,114 @@ export function setupRoutes(app) {
             handleDatabaseError(error, res, 'fetch form AI app categories');
         }
     });
-    // Subcategories for a given parent category name
+    // Subcategories for a given parent category name (robust lookup with synonyms + fallback)
     app.get('/api/categories/subcategories', async (req, res) => {
         try {
             const { parent } = req.query;
-            if (!parent || !parent.trim()) {
+            const parentInput = String(parent || '').trim();
+            if (!parentInput) {
                 return res.json([]);
             }
-            const parentRow = sqliteDb.prepare(`
-        SELECT id FROM categories WHERE name = ? LIMIT 1
-      `).get(parent);
+
+            const parentLower = parentInput.toLowerCase();
+            const SYNONYMS_TO_CANONICAL = {
+                'electronics': 'Electronics & Gadgets',
+                'tech': 'Electronics & Gadgets',
+                'technology': 'Electronics & Gadgets',
+                'electronics&gadgets': 'Electronics & Gadgets',
+                'electronics & gadgets': 'Electronics & Gadgets',
+                'home & kitchen': 'Home & Living',
+                'home and kitchen': 'Home & Living',
+                'beauty & personal care': 'Beauty',
+                'personal care': 'Beauty',
+                'apps and ai apps': 'Apps & AI Apps',
+                'ai apps': 'Apps & AI Apps',
+                'services': 'Services',
+            };
+
+            // Try exact/case-insensitive parent lookup
+            let parentRow = sqliteDb.prepare(
+                `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+            ).get(parentInput);
+            if (!(parentRow && parentRow.id)) {
+                const canonical = SYNONYMS_TO_CANONICAL[parentLower];
+                if (canonical) {
+                    parentRow = sqliteDb.prepare(
+                        `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                    ).get(canonical);
+                }
+            }
+
             if (!parentRow || !parentRow.id) {
-                return res.json([]);
+                const derived = deriveFromUnifiedContent(parentInput);
+                return res.json(derived);
             }
+
             const subcats = sqliteDb.prepare(`
         SELECT name, name as id
         FROM categories
-        WHERE parent_id = ?
+        WHERE parent_id = ? AND COALESCE(is_active, 1) = 1
         ORDER BY display_order ASC, name ASC
       `).all(parentRow.id);
-            res.json(subcats);
+            if (subcats && subcats.length > 0) {
+                return res.json(subcats);
+            }
+
+            const fallback = deriveFromUnifiedContent(parentInput);
+            return res.json(fallback);
         }
         catch (error) {
             console.error('Error fetching subcategories:', error);
             handleDatabaseError(error, res, 'fetch subcategories');
         }
     });
+
+    // Helper: derive subcategories from unified_content based on category/subcategory/tag matches
+    function deriveFromUnifiedContent(input) {
+        // Strict fallback: only return subcategories for the given parent (or its canonical synonym)
+        const normalize = (s) => String(s || '')
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const parentLower = normalize(input);
+        const SYNONYMS_TO_CANONICAL = {
+            // Electronics
+            'electronics': 'Electronics & Gadgets',
+            'tech': 'Electronics & Gadgets',
+            'technology': 'Electronics & Gadgets',
+            // Home & Living
+            'home & kitchen': 'Home & Living',
+            'home and kitchen': 'Home & Living',
+            // Beauty
+            'beauty & personal care': 'Beauty',
+            'personal care': 'Beauty',
+            // Apps
+            'apps and ai apps': 'Apps & AI Apps',
+            'ai apps': 'Apps & AI Apps',
+            // Services
+            'services': 'Services',
+        };
+
+        const canonical = SYNONYMS_TO_CANONICAL[parentLower];
+        const variants = [parentLower];
+        if (canonical) variants.push(normalize(canonical));
+
+        const placeholders = variants.map(() => '?').join(', ');
+        const sql = `
+      SELECT DISTINCT TRIM(subcategory) AS name
+      FROM unified_content
+      WHERE subcategory IS NOT NULL AND TRIM(subcategory) != ''
+        AND LOWER(category) IN (${placeholders})
+      ORDER BY name ASC
+      LIMIT 100
+    `;
+        const rows = sqliteDb.prepare(sql).all(...variants);
+        const derived = (rows || [])
+            .map(r => ({ name: r.name, id: r.name }))
+            .filter(r => r.name && r.name.trim() !== '');
+        return derived;
+    }
     // All products endpoint (for admin panel)
     app.get('/api/products', async (req, res) => {
         try {
@@ -2667,12 +2782,27 @@ export function setupRoutes(app) {
                 ...video,
                 // Parse tags from JSON string to array if needed
                 tags: typeof video.tags === 'string' ?
-                    (video.tags.startsWith('[') ? JSON.parse(video.tags) : []) :
+                    (video.tags.startsWith('[') ? JSON.parse(video.tags) : video.tags.split(',').map((t) => t.trim()).filter(Boolean)) :
                     (Array.isArray(video.tags) ? video.tags : []),
                 // Parse pages from JSON string to array if needed
-                pages: typeof video.pages === 'string' ?
-                    (video.pages.startsWith('[') ? JSON.parse(video.pages) : []) :
-                    (Array.isArray(video.pages) ? video.pages : []),
+                pages: (() => {
+                    const normalizeSlug = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '-');
+                    const fromCsv = (str) => String(str || '')
+                        .split(',')
+                        .map((p) => normalizeSlug(p))
+                        .filter(Boolean);
+                    if (Array.isArray(video.pages)) return video.pages.map(normalizeSlug).filter(Boolean);
+                    if (typeof video.pages === 'string') {
+                        if (video.pages.startsWith('[')) {
+                            try {
+                                const arr = JSON.parse(video.pages);
+                                return Array.isArray(arr) ? arr.map(normalizeSlug).filter(Boolean) : fromCsv(video.pages);
+                            } catch { return fromCsv(video.pages); }
+                        }
+                        return fromCsv(video.pages);
+                    }
+                    return [];
+                })(),
                 // Ensure boolean fields are properly typed
                 showOnHomepage: Boolean(video.showOnHomepage),
                 hasTimer: Boolean(video.hasTimer),
@@ -2701,7 +2831,20 @@ export function setupRoutes(app) {
                 hasTimer: Boolean(videoData.hasTimer),
                 timerDuration: videoData.hasTimer && videoData.timerDuration ? parseInt(videoData.timerDuration) : null,
                 tags: Array.isArray(videoData.tags) ? videoData.tags : (typeof videoData.tags === 'string' ? videoData.tags.split(',').map((t) => t.trim()).filter(Boolean) : []),
-                pages: Array.isArray(videoData.pages) ? videoData.pages : (typeof videoData.pages === 'string' ? JSON.parse(videoData.pages) : []),
+                pages: (() => {
+                    const normalizeSlug = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '-');
+                    if (Array.isArray(videoData.pages)) return videoData.pages.map(normalizeSlug).filter(Boolean);
+                    if (typeof videoData.pages === 'string') {
+                        if (videoData.pages.trim().startsWith('[')) {
+                            try {
+                                const arr = JSON.parse(videoData.pages);
+                                return Array.isArray(arr) ? arr.map(normalizeSlug).filter(Boolean) : videoData.pages.split(',').map(normalizeSlug).filter(Boolean);
+                            } catch { return videoData.pages.split(',').map(normalizeSlug).filter(Boolean); }
+                        }
+                        return videoData.pages.split(',').map(normalizeSlug).filter(Boolean);
+                    }
+                    return [];
+                })(),
                 showOnHomepage: videoData.showOnHomepage !== undefined ? Boolean(videoData.showOnHomepage) : true,
                 ctaText: videoData.ctaText || null,
                 ctaUrl: videoData.ctaUrl || null
@@ -2717,29 +2860,99 @@ export function setupRoutes(app) {
     // Admin: Update video content
     app.put('/api/admin/video-content/:id', async (req, res) => {
         try {
-            const { password, ...updates } = req.body;
-            if (!await verifyAdminPassword(password)) {
+            const bodyAny = (req.body || {});
+            const queryAny = (req.query || {});
+            const srcPassword = bodyAny.adminPassword
+                ? 'body.adminPassword'
+                : bodyAny.password
+                ? 'body.password'
+                : req.headers['x-admin-password']
+                ? 'header.x-admin-password'
+                : queryAny.adminPassword
+                ? 'query.adminPassword'
+                : queryAny.password
+                ? 'query.password'
+                : 'none';
+            console.log('🛠️ PUT /api/admin/video-content/:id [routes.remote.js] inbound', {
+                url: req.originalUrl,
+                idParam: req.params?.id,
+                srcPassword,
+                contentType: req.headers['content-type'],
+                contentLength: req.headers['content-length'],
+                bodyKeys: Object.keys(bodyAny || {}),
+                queryKeys: Object.keys(queryAny || {}),
+            });
+            const providedPassword = (bodyAny.password || req.headers['x-admin-password'] || queryAny.password || queryAny.adminPassword || '').toString();
+            if (!await verifyAdminPassword(String(providedPassword))) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
             const id = parseInt(req.params.id);
-            // Normalize potential fields for update
-            const normalized = { ...updates };
-            if (normalized.tags) {
-                normalized.tags = Array.isArray(normalized.tags) ? JSON.stringify(normalized.tags) : normalized.tags;
+            if (!Number.isFinite(id)) {
+                return res.status(400).json({ message: 'Invalid id parameter' });
             }
-            if (normalized.pages) {
-                normalized.pages = Array.isArray(normalized.pages) ? JSON.stringify(normalized.pages) : normalized.pages;
+
+            // Build updates with query fallback
+            const updates = { ...bodyAny };
+            delete updates.password;
+
+            if (typeof updates.title === 'undefined' && typeof queryAny.title !== 'undefined') updates.title = String(queryAny.title);
+            if (typeof updates.description === 'undefined' && typeof queryAny.description !== 'undefined') updates.description = String(queryAny.description);
+            if (typeof updates.videoUrl === 'undefined' && typeof queryAny.videoUrl !== 'undefined') updates.videoUrl = String(queryAny.videoUrl);
+            if (typeof updates.thumbnailUrl === 'undefined' && typeof queryAny.thumbnailUrl !== 'undefined') updates.thumbnailUrl = String(queryAny.thumbnailUrl);
+            if (typeof updates.platform === 'undefined' && typeof queryAny.platform !== 'undefined') updates.platform = String(queryAny.platform);
+            if (typeof updates.category === 'undefined' && typeof queryAny.category !== 'undefined') updates.category = String(queryAny.category);
+            if (typeof updates.duration === 'undefined' && typeof queryAny.duration !== 'undefined') updates.duration = String(queryAny.duration);
+
+            if (typeof updates.tags === 'undefined' && typeof queryAny.tags !== 'undefined') updates.tags = queryAny.tags;
+            if (typeof updates.tags !== 'undefined') {
+                if (Array.isArray(updates.tags)) {
+                    updates.tags = JSON.stringify(updates.tags);
+                } else if (typeof updates.tags === 'string') {
+                    updates.tags = updates.tags;
+                }
             }
-            if (typeof normalized.hasTimer !== 'undefined') {
-                normalized.hasTimer = Boolean(normalized.hasTimer);
+
+            if (typeof updates.pages === 'undefined' && typeof queryAny.pages !== 'undefined') updates.pages = queryAny.pages;
+            if (typeof updates.pages !== 'undefined') {
+                if (Array.isArray(updates.pages)) {
+                    updates.pages = JSON.stringify(updates.pages);
+                } else if (typeof updates.pages === 'string') {
+                    updates.pages = updates.pages;
+                }
             }
-            if (typeof normalized.showOnHomepage !== 'undefined') {
-                normalized.showOnHomepage = Boolean(normalized.showOnHomepage);
+
+            const qHasTimer = typeof queryAny.hasTimer !== 'undefined' ? String(queryAny.hasTimer) : undefined;
+            const qShowOnHomepage = typeof queryAny.showOnHomepage !== 'undefined' ? String(queryAny.showOnHomepage) : undefined;
+
+            if (typeof updates.hasTimer !== 'undefined' || typeof qHasTimer !== 'undefined') {
+                const val = typeof updates.hasTimer !== 'undefined' ? updates.hasTimer : qHasTimer;
+                updates.hasTimer = (val === true || val === 'true' || val === '1' || val === 1 || val === 'yes' || val === 'on');
             }
-            if (typeof normalized.timerDuration !== 'undefined' && normalized.timerDuration !== null) {
-                normalized.timerDuration = parseInt(String(normalized.timerDuration));
+            if (typeof updates.showOnHomepage !== 'undefined' || typeof qShowOnHomepage !== 'undefined') {
+                const val = typeof updates.showOnHomepage !== 'undefined' ? updates.showOnHomepage : qShowOnHomepage;
+                updates.showOnHomepage = (val === true || val === 'true' || val === '1' || val === 1 || val === 'yes' || val === 'on');
             }
-            const updated = await storage.updateVideoContent(id, normalized);
+
+            const qTimerDuration = typeof queryAny.timerDuration !== 'undefined' ? String(queryAny.timerDuration) : undefined;
+            if (typeof updates.timerDuration !== 'undefined' || typeof qTimerDuration !== 'undefined') {
+                const val = typeof updates.timerDuration !== 'undefined' ? updates.timerDuration : qTimerDuration;
+                updates.timerDuration = (val === null || typeof val === 'undefined') ? null : parseInt(String(val));
+            }
+
+            console.log('🔎 PUT /api/admin/video-content/:id [routes.remote.js] resolved fields', {
+                id,
+                hasTitle: typeof updates.title !== 'undefined',
+                hasDescription: typeof updates.description !== 'undefined',
+                hasVideoUrl: typeof updates.videoUrl !== 'undefined',
+                hasThumbnailUrl: typeof updates.thumbnailUrl !== 'undefined',
+                tagsPresent: typeof updates.tags !== 'undefined',
+                pagesPresent: typeof updates.pages !== 'undefined',
+                showOnHomepage: updates.showOnHomepage,
+                hasTimer: updates.hasTimer,
+                timerDuration: updates.timerDuration,
+            });
+
+            const updated = await storage.updateVideoContent(id, updates);
             if (updated) {
                 res.json({ message: 'Video content updated successfully', video: updated });
             }

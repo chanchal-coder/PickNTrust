@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import Footer from './footer';
 import Header from './header';
-import WidgetRenderer from './WidgetRenderer';
 import SafeWidgetRenderer from './SafeWidgetRenderer';
 import ScrollNavigation from './scroll-navigation';
 
@@ -66,6 +65,14 @@ export default function UniversalPageLayout({
 }: UniversalPageLayoutProps) {
   const [location] = useLocation();
   const pageId = providedPageId || getPageIdentifier(location);
+
+  // Dev safe-mode flags to disable overlay widgets that may cover the page
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const isDevEnv = import.meta.env.DEV === true;
+  const widgetsSafeMode = (urlParams.get('widgetsSafeMode') === '1') || (typeof window !== 'undefined' && localStorage.getItem('widgetsSafeMode') === 'true');
+  const widgetsSafeModeFull = (urlParams.get('widgetsSafeModeFull') === '1') || (typeof window !== 'undefined' && localStorage.getItem('widgetsSafeModeFull') === 'true');
+  const shouldRenderAnyWidgets = !(isDevEnv && widgetsSafeModeFull);
+  const shouldRenderOverlayWidgets = !(isDevEnv && widgetsSafeMode);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 page-container">
@@ -81,17 +88,17 @@ export default function UniversalPageLayout({
       <div>
         <div className={"w-full px-0"}>
           {/* Overlay Sidebars (do not affect layout width) */}
-          {showSidebar && (
+          {showSidebar && shouldRenderAnyWidgets && shouldRenderOverlayWidgets && (
             <div className="hidden lg:block">
               <div className="fixed top-20 left-4 z-40">
-                <WidgetRenderer page={pageId} position="sidebar-left" />
+                <SafeWidgetRenderer page={pageId} position="sidebar-left" />
               </div>
             </div>
           )}
-          {showSidebar && showRightSidebar && (
+          {showSidebar && showRightSidebar && shouldRenderAnyWidgets && shouldRenderOverlayWidgets && (
             <div className="hidden md:block">
               <div className="fixed top-20 right-4 z-40">
-                <WidgetRenderer page={pageId} position="sidebar-right" />
+                <SafeWidgetRenderer page={pageId} position="sidebar-right" />
               </div>
             </div>
           )}
@@ -99,7 +106,9 @@ export default function UniversalPageLayout({
           {/* Main Content */}
           <main className={`flex-1 ${className}`}>
             {/* Banner Top Widgets (inside main content flow) */}
-            <WidgetRenderer page={pageId} position="banner-top" className="w-full mb-4" />
+            {shouldRenderAnyWidgets && (
+              <SafeWidgetRenderer page={pageId} position="banner-top" className="w-full mb-4" />
+            )}
 
             {/* Overlay layer below banner: absolute overlays do not take space */}
             <div className="relative">
@@ -107,7 +116,7 @@ export default function UniversalPageLayout({
               {children}
 
               {/* Content Widgets as overlays (absolute inside relative container) */}
-              {enableContentOverlays && (
+              {enableContentOverlays && shouldRenderAnyWidgets && shouldRenderOverlayWidgets && (
                 <>
                   <SafeWidgetRenderer page={pageId} position="content-top" />
                   <SafeWidgetRenderer page={pageId} position="content-middle" />
@@ -116,7 +125,7 @@ export default function UniversalPageLayout({
               )}
 
               {/* Floating Widgets inside overlay layer to appear below banner */}
-              {enableFloatingOverlays && (
+              {enableFloatingOverlays && shouldRenderAnyWidgets && shouldRenderOverlayWidgets && (
                 <>
                   <SafeWidgetRenderer page={pageId} position="floating-top-left" />
                   <SafeWidgetRenderer page={pageId} position="floating-top-right" />
@@ -127,26 +136,32 @@ export default function UniversalPageLayout({
             </div>
 
             {/* Mobile fallback: show right-sidebar widgets at top of content on small screens */}
-            {showSidebar && showRightSidebar && (
+            {showSidebar && showRightSidebar && shouldRenderAnyWidgets && shouldRenderOverlayWidgets && (
               <div className="block md:hidden mb-4">
-                <WidgetRenderer page={pageId} position="sidebar-right" />
+                <SafeWidgetRenderer page={pageId} position="sidebar-right" />
               </div>
             )}
 
             {/* Banner Bottom Widgets (inside main content flow) */}
-            <WidgetRenderer page={pageId} position="banner-bottom" className="w-full mt-6" />
+            {shouldRenderAnyWidgets && (
+              <SafeWidgetRenderer page={pageId} position="banner-bottom" className="w-full mt-6" />
+            )}
           </main>
         </div>
       </div>
       
       {/* Footer Top Widgets */}
-      <WidgetRenderer page={pageId} position="footer-top" className="w-full" />
+      {shouldRenderAnyWidgets && (
+        <SafeWidgetRenderer page={pageId} position="footer-top" className="w-full" />
+      )}
       
       {/* Main Footer */}
       {showFooter && <Footer />}
       
       {/* Footer Bottom Widgets */}
-      <WidgetRenderer page={pageId} position="footer-bottom" className="w-full" />
+      {shouldRenderAnyWidgets && (
+        <SafeWidgetRenderer page={pageId} position="footer-bottom" className="w-full" />
+      )}
       
       {/* Additional Components */}
       {showScrollNav && <ScrollNavigation />}

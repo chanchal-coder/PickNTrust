@@ -1,62 +1,30 @@
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
+import { createRequire } from 'module';
 
-/**
- * Centralized environment loader that tries multiple .env locations reliably
- * across dev, prod, and EC2 deployments. It fills missing keys without
- * overwriting already-present process.env values.
- */
+// Lightweight environment loader used by server-side processes (bot, scripts)
+// Safely loads dotenv if available; otherwise, leaves process.env as-is.
 export function loadEnv(): void {
-  const candidates: string[] = [];
-
-  // Current working directory candidates
-  candidates.push(path.resolve(process.cwd(), 'server/.env'));
-  candidates.push(path.resolve(process.cwd(), '.env'));
-
-  // Relative to compiled files (e.g., dist/server)
   try {
-    const here = path.dirname(new URL(import.meta.url).pathname);
-    candidates.push(path.resolve(here, '../.env'));
-    candidates.push(path.resolve(here, '../../.env'));
-  } catch {}
-
-  // EC2 absolute fallback (stable path we set up)
-  candidates.push('/home/ec2-user/pickntrust/server/.env');
-
-  const loadedFrom: string[] = [];
-  for (const p of candidates) {
+    const require = createRequire(import.meta.url);
+    let dotenv: any = null;
     try {
-      if (fs.existsSync(p)) {
-        dotenv.config({ path: p, override: false });
-        loadedFrom.push(p);
+      dotenv = require('dotenv');
+    } catch (_) {
+      // dotenv not installed; skip
+    }
+
+    const explicitPath = process.env.DOTENV_PATH;
+    if (dotenv && typeof dotenv.config === 'function') {
+      try {
+        if (explicitPath) {
+          dotenv.config({ path: explicitPath });
+        } else {
+          dotenv.config();
+        }
+      } catch (_) {
+        // ignore load errors to avoid impacting runtime
       }
-    } catch {
-      // ignore
     }
+  } catch (_) {
+    // swallow any initialization errors
   }
-
-  // Set robust defaults if missing
-  if (!process.env.DATABASE_URL) {
-    const ec2Db = '/home/ec2-user/pickntrust/database.sqlite';
-    const localDb = path.resolve(process.cwd(), 'database.sqlite');
-    if (fs.existsSync(ec2Db)) {
-      process.env.DATABASE_URL = ec2Db;
-    } else {
-      process.env.DATABASE_URL = localDb;
-    }
-  }
-
-  // Prefer MASTER_BOT_TOKEN, but keep TELEGRAM_BOT_TOKEN as fallback
-  if (!process.env.MASTER_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN) {
-    process.env.MASTER_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-  }
-
-  // Helpful, low-noise startup log
-  const tokenSet = Boolean(process.env.MASTER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN);
-  const dbPath = process.env.DATABASE_URL;
-  const src = loadedFrom.length ? loadedFrom.join(', ') : 'none (.env not found)';
-  console.log(`ENV loaded from: ${src}`);
-  console.log(`ENV tokens set: ${tokenSet ? 'yes' : 'no'}`);
-  console.log(`ENV database: ${dbPath}`);
 }

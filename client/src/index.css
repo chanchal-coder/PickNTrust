@@ -30,6 +30,41 @@ body, html {
   display: none;
 }
 
+/* Styled vertical scrollbar for sidebar lists */
+.sidebar-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #9ca3af transparent; /* thumb color, track transparent */
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 8px; /* WebKit */
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: #9ca3af; /* Gray-400 */
+  border-radius: 9999px;
+}
+
+/* Dark mode scrollbar colors */
+.dark .sidebar-scroll {
+  scrollbar-color: #6b7280 transparent; /* Gray-500 */
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: #6b7280; /* Gray-500 */
+}
+
+/* Utility to cap category list height to show ~10 items */
+.category-scroll-10 {
+  /* Approx: each row ~2.75rem high + 0.5rem gaps */
+  max-height: calc(10 * 2.75rem + 9 * 0.5rem);
+}
+
 /* Line clamp utilities for text truncation */
 .line-clamp-2 {
   display: -webkit-box;
@@ -316,6 +351,11 @@ body, html {
     .text-responsive-base {
       font-size: 1rem;
     }
+  }
+
+  /* Grid auto-fit utility to ensure cards have a minimum width */
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 }
 

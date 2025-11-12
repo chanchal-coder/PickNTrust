@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 // Removed direct Header import; using canonical header widgets via WidgetRenderer
 import WidgetRenderer from '@/components/WidgetRenderer';
@@ -9,12 +9,14 @@ import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
 
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
 import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { useLocation } from "wouter";
+import { inferGender } from "@/utils/gender";
 
 interface Product {
   id: number | string;
@@ -89,9 +91,12 @@ interface Product {
 
 export default function LootBox() {
   const { toast } = useToast();
+  const [location] = useLocation();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: Infinity});
+  const [priceRangeKey, setPriceRangeKey] = useState<string>('all');
   const [minRating, setMinRating] = useState<number>(0);
+  const [selectedGender, setSelectedGender] = useState<string>('all');
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
@@ -194,8 +199,33 @@ export default function LootBox() {
   // Check if there are any active widgets for this page
   const { data: hasWidgets } = useHasActiveWidgets('loot-box');
 
-  // Apply client-side filtering for price and rating
+  // Derive available genders from loaded products (aggregate Kids when boys/girls present)
+  const availableGenders = useMemo(() => {
+    const set = new Set<string>();
+    (allLootProducts as Product[]).forEach((p) => {
+      const g = inferGender(p);
+      if (g) set.add(g);
+    });
+    if ((set.has('boys') || set.has('girls')) && !set.has('kids')) {
+      set.add('kids');
+    }
+    const order = ['men','women','kids','boys','girls','unisex'];
+    const filtered = order.filter(g => set.has(g));
+    return ['all', ...filtered];
+  }, [allLootProducts]);
+
+  // Apply client-side filtering for gender, price and rating
   const filteredProducts = allLootProducts.filter(product => {
+    // Gender filter (Kids umbrella includes boys/girls/kids)
+    if (selectedGender && selectedGender !== 'all') {
+      const g = inferGender(product);
+      if (selectedGender === 'kids') {
+        if (!(g === 'boys' || g === 'girls' || g === 'kids')) return false;
+      } else {
+        if (g !== selectedGender) return false;
+      }
+    }
+
     // Filter by price range
     const price = parseFloat(product.price);
     if (price < priceRange.min || price > priceRange.max) {
@@ -214,12 +244,58 @@ export default function LootBox() {
     setSelectedCategory(category);
   };
 
-  const handlePriceRangeChange = (min: number, max: number) => {
-    setPriceRange({min, max});
+  // Read gender from query param and sync to state (normalize common→unisex)
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const g = (params.get('gender') || '').toLowerCase();
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized || 'all');
+  }, [location]);
+
+  // Handle gender change and sync to URL
+  const handleGenderChange = (g: string) => {
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    if (normalized === 'all') {
+      params.delete('gender');
+    } else {
+      params.set('gender', normalized);
+    }
+    const basePath = typeof window !== 'undefined' ? window.location.pathname : '/loot-box';
+    const query = params.toString();
+    const newUrl = query ? `${basePath}?${query}` : basePath;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newUrl);
+    }
+  };
+
+  const mapPriceRangeKeyToBounds = (key: string): { min: number; max: number } => {
+    switch (key) {
+      case '0-500': return { min: 0, max: 500 };
+      case '500-1000': return { min: 500, max: 1000 };
+      case '1000-2500': return { min: 1000, max: 2500 };
+      case '2500-5000': return { min: 2500, max: 5000 };
+      case '5000': return { min: 5000, max: Infinity };
+      case 'all':
+      default: return { min: 0, max: Infinity };
+    }
+  };
+
+  const handleSetPriceRangeKey = (key: string) => {
+    setPriceRangeKey(key);
+    setPriceRange(mapPriceRangeKeyToBounds(key));
   };
 
   const handleRatingChange = (rating: number) => {
     setMinRating(rating);
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCategory('');
+    setMinRating(0);
+    setSelectedGender('all');
+    handleSetPriceRangeKey('all');
   };
 
   // Handle affiliate click tracking
@@ -270,12 +346,29 @@ export default function LootBox() {
       
               {/* Main Content with Sidebar */}
               <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-                {/* Sidebar */}
-                <Sidebar 
-                  onCategoryChange={handleCategoryChange}
-                  onPriceRangeChange={handlePriceRangeChange}
-                  onRatingChange={handleRatingChange}
+                {/* Filters Sidebar */}
+                <UniversalFilterSidebar
+                  showCurrency={false}
+                  showNetworks={false}
+                  showGender={true}
+                  showPriceRange={true}
+                  showCategories={true}
+                  showRating={true}
+                  showResultsCount={true}
+                  showClearButton={true}
+                  priceRange={priceRangeKey}
+                  setPriceRange={handleSetPriceRangeKey}
+                  categorySelectionMode="single"
                   availableCategories={availableCategories}
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  availableGenders={availableGenders}
+                  selectedGender={selectedGender}
+                  setSelectedGender={handleGenderChange}
+                  minRating={minRating}
+                  setMinRating={setMinRating}
+                  resultsCount={filteredProducts.length}
+                  onClearFilters={handleClearFilters}
                 />
       
                 {/* Products Grid */}

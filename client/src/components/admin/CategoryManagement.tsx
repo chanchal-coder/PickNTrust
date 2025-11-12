@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,19 @@ interface Category {
   createdAt?: string;
 }
 
+// Curated category presets to be surfaced in admin management
+const CURATED_PRESETS: Array<Partial<Category> & { name: string }> = [
+  { name: 'Prime Picks', description: 'Premium curated products', icon: 'fas fa-star', color: '#A855F7', isForProducts: true, displayOrder: 10 },
+  { name: 'Value Picks', description: 'Best value curated products', icon: 'fas fa-tags', color: '#10B981', isForProducts: true, displayOrder: 20 },
+  { name: 'Click Picks', description: 'Top click-through selections', icon: 'fas fa-bolt', color: '#F59E0B', isForProducts: true, displayOrder: 30 },
+  { name: 'Cue Picks', description: 'Smart selections curated with precision', icon: 'fas fa-check-circle', color: '#3B82F6', isForProducts: true, displayOrder: 40 },
+  { name: 'Global Picks', description: 'Curated products from across the world', icon: 'fas fa-globe', color: '#6366F1', isForProducts: true, displayOrder: 50 },
+  { name: 'Deals Hub', description: 'Best deals across categories', icon: 'fas fa-fire', color: '#DC2626', isForProducts: true, displayOrder: 60 },
+  { name: 'Loot Box', description: 'Special curated surprises', icon: 'fas fa-gift', color: '#EC4899', isForProducts: true, displayOrder: 70 },
+];
+const CURATED_NAMES_LOWER = new Set(CURATED_PRESETS.map(p => p.name.toLowerCase()));
+const isCuratedName = (name: string) => CURATED_NAMES_LOWER.has(String(name || '').trim().toLowerCase());
+
 export default function CategoryManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -25,13 +38,15 @@ export default function CategoryManagement() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<number>>(new Set());
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  // Filter state: all | products | services | apps
+  const [filterMode, setFilterMode] = useState<'all' | 'products' | 'services' | 'apps'>('all');
   const [newCategory, setNewCategory] = useState({
     name: '',
     description: '',
     icon: 'fas fa-tag',
     color: '#6366F1',
     parentId: null as number | null,
-    isForProducts: true,
+    isForProducts: false,
     isForServices: false,
     isForAIApps: false,
     displayOrder: 0
@@ -49,6 +64,16 @@ export default function CategoryManagement() {
     },
     retry: 1
   });
+
+  // Identify curated presets that are missing as parent categories
+  const missingCurated = Array.isArray(categories)
+    ? CURATED_PRESETS.filter(p => !categories.some((c: Category) => !c.parentId && String(c.name || '').trim().toLowerCase() === p.name.toLowerCase()))
+    : CURATED_PRESETS;
+
+  // Clear selection on filter change to avoid stale selections
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [filterMode]);
 
   // Add category mutation
   const addCategoryMutation = useMutation({
@@ -80,7 +105,7 @@ export default function CategoryManagement() {
         icon: 'fas fa-tag',
         color: '#6366F1',
         parentId: null,
-        isForProducts: true,
+        isForProducts: false,
         isForServices: false,
         isForAIApps: false,
         displayOrder: 0
@@ -99,6 +124,28 @@ export default function CategoryManagement() {
       });
     }
   });
+
+  // Seed curated categories that are missing
+  const seedCuratedCategories = async () => {
+    try {
+      for (const preset of missingCurated) {
+        await addCategoryMutation.mutateAsync({
+          name: preset.name,
+          description: preset.description || '',
+          icon: preset.icon || 'fas fa-star',
+          color: preset.color || '#A855F7',
+          parentId: null,
+          isForProducts: preset.isForProducts ?? true,
+          isForServices: preset.isForServices ?? false,
+          isForAIApps: preset.isForAIApps ?? false,
+          displayOrder: preset.displayOrder ?? 0,
+        } as any);
+      }
+      toast({ title: 'Curated categories added', description: 'Missing curated parents have been created.' });
+    } catch (e: any) {
+      toast({ title: 'Seeding error', description: e?.message || 'Failed to seed curated categories', variant: 'destructive' });
+    }
+  };
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
@@ -131,7 +178,7 @@ export default function CategoryManagement() {
         icon: 'fas fa-tag',
         color: '#6366F1',
         parentId: null,
-        isForProducts: true,
+        isForProducts: false,
         isForServices: false,
         isForAIApps: false,
         displayOrder: 0
@@ -357,7 +404,7 @@ export default function CategoryManagement() {
       icon: category.icon,
       color: category.color,
       parentId: category.parentId ?? null,
-      isForProducts: category.isForProducts ?? true,
+      isForProducts: category.isForProducts ?? false,
       isForServices: category.isForServices ?? false,
       isForAIApps: category.isForAIApps ?? false,
       displayOrder: category.displayOrder ?? 0
@@ -415,7 +462,7 @@ export default function CategoryManagement() {
       icon: 'fas fa-tag',
       color: '#6366F1',
       parentId: null,
-      isForProducts: true,
+      isForProducts: false,
       isForServices: false,
       isForAIApps: false,
       displayOrder: 0
@@ -736,6 +783,34 @@ export default function CategoryManagement() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {/* Filter control */}
+              <div className="flex items-center gap-2 mr-2">
+                <label className="text-sm text-gray-600 dark:text-gray-300">Filter:</label>
+                <select
+                  value={filterMode}
+                  onChange={(e) => setFilterMode(e.target.value as any)}
+                  className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="all">All</option>
+                  <option value="products">Products</option>
+                  <option value="services">Services</option>
+                  <option value="apps">AI & Apps</option>
+                </select>
+              </div>
+              {/* Seed curated parents button (visible when some curated are missing) */}
+              {missingCurated.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={seedCuratedCategories}
+                  disabled={addCategoryMutation.isPending}
+                  className="border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                  title="Add curated parent categories"
+                >
+                  <i className="fas fa-star mr-1" />
+                  Add Curated Parents ({missingCurated.length})
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -791,14 +866,35 @@ export default function CategoryManagement() {
             <div className="space-y-4">
               {/* Helper function to organize categories hierarchically */}
               {(() => {
-                const mainCategories = categories.filter((cat: Category) => !cat.parentId);
+                const matchesFilter = (cat: Category) => {
+                  switch (filterMode) {
+                    case 'products':
+                      return !!cat.isForProducts;
+                    case 'services':
+                      return !!cat.isForServices;
+                    case 'apps':
+                      return !!cat.isForAIApps;
+                    case 'all':
+                    default:
+                      return true;
+                  }
+                };
+
+                // Build subcategory map for all categories, but filter per current mode
                 const subcategoriesMap = categories.reduce((acc: { [key: number]: Category[] }, cat: Category) => {
                   if (cat.parentId) {
                     if (!acc[cat.parentId]) acc[cat.parentId] = [];
-                    acc[cat.parentId].push(cat);
+                    // Only include subcategory if it matches the filter
+                    if (matchesFilter(cat)) acc[cat.parentId].push(cat);
                   }
                   return acc;
-                }, {});
+                }, {} as { [key: number]: Category[] });
+
+                // Visible main categories are those matching the filter OR having at least one matching subcategory
+                const mainCategories = categories.filter((cat: Category) => {
+                  if (cat.parentId) return false; // only top-level
+                  return matchesFilter(cat) || (subcategoriesMap[cat.id] && subcategoriesMap[cat.id].length > 0);
+                });
 
                 return mainCategories.map((category: Category) => (
                   <div key={category.id} className="space-y-2">
@@ -838,6 +934,12 @@ export default function CategoryManagement() {
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
                                 Main Category
                               </span>
+                              {/* Curated badge for curated parent categories */}
+                              {isCuratedName(category.name) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200">
+                                  Curated
+                                </span>
+                              )}
                               {subcategoriesMap[category.id] && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
                                   {subcategoriesMap[category.id].length} subcategories

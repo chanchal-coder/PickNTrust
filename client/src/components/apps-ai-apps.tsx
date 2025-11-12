@@ -9,7 +9,7 @@ import { useCurrency, getCurrencySymbol, CurrencyCode } from '@/contexts/Currenc
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
-import PriceTag from '@/components/PriceTag';
+import EnhancedPriceTag from '@/components/EnhancedPriceTag';
 
 // Define Product type locally to match the complete schema
 interface Product {
@@ -94,7 +94,7 @@ export default function AppsAIApps() {
   // Helper function to format product price without conversion (displays original currency)
   const formatProductPrice = (price?: string | number | number | undefined, productCurrency?: string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price.replace(/,/g, '')) : price;
-    const originalCurrency = (productCurrency as CurrencyCode) || 'INR';
+    const originalCurrency = (productCurrency?.toString().toUpperCase() as CurrencyCode) || 'USD';
     
     // Always display in the product's original currency (no conversion)
     return formatCurrencyPrice(numPrice, originalCurrency);
@@ -123,52 +123,28 @@ export default function AppsAIApps() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Daily rotation logic - get different apps each day
-  const getDailyRotationOffset = () => {
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    return dayOfYear % 6; // Rotate every day, cycle through 6 different sets
-  };
-
-  // Fetch AI Apps products from Apps page (same source as /apps page)
+  // Fetch Apps products directly from the 'apps' page endpoint without additional conditions
   const { data: aiAppsProducts = [], isLoading } = useQuery({
-    queryKey: ['/api/products/page/apps-ai-apps', getDailyRotationOffset()],
+    queryKey: ['/api/products/apps'],
     queryFn: async () => {
       try {
-        // Fetch latest AI/app products from apps page (filters by isAIApp=true)
-        const response = await fetch('/api/products/page/apps-ai-apps');
+        const response = await fetch('/api/products/apps');
         if (!response.ok) {
-          console.log('Apps page API failed, showing coming soon message');
+          console.log('Apps API failed');
           return [];
         }
         const data = await response.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-           // Apply daily rotation - show different apps each day
-           const rotationOffset = getDailyRotationOffset() % data.length; // Ensure offset doesn't exceed data length
-           const rotatedData = [...data.slice(rotationOffset), ...data.slice(0, rotationOffset)];
-           // Return first 4 apps for home page preview, or all available if less than 4
-           const previewData = rotatedData.slice(0, 4);
-           
-           // CRITICAL: If we have ANY real data, return it instead of fallback
-           if (previewData.length > 0) {
-             console.log(`Apps: Showing ${previewData.length} real apps from apps page (total available: ${data.length})`);
-             return previewData;
-           }
-         }
-         
-         console.log('Apps: No real data available from apps page, showing coming soon message');
-          return [];
+        return Array.isArray(data) ? data : [];
       } catch (error) {
-          console.log('Apps page API error, showing coming soon message:', error);
-          return [];
-        }
+        console.log('Apps API error:', error);
+        return [];
+      }
     },
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour, but rotation changes daily
+    staleTime: 1000 * 60 * 10,
   });
 
-  // Use API data if available, fallback to sample data
-  const displayApps = aiAppsProducts && aiAppsProducts.length > 0 ? aiAppsProducts : [];
+  // Show all apps from the endpoint without rotation or limiting
+  const displayApps = Array.isArray(aiAppsProducts) ? aiAppsProducts : [];
 
   // Delete app mutation
   const deleteAppMutation = useMutation({
@@ -539,7 +515,7 @@ export default function AppsAIApps() {
                     <div className="flex items-center space-x-2">
                       {/* Unified pricing display */}
                       <div className="flex flex-col space-y-1">
-                        <PriceTag 
+                        <EnhancedPriceTag 
                           product={app}
                           colorClass="text-green-600 dark:text-green-400"
                           originalClass="text-gray-500 line-through text-sm"
@@ -547,11 +523,6 @@ export default function AppsAIApps() {
                           helperClass="text-xs text-gray-500"
                         />
                       </div>
-                      {app.discount && (
-                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
-                          {app.discount}% OFF
-                        </span>
-                      )}
                     </div>
                     <a
                       href={app.affiliateUrl}
@@ -667,7 +638,7 @@ export default function AppsAIApps() {
                     <div className="flex items-center space-x-1">
                       {/* Unified pricing display - mobile */}
                       <div className="flex flex-col space-y-1">
-                        <PriceTag 
+                        <EnhancedPriceTag 
                           product={app}
                           colorClass="text-green-600 dark:text-green-400"
                           originalClass="text-gray-500 line-through text-sm"

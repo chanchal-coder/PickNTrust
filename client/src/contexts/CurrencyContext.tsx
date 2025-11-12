@@ -12,6 +12,9 @@ export const CURRENCIES = {
   SGD: { symbol: 'S$', name: 'Singapore Dollar' },
   CNY: { symbol: '¥', name: 'Chinese Yuan' },
   KRW: { symbol: '₩', name: 'South Korean Won' },
+  AED: { symbol: 'د.إ', name: 'UAE Dirham' },
+  THB: { symbol: '฿', name: 'Thai Baht' },
+  MYR: { symbol: 'RM', name: 'Malaysian Ringgit' },
 } as const;
 
 export type CurrencyCode = keyof typeof CURRENCIES;
@@ -120,10 +123,42 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
     const targetCurrency = currency || currentCurrency;
     const currencyInfo = CURRENCIES[targetCurrency];
     
-    // Format number with appropriate decimal places - always use whole numbers
-    const formattedNumber = new Intl.NumberFormat('en-IN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0, // Always use 0 decimal places for clean display
+    // Pick locale based on currency to avoid INR-style formatting for USD/EUR/etc
+    const defaultLocaleForCurrency = (curr: CurrencyCode): string => {
+      switch (curr) {
+        case 'INR':
+          return 'en-IN';
+        case 'EUR':
+          return 'de-DE';
+        case 'GBP':
+          return 'en-GB';
+        case 'JPY':
+          return 'ja-JP';
+        default:
+          return 'en-US';
+      }
+    };
+    // Preserve fractional amounts with sensible defaults per currency
+    const DEFAULT_DECIMALS: Record<CurrencyCode, number> = {
+      INR: 2,
+      USD: 2,
+      EUR: 2,
+      GBP: 2,
+      JPY: 0,
+      CAD: 2,
+      AUD: 2,
+      SGD: 2,
+      CNY: 2,
+      KRW: 0,
+      AED: 2,
+      THB: 2,
+      MYR: 2,
+    };
+    const hasFraction = Math.floor(price) !== price;
+    const decimalPlaces = hasFraction ? (DEFAULT_DECIMALS[targetCurrency] ?? 2) : 0;
+    const formattedNumber = new Intl.NumberFormat(defaultLocaleForCurrency(targetCurrency), {
+      minimumFractionDigits: decimalPlaces,
+      maximumFractionDigits: decimalPlaces,
     }).format(price);
 
     return `${currencyInfo.symbol}${formattedNumber}`;

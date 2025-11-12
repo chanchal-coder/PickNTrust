@@ -5,7 +5,7 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import PriceTag from '@/components/PriceTag';
+import EnhancedPriceTag from '@/components/EnhancedPriceTag';
 import PageBanner from '@/components/PageBanner';
 import WidgetRenderer from '@/components/WidgetRenderer';
 
@@ -117,7 +117,7 @@ export default function WishlistPage() {
                           {/* Price and rating */}
                           <div className="flex justify-between items-center mb-4">
                             <div>
-                              <PriceTag 
+                              <EnhancedPriceTag 
                                 product={product}
                                 colorClass="text-accent-green"
                                 originalClass="text-gray-500 line-through text-sm"
@@ -142,7 +142,14 @@ export default function WishlistPage() {
                             
                             {product.originalPrice && Number(product.originalPrice) > Number(product.price) && (
                               <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 text-xs">
-                                {Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)}% OFF
+                                {(() => {
+                                  const original = Number(product.originalPrice);
+                                  const current = Number(product.price);
+                                  const hasValidPrices = original > 0 && current > 0 && original > current;
+                                  return hasValidPrices
+                                    ? `${Math.round(((original - current) / original) * 100)}% OFF`
+                                    : '';
+                                })()}
                               </Badge>
                             )}
                           </div>

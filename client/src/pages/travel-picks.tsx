@@ -9,7 +9,7 @@ import ScrollNavigation from "@/components/scroll-navigation";
 import PageVideosSection from '@/components/PageVideosSection';
 import PageBanner from '@/components/PageBanner';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import WidgetRenderer from "@/components/WidgetRenderer";
 import TravelNavigation from "@/components/TravelNavigation";
 import SmartTravelSidebar from "@/components/SmartTravelSidebar";
@@ -18,11 +18,12 @@ import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
 import TravelAddForm from '@/components/TravelAddForm';
 import HoverActionButtons from '@/components/HoverActionButtons';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 import { deleteProduct, invalidateAllProductQueries } from '@/utils/delete-utils';
 import { useMutation } from '@tanstack/react-query';
 import { CURRENCIES, CurrencyCode, useCurrency } from '@/contexts/CurrencyContext';
-import CurrencySelector from '@/components/currency-selector';
 
 interface TravelDeal {
   id: number | string;
@@ -100,6 +101,18 @@ interface TravelDeal {
   card_background_color?: string;
   cardBackgroundColor?: string;
   [key: string]: any;
+}
+
+// Travel category model used by /api/travel-categories
+interface TravelCategory {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string;
+  color: string;
+  description?: string;
+  isActive: boolean;
+  displayOrder: number;
 }
 
 interface TravelSection {
@@ -386,7 +399,7 @@ export default function TravelPicks() {
   // State management
   const [selectedCategory, setSelectedCategory] = useState('flights');
   const [routeFilter, setRouteFilter] = useState('all');
-  const [priceRange, setPriceRange] = useState({ min: 0, max: Infinity });
+  const [priceRangeString, setPriceRangeString] = useState('all');
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   const [showAllInSection, setShowAllInSection] = useState<{[key: string]: boolean}>({});
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({});
@@ -398,6 +411,8 @@ export default function TravelPicks() {
   const [addFormOpen, setAddFormOpen] = useState(false);
   const [formCategory, setFormCategory] = useState('');
   const [dynamicTravelDeals, setDynamicTravelDeals] = useState<TravelDeal[]>([]);
+  // Mobile filters drawer state
+  const [filtersOpen, setFiltersOpen] = useState(false);
   
   // Admin platform settings
   const adminPlatformSettings = ['Instagram', 'Facebook', 'WhatsApp', 'Telegram'];
@@ -486,6 +501,7 @@ export default function TravelPicks() {
     const originalPrice = safeParsePrice(deal.originalPrice || deal.original_price);
     const displayPrice = safePriceDisplay(basePrice);
     const displayOriginalPrice = originalPrice > 0 ? safePriceDisplay(originalPrice) : null;
+    const showPrice = Number.isFinite(basePrice) && basePrice > 0;
     const isWishlisted = wishlistItems.some(item => item.id === deal.id);
     
     // Tours section 1 - Trending Destinations (unique design inspired by trending destinations)
@@ -810,23 +826,27 @@ export default function TravelPicks() {
             {/* Pricing and CTA */}
              <div className="flex items-center justify-between">
                <div>
-                 <div className="text-2xl font-bold text-purple-700">{displayPrice}</div>
-                 {displayOriginalPrice && (
-                   <div className="text-sm text-gray-700 line-through">{displayOriginalPrice}</div>
-                 )}
-                 {(deal.taxes_amount || deal.gst_amount) && (
-                   <div className="text-xs text-gray-600 mt-1">
-                     + {deal.taxes_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.taxes_amount} taxes`}
-                     {deal.taxes_amount && deal.gst_amount && ' & '}
-                     {deal.gst_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.gst_amount} GST`}
-                     {(deal.taxes_amount || deal.gst_amount) && ' & fees'}
-                   </div>
+                 {showPrice && (
+                   <>
+                     <div className="text-2xl font-bold text-purple-700">{displayPrice}</div>
+                     {displayOriginalPrice && (
+                       <div className="text-sm text-gray-700 line-through">{displayOriginalPrice}</div>
+                     )}
+                     {(deal.taxes_amount || deal.gst_amount) && (
+                       <div className="text-xs text-gray-600 mt-1">
+                         + {deal.taxes_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.taxes_amount} taxes`}
+                         {deal.taxes_amount && deal.gst_amount && ' & '}
+                         {deal.gst_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.gst_amount} GST`}
+                         {(deal.taxes_amount || deal.gst_amount) && ' & fees'}
+                       </div>
+                     )}
+                   </>
                  )}
                </div>
                <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2.5 px-6 rounded-full transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                  Pick Now
-               </button>
-             </div>
+                 </button>
+              </div>
           </div>
           
           <HoverActionButtons 
@@ -1122,7 +1142,7 @@ export default function TravelPicks() {
                return {
                  gradient: deal.card_background_color || deal.cardBackgroundColor || 'bg-gradient-to-r from-green-500 via-lime-500 to-green-600',
                  icon: 'fas fa-car',
-                 tagline: deal.description || `Starting from ${displayPrice}`,
+                 tagline: deal.description || (showPrice ? `Starting from ${displayPrice}` : ''),
                  operatorName: deal.name || deal.car_type || 'Car Rental'
                };
              }
@@ -1131,28 +1151,28 @@ export default function TravelPicks() {
                return {
                  gradient: 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600',
                  icon: 'fas fa-ship',
-                 tagline: `Starting from ${displayPrice}`,
+                 tagline: showPrice ? `Starting from ${displayPrice}` : '',
                  operatorName: 'StarDream Cruises'
                };
              } else if (nameLower.includes('cordelia')) {
                return {
                  gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600',
                  icon: 'fas fa-ship',
-                 tagline: deal.description || `Starting from ${displayPrice}`,
+                 tagline: deal.description || (showPrice ? `Starting from ${displayPrice}` : ''),
                  operatorName: deal.name || 'Cordelia'
                };
              } else if (nameLower.includes('royal caribbean') || nameLower.includes('royal')) {
                return {
                  gradient: 'bg-gradient-to-r from-blue-600 via-navy-600 to-blue-700',
                  icon: 'fas fa-ship',
-                 tagline: `Starting from ${displayPrice}`,
+                 tagline: showPrice ? `Starting from ${displayPrice}` : '',
                  operatorName: 'Royal Caribbean'
                };
              } else {
                return {
                  gradient: deal.card_background_color || deal.cardBackgroundColor || 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600',
                  icon: 'fas fa-ship',
-                 tagline: deal.description || `Starting from ${displayPrice}`,
+                 tagline: deal.description || (showPrice ? `Starting from ${displayPrice}` : ''),
                  operatorName: deal.name || deal.cruise_line || 'Cruise Line'
                };
              }
@@ -1292,25 +1312,27 @@ export default function TravelPicks() {
                  EXCLUSIVE
                </div>
                
-               {/* Pricing info */}
-               <div className="text-white mb-2">
-                 <div className="text-lg font-bold">Starting from</div>
-                 <div className="text-2xl font-black text-yellow-200" style={getFieldStyle('price')}>
-                   {displayPrice}
-                 </div>
-                 <div className="text-xs text-white text-opacity-70">per person</div>
-                 {displayOriginalPrice && (
-                   <div className="text-sm text-white text-opacity-60 line-through">{displayOriginalPrice}</div>
-                 )}
-                 {(deal.taxes_amount || deal.gst_amount) && (
-                   <div className="text-xs text-white text-opacity-80 mt-1">
-                     + {deal.taxes_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.taxes_amount} taxes`}
-                     {deal.taxes_amount && deal.gst_amount && ' & '}
-                     {deal.gst_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.gst_amount} GST`}
-                     {(deal.taxes_amount || deal.gst_amount) && ' & fees'}
-                   </div>
-                 )}
-               </div>
+              {/* Pricing info */}
+              {showPrice && (
+                <div className="text-white mb-2">
+                  <div className="text-lg font-bold">Starting from</div>
+                  <div className="text-2xl font-black text-yellow-200" style={getFieldStyle('price')}>
+                    {displayPrice}
+                  </div>
+                  <div className="text-xs text-white text-opacity-70">per person</div>
+                  {displayOriginalPrice && (
+                    <div className="text-sm text-white text-opacity-60 line-through">{displayOriginalPrice}</div>
+                  )}
+                  {(deal.taxes_amount || deal.gst_amount) && (
+                    <div className="text-xs text-white text-opacity-80 mt-1">
+                      + {deal.taxes_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.taxes_amount} taxes`}
+                      {deal.taxes_amount && deal.gst_amount && ' & '}
+                      {deal.gst_amount && `${getCurrencySymbol(deal.currency || 'INR')}${deal.gst_amount} GST`}
+                      {(deal.taxes_amount || deal.gst_amount) && ' & fees'}
+                    </div>
+                  )}
+                </div>
+              )}
                
                {/* Additional features */}
                <div className="flex flex-col gap-1 text-xs text-white text-opacity-80">
@@ -1438,7 +1460,11 @@ export default function TravelPicks() {
             {/* Colorful content area */}
             <div className={`p-4 ${backgroundClass}`}>
               <h3 className="text-lg font-semibold text-white mb-2" style={getFieldStyle('name')}>{destinationName}</h3>
-              <p className="text-white/90 text-sm mb-3" style={getFieldStyle('price')}>Starting from {displayPrice} per person</p>
+              {showPrice && (
+                <p className="text-white/90 text-sm mb-3" style={getFieldStyle('price')}>
+                  Starting from {displayPrice} per person
+                </p>
+              )}
               
               {/* Separator line */}
               <div className="h-px bg-white/30 mb-3"></div>
@@ -1660,22 +1686,24 @@ export default function TravelPicks() {
                  </div>
                )}
                
-               {/* Pricing */}
-               <div className="mb-3">
-                 {deal.original_price && parseFloat(deal.original_price.replace(/,/g, '')) > price && (
-                   <div className="text-xs text-white/70 line-through">{currencySymbol}{parseFloat(deal.original_price.replace(/,/g, '')).toLocaleString()}</div>
-                 )}
-                 <div className="text-2xl font-bold text-white">{currencySymbol}{price.toLocaleString()}</div>
-                 {(deal.taxes_amount || deal.gst_amount) && (
-                   <div className="text-xs text-white/80">
-                     + {deal.taxes_amount && `${currencySymbol}${deal.taxes_amount} taxes`}
-                     {deal.taxes_amount && deal.gst_amount && ' & '}
-                     {deal.gst_amount && `${currencySymbol}${deal.gst_amount} GST`}
-                     {(deal.taxes_amount || deal.gst_amount) && ' & fees'}
-                   </div>
-                 )}
-                 <div className="text-xs text-white/80">Per Night</div>
-               </div>
+              {/* Pricing */}
+              {price > 0 && (
+                <div className="mb-3">
+                  {deal.original_price && parseFloat(deal.original_price.replace(/,/g, '')) > price && (
+                    <div className="text-xs text-white/70 line-through">{currencySymbol}{parseFloat(deal.original_price.replace(/,/g, '')).toLocaleString()}</div>
+                  )}
+                  <div className="text-2xl font-bold text-white">{currencySymbol}{price.toLocaleString()}</div>
+                  {(deal.taxes_amount || deal.gst_amount) && (
+                    <div className="text-xs text-white/80">
+                      + {deal.taxes_amount && `${currencySymbol}${deal.taxes_amount} taxes`}
+                      {deal.taxes_amount && deal.gst_amount && ' & '}
+                      {deal.gst_amount && `${currencySymbol}${deal.gst_amount} GST`}
+                      {(deal.taxes_amount || deal.gst_amount) && ' & fees'}
+                    </div>
+                  )}
+                  <div className="text-xs text-white/80">Per Night</div>
+                </div>
+              )}
                
                {/* Separator line */}
                <div className="h-px bg-white/30 mb-3 mx-4"></div>
@@ -1840,6 +1868,7 @@ export default function TravelPicks() {
              </h3>
              
              {/* Price Display - Animated and Eye-catching */}
+             {price > 0 && (
              <div className="transform transition-all duration-500 group-hover:translate-y-[-4px]">
                <div className="flex items-baseline gap-2 mb-2">
                  <span className="text-sm text-white/70 font-medium">Starting at</span>
@@ -1866,6 +1895,7 @@ export default function TravelPicks() {
                {/* Animated Price Underline */}
                <div className={`w-0 h-0.5 ${destinationStyle.accent} rounded-full transition-all duration-700 group-hover:w-32`}></div>
              </div>
+             )}
              
              {/* Hover Effect - Additional Info */}
              <div className="opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 mt-3">
@@ -2265,9 +2295,11 @@ export default function TravelPicks() {
                  
                  {/* Right side - Price */}
                  <div className="text-right">
-                   <div className="text-lg font-bold text-white" style={getFieldStyle('price')}>
-                     Starting from {currencySymbol}{price.toLocaleString()}
-                   </div>
+                   {price > 0 && (
+                     <div className="text-lg font-bold text-white" style={getFieldStyle('price')}>
+                       Starting from {currencySymbol}{price.toLocaleString()}
+                     </div>
+                   )}
                    {deal.flight_price && (
                      <div className="text-xs text-white/80 mt-1">
                        + {currencySymbol}{parseFloat(String(deal.flight_price)).toLocaleString()} with {deal.flight_route || 'flights'}
@@ -2441,6 +2473,7 @@ export default function TravelPicks() {
              </h3>
              
              {/* Price Display - Animated and Eye-catching */}
+             {price > 0 && (
              <div className="transform transition-all duration-500 group-hover:translate-y-[-4px]">
                <div className="flex items-baseline gap-2 mb-2">
                  <span className="text-sm text-white/70 font-medium">Starting at</span>
@@ -2455,6 +2488,7 @@ export default function TravelPicks() {
                {/* Animated Price Underline */}
                <div className={`w-0 h-0.5 ${destinationStyle.accent} rounded-full transition-all duration-700 group-hover:w-32`}></div>
              </div>
+             )}
              
              {/* Hover Effect - Additional Info */}
              <div className="opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 mt-3">
@@ -2602,6 +2636,7 @@ export default function TravelPicks() {
               </h3>
               
               {/* Price Display - Animated and Eye-catching */}
+              {price > 0 && (
               <div className="transform transition-all duration-500 group-hover:translate-y-[-4px]">
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-sm text-white/70 font-medium line-through">Was ₹{(price * 1.4).toLocaleString()}</span>
@@ -2616,6 +2651,7 @@ export default function TravelPicks() {
                 {/* Animated Price Underline */}
                 <div className={`w-0 h-0.5 ${destinationStyle.accent} rounded-full transition-all duration-500 group-hover:w-32 animate-pulse`}></div>
               </div>
+              )}
               
               {/* Hover Effect - Additional Info */}
               <div className="opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 mt-3">
@@ -2862,7 +2898,9 @@ export default function TravelPicks() {
          <div className="text-center py-8">
            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{deal.name}</h3>
            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{deal.location || deal.description}</p>
-           <div className="text-xl font-bold text-red-600 mb-4">{displayPrice}</div>
+           {showPrice && (
+             <div className="text-xl font-bold text-red-600 mb-4">{displayPrice}</div>
+           )}
            <div className="text-sm text-gray-500">New UI Card Coming Soon</div>
          </div>
        </div>
@@ -3141,6 +3179,42 @@ export default function TravelPicks() {
     retry: 2
   });
 
+  // Fetch dynamic travel categories for filterbar
+  const { data: apiTravelCategories = [] } = useQuery<TravelCategory[]>({
+    queryKey: ['/api/travel-categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/travel-categories');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false
+  });
+
+  const activeApiCategories = useMemo(() => {
+    return apiTravelCategories
+      .filter(cat => cat && cat.isActive)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [apiTravelCategories]);
+
+  const dynamicAvailableCategories = useMemo(() => {
+    const fromApi = activeApiCategories.map(cat => cat.slug).filter(Boolean);
+    if (fromApi.length > 0) return fromApi;
+    // Fallback to static config keys when API returns nothing
+    return Object.keys(categorySectionConfig);
+  }, [activeApiCategories]);
+
+  // Ensure selectedCategory remains valid when admin updates categories
+  useEffect(() => {
+    if (dynamicAvailableCategories.length > 0 && !dynamicAvailableCategories.includes(selectedCategory)) {
+      const preferred = dynamicAvailableCategories.includes('flights')
+        ? 'flights'
+        : dynamicAvailableCategories[0];
+      setSelectedCategory(preferred);
+    }
+  }, [dynamicAvailableCategories]);
+
   // Process and categorize real travel deals
   const categoryDeals = useMemo(() => {
     if (!realTravelDeals || realTravelDeals.length === 0) {
@@ -3149,10 +3223,27 @@ export default function TravelPicks() {
     
     let deals = realTravelDeals;
     
-    // Apply price range filter
+    // Apply price range filter using selected currency and string range
+    const [minPrice, maxPrice] = (() => {
+      if (!priceRangeString || priceRangeString === 'all') return [0, Infinity];
+      if (priceRangeString.includes('-')) {
+        const [lowStr, highStr] = priceRangeString.split('-');
+        const low = parseFloat(lowStr);
+        const high = parseFloat(highStr);
+        return [isNaN(low) ? 0 : low, isNaN(high) ? Infinity : high];
+      }
+      const single = parseFloat(priceRangeString);
+      return [isNaN(single) ? 0 : single, Infinity];
+    })();
+
     deals = deals.filter(deal => {
-      const price = parseFloat(deal.price) || 0;
-      return price >= priceRange.min && price <= priceRange.max;
+      const rawPrice = (() => {
+        const p = typeof deal.price === 'string' ? deal.price : String(deal.price || '0');
+        const num = parseFloat(p.replace(/,/g, ''));
+        return isNaN(num) ? 0 : num;
+      })();
+      const converted = convertPrice(rawPrice, (deal.currency || 'INR') as any, selectedCurrency);
+      return converted >= minPrice && converted <= maxPrice;
     });
     
     // Apply currency conversion and parse travel_type data
@@ -3322,7 +3413,7 @@ export default function TravelPicks() {
         displayOriginalPrice: origStr ? convertPrice(baseOrigPrice, (mappedDeal.currency || 'INR') as any, selectedCurrency) : null
       };
     });
-  }, [realTravelDeals, selectedCategory, selectedCurrency, convertPrice, priceRange]);
+  }, [realTravelDeals, selectedCategory, selectedCurrency, convertPrice, priceRangeString]);
 
   const currentCategoryConfig = categorySectionConfig[selectedCategory as keyof typeof categorySectionConfig] || { sections: [], hasFilter: false };
   const uses3SectionSystem = currentCategoryConfig.sections.length > 0;
@@ -3711,6 +3802,39 @@ export default function TravelPicks() {
       
       {/* Dynamic Page Banner */}
       <PageBanner page="travel-picks" />
+      {/* Mobile Filters Drawer (below banner on mobile) */}
+      <div className="md:hidden px-4 pt-3">
+        <Button onClick={() => setFiltersOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <i className="fas fa-sliders-h mr-2"/> Filters
+        </Button>
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetContent side="left" className="w-[85vw] sm:w-[22rem]">
+            <SheetHeader>
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+              <div className="mt-4">
+              <UniversalFilterSidebar
+                showCurrency={true}
+                showPriceRange={true}
+                showCategories={true}
+                categorySelectionMode="single"
+                availableCategories={dynamicAvailableCategories}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={(category) => setSelectedCategory(category || dynamicAvailableCategories[0] || 'flights')}
+                selectedCurrency={selectedCurrency}
+                setSelectedCurrency={(currency) => {
+                  if (currency && currency !== 'all') {
+                    setSelectedCurrency(currency as any);
+                  }
+                }}
+                priceRange={priceRangeString}
+                setPriceRange={(range) => setPriceRangeString(range)}
+                resultsCount={categoryDeals.length}
+              />
+              </div>
+          </SheetContent>
+        </Sheet>
+      </div>
       {/* Header Bottom below dynamic banner */}
       <WidgetRenderer page={'travel-picks'} position="header-bottom" className="w-full" />
 
@@ -3724,18 +3848,27 @@ export default function TravelPicks() {
       </div>
       
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Sidebar 
-          onCategoryChange={setSelectedCategory}
-          selectedCategory={selectedCategory}
-          selectedCurrency={selectedCurrency}
-          onCurrencyChange={(currency) => {
-            if (currency !== 'ALL') {
-              setSelectedCurrency(currency as any);
-            }
-          }}
-          onPriceRangeChange={(min, max) => setPriceRange({ min, max })}
-          availableCategories={['flights', 'hotels', 'tours', 'cruises', 'bus', 'train']}
-        />
+        {/* Sidebar (desktop only) */}
+        <div className="hidden md:block">
+          <UniversalFilterSidebar
+            showCurrency={true}
+            showPriceRange={true}
+            showCategories={true}
+            categorySelectionMode="single"
+            availableCategories={dynamicAvailableCategories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={(category) => setSelectedCategory(category || dynamicAvailableCategories[0] || 'flights')}
+            selectedCurrency={selectedCurrency}
+            setSelectedCurrency={(currency) => {
+              if (currency && currency !== 'all') {
+                setSelectedCurrency(currency as any);
+              }
+            }}
+            priceRange={priceRangeString}
+            setPriceRange={(range) => setPriceRangeString(range)}
+            resultsCount={categoryDeals.length}
+          />
+        </div>
 
         <div className="flex-1 p-6">
           <div className="mb-6">

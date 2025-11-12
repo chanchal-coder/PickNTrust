@@ -27,7 +27,11 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
     try {
       const res = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // Send header for compatibility with tolerant server parsing
+          'x-admin-password': password,
+        },
         body: JSON.stringify({ password }),
       });
 
@@ -110,7 +114,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
           </div>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-          <i className="fas fa-lightbulb"></i> Demo passwords: admin123 or pickntrust2024
+          <i className="fas fa-lightbulb"></i> Demo passwords: admin or pickntrust2025
         </p>
       </div>
     </div>

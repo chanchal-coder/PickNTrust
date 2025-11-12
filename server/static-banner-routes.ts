@@ -6,8 +6,14 @@
 import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 const router = Router();
+
+// Define __dirname for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Robust static config path resolution to handle different deployment CWDs
 function resolveStaticConfigPath(): string | null {
@@ -22,7 +28,13 @@ function resolveStaticConfigPath(): string | null {
     }
   }
 
+  // If a frontend static directory is defined, prefer its config copy
+  const frontDir = process.env.FRONTEND_STATIC_DIR;
+  const frontConfig = frontDir ? path.join(frontDir, 'config', 'banners.json') : null;
+
   const candidates = [
+    // Built assets location (dist/public) if available
+    ...(frontConfig ? [frontConfig] : []),
     // Relative to current working directory (PM2/systemd start location)
     path.join(process.cwd(), 'client', 'src', 'config', 'banners.json'),
     // Relative to compiled server directory
@@ -74,7 +86,12 @@ router.get('/api/admin/banners/static-config', (req, res) => {
     res.json({ success: true, config });
   } catch (error) {
     console.error('Error reading banner config:', error);
-    res.status(500).json({ success: false, error: 'Failed to read banner configuration' });
+    // Return additional diagnostics to help pinpoint parsing/path issues
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to read banner configuration',
+      details: (error instanceof Error ? error.message : String(error))
+    });
   }
 });
 

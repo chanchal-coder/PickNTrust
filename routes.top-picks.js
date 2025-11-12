@@ -638,31 +638,14 @@ export function setupRoutes(app) {
             let rawProducts = await retryDatabaseOperation(() => {
                 return sqliteDb.prepare(query).all(bindings);
             });
-            // If unified_content returns no rows, fall back to legacy products table
+            // Unified-only fallback: if unified_content returns no rows, broaden selection within unified_content
             if (!rawProducts || rawProducts.length === 0) {
                 try {
-                    let fallbackQuery = `
-            SELECT 
-              id,
-              name as title,
-              description,
-              price,
-              original_price as originalPrice,
-              currency,
-              image_url as imageUrl,
-              affiliate_url as affiliateUrl,
-              category,
-              is_featured as isFeatured,
-              created_at as createdAt,
-              tags,
-              page_type,
-              display_pages,
-              status,
-              visibility,
-              processing_status
-            FROM products
+                    const genericFallbackQuery = `
+            SELECT *
+            FROM unified_content
             WHERE (
-              status IN ('active','published','ready','processed','completed') OR status IS NULL
+              status IN ('active','published') OR status IS NULL
             )
             AND (
               visibility IN ('public','visible') OR visibility IS NULL
@@ -670,98 +653,18 @@ export function setupRoutes(app) {
             AND (
               processing_status != 'archived' OR processing_status IS NULL
             )
+            ORDER BY created_at DESC LIMIT ? OFFSET ?
           `;
-                    const fallbackParams = [];
-                    if (page === 'home' || page === 'main' || page === 'index') {
-                        fallbackQuery += ` AND (
-              display_pages LIKE '%' || ? || '%' OR
-              display_pages = ?
-            )`;
-                        fallbackParams.push(page, page);
-                    }
-                    else {
-                        fallbackQuery += ` AND (
-              display_pages LIKE '%' || ? || '%' OR
-              display_pages = ? OR
-              page_type = ? OR
-              REPLACE(LOWER(display_pages), ' ', '-') LIKE '%' || LOWER(?) || '%' OR
-              REPLACE(LOWER(page_type), ' ', '-') = LOWER(?) OR
-              ((display_pages IS NULL OR display_pages = '') AND (? = 'prime-picks' OR ? = 'global-picks'))
-            )`;
-                        fallbackParams.push(page, page, page, page, page, page, page);
-                    }
-                    if (category && category !== 'all') {
-                        fallbackQuery += ` AND category = ?`;
-                        fallbackParams.push(category);
-                    }
-                    fallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-                    fallbackParams.push(parsedLimit, parsedOffset);
-                    // Defensive: trim fallback params to match placeholders
-                    const placeholderCountFb = (fallbackQuery.match(/\?/g) || []).length;
-                    const safeParamsFb = fallbackParams.slice(0, placeholderCountFb);
-                    if (fallbackParams.length !== placeholderCountFb) {
-                        console.warn(`[SQL] Fallback param count mismatch: have ${fallbackParams.length}, need ${placeholderCountFb}. Trimming.`);
-                    }
-                    const fb = await retryDatabaseOperation(() => {
-                        // Use array-based parameter passing for broader SQLite driver compatibility
-                        return sqliteDb.prepare(fallbackQuery).all(safeParamsFb);
+                    const gf = await retryDatabaseOperation(() => {
+                        return sqliteDb.prepare(genericFallbackQuery).all(parsedLimit, parsedOffset);
                     });
-                    if (fb && fb.length > 0) {
-                        rawProducts = fb;
-                        productsSource = 'products';
-                        console.log(`[SQL] Fallback applied: using products table for page "${page}"`);
-                    }
-                    else {
-                        // Second-level fallback: return recent products without page filter
-                        try {
-                            let genericFallbackQuery = `
-                SELECT 
-                  id,
-                  name as title,
-                  description,
-                  price,
-                  original_price as originalPrice,
-                  currency,
-                  image_url as imageUrl,
-                  affiliate_url as affiliateUrl,
-                  category,
-                  is_featured as isFeatured,
-                  created_at as createdAt,
-                  tags,
-                  page_type,
-                  display_pages,
-                  status,
-                  visibility,
-                  processing_status
-                FROM products
-                WHERE (
-                  status IN ('active','published','ready','processed','completed') OR status IS NULL
-                )
-                AND (
-                  visibility IN ('public','visible') OR visibility IS NULL
-                )
-                AND (
-                  processing_status != 'archived' OR processing_status IS NULL
-                )
-                ORDER BY created_at DESC LIMIT ? OFFSET ?
-              `;
-                            const genericParams = [parsedLimit, parsedOffset];
-                            const gf = await retryDatabaseOperation(() => {
-                                return sqliteDb.prepare(genericFallbackQuery).all(genericParams);
-                            });
-                            if (gf && gf.length > 0) {
-                                rawProducts = gf;
-                                productsSource = 'products';
-                                console.log(`[SQL] Second-level fallback applied: generic recent products for page "${page}"`);
-                            }
-                        }
-                        catch (gfbErr) {
-                            console.warn('[SQL] Second-level fallback query failed:', gfbErr?.message || gfbErr);
-                        }
+                    if (gf && gf.length > 0) {
+                        rawProducts = gf;
+                        console.log(`[SQL] Unified-only fallback applied: generic recent products for page "${page}"`);
                     }
                 }
-                catch (fallbackErr) {
-                    console.warn('[SQL] Fallback query on products table failed:', fallbackErr?.message || fallbackErr);
+                catch (gfbErr) {
+                    console.warn('[SQL] Unified-only fallback query failed:', gfbErr?.message || gfbErr);
                 }
             }
             // Transform the data to match the expected frontend format with error handling
@@ -3344,12 +3247,27 @@ export function setupRoutes(app) {
                 ...video,
                 // Parse tags from JSON string to array if needed
                 tags: typeof video.tags === 'string' ?
-                    (video.tags.startsWith('[') ? JSON.parse(video.tags) : []) :
+                    (video.tags.startsWith('[') ? JSON.parse(video.tags) : video.tags.split(',').map((t) => t.trim()).filter(Boolean)) :
                     (Array.isArray(video.tags) ? video.tags : []),
                 // Parse pages from JSON string to array if needed
-                pages: typeof video.pages === 'string' ?
-                    (video.pages.startsWith('[') ? JSON.parse(video.pages) : []) :
-                    (Array.isArray(video.pages) ? video.pages : []),
+                pages: (() => {
+                    const normalizeSlug = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '-');
+                    const fromCsv = (str) => String(str || '')
+                        .split(',')
+                        .map((p) => normalizeSlug(p))
+                        .filter(Boolean);
+                    if (Array.isArray(video.pages)) return video.pages.map(normalizeSlug).filter(Boolean);
+                    if (typeof video.pages === 'string') {
+                        if (video.pages.startsWith('[')) {
+                            try {
+                                const arr = JSON.parse(video.pages);
+                                return Array.isArray(arr) ? arr.map(normalizeSlug).filter(Boolean) : fromCsv(video.pages);
+                            } catch { return fromCsv(video.pages); }
+                        }
+                        return fromCsv(video.pages);
+                    }
+                    return [];
+                })(),
                 // Ensure boolean fields are properly typed
                 showOnHomepage: Boolean(video.showOnHomepage),
                 hasTimer: Boolean(video.hasTimer),

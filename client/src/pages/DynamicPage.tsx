@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import ScrollNavigation from "@/components/scroll-navigation";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import { BundleProductCard } from "@/components/BundleProductCard";
 import AmazonProductCard from "@/components/amazon-product-card";
 import PageVideosSection from "@/components/PageVideosSection";
@@ -16,6 +16,42 @@ import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import WidgetRenderer from '@/components/WidgetRenderer';
 import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
+import { inferGender } from "@/utils/gender";
+
+// Static fallback tabs for newly added pages to ensure they render without backend entries
+const FALLBACK_TABS: Record<string, {
+  name: string;
+  slug: string;
+  icon: string;
+  color_from: string;
+  color_to: string;
+  description: string;
+}> = {
+  'fresh-picks': {
+    name: 'Fresh Picks',
+    slug: 'fresh-picks',
+    icon: 'fas fa-leaf',
+    color_from: '#10B981',
+    color_to: '#06B6D4',
+    description: 'Latest and freshest curated selections',
+  },
+  "artists-corner": {
+    name: "Artist's Corner",
+    slug: 'artists-corner',
+    icon: 'fas fa-palette',
+    color_from: '#8B5CF6',
+    color_to: '#EC4899',
+    description: 'Creative picks, art and design highlights',
+  },
+  'ott-hub': {
+    name: 'OTT Hub',
+    slug: 'ott-hub',
+    icon: 'fas fa-tv',
+    color_from: '#EF4444',
+    color_to: '#F59E0B',
+    description: 'Streaming, OTT platforms and entertainment',
+  },
+};
 
 interface Product {
   id: number | string;
@@ -105,6 +141,15 @@ export default function DynamicPage() {
   const [priceRange, setPriceRange] = useState({ min: 0, max: Infinity });
   const [minRating, setMinRating] = useState<number>(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedGender, setSelectedGender] = useState<string>('all');
+  const [location] = useLocation();
+
+  // Universal filter sidebar state for currency and price labels
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('all');
+  const [convertPrices, setConvertPrices] = useState<boolean>(false);
+  const [priceRangeLabel, setPriceRangeLabel] = useState<string>('all');
+
+  // Using shared gender inference utility
 
   // Fetch navigation tab info with direct backend call and real-time updates
   const { data: navTab, isLoading: navTabLoading, error: navTabError } = useQuery<NavTab>({
@@ -125,15 +170,47 @@ export default function DynamicPage() {
         response = await fetch('/api/nav-tabs');
       }
       
+      // If API fails, try static fallback
       if (!response.ok) {
+        const fb = FALLBACK_TABS[slug || ''];
+        if (fb) {
+          // Return synthetic NavTab for layout
+          return {
+            id: -1,
+            name: fb.name,
+            slug: fb.slug,
+            icon: fb.icon,
+            color_from: fb.color_from,
+            color_to: fb.color_to,
+            display_order: 999,
+            is_active: true,
+            is_system: true,
+            description: fb.description,
+          } as NavTab;
+        }
         throw new Error('Failed to fetch navigation tabs');
       }
       const tabs = await response.json();
       const tab = tabs.find((t: NavTab) => t.slug === slug && t.is_active);
-      if (!tab) {
-        throw new Error('Navigation tab not found');
+      if (tab) return tab;
+
+      // No matching tab from API — return static fallback if available
+      const fb = FALLBACK_TABS[slug || ''];
+      if (fb) {
+        return {
+          id: -1,
+          name: fb.name,
+          slug: fb.slug,
+          icon: fb.icon,
+          color_from: fb.color_from,
+          color_to: fb.color_to,
+          display_order: 999,
+          is_active: true,
+          is_system: true,
+          description: fb.description,
+        } as NavTab;
       }
-      return tab;
+      throw new Error('Navigation tab not found');
     },
     staleTime: 0,
     refetchOnWindowFocus: false, // Disable focus refetch to prevent ERR_ABORTED
@@ -142,20 +219,47 @@ export default function DynamicPage() {
 
   // Fetch products for this page
   const { data: allProducts = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
-    queryKey: [`/api/products/page/${slug}`],
+    queryKey: [`/api/products/page/${slug}`, selectedGender],
     queryFn: async () => {
-      const response = await fetch(`/api/products/page/${slug}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return []; // Return empty array for new pages with no products yet
+      try {
+        const baseUrl = `/api/products/page/${slug}`;
+        const url = selectedGender && selectedGender !== 'all'
+          ? `${baseUrl}?gender=${encodeURIComponent(selectedGender)}`
+          : baseUrl;
+        const response = await fetch(url);
+        if (!response.ok) {
+          // Gracefully degrade for new or unmapped pages: return empty list
+          // Treat 404/5xx alike to avoid disruptive error toasts
+          console.warn(`Products fetch for ${slug} failed with status ${response.status}. Returning empty list.`);
+          return [];
         }
-        throw new Error('Failed to fetch products');
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        // Network or parsing error — degrade gracefully without throwing
+        console.warn(`Products fetch error for ${slug}:`, err);
+        return [];
       }
-      return response.json();
     },
     enabled: !!slug,
     staleTime: 0,
   });
+
+  // Detect available genders from loaded products (normalized + grouped Kids)
+  const availableGenders: string[] = (() => {
+    const set = new Set<string>();
+    (allProducts as Product[]).forEach((p) => {
+      const g = inferGender(p);
+      if (g) set.add(g);
+    });
+    // Promote kids umbrella if boys/girls detected
+    if ((set.has('boys') || set.has('girls')) && !set.has('kids')) {
+      set.add('kids');
+    }
+    const order = ['men','women','kids','boys','girls','unisex'];
+    const filtered = order.filter(g => set.has(g));
+    return ['all', ...filtered];
+  })();
 
   // Detect if this page has any active widgets visible for the current device
   const { data: hasWidgets } = useHasActiveWidgets(navTab?.slug || slug || '');
@@ -177,16 +281,45 @@ export default function DynamicPage() {
     staleTime: 0,
   });
 
+  // Ensure categories remain visible even after filtering by unifying with product data
+  const availableCategoriesUnified: string[] = useMemo(() => {
+    const fromProducts = Array.from(new Set((allProducts || [])
+      .map((p: any) => (p?.category ?? '') as string)
+      .filter(Boolean)));
+    const union = new Set<string>([...availableCategories, ...fromProducts]);
+    return Array.from(union);
+  }, [availableCategories, allProducts]);
+
   // Filter products based on sidebar selections
+  const getPriceBounds = (currency: string, range: string): {min: number, max: number} => {
+    if (!range || range === 'all') return {min: 0, max: Infinity};
+    if (/^\d+-\d+$/.test(range)) {
+      const [min, max] = range.split('-').map(v => parseFloat(v));
+      return { min, max };
+    }
+    const min = parseFloat(range);
+    return { min: isNaN(min) ? 0 : min, max: Infinity };
+  };
+
+  const priceBounds = getPriceBounds(selectedCurrency, priceRangeLabel);
+
   const filteredProducts = allProducts.filter((product) => {
-    // Category filter
-    if (selectedCategory && product.category !== selectedCategory && product.subcategory !== selectedCategory) {
-      return false;
+    // Category filter (inclusive, supports hierarchical matching and synonyms)
+    if (selectedCategory) {
+      const sel = selectedCategory.toLowerCase();
+      const cat = (product.category || '').toString().toLowerCase();
+      const sub = (product.subcategory || '').toString().toLowerCase();
+      const synonyms: Record<string,string[]> = {
+        clothing: ['clothing','apparel','fashion','garment','wear'],
+      };
+      const tokens = synonyms[sel] || [sel];
+      const matches = tokens.some(t => cat.includes(t) || sub.includes(t));
+      if (!matches) return false;
     }
 
     // Price filter
     const productPrice = parseFloat(String(product.price));
-    if (productPrice < priceRange.min || productPrice > priceRange.max) {
+    if (productPrice < priceBounds.min || productPrice > priceBounds.max) {
       return false;
     }
 
@@ -196,6 +329,16 @@ export default function DynamicPage() {
       return false;
     }
 
+    // Gender filter (normalized; Kids umbrella includes boy/girl/kids)
+    if (selectedGender && selectedGender !== 'all') {
+      const g = inferGender(product);
+      if (selectedGender === 'kids') {
+        if (!(g === 'boy' || g === 'girl' || g === 'kids')) return false;
+      } else {
+        if (g !== selectedGender) return false;
+      }
+    }
+
     return true;
   });
 
@@ -203,12 +346,36 @@ export default function DynamicPage() {
     setSelectedCategory(category);
   };
 
-  const handlePriceRangeChange = (min: number, max: number) => {
-    setPriceRange({min, max});
-  };
+  // Price range now controlled by string label via UniversalFilterSidebar
+  // const handlePriceRangeChange = (min: number, max: number) => {}
 
   const handleRatingChange = (rating: number) => {
     setMinRating(rating);
+  };
+
+  // Read gender from query param on mount or location change
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const g = (params.get('gender') || '').toLowerCase();
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized || 'all');
+  }, [slug, location]);
+
+  const handleGenderChange = (g: string) => {
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    if (normalized === 'all') {
+      params.delete('gender');
+    } else {
+      params.set('gender', normalized);
+    }
+    const basePath = typeof window !== 'undefined' ? window.location.pathname : `/page/${encodeURIComponent(slug || '')}`;
+    const query = params.toString();
+    const newUrl = query ? `${basePath}?${query}` : basePath;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newUrl);
+    }
   };
 
   // Show error toast if navigation tab fails to load
@@ -288,27 +455,6 @@ export default function DynamicPage() {
       {/* Header Top above dynamic header */}
       <WidgetRenderer page={navTab.slug} position="header-top" className="w-full" />
       <AnnouncementBanner />
-      {/* Mobile Filters Drawer */}
-      <div className="md:hidden px-4 pt-3">
-        <Button onClick={() => setFiltersOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-          <i className="fas fa-sliders-h mr-2"/> Filters
-        </Button>
-        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <SheetContent side="left" className="w-[85vw] sm:w-[22rem]">
-            <SheetHeader>
-              <SheetTitle>Filters</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4">
-              <Sidebar 
-                onCategoryChange={handleCategoryChange}
-                onPriceRangeChange={handlePriceRangeChange}
-                onRatingChange={handleRatingChange}
-                availableCategories={availableCategories}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
       <div className="header-spacing">
         {/* Page Header */}
         <div className="py-8" style={gradientStyle}>
@@ -330,6 +476,53 @@ export default function DynamicPage() {
           </div>
         </div>
 
+        {/* Mobile Filters Drawer (below banner on mobile) */}
+        <div className="md:hidden px-4 pt-3">
+          <Button onClick={() => setFiltersOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <i className="fas fa-sliders-h mr-2"/> Filters
+          </Button>
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetContent side="left" className="w-[85vw] sm:w-[22rem]">
+              <SheetHeader>
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <UniversalFilterSidebar
+                  showNetworks={false}
+                  categorySelectionMode="single"
+                  // currency & price
+                  selectedCurrency={selectedCurrency}
+                  setSelectedCurrency={setSelectedCurrency}
+                  convertPrices={convertPrices}
+                  setConvertPrices={setConvertPrices}
+                  priceRange={priceRangeLabel}
+                  setPriceRange={setPriceRangeLabel}
+                  // categories
+                  availableCategories={availableCategoriesUnified}
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  // gender
+                  availableGenders={availableGenders}
+                  selectedGender={selectedGender}
+                  setSelectedGender={handleGenderChange}
+                  // rating
+                  minRating={minRating}
+                  setMinRating={handleRatingChange}
+                  // results & clear
+                  resultsCount={filteredProducts.length}
+                  onClearFilters={() => {
+                    setSelectedCategory('');
+                    setSelectedCurrency('all');
+                    setConvertPrices(false);
+                    setPriceRangeLabel('all');
+                    setSelectedGender('all');
+                    setMinRating(0);
+                  }}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
         {/* Header Bottom below dynamic header */}
         <WidgetRenderer page={navTab.slug} position="header-bottom" className="w-full" />
 
@@ -340,17 +533,35 @@ export default function DynamicPage() {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
           {/* Sidebar (desktop only) */}
           <div className="hidden md:block">
-            <Sidebar 
-              onCategoryChange={handleCategoryChange}
-              onPriceRangeChange={handlePriceRangeChange}
-              onRatingChange={handleRatingChange}
-              availableCategories={availableCategories}
+            <UniversalFilterSidebar
+              showNetworks={false}
+              categorySelectionMode="single"
+              selectedCurrency={selectedCurrency}
+              setSelectedCurrency={setSelectedCurrency}
+              convertPrices={convertPrices}
+              setConvertPrices={setConvertPrices}
+              priceRange={priceRangeLabel}
+              setPriceRange={setPriceRangeLabel}
+              availableCategories={availableCategoriesUnified}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              availableGenders={availableGenders}
+              selectedGender={selectedGender}
+              setSelectedGender={handleGenderChange}
+              minRating={minRating}
+              setMinRating={handleRatingChange}
+              resultsCount={filteredProducts.length}
+              onClearFilters={() => {
+                setSelectedCategory('');
+                setSelectedCurrency('all');
+                setConvertPrices(false);
+                setPriceRangeLabel('all');
+                setSelectedGender('all');
+                setMinRating(0);
+              }}
             />
           </div>
-          {/* Left Sidebar Widgets below filters */}
-          <div className="hidden lg:block w-64 p-4">
-            <WidgetRenderer page={navTab.slug} position="sidebar-left" />
-          </div>
+          {/* Left Sidebar Widgets removed to match DealsHub layout width */}
 
           {/* Products Grid */}
           <div className="flex-1 p-6">
@@ -404,54 +615,56 @@ export default function DynamicPage() {
                   </div>
                 )
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
                   {filteredProducts.map((product) => {
                     // Check if product is part of a bundle (multiple products)
                     const isBundle = product.totalInGroup && Number(product.totalInGroup) > 1;
                     
                     if (isBundle) {
                       return (
-                        <BundleProductCard 
-                          key={product.id} 
-                          product={product} 
-                          source={slug || 'dynamic'} 
-                        />
+                        <div key={product.id} className="relative min-w-0">
+                          <BundleProductCard 
+                            product={product} 
+                            source={slug || 'dynamic'} 
+                          />
+                        </div>
                       );
                     } else {
                       return (
-                        <AmazonProductCard 
-                          key={product.id} 
-                          product={{
-                            id: product.id,
-                            name: product.name,
-                            description: product.description || '',
-                            price: product.price,
-                            originalPrice: product.originalPrice || product.original_price,
-                            currency: product.currency || 'INR',
-                            imageUrl: product.imageUrl || product.image_url,
-                            affiliateUrl: product.affiliateUrl || product.affiliate_url,
-                            category: product.category,
-                            rating: product.rating,
-                            reviewCount: product.reviewCount,
-                            discount: product.discount,
-                            isNew: product.isNew,
-                            isFeatured: product.isFeatured,
-                            affiliate_network: product.affiliate_network || product.networkBadge,
-                            networkBadge: product.networkBadge,
-                            affiliateNetwork: product.affiliateNetworkName || 'Dynamic Network',
-                            sourceType: slug || 'dynamic',
-                            source: slug || 'dynamic',
-                            displayPages: [slug || 'dynamic'],
-                            // Service-specific pricing fields normalization
-                            priceDescription: product.priceDescription || product.price_description || '',
-                            monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
-                            yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
-                            pricingType: product.pricingType || product.pricing_type,
-                            isFree: product.isFree || product.is_free || false,
-                            isService: product.isService || product.is_service || false,
-                            isAIApp: product.isAIApp || product.is_ai_app || false
-                          }}
-                        />
+                        <div key={product.id} className="relative min-w-0">
+                          <AmazonProductCard 
+                            product={{
+                              id: product.id,
+                              name: product.name,
+                              description: product.description || '',
+                              price: product.price,
+                              originalPrice: product.originalPrice || product.original_price,
+                              currency: product.currency || 'INR',
+                              imageUrl: product.imageUrl || product.image_url,
+                              affiliateUrl: product.affiliateUrl || product.affiliate_url,
+                              category: product.category,
+                              rating: product.rating,
+                              reviewCount: product.reviewCount,
+                              discount: product.discount,
+                              isNew: product.isNew,
+                              isFeatured: product.isFeatured,
+                              affiliate_network: product.affiliate_network || product.networkBadge,
+                              networkBadge: product.networkBadge,
+                              affiliateNetwork: product.affiliateNetworkName || 'Dynamic Network',
+                              sourceType: slug || 'dynamic',
+                              source: slug || 'dynamic',
+                              displayPages: [slug || 'dynamic'],
+                              // Service-specific pricing fields normalization
+                              priceDescription: product.priceDescription || product.price_description || '',
+                              monthlyPrice: product.monthlyPrice || product.monthly_price || 0,
+                              yearlyPrice: product.yearlyPrice || product.yearly_price || 0,
+                              pricingType: product.pricingType || product.pricing_type,
+                              isFree: product.isFree || product.is_free || false,
+                              isService: product.isService || product.is_service || false,
+                              isAIApp: product.isAIApp || product.is_ai_app || false
+                            }}
+                          />
+                        </div>
                       );
                     }
                   })}

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import WidgetRenderer from '@/components/WidgetRenderer';
@@ -9,14 +10,17 @@ import PageBanner from '@/components/PageBanner';
 import PageVideosSection from '@/components/PageVideosSection';
 import { AnnouncementBanner } from "@/components/announcement-banner";
 
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
 import { useCurrency, getCurrencySymbol, CurrencyCode } from '@/contexts/CurrencyContext';
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
-import PriceTag from '@/components/PriceTag';
+import EnhancedPriceTag from '@/components/EnhancedPriceTag';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
+import { inferGender } from "@/utils/gender";
+import { ProductTimer } from '@/components/product-timer';
+import PriceTag from '@/components/PriceTag';
 
 // Define Product type locally to match the complete schema
 interface Product {
@@ -94,16 +98,20 @@ export default function AppsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const [location] = useLocation();
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: Infinity});
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('all');
+  const [convertPrices, setConvertPrices] = useState<boolean>(false);
+  const [priceRangeLabel, setPriceRangeLabel] = useState<string>('all');
   const [minRating, setMinRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState<string>('featured');
+  const [selectedGender, setSelectedGender] = useState<string>('all');
 
   // Helper function to format product price without conversion (displays original currency)
   const formatProductPrice = (price: string | number, productCurrency?: string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price.toString().replace(/,/g, '')) : price;
-    const originalCurrency = (productCurrency as CurrencyCode) || 'INR';
+    const originalCurrency = (productCurrency?.toString().toUpperCase() as CurrencyCode) || 'USD';
     
     // Always display in the product's original currency (no conversion)
     return formatCurrencyPrice(numPrice, originalCurrency);
@@ -124,6 +132,16 @@ export default function AppsPage() {
       setIsAdmin(true);
     }
   }, []);
+
+  // Sync gender from URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const genderParam = params.get('gender');
+    if (genderParam) {
+      const normalized = genderParam === 'common' ? 'unisex' : genderParam.toLowerCase();
+      setSelectedGender(normalized);
+    }
+  }, [location]);
 
   // Listen for admin session changes
   useEffect(() => {
@@ -164,45 +182,20 @@ export default function AppsPage() {
     setSelectedApp(null);
   };
 
-  // Fetch apps using new backend filtering (isAIApp=true)
+  // Fetch apps directly from the respective page endpoint without extra logic
   const { data: allApps = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/products/page/apps-ai-apps', selectedCategory],
+    queryKey: ['/api/products/page/apps'],
     queryFn: async (): Promise<Product[]> => {
       try {
-        const allAppsData = [];
-        
-        // 1. Fetch from dedicated apps channel
-        try {
-          const response = await fetch('/api/products/apps');
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-              allAppsData.push(...data.map((item: any) => ({ ...item, source: 'apps' })));
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch apps from dedicated channel:', error);
+        const response = await fetch('/api/products/page/apps');
+        if (!response.ok) {
+          console.log('Apps endpoint failed');
+          return [];
         }
-        
-        // 2. Fetch apps from unified backend (filters by isAIApp=true)
-        try {
-          const url = selectedCategory 
-            ? `/api/products/page/apps-ai-apps?category=${encodeURIComponent(selectedCategory)}`
-            : '/api/products/page/apps-ai-apps';
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-              allAppsData.push(...data.map((item: any) => ({ ...item, source: 'apps-ai-apps' })));
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch apps from unified backend:', error);
-        }
-        
-        return allAppsData;
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
       } catch (error) {
-        console.warn('API call error, returning empty array:', error);
+        console.log('Apps endpoint error:', error);
         return [];
       }
     },
@@ -216,17 +209,42 @@ export default function AppsPage() {
   // Get unique categories for sidebar
   const availableCategories = Array.from(new Set(displayApps.map(app => app.category).filter(Boolean)));
 
-  // Handler functions for sidebar
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-  };
+  // Derive available genders from apps
+  const availableGenders = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of displayApps) {
+      const g = inferGender(p.gender || '', `${p.name || ''} ${p.description || ''}`);
+      if (g) set.add(g);
+    }
+    const hasBoys = set.has('boys');
+    const hasGirls = set.has('girls');
+    if (hasBoys || hasGirls) set.add('kids');
+    const ordered = ['men', 'women', 'kids', 'boys', 'girls', 'unisex'].filter(g => set.has(g));
+    return ['all', ...ordered];
+  }, [displayApps]);
 
-  const handlePriceRangeChange = (min: number, max: number) => {
-    setPriceRange({min, max});
+  // Helper: map sidebar range value to numeric bounds
+  const getPriceBounds = (rangeValue: string): { min: number; max: number } => {
+    if (!rangeValue || rangeValue === 'all') return { min: 0, max: Infinity };
+    if (rangeValue.includes('-')) {
+      const [minStr, maxStr] = rangeValue.split('-');
+      const min = parseFloat(minStr);
+      const max = parseFloat(maxStr);
+      return { min: isNaN(min) ? 0 : min, max: isNaN(max) ? Infinity : max };
+    }
+    const min = parseFloat(rangeValue);
+    return { min: isNaN(min) ? 0 : min, max: Infinity };
   };
-
-  const handleRatingChange = (rating: number) => {
-    setMinRating(rating);
+  const priceBounds = getPriceBounds(priceRangeLabel);
+  
+  // Clear filters handler
+  const clearFilters = () => {
+    setSelectedCategory('');
+    setSelectedCurrency('all');
+    setConvertPrices(false);
+    setPriceRangeLabel('all');
+    setMinRating(0);
+    setSelectedGender('all');
   };
 
   // Apply client-side filtering for category, price, and rating
@@ -236,9 +254,20 @@ export default function AppsPage() {
       return false;
     }
     
+    // Filter by gender
+    if (selectedGender && selectedGender !== 'all') {
+      const inferred = inferGender(app);
+      const g = (inferred || '').toLowerCase();
+      if (selectedGender === 'kids') {
+        if (!['boys', 'girls', 'kids'].includes(g)) return false;
+      } else if (g !== selectedGender) {
+        return false;
+      }
+    }
+    
     // Filter by price range
-    const price = parseFloat(String(app.price || 0));
-    if (price < priceRange.min || price > priceRange.max) {
+    const price = parseFloat(String(app.price || 0).toString().replace(/[^0-9.]/g, '')) || 0;
+    if (price < priceBounds.min || price > priceBounds.max) {
       return false;
     }
     
@@ -247,9 +276,35 @@ export default function AppsPage() {
     if (rating < minRating) {
       return false;
     }
-    
+
+    // Filter by currency (case-insensitive)
+    if (selectedCurrency !== 'all') {
+      const appCurrency = String(app.currency ?? '').trim().toUpperCase();
+      if (appCurrency && appCurrency !== String(selectedCurrency).trim().toUpperCase()) {
+        return false;
+      }
+    }
+
     return true;
   });
+
+  // Handle gender selection and sync URL
+  const handleGenderChange = (g: string) => {
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    if (normalized === 'all') {
+      params.delete('gender');
+    } else {
+      params.set('gender', normalized);
+    }
+    const basePath = typeof window !== 'undefined' ? window.location.pathname : '/apps';
+    const query = params.toString();
+    const newUrl = query ? `${basePath}?${query}` : basePath;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newUrl);
+    }
+  };
 
   // Sort filtered apps
    const filteredAndSortedApps = filteredApps
@@ -432,11 +487,37 @@ export default function AppsPage() {
       {/* Apps Content Section with Sidebar */}
       <div className="header-spacing flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Sidebar */}
-        <Sidebar 
-          onCategoryChange={handleCategoryChange}
-          onPriceRangeChange={handlePriceRangeChange}
-          onRatingChange={handleRatingChange}
+        <UniversalFilterSidebar
+          showCurrency={true}
+          showPriceRange={true}
+          showGender={true}
+          showNetworks={false}
+          showCategories={true}
+          showRating={true}
+          showResultsCount={true}
+          showClearButton={true}
+
+          selectedCurrency={selectedCurrency}
+          setSelectedCurrency={setSelectedCurrency}
+          convertPrices={convertPrices}
+          setConvertPrices={setConvertPrices}
+          priceRange={priceRangeLabel}
+          setPriceRange={setPriceRangeLabel}
+
+          categorySelectionMode="single"
           availableCategories={availableCategories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+
+          availableGenders={availableGenders}
+          selectedGender={selectedGender}
+          setSelectedGender={handleGenderChange}
+
+          minRating={minRating}
+          setMinRating={setMinRating}
+
+          resultsCount={filteredAndSortedApps.length}
+          onClearFilters={clearFilters}
         />
 
         {/* Apps Grid */}
@@ -475,70 +556,103 @@ export default function AppsPage() {
             </div>
           </div>
 
-          {/* Apps Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredAndSortedApps.map((app: Product, index: number) => (
+          {/* Apps Grid - Styled like Top Picks */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {filteredAndSortedApps.map((app: Product) => (
               <div 
                 key={app.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden max-w-md mx-auto"
               >
-                {/* App Image with colored border */}
-                <div className={`relative p-3 ${
-                  index % 4 === 0 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 
-                  index % 4 === 1 ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 
-                  index % 4 === 2 ? 'bg-gradient-to-br from-teal-500 to-cyan-500' :
-                  'bg-gradient-to-br from-blue-500 to-green-600'
-                }`}>
-                  <div className="w-full h-32 bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-                    <img 
-                      src={app.imageUrl} 
-                      alt={app.name} 
-                      className="w-full h-full object-cover" 
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://images.unsplash.com/photo-1677442136019-21780ecad995?w=200&q=60`;
-                      }}
-                    />
-                  </div>
-                  
+                {/* Card Header with Image */}
+                <div className="relative">
+                  <img 
+                    src={app.imageUrl} 
+                    alt={app.name} 
+                    className="w-full h-48 object-cover" 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://picsum.photos/400/300?random=${app.id}`;
+                    }}
+                  />
                   {/* Wishlist Heart Icon */}
                   <button
                     onClick={() => handleWishlistToggle(app)}
-                    className={`absolute top-5 left-5 p-1.5 rounded-full shadow-md transition-colors ${
+                    className={`absolute top-3 left-3 p-2 rounded-full shadow-lg transition-all duration-200 ${
                       isInWishlist(app.id) 
                         ? 'bg-red-500 text-white hover:bg-red-600' 
-                        : 'bg-white text-gray-400 hover:text-red-500'
+                        : 'bg-white/90 text-gray-600 hover:text-red-500 hover:bg-white'
                     }`}
                     title={isInWishlist(app.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                   >
-                    <i className="fas fa-heart text-xs"></i>
+                    <i className="fas fa-heart text-sm"></i>
                   </button>
                 </div>
-                
-                {/* App Content */}
-                <div className="p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white space-y-3 relative">
-                  {/* Action Buttons - Top Right */}
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    {/* Admin Buttons: Share to All + Individual Share */}
-                    {isAdmin && (
-                      <>
-                        {/* Share to All Platforms Button */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleShareToAll(app);
-                          }}
-                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors cursor-pointer z-10 relative"
-                          title="Share to All Platforms"
-                        >
-                          <i className="fas fa-edit text-xs pointer-events-none"></i>
-                        </button>
-                        
-                        {/* Individual Share Button */}
-                        <EnhancedShare
+
+                {/* Card Content */}
+                <div className="p-5">
+                  {/* Discount Badge and Action Icons */}
+                  <div className="flex items-center justify-between mb-3">
+                    {(() => {
+                      const originalVal = Number((app as any).originalPrice || (app as any).original_price || 0);
+                      const currentVal = Number(app.price || 0);
+                      const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+                      if (hasValidPrices) {
+                        const pct = Math.round(((originalVal - currentVal) / originalVal) * 100);
+                        if (pct > 0) {
+                          return (
+                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                              {pct}% OFF
+                            </span>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                    {!app.discount && app.isNew ? (
+                      <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        NEW
+                      </span>
+                    ) : (
+                      <div></div>
+                    )}
+                    {/* Share and Delete Icons */}
+                    <div className="flex gap-2">
+                      {/* Admin Buttons: Share to All + Individual Share */}
+                      {isAdmin && (
+                        <>
+                          {/* Share to All Platforms Button */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleShareToAll(app);
+                            }}
+                            className="p-2 bg-blue-500 text-white hover:bg-blue-600 rounded-full shadow-lg transition-all duration-200 cursor-pointer z-10 relative"
+                            title="Share to All Platforms"
+                          >
+                            <i className="fas fa-edit text-sm pointer-events-none"></i>
+                          </button>
+                          {/* Individual Share Button */}
+                          <EnhancedShare 
+                            product={{
+                              id: app.id,
+                              name: app.name,
+                              description: app.description,
+                              price: app.price,
+                              imageUrl: app.imageUrl,
+                              category: app.category,
+                              affiliateUrl: app.affiliateUrl
+                            }}
+                            contentType="app"
+                            className="p-2 bg-green-500 text-white hover:bg-green-600 rounded-full shadow-lg transition-all duration-200"
+                            buttonText=""
+                            showIcon={true}
+                          />
+                        </>
+                      )}
+                      {/* Public User Smart Share Button */}
+                      {!isAdmin && (
+                        <SmartShareDropdown
                           product={{
                             id: app.id,
                             name: app.name,
@@ -548,101 +662,68 @@ export default function AppsPage() {
                             category: app.category,
                             affiliateUrl: app.affiliateUrl
                           }}
-                          contentType="app"
-                          className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 shadow-md transition-colors"
+                          className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg transition-all duration-200"
                           buttonText=""
                           showIcon={true}
                         />
-                      </>
-                    )}
-                    
-                    {/* Public User Smart Share Button */}
-                    {!isAdmin && (
-                      <SmartShareDropdown
-                        product={{
-                          id: app.id,
-                          name: app.name,
-                          description: app.description,
-                          price: app.price,
-                          imageUrl: app.imageUrl,
-                          category: app.category,
-                          affiliateUrl: app.affiliateUrl
-                        }}
-                        className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 shadow-md transition-colors"
-                        buttonText=""
-                        showIcon={true}
-                      />
-                    )}
+                      )}
+                      {/* Delete Button - Admin Only */}
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDeleteApp(app.id)}
+                          className="p-2 bg-red-500 text-white hover:bg-red-600 rounded-full shadow-lg transition-all duration-200"
+                          title="Delete app"
+                        >
+                          <i className="fas fa-trash text-sm"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* Delete Button - Only for admin */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDeleteApp(app.id)}
-                        className="w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-full flex items-center justify-center shadow-md transition-all duration-300 transform hover:scale-110"
-                        title="Delete app"
-                      >
-                        <i className="fas fa-trash text-xs"></i>
-                      </button>
-                    )}
+                  {/* Rating */}
+                  <div className="flex items-center mb-3">
+                    <StarRating rating={app.rating} />
+                    <span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({app.reviewCount || 0})</span>
                   </div>
 
                   {/* App Name */}
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-white pr-16 leading-tight">
-                    {app.name}
-                  </h4>
-                  
+                  <h4 className="font-bold text-lg text-navy dark:text-blue-400 mb-2 line-clamp-2">{app.name}</h4>
+
                   {/* App Description */}
-                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
-                    {app.description}
-                  </p>
-                  
-                  {/* Category Badge */}
-                  <div className="flex items-center justify-between">
-                    <span className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
-                      {app.category}
-                    </span>
-                    {app.isNew && (
-                      <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Rating and Reviews */}
-                  <div className="flex items-center justify-between">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">{app.description}</p>
+
+                  {/* Pricing */}
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
-                      <StarRating rating={app.rating} />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {app.rating} ({(app.reviewCount || 0).toLocaleString()})
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Price and CTA */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center space-x-2">
-                      <PriceTag
+                      <PriceTag 
                         product={app}
-                        colorClass="text-green-600 dark:text-green-400"
-                        originalClass="text-gray-500 line-through text-sm"
+                        colorClass="text-navy dark:text-blue-400"
+                        originalClass="text-gray-400 dark:text-gray-500 line-through text-base"
                         freeClass="text-green-600 dark:text-green-400"
-                        helperClass="text-xs text-gray-500 dark:text-gray-400"
+                        helperClass="text-xs text-gray-500"
                       />
-                      {app.discount && (
-                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
-                          {app.discount}% OFF
-                        </span>
-                      )}
                     </div>
-                    <a
-                      href={app.affiliateUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-md"
-                    >
-                      Get App →
-                    </a>
                   </div>
+
+                  {/* Product Timer */}
+                  <div className="mb-4">
+                    <ProductTimer product={app} />
+                  </div>
+
+                  {/* Pick Now Button */}
+                  <button 
+                    onClick={() => {
+                      window.open(app.affiliateUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg transition-all transform hover:scale-105"
+                  >
+                    <i className="fas fa-shopping-bag mr-2"></i>Pick Now
+                  </button>
+
+                  {/* Affiliate Link Notice */}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                    <i className="fas fa-link"></i> Affiliate Link - We earn from purchases
+                  </p>
                 </div>
               </div>
             ))}

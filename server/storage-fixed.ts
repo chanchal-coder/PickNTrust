@@ -25,7 +25,7 @@ import {
   type VideoContent,
   type InsertVideoContent
 } from "../shared/sqlite-schema.js";
-import { db } from "./db.js";
+import { db, sqliteDb } from "./db.js";
 import { eq, desc, ne, and, lt } from "drizzle-orm";
 
 // Utility functions for consistent timestamp handling
@@ -197,48 +197,44 @@ export class DatabaseStorage implements IStorage {
 
   async getProductsByCategory(category: string): Promise<Product[]> {
     try {
-      return await db.select().from(products).where(eq(products.category, category)).orderBy(desc(products.id));
+      // Use direct SQL to guarantee case-insensitive matching via LOWER()
+      const Database = require('better-sqlite3');
+      const dbFile = 'database.sqlite';
+      const rawDb = new Database(dbFile);
+
+      const result = rawDb.prepare(`
+        SELECT id, name, description, price, 
+               original_price as originalPrice,
+               currency,
+               image_url as imageUrl,
+               affiliate_url as affiliateUrl,
+               affiliate_network_id as affiliateNetworkId,
+               category, gender, rating,
+               review_count as reviewCount,
+               discount,
+               COALESCE(is_new, 0) as isNew,
+               COALESCE(is_featured, 0) as isFeatured,
+               COALESCE(is_service, 0) as isService,
+               custom_fields as customFields,
+               pricing_type as pricingType,
+               monthly_price as monthlyPrice,
+               yearly_price as yearlyPrice,
+               COALESCE(is_free, 0) as isFree,
+               price_description as priceDescription,
+               COALESCE(has_timer, 0) as hasTimer,
+               timer_duration as timerDuration,
+               timer_start_time as timerStartTime,
+               created_at as createdAt
+        FROM products 
+        WHERE LOWER(category) = LOWER(?)
+        ORDER BY id DESC
+      `).all(category);
+
+      rawDb.close();
+      return result as Product[];
     } catch (error) {
-      console.log('DatabaseStorage: Products by category query failed, trying raw SQL fallback...');
-      try {
-        const Database = require('better-sqlite3');
-        const dbFile = 'database.sqlite';
-        const rawDb = new Database(dbFile);
-        
-        const result = rawDb.prepare(`
-          SELECT id, name, description, price, 
-                 original_price as originalPrice,
-                 currency,
-                 image_url as imageUrl,
-                 affiliate_url as affiliateUrl,
-                 affiliate_network_id as affiliateNetworkId,
-                 category, gender, rating,
-                 review_count as reviewCount,
-                 discount,
-                 COALESCE(is_new, 0) as isNew,
-                 COALESCE(is_featured, 0) as isFeatured,
-                 COALESCE(is_service, 0) as isService,
-                 custom_fields as customFields,
-                 pricing_type as pricingType,
-                 monthly_price as monthlyPrice,
-                 yearly_price as yearlyPrice,
-                 COALESCE(is_free, 0) as isFree,
-                 price_description as priceDescription,
-                 COALESCE(has_timer, 0) as hasTimer,
-                 timer_duration as timerDuration,
-                 timer_start_time as timerStartTime,
-                 created_at as createdAt
-          FROM products 
-          WHERE category = ?
-          ORDER BY id DESC
-        `).all(category);
-        
-        rawDb.close();
-        return result as Product[];
-      } catch (fallbackError) {
-        console.log('DatabaseStorage: Products by category fallback failed, returning empty array');
-        return [];
-      }
+      console.log('DatabaseStorage: Products by category query failed, returning empty array');
+      return [];
     }
   }
 
@@ -492,6 +488,73 @@ export class DatabaseStorage implements IStorage {
         .returning();
         
       console.log('DatabaseStorage: Product added successfully:', newProduct);
+
+      // Mirror into unified_content so displayPages-based sections can show it
+      try {
+        // Normalize displayPages from the form payload
+        const rawPages = (product.displayPages ?? product.display_pages ?? []) as any;
+        let displayPagesArr: string[] = [];
+        if (Array.isArray(rawPages)) {
+          displayPagesArr = rawPages.map((p: any) => String(p).trim()).filter(Boolean);
+        } else if (typeof rawPages === 'string' && rawPages.trim()) {
+          try {
+            const parsed = JSON.parse(rawPages);
+            if (Array.isArray(parsed)) displayPagesArr = parsed.map((p: any) => String(p).trim()).filter(Boolean);
+          } catch {
+            displayPagesArr = rawPages.split(',').map(s => s.trim()).filter(Boolean);
+          }
+        }
+
+        // Derive minimal required unified_content fields
+        const title = product.name?.trim() || '';
+        const description = product.description?.trim() || '';
+        const priceStr = product.price != null ? String(product.price) : null;
+        const originalPriceStr = product.originalPrice != null ? String(product.originalPrice) : null;
+        const currency = product.currency || 'INR';
+        const imageUrl = product.imageUrl?.trim() || '';
+        const affiliateUrl = product.affiliateUrl?.trim() || '';
+        const category = product.category || 'General';
+
+        // Choose a page_type: prefer first selected page, otherwise fallback
+        const pageType = displayPagesArr[0] || (product.isFeatured ? 'top-picks' : 'home');
+        const isFeaturedFlag = productData.isFeatured ? 1 : 0;
+
+        // Use better-sqlite3 to insert, matching existing columns used elsewhere
+        const ucInsert = sqliteDb.prepare(`
+          INSERT INTO unified_content (
+            title, description, price, original_price, currency,
+            image_url, affiliate_url, content_type, page_type,
+            category, subcategory, tags, is_active, is_featured,
+            display_pages, status, visibility, processing_status,
+            created_at, updated_at
+          ) VALUES (
+            ?, ?, ?, ?, ?,
+            ?, ?, 'product', ?,
+            ?, NULL, NULL, 1, ?,
+            ?, 'active', 'visible', 'active',
+            datetime('now'), datetime('now')
+          )
+        `);
+
+        ucInsert.run(
+          title,
+          description,
+          priceStr,
+          originalPriceStr,
+          currency,
+          imageUrl,
+          affiliateUrl,
+          pageType,
+          category,
+          isFeaturedFlag,
+          JSON.stringify(displayPagesArr.length ? displayPagesArr : ['home'])
+        );
+
+        console.log('DatabaseStorage: Mirrored product into unified_content with display_pages:', displayPagesArr);
+      } catch (mirrorErr) {
+        console.warn('DatabaseStorage: Could not mirror into unified_content:', (mirrorErr as any)?.message || mirrorErr);
+      }
+
       return newProduct;
     } catch (error: any) {
       console.error('DatabaseStorage: Error adding product:', error);

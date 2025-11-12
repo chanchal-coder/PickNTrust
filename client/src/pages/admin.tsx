@@ -37,11 +37,13 @@ import MetaTagsManagement from '@/components/admin/MetaTagsManagement';
 import RSSFeedsManagement from '@/components/admin/RSSFeedsManagement';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import AdRequestsPanel from '@/components/admin/AdRequestsPanel';
+import TelegramPublishToggle from '@/components/admin/TelegramPublishToggle';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   description: z.string().min(1, 'Description is required'),
-  price: z.string().min(1, 'Price is required'),
+  // Price can be optional to allow custom/free pricing flows handled in ProductManagement
+  price: z.string().optional(),
   originalPrice: z.string().optional(),
   imageUrl: z.string().url('Must be a valid URL'),
   affiliateUrl: z.string().url('Must be a valid URL'),
@@ -361,6 +363,8 @@ export default function AdminPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Include header for tolerant server parsing across environments
+          'x-admin-password': password,
         },
         body: JSON.stringify({ password }),
       });
@@ -945,6 +949,9 @@ export default function AdminPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Telegram Publish Toggle */}
+                  <TelegramPublishToggle />
+
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg border">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">8-Bot System Overview</h3>
                     <p className="text-gray-600 mb-4">

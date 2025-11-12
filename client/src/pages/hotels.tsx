@@ -371,11 +371,18 @@ export default function Hotels() {
             >
               <i className="fas fa-heart text-xs"></i>
             </button>
-            {deal.discount && (
-              <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
-                {deal.discount}% OFF
-              </div>
-            )}
+            {(() => {
+              const originalVal = Number((deal as any).originalPrice || (deal as any).original_price || 0);
+              const currentVal = Number(deal.price || 0);
+              const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+              if (!hasValidPrices) return null;
+              const pct = Math.round(((originalVal - currentVal) / originalVal) * 100);
+              return pct > 0 ? (
+                <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                  {pct}% OFF
+                </div>
+              ) : null;
+            })()}
           </div>
           
           <div className="p-3">

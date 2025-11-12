@@ -1,0 +1,63 @@
+Bulbuli — Page Slugs and Display Logic
+
+Overview
+- This document lists which page slugs are recognized by the site and explains how pages are rendered on both client and server.
+- “Slug” refers to the first URL segment after the domain, e.g. /prime-picks → slug: prime-picks.
+
+How Pages Display
+- Client routing: React Router defines explicit routes for known pages plus a dynamic catch‑all `/:slug` route.
+- Dynamic pages: The catch‑all route renders `DynamicPage` so admin‑created tabs (new slugs) can display without code changes.
+- Widget/page identifier: Components like `PageLayout`/`UniversalPageLayout` map the URL to a page identifier used by widgets and content sections. Special handling:
+  - `''` or `home` → `home`
+  - `blog/:slug` → `blog` (treated as blog page)
+  - `category/*` → `categories` (treated as category page for widgets)
+  - Otherwise the first URL segment is used as the page identifier.
+- Server API: `server/routes/pages-routes.ts` exposes `GET /api/pages` to list active pages and `GET /api/pages/:pageId` for details.
+- Content filtering: Content uses `displayPages` (stored JSON array of slugs) to decide where an item shows. Slugs are normalized to lowercase and `-` separated.
+- Banners: Banner endpoints select banners by `page` key; use one of the accepted slugs listed below.
+
+Accepted Slugs (standard pages)
+- home
+- blog
+- blog-post
+- apps
+- videos
+- services
+- top-picks
+- travel-picks
+- prime-picks
+- value-picks
+- click-picks
+- cue-picks
+- global-picks
+- trending
+- deals-hub
+- loot-box
+- flights
+- hotels
+- search
+- browse-categories
+- wishlist
+
+Excluded/Not for targeting (present in routes but excluded from announcement/banners)
+- admin
+- bot-admin
+- how-it-works
+- terms-of-service
+- privacy-policy
+- category (dynamic category pages)
+
+Dynamic Pages
+- Any admin-created navigation tab with a unique slug will render via `/:slug` and can host content.
+- Unless added to the accepted list above (client `PAGE_METADATA` and server `AVAILABLE_PAGES`), dynamic slugs won’t be returned by `GET /api/pages` and are not used by banner/page-targeted widgets by default.
+
+Source of Truth (code references)
+- Client: `client/src/utils/pages.ts` (PAGE_METADATA, EXCLUDED_ROUTES, getAvailablePages)
+- Client: `client/src/App.tsx` (explicit routes and `/:slug` dynamic route)
+- Client: `client/src/components/PageLayout.tsx` and `client/src/components/UniversalPageLayout.tsx` (page identifier mapping)
+- Server: `server/routes/pages-routes.ts` (AVAILABLE_PAGES and `/api/pages`)
+- Content: `server/routes/unified-content.ts` (displayPages normalization and storage)
+
+Examples
+- To show an item on Home and Prime Picks: set `displayPages` to `["home", "prime-picks"]`.
+- To fetch active pages via API: `GET /api/pages` returns the list and metadata.

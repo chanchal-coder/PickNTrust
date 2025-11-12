@@ -17,13 +17,20 @@ import {
   CheckCircle, AlertCircle, Loader2, Code, Copy, ExternalLink
 } from 'lucide-react';
 
+// Allow either rawHtml OR name+content. Provider/purpose optional.
 const metaTagSchema = z.object({
-  name: z.string().min(1, 'Meta tag name is required'),
-  content: z.string().min(1, 'Content is required'),
-  provider: z.string().min(1, 'Provider is required'),
-  purpose: z.string().min(1, 'Purpose is required'),
+  rawHtml: z.string().optional(),
+  name: z.string().optional(),
+  content: z.string().optional(),
+  provider: z.string().optional(),
+  purpose: z.string().optional(),
   isActive: z.boolean().optional().default(true),
-});
+}).refine((data) => {
+  const raw = (data.rawHtml || '').trim();
+  const hasRaw = raw.length > 0;
+  const hasStructured = Boolean((data.name || '').trim()) && Boolean((data.content || '').trim());
+  return hasRaw || hasStructured;
+}, { message: 'Provide raw HTML tag or name and content.' });
 
 type MetaTagForm = z.infer<typeof metaTagSchema>;
 
@@ -36,6 +43,7 @@ interface MetaTag {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  rawHtml?: string;
 }
 
 const commonProviders = [
@@ -66,6 +74,7 @@ export default function MetaTagsManagement() {
   const form = useForm<MetaTagForm>({
     resolver: zodResolver(metaTagSchema),
     defaultValues: {
+      rawHtml: '',
       name: '',
       content: '',
       provider: '',
@@ -232,6 +241,7 @@ export default function MetaTagsManagement() {
   const startEdit = (tag: MetaTag) => {
     setEditingTag(tag);
     form.reset({
+      rawHtml: tag.rawHtml || '',
       name: tag.name,
       content: tag.content,
       provider: tag.provider,
@@ -256,6 +266,9 @@ export default function MetaTagsManagement() {
   };
 
   const generateMetaTagHTML = (tag: MetaTag) => {
+    if (tag.rawHtml && tag.rawHtml.trim().length > 0) {
+      return tag.rawHtml.trim();
+    }
     return `<meta name="${tag.name}" content="${tag.content}" />`;
   };
 
@@ -360,12 +373,22 @@ export default function MetaTagsManagement() {
           <CardHeader>
             <CardTitle>{editingTag ? 'Edit Meta Tag' : 'Add New Meta Tag'}</CardTitle>
             <CardDescription>
-              Add meta tags for website ownership verification
+              Add meta tags for website ownership verification. Paste the exact tag HTML or fill the fields.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <Label htmlFor="rawHtml">Raw HTML Tag (optional)</Label>
+                  <Textarea
+                    {...form.register('rawHtml')}
+                    placeholder='Paste the exact meta tag HTML, e.g., <meta name="google-site-verification" content="TOKEN">'
+                    className="font-mono"
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">If provided, other fields become optional. Only meta tags are allowed.</p>
+                </div>
                 <div>
                   <Label htmlFor="provider">Provider</Label>
                   <Select
@@ -383,9 +406,7 @@ export default function MetaTagsManagement() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {form.formState.errors.provider && (
-                    <p className="text-sm text-red-600 mt-1">{form.formState.errors.provider.message}</p>
-                  )}
+                  {/* provider optional when rawHtml present */}
                 </div>
 
                 <div>
@@ -417,9 +438,7 @@ export default function MetaTagsManagement() {
                     placeholder="Or enter custom meta name (e.g., verify-admitad)"
                     className="mt-2"
                   />
-                  {form.formState.errors.name && (
-                    <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
-                  )}
+                  {/* name optional when rawHtml present */}
                 </div>
               </div>
 
@@ -429,9 +448,7 @@ export default function MetaTagsManagement() {
                   {...form.register('content')}
                   placeholder="Enter the verification code or content"
                 />
-                {form.formState.errors.content && (
-                  <p className="text-sm text-red-600 mt-1">{form.formState.errors.content.message}</p>
-                )}
+                {/* content optional when rawHtml present */}
               </div>
 
               <div>
@@ -440,9 +457,7 @@ export default function MetaTagsManagement() {
                   {...form.register('purpose')}
                   placeholder="e.g., Site Verification, Domain Verification"
                 />
-                {form.formState.errors.purpose && (
-                  <p className="text-sm text-red-600 mt-1">{form.formState.errors.purpose.message}</p>
-                )}
+                {/* purpose optional when rawHtml present */}
               </div>
 
               <div className="flex items-center space-x-2">

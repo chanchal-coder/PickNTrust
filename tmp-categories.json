@@ -1,0 +1,443 @@
+[
+  {
+    "id": 13,
+    "name": "Apps & AI Apps",
+    "display_order": 1,
+    "is_active": 1,
+    "icon": "🤖",
+    "color": "#7C3AED",
+    "description": ""
+  },
+  {
+    "id": 1,
+    "name": "Fashion",
+    "display_order": 1,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 8,
+    "name": "Services",
+    "display_order": 1,
+    "is_active": 1,
+    "icon": "🛠️",
+    "color": "#10B981",
+    "description": ""
+  },
+  {
+    "id": 14,
+    "name": "AI Tools",
+    "display_order": 2,
+    "is_active": 1,
+    "icon": "🤖",
+    "color": "#7C3AED",
+    "description": ""
+  },
+  {
+    "id": 188,
+    "name": "Accessories",
+    "display_order": 2,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 9,
+    "name": "Digital Services",
+    "display_order": 2,
+    "is_active": 1,
+    "icon": "🛠️",
+    "color": "#10B981",
+    "description": ""
+  },
+  {
+    "id": 2,
+    "name": "Home & Living",
+    "display_order": 2,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 208,
+    "name": "AI Writing Tools",
+    "display_order": 3,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 3,
+    "name": "Electronics & Gadgets",
+    "display_order": 3,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 194,
+    "name": "Financial Services",
+    "display_order": 3,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 10,
+    "name": "Marketing Services",
+    "display_order": 3,
+    "is_active": 1,
+    "icon": "🛠️",
+    "color": "#10B981",
+    "description": ""
+  },
+  {
+    "id": 15,
+    "name": "Productivity Apps",
+    "display_order": 3,
+    "is_active": 1,
+    "icon": "🤖",
+    "color": "#7C3AED",
+    "description": ""
+  },
+  {
+    "id": 209,
+    "name": "AI Image Tools",
+    "display_order": 4,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 4,
+    "name": "Beauty",
+    "display_order": 4,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 16,
+    "name": "Design Apps",
+    "display_order": 4,
+    "is_active": 1,
+    "icon": "🤖",
+    "color": "#7C3AED",
+    "description": ""
+  },
+  {
+    "id": 11,
+    "name": "Home Services",
+    "display_order": 4,
+    "is_active": 1,
+    "icon": "🛠️",
+    "color": "#10B981",
+    "description": ""
+  },
+  {
+    "id": 210,
+    "name": "AI Assistants",
+    "display_order": 5,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 195,
+    "name": "Education Services",
+    "display_order": 5,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 189,
+    "name": "Health",
+    "display_order": 5,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 12,
+    "name": "Health & Wellness Services",
+    "display_order": 5,
+    "is_active": 1,
+    "icon": "🛠️",
+    "color": "#10B981",
+    "description": ""
+  },
+  {
+    "id": 5,
+    "name": "Sports & Fitness",
+    "display_order": 5,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 6,
+    "name": "Books & Education",
+    "display_order": 6,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 7,
+    "name": "Automotive",
+    "display_order": 7,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#3B82F6",
+    "description": ""
+  },
+  {
+    "id": 190,
+    "name": "Baby & Kids",
+    "display_order": 8,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 211,
+    "name": "Developer Tools",
+    "display_order": 8,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 196,
+    "name": "Travel Services",
+    "display_order": 8,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 197,
+    "name": "Automotive Services",
+    "display_order": 9,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 212,
+    "name": "Business Analytics Apps",
+    "display_order": 9,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 213,
+    "name": "Education Apps",
+    "display_order": 10,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 198,
+    "name": "Technology Services",
+    "display_order": 10,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 199,
+    "name": "Business Services",
+    "display_order": 11,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 214,
+    "name": "Finance Apps",
+    "display_order": 11,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 191,
+    "name": "Pet Supplies",
+    "display_order": 11,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 215,
+    "name": "Health & Fitness Apps",
+    "display_order": 12,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 200,
+    "name": "Legal Services",
+    "display_order": 12,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 192,
+    "name": "Office & Productivity",
+    "display_order": 12,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 216,
+    "name": "Marketing Automation",
+    "display_order": 13,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 201,
+    "name": "Real Estate Services",
+    "display_order": 13,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 193,
+    "name": "Travel",
+    "display_order": 13,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 202,
+    "name": "Creative & Design Services",
+    "display_order": 14,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 217,
+    "name": "Social Media Tools",
+    "display_order": 14,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 218,
+    "name": "Entertainment Apps",
+    "display_order": 15,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 203,
+    "name": "Repair & Maintenance Services",
+    "display_order": 15,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 204,
+    "name": "Logistics & Delivery Services",
+    "display_order": 16,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 219,
+    "name": "Utilities",
+    "display_order": 16,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 205,
+    "name": "Consulting Services",
+    "display_order": 17,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 206,
+    "name": "Entertainment Services",
+    "display_order": 18,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 207,
+    "name": "Event Services",
+    "display_order": 19,
+    "is_active": 1,
+    "icon": "📦",
+    "color": "#666666",
+    "description": ""
+  },
+  {
+    "id": 187,
+    "name": "Curated Picks",
+    "display_order": 999,
+    "is_active": 1,
+    "icon": "fas fa-star",
+    "color": "#FFD700",
+    "description": "Hand-selected premium products curated by our experts"
+  }
+]

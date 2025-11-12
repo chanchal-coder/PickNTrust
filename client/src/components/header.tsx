@@ -184,6 +184,19 @@ export default function Header() {
       is_system: true,
       description: "Mystery boxes with amazing surprises"
     }
+    ,
+    {
+      id: 9,
+      name: "Explore",
+      slug: "explore",
+      icon: "fas fa-compass",
+      color_from: "#10B981",
+      color_to: "#06B6D4",
+      display_order: 9,
+      is_active: true,
+      is_system: true,
+      description: "Explore advertisements"
+    }
   ];
 
   // Fetch navigation tabs with direct backend call and real-time updates
@@ -296,7 +309,9 @@ export default function Header() {
       const target = document.getElementById(sectionId);
       if (target) {
         const headerHeight = getHeaderHeight();
-        const y = target.getBoundingClientRect().top + window.scrollY - headerHeight - 8; // small margin
+        // Add extra offset so the section heading and first content are visible
+        const extraOffset = Math.min(96, Math.max(48, Math.round(window.innerHeight * 0.08)));
+        const y = target.getBoundingClientRect().top + window.scrollY - headerHeight - 8 + extraOffset; // show heading + section
         window.scrollTo({ top: y, behavior: 'smooth' });
         return true;
       }
@@ -349,6 +364,8 @@ export default function Header() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Provide password in header as well for tolerant server parsing
+          'x-admin-password': adminPassword,
         },
         body: JSON.stringify({ password: adminPassword }),
       });
@@ -481,6 +498,17 @@ export default function Header() {
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
           </button>
 
+          {/* Trending */}
+          <button
+            onClick={() => scrollToSection('trending-products')}
+            className="group relative bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
+            title="Most popular and trending products"
+          >
+            <i className="fas fa-chart-line group-hover:rotate-12 transition-transform"></i>
+            <span className="font-semibold hidden sm:inline">Trending</span>
+            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+          </button>
+
           {/* Services */}
           <button
             onClick={() => scrollToSection('cards-apps-services')}
@@ -604,57 +632,57 @@ export default function Header() {
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
             </Link>
           ))}
-          {/* Dynamic Navigation Tabs, injecting Explore next to Loot Box */}
+          {/* Dynamic Navigation Tabs rendered from API (no special injection) */}
           {navTabs
             .filter((t) => !['prime-picks','cue-picks','value-picks'].includes(t.slug))
-            .flatMap((tab) => {
-            const elements = [
-              (
-                <Link
-                  key={`nav-${tab.id}`}
-                  href={`/${tab.slug}`}
-                  className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
-                  style={{
-                    background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
-                  }}
-                  title={tab.description || tab.name}
-                  onClick={() => {
-                    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                  }}
-                >
-                  <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
-                  <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
-                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
-                </Link>
-              ),
-            ];
-
-            if (tab.slug === 'loot-box') {
-              elements.push(
-                <Link
-                  key={`nav-explore`}
-                  href="/explore"
-                  className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
-                  style={{
-                    background: 'linear-gradient(to right, #10B981, #06B6D4)',
-                  }}
-                  title="Explore advertisements"
-                  onClick={() => {
-                    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                  }}
-                >
-                  <i className={`fas fa-compass text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
-                  <span className="font-semibold text-xs sm:text-sm">Explore</span>
-                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
-                </Link>
-              );
-            }
-
-            return elements;
-          })}
+            .map((tab) => (
+              <Link
+                key={`nav-${tab.id}`}
+                href={`/${tab.slug}`}
+                className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
+                style={{
+                  background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
+                }}
+                title={tab.description || tab.name}
+                onClick={() => {
+                  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+                }}
+              >
+                <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
+                <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
+                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+              </Link>
+            ))}
         </div>
 
-        
+        {/* Third Row - New Dynamic Tabs (Fresh Picks, Artist's Corner, OTT Hub) */}
+        <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 lg:gap-3 pt-1 pb-2 px-1 sm:px-2 lg:px-4 border-t border-gray-800/40">
+          {[
+            { name: 'Fresh Picks', slug: 'fresh-picks', icon: 'fas fa-leaf', color_from: '#10B981', color_to: '#06B6D4', description: 'Latest and freshest curated selections' },
+            { name: "Artist's Corner", slug: 'artists-corner', icon: 'fas fa-palette', color_from: '#8B5CF6', color_to: '#EC4899', description: 'Creative picks, art and design highlights' },
+            { name: 'OTT Hub', slug: 'ott-hub', icon: 'fas fa-tv', color_from: '#EF4444', color_to: '#F59E0B', description: 'Streaming, OTT platforms and entertainment' },
+          ]
+            // Avoid duplicates if API already provides these tabs
+            .filter((tab) => !navTabs.some((t) => t.slug === tab.slug))
+            .map((tab) => (
+              <Link
+                key={`nav-new-${tab.slug}`}
+                href={`/${tab.slug}`}
+                className="group relative text-white px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-1 text-xs sm:text-sm touch-manipulation flex-shrink-0 whitespace-nowrap"
+                style={{
+                  background: `linear-gradient(to right, ${tab.color_from}, ${tab.color_to})`,
+                }}
+                title={tab.description || tab.name}
+                onClick={() => {
+                  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+                }}
+              >
+                <i className={`${tab.icon} text-xs sm:text-sm mr-1 group-hover:rotate-12 transition-transform`}></i>
+                <span className="font-semibold text-xs sm:text-sm">{tab.name}</span>
+                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
+              </Link>
+            ))}
+        </div>
 
         {/* CTA row placed between navigation and social proof */}
         <div className="w-full px-2 sm:px-4 lg:px-8 mt-2 sm:mt-3 mb-2 sm:mb-3">
@@ -723,6 +751,8 @@ export default function Header() {
           </div>
           
         </div>
+
+        
 
         {/* Social Proof Bar - Full Original Version in Header */}
         <HeaderSocialProofBar />

@@ -185,7 +185,8 @@ router.put('/api/admin/canva/settings', async (req: Request, res: Response) => {
       console.error('Error updating Canva settings:', error);
       return res.status(500).json({ 
         success: false, 
-        error: 'Failed to update Canva settings' 
+        error: 'Failed to update Canva settings',
+        details: (error && (error as any).message) ? String((error as any).message) : undefined
       });
     }
 

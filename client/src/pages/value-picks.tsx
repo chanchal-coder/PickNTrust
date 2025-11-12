@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import WidgetRenderer from '@/components/WidgetRenderer';
 import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
@@ -10,7 +11,7 @@ import PageVideosSection from '@/components/PageVideosSection';
 
 
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import AmazonProductCard from "@/components/amazon-product-card";
 
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,7 @@ import useHasActiveWidgets from '@/hooks/useHasActiveWidgets';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { inferGender } from "@/utils/gender";
 
 interface Product {
   id: number | string;
@@ -93,14 +95,23 @@ interface Product {
 export default function ValuePicks() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location] = useLocation();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  // Price range label for UniversalFilterSidebar
+  const [priceRangeLabel, setPriceRangeLabel] = useState<string>('all');
+  // Maintain numeric bounds for filtering
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: Infinity});
   const [minRating, setMinRating] = useState<number>(0);
+  const [selectedGender, setSelectedGender] = useState<string>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const { data: hasWidgets } = useHasActiveWidgets('value-picks');
+
+  // Optional currency state for universal sidebar (hidden on this page)
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('all');
+  const [convertPrices, setConvertPrices] = useState<boolean>(false);
 
   // Check admin status
   useEffect(() => {
@@ -196,6 +207,23 @@ export default function ValuePicks() {
     staleTime: 0, // Real-time updates
   });
 
+  // Use shared, strict gender inference
+
+  // Available genders from products (include umbrella kids when needed)
+  const availableGenders: string[] = (() => {
+    const set = new Set<string>();
+    (allValueProducts as Product[]).forEach((p) => {
+      const g = inferGender(p);
+      if (g) set.add(g);
+    });
+    if ((set.has('boys') || set.has('girls')) && !set.has('kids')) {
+      set.add('kids');
+    }
+    const order = ['men','women','kids','boys','girls','unisex'];
+    const filtered = order.filter(g => set.has(g));
+    return ['all', ...filtered];
+  })();
+
   // Apply client-side filtering for price and rating
   const filteredProducts = allValueProducts.filter(product => {
     // Filter by price range
@@ -209,6 +237,16 @@ export default function ValuePicks() {
       return false;
     }
 
+    // Gender filter
+    if (selectedGender && selectedGender !== 'all') {
+      const g = inferGender(product);
+      if (selectedGender === 'kids') {
+        if (!(g === 'boys' || g === 'girls' || g === 'kids')) return false;
+      } else {
+        if (g !== selectedGender) return false;
+      }
+    }
+
     return true;
   });
 
@@ -216,12 +254,57 @@ export default function ValuePicks() {
     setSelectedCategory(category);
   };
 
+  // Map label to numeric bounds and keep both in sync
+  const getPriceBounds = (label: string): {min: number, max: number} => {
+    if (!label || label === 'all') return { min: 0, max: Infinity };
+    if (/^\d+-\d+$/.test(label)) {
+      const [min, max] = label.split('-').map(v => parseFloat(v));
+      return { min, max };
+    }
+    const min = parseFloat(label);
+    return { min: isNaN(min) ? 0 : min, max: Infinity };
+  };
+
   const handlePriceRangeChange = (min: number, max: number) => {
     setPriceRange({min, max});
+    if (min === 0 && !isFinite(max)) setPriceRangeLabel('all');
+    else if (isFinite(min) && isFinite(max)) setPriceRangeLabel(`${min}-${max}`);
+    else if (isFinite(min) && !isFinite(max)) setPriceRangeLabel(`${min}+`);
   };
 
   const handleRatingChange = (rating: number) => {
     setMinRating(rating);
+  };
+
+  // Sync numeric bounds whenever label changes
+  useEffect(() => {
+    const bounds = getPriceBounds(priceRangeLabel);
+    setPriceRange(bounds);
+  }, [priceRangeLabel]);
+
+  // Read gender from query param and sync to state
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const g = (params.get('gender') || '').toLowerCase();
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized || 'all');
+  }, [location]);
+
+  const handleGenderChange = (g: string) => {
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    if (normalized === 'all') {
+      params.delete('gender');
+    } else {
+      params.set('gender', normalized);
+    }
+    const basePath = typeof window !== 'undefined' ? window.location.pathname : '/value-picks';
+    const query = params.toString();
+    const newUrl = query ? `${basePath}?${query}` : basePath;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newUrl);
+    }
   };
 
   // Show error toast if products fail to load
@@ -241,7 +324,9 @@ export default function ValuePicks() {
             {/* Header Top above dynamic banner */}
             <WidgetRenderer page={'value-picks'} position="header-top" className="w-full" />
             <AnnouncementBanner />
-            {/* Mobile Filters Drawer */}
+            {/* Page Banner Slider */}
+            <PageBanner page="value-picks" />
+            {/* Mobile Filters Drawer (below banner on mobile) */}
             <div className="md:hidden px-4 pt-3">
               <Button onClick={() => setFiltersOpen(true)} className="bg-orange-600 hover:bg-orange-700">
                 <i className="fas fa-sliders-h mr-2"/> Filters
@@ -252,19 +337,36 @@ export default function ValuePicks() {
                     <SheetTitle>Filters</SheetTitle>
                   </SheetHeader>
                   <div className="mt-4">
-                    <Sidebar 
-                      onCategoryChange={handleCategoryChange}
-                      onPriceRangeChange={handlePriceRangeChange}
-                      onRatingChange={handleRatingChange}
+                    <UniversalFilterSidebar
+                      showNetworks={false}
+                      showCurrency={false}
+                      categorySelectionMode="single"
+                      selectedCurrency={selectedCurrency}
+                      setSelectedCurrency={setSelectedCurrency}
+                      convertPrices={convertPrices}
+                      setConvertPrices={setConvertPrices}
+                      priceRange={priceRangeLabel}
+                      setPriceRange={setPriceRangeLabel}
                       availableCategories={availableCategories}
+                      selectedCategory={selectedCategory}
+                      setSelectedCategory={setSelectedCategory}
+                      availableGenders={availableGenders}
+                      selectedGender={selectedGender}
+                      setSelectedGender={handleGenderChange}
+                      minRating={minRating}
+                      setMinRating={handleRatingChange}
+                      resultsCount={filteredProducts.length}
+                      onClearFilters={() => {
+                        setSelectedCategory('');
+                        setPriceRangeLabel('all');
+                        setSelectedGender('all');
+                        setMinRating(0);
+                      }}
                     />
                   </div>
                 </SheetContent>
               </Sheet>
             </div>
-            
-            {/* Page Banner Slider */}
-            <PageBanner page="value-picks" />
             {/* Header Bottom below dynamic banner */}
             <WidgetRenderer page={'value-picks'} position="header-bottom" className="w-full" />
             
@@ -274,11 +376,31 @@ export default function ValuePicks() {
               <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
                 {/* Sidebar (desktop only) */}
                 <div className="hidden md:block">
-                  <Sidebar 
-                    onCategoryChange={handleCategoryChange}
-                    onPriceRangeChange={handlePriceRangeChange}
-                    onRatingChange={handleRatingChange}
+                  <UniversalFilterSidebar
+                    showNetworks={false}
+                    showCurrency={false}
+                    categorySelectionMode="single"
+                    selectedCurrency={selectedCurrency}
+                    setSelectedCurrency={setSelectedCurrency}
+                    convertPrices={convertPrices}
+                    setConvertPrices={setConvertPrices}
+                    priceRange={priceRangeLabel}
+                    setPriceRange={setPriceRangeLabel}
                     availableCategories={availableCategories}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                    availableGenders={availableGenders}
+                    selectedGender={selectedGender}
+                    setSelectedGender={handleGenderChange}
+                    minRating={minRating}
+                    setMinRating={handleRatingChange}
+                    resultsCount={filteredProducts.length}
+                    onClearFilters={() => {
+                      setSelectedCategory('');
+                      setPriceRangeLabel('all');
+                      setSelectedGender('all');
+                      setMinRating(0);
+                    }}
                   />
                 </div>
       

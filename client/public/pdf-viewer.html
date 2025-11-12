@@ -65,25 +65,57 @@
         const params = new URLSearchParams(window.location.search);
         return params.get(name);
       }
-      function showLink(fileUrl) {
+      function showLink(originalUrl) {
         const errorEl = document.getElementById('error');
-        const link = document.createElement('a');
-        link.href = fileUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.textContent = 'Open file in a new tab';
-        link.style.display = 'inline-block';
-        link.style.marginTop = '8px';
-        link.style.color = '#2563eb';
-        errorEl.appendChild(link);
+        const proxied = '/api/pdf-proxy?url=' + encodeURIComponent(originalUrl);
+        const links = document.createElement('div');
+        links.style.marginTop = '8px';
+
+        const viaProxy = document.createElement('a');
+        viaProxy.href = proxied;
+        viaProxy.target = '_blank';
+        viaProxy.rel = 'noopener noreferrer';
+        viaProxy.textContent = 'Open file via proxy';
+        viaProxy.style.display = 'inline-block';
+        viaProxy.style.marginRight = '16px';
+        viaProxy.style.color = '#2563eb';
+        links.appendChild(viaProxy);
+
+        const direct = document.createElement('a');
+        direct.href = originalUrl;
+        direct.target = '_blank';
+        direct.rel = 'noopener noreferrer';
+        direct.textContent = 'Open file directly';
+        direct.style.display = 'inline-block';
+        direct.style.color = '#2563eb';
+        links.appendChild(direct);
+
+        errorEl.appendChild(links);
+      }
+      function showDebug(info) {
+        try {
+          const container = document.getElementById('viewer');
+          const pre = document.createElement('pre');
+          pre.style.background = '#f9fafb';
+          pre.style.color = '#111827';
+          pre.style.padding = '12px';
+          pre.style.borderRadius = '8px';
+          pre.style.border = '1px solid #e5e7eb';
+          pre.style.fontSize = '12px';
+          pre.style.overflow = 'auto';
+          pre.textContent = '[Debug] ' + JSON.stringify(info, null, 2);
+          container.appendChild(pre);
+        } catch {}
       }
       async function renderPDF() {
-        const fileUrl = getParam('file');
+        const rawFileUrl = getParam('file');
+        const useDirect = getParam('mode') === 'direct';
+        const fileUrl = rawFileUrl ? (useDirect ? rawFileUrl : `/api/pdf-proxy?url=${encodeURIComponent(rawFileUrl)}`) : '';
         const container = document.getElementById('viewer');
         const loadingEl = document.getElementById('loading');
         const errorEl = document.getElementById('error');
 
-        if (!fileUrl) {
+        if (!rawFileUrl) {
           loadingEl.style.display = 'none';
           errorEl.textContent = 'No file provided';
           errorEl.style.display = 'block';
@@ -100,6 +132,7 @@
               const ct = headResp.headers.get('content-type') || '';
               if (!/application\/pdf/i.test(ct)) {
                 console.warn('Unexpected Content-Type for PDF:', ct);
+                showDebug({ stage: 'HEAD', status: headResp.status, contentType: ct, url: fileUrl, rawFileUrl });
               }
             }
           } catch {}
@@ -113,7 +146,54 @@
             loadingEl.style.display = 'none';
             errorEl.textContent = 'Failed to load PDF';
             errorEl.style.display = 'block';
-            showLink(fileUrl);
+            showDebug({ stage: 'GET', ok: !!resp, status: resp ? resp.status : 'no-response', url: fileUrl, rawFileUrl });
+            // Fallback: try direct raw file URL if proxy failed
+            if (!useDirect) {
+              try {
+                const directResp = await fetch(rawFileUrl).catch(() => null);
+                if (directResp && directResp.ok) {
+                  const directCT = directResp.headers.get('content-type') || '';
+                  if (/application\/pdf/i.test(directCT) || /application\/octet-stream/i.test(directCT)) {
+                    const directBuf = await directResp.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: directBuf, withCredentials: false, disableRange: true }).promise;
+                    loadingEl.style.display = 'none';
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                      const page = await pdf.getPage(pageNum);
+                      const viewport = page.getViewport({ scale: 1 });
+                      const containerWidth = container.clientWidth || 1024;
+                      const scale = containerWidth / viewport.width;
+                      const scaledViewport = page.getViewport({ scale });
+                      const pageDiv = document.createElement('div');
+                      pageDiv.className = 'page';
+                      pageDiv.style.height = scaledViewport.height + 'px';
+                      const canvas = document.createElement('canvas');
+                      canvas.width = Math.floor(scaledViewport.width);
+                      canvas.height = Math.floor(scaledViewport.height);
+                      const ctx = canvas.getContext('2d');
+                      pageDiv.appendChild(canvas);
+                      container.appendChild(pageDiv);
+                      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+                    }
+                    return;
+                  }
+                }
+              } catch {}
+            }
+            showLink(rawFileUrl);
+            return;
+          }
+          const respCT = resp.headers.get('content-type') || '';
+          if (!/application\/pdf/i.test(respCT) && !/application\/octet-stream/i.test(respCT)) {
+            let textSnippet = '';
+            try {
+              const txt = await resp.text();
+              textSnippet = (txt || '').slice(0, 300);
+            } catch {}
+            loadingEl.style.display = 'none';
+            errorEl.innerHTML = 'Failed to load PDF<br/><span style="font-size:12px;color:#6b7280">Unexpected Content-Type: ' + respCT + '</span>';
+            errorEl.style.display = 'block';
+            showDebug({ stage: 'GET-nonpdf', status: resp.status, contentType: respCT, url: fileUrl, rawFileUrl, textPreview: textSnippet });
+            showLink(rawFileUrl);
             return;
           }
           const buf = await resp.arrayBuffer();
@@ -121,7 +201,7 @@
             loadingEl.style.display = 'none';
             errorEl.textContent = 'Invalid PDF (empty file)';
             errorEl.style.display = 'block';
-            showLink(fileUrl);
+            showLink(rawFileUrl);
             return;
           }
 
@@ -207,6 +287,7 @@
           const msg = (err && (err.message || String(err))) || 'Failed to load PDF';
           errorEl.innerHTML = 'Failed to load PDF<br/><span style="font-size:12px;color:#6b7280">' + msg + '</span>';
           errorEl.style.display = 'block';
+          showDebug({ stage: 'render-exception', error: String(err), url: fileUrl, rawFileUrl });
           // Fallback: try native embed
           try {
             const embed = document.createElement('embed');
@@ -218,7 +299,7 @@
           } catch (e2) {
             console.warn('Native embed fallback failed:', e2);
           }
-          showLink(fileUrl);
+          showLink(rawFileUrl);
         }
       }
 

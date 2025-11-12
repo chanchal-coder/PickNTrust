@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS meta_tags (
   content TEXT NOT NULL,
   provider TEXT NOT NULL,
   purpose TEXT NOT NULL,
+  -- Optional raw HTML for exact tag injection (e.g., <meta name="..." content="...">)
+  raw_html TEXT DEFAULT NULL,
   is_active INTEGER DEFAULT 1,
   created_at INTEGER DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER DEFAULT (strftime('%s', 'now'))

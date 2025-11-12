@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useLocation } from "wouter";
 import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from "@/hooks/use-wishlist";
 import { ProductTimer } from "@/components/product-timer";
@@ -12,7 +12,7 @@ import PageVideosSection from '@/components/PageVideosSection';
 import WidgetRenderer from '@/components/WidgetRenderer';
 import SafeWidgetRenderer from '@/components/SafeWidgetRenderer';
 import { AnnouncementBanner } from "@/components/announcement-banner";
-import Sidebar from "@/components/sidebar";
+import UniversalFilterSidebar from "@/components/UniversalFilterSidebar";
 import EnhancedShare from '@/components/enhanced-share';
 import SmartShareDropdown from '@/components/SmartShareDropdown';
 import ShareAutomaticallyModal from '@/components/ShareAutomaticallyModal';
@@ -20,6 +20,7 @@ import { CURRENCIES, CurrencyCode } from '@/contexts/CurrencyContext';
 import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
 import UniversalPageLayout from '@/components/UniversalPageLayout';
 import PriceTag from '@/components/PriceTag';
+import { inferGender } from "@/utils/gender";
 
 // Define Product type locally to avoid schema conflicts
 interface Product {
@@ -100,10 +101,14 @@ const formatProductPrice = (price: string | number, productCurrency?: string) =>
 };
 
 export default function TopPicks() {
+  const [location] = useLocation();
   const [showShareMenu, setShowShareMenu] = useState<{[key: number]: boolean}>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: Infinity});
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('all');
+  const [convertPrices, setConvertPrices] = useState<boolean>(false);
+  const [priceRangeLabel, setPriceRangeLabel] = useState<string>('all');
   const [minRating, setMinRating] = useState<number>(0);
+  const [selectedGender, setSelectedGender] = useState<string>('all');
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
@@ -119,6 +124,16 @@ export default function TopPicks() {
     const adminAuth = localStorage.getItem('pickntrust-admin-session');
     setIsAdmin(adminAuth === 'active');
   }, []);
+
+  // Sync gender from URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const genderParam = params.get('gender');
+    if (genderParam) {
+      const normalized = genderParam === 'common' ? 'unisex' : genderParam.toLowerCase();
+      setSelectedGender(normalized);
+    }
+  }, [location]);
   
   // Handle share modal
   const handleShareToAll = (product: Product) => {
@@ -126,15 +141,29 @@ export default function TopPicks() {
     setShareModalOpen(true);
   };
   
-  const handleConfirmShare = () => {
-    if (selectedProduct) {
-      // TODO: Implement actual sharing based on admin panel automation settings
-      alert(`✅ Sharing "${selectedProduct.name}" to all configured platforms!`);
-      console.log('Share confirmed for:', selectedProduct.id, selectedProduct.name);
-      // Here you would call the API: await shareToAllPlatforms(selectedProduct.id, adminPlatformSettings);
+  const handleConfirmShare = async () => {
+    try {
+      if (selectedProduct) {
+        const { sendProductToTelegram } = await import('@/utils/telegram');
+        // Attempt Telegram post without affecting other shares
+        await sendProductToTelegram({
+          id: selectedProduct.id,
+          name: selectedProduct.name,
+          description: selectedProduct.description,
+          price: selectedProduct.price,
+          originalPrice: (selectedProduct as any).originalPrice,
+          imageUrl: selectedProduct.imageUrl || (selectedProduct as any).image_url,
+          affiliateUrl: selectedProduct.affiliateUrl || (selectedProduct as any).affiliate_url,
+        }, { pageSlug: 'top-picks' });
+      }
+      alert('✅ Shared to Telegram');
+    } catch (err) {
+      console.error('Telegram share failed:', err);
+      alert('❌ Telegram share failed');
+    } finally {
+      setShareModalOpen(false);
+      setSelectedProduct(null);
     }
-    setShareModalOpen(false);
-    setSelectedProduct(null);
   };
   
   const handleCloseModal = () => {
@@ -237,17 +266,41 @@ export default function TopPicks() {
   // Get unique categories for sidebar
   const availableCategories = Array.from(new Set(displayProducts.map(product => product.category).filter(Boolean)));
 
-  // Handler functions for sidebar
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-  };
+  // Derive available genders from products
+  const availableGenders = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of displayProducts) {
+      const g = inferGender(p);
+      if (g) set.add(g);
+    }
+    const hasBoys = set.has('boys');
+    const hasGirls = set.has('girls');
+    if (hasBoys || hasGirls) set.add('kids');
+    const ordered = ['men', 'women', 'kids', 'boys', 'girls', 'unisex'].filter(g => set.has(g));
+    return ['all', ...ordered];
+  }, [displayProducts]);
 
-  const handlePriceRangeChange = (min: number, max: number) => {
-    setPriceRange({min, max});
+  // Helper: convert string price range label to numeric bounds
+  const getPriceBounds = (rangeValue: string): { min: number; max: number } => {
+    if (!rangeValue || rangeValue === 'all') return { min: 0, max: Infinity };
+    if (rangeValue.includes('-')) {
+      const [minStr, maxStr] = rangeValue.split('-');
+      const min = parseFloat(minStr);
+      const max = parseFloat(maxStr);
+      return { min: isNaN(min) ? 0 : min, max: isNaN(max) ? Infinity : max };
+    }
+    const min = parseFloat(rangeValue);
+    return { min: isNaN(min) ? 0 : min, max: Infinity };
   };
+  const priceBounds = getPriceBounds(priceRangeLabel);
 
-  const handleRatingChange = (rating: number) => {
-    setMinRating(rating);
+  const clearFilters = () => {
+    setSelectedCategory('');
+    setSelectedCurrency('all');
+    setConvertPrices(false);
+    setPriceRangeLabel('all');
+    setMinRating(0);
+    setSelectedGender('all');
   };
 
   // Apply client-side filtering for category, price, and rating
@@ -264,9 +317,20 @@ export default function TopPicks() {
       }
     }
 
+    // Filter by gender
+    if (selectedGender && selectedGender !== 'all') {
+      const inferred = inferGender(product);
+      const g = (inferred || '').toLowerCase();
+      if (selectedGender === 'kids') {
+        if (!['boys', 'girls', 'kids'].includes(g)) return false;
+      } else if (g !== selectedGender) {
+        return false;
+      }
+    }
+
     // Filter by price range (strip non-numeric characters)
     const priceNum = parseFloat(String(product.price ?? '').toString().replace(/[^0-9.]/g, '')) || 0;
-    if (priceNum < priceRange.min || priceNum > priceRange.max) {
+    if (priceNum < priceBounds.min || priceNum > priceBounds.max) {
       return false;
     }
 
@@ -276,8 +340,34 @@ export default function TopPicks() {
       return false;
     }
 
+    // Filter by currency (case-insensitive)
+    if (selectedCurrency !== 'all') {
+      const prodCurrency = String(product.currency ?? '').trim().toUpperCase();
+      if (prodCurrency && prodCurrency !== String(selectedCurrency).trim().toUpperCase()) {
+        return false;
+      }
+    }
+
     return true;
   });
+
+  // Handle gender selection and sync URL
+  const handleGenderChange = (g: string) => {
+    const normalized = g === 'common' ? 'unisex' : g;
+    setSelectedGender(normalized);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    if (normalized === 'all') {
+      params.delete('gender');
+    } else {
+      params.set('gender', normalized);
+    }
+    const basePath = typeof window !== 'undefined' ? window.location.pathname : '/top-picks';
+    const query = params.toString();
+    const newUrl = query ? `${basePath}?${query}` : basePath;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newUrl);
+    }
+  };
 
   const handleAffiliateClick = (product: Product) => {
     window.open(product.affiliateUrl, '_blank', 'noopener,noreferrer');
@@ -301,7 +391,13 @@ export default function TopPicks() {
 
   const handleShare = (platform: string, product: Product) => {
     const shareUrl = `${window.location.origin}/product/${product.id}`;
-    const shareText = `Check out this amazing deal: ${product.name} - Only ₹${product.price}! ${product.discount ? `${product.discount}% OFF!` : ''} - PickNTrust`;
+    // Compute discount only when both original and current prices are valid
+    const originalVal = Number((product as any).originalPrice || (product as any).original_price || 0);
+    const currentVal = Number(product.price || 0);
+    const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+    const pct = hasValidPrices ? Math.round(((originalVal - currentVal) / originalVal) * 100) : 0;
+    const discountText = hasValidPrices && pct > 0 ? ` ${pct}% OFF!` : '';
+    const shareText = `Check out this amazing deal: ${product.name} - Only ₹${product.price}!${discountText} - PickNTrust`;
     
     let url = '';
     switch (platform) {
@@ -460,60 +556,9 @@ export default function TopPicks() {
     );
   }
 
-  if (error || !filteredProducts || filteredProducts.length === 0) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        {/* Canonical Header Widgets */}
-        <WidgetRenderer page={'top-picks'} position="header-top" className="w-full" />
-        <AnnouncementBanner />
-        <PageBanner page="top-picks" />
-        <WidgetRenderer page={'top-picks'} position="header-bottom" className="w-full" />
-        <div className="header-spacing">
-        <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white mb-4 leading-tight">
-                Today's Top Picks <i className="fas fa-fire"></i>
-              </h1>
-              <p className="text-lg md:text-xl text-white/90 mb-6">
-                Hand-selected deals you can trust - Updated daily
-              </p>
-              <Link 
-                href="/"
-                className="inline-flex items-center px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <i className="fas fa-arrow-left mr-2"></i>
-                Back to Home
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="text-center">
-              <div className="mb-8">
-                <i className="fas fa-box-open text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
-                <h2 className="text-2xl font-bold text-gray-600 dark:text-gray-400 mb-2">
-                  No Featured Products Yet
-                </h2>
-                <p className="text-gray-500 dark:text-gray-500 mb-6">
-                  Our team is working hard to curate the best deals for you. Check back soon!
-                </p>
-                <Link 
-                  href="/admin"
-                  className="inline-flex items-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700 transition-colors"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Add Products (Admin)
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-    );
-  }
+  // Determine if the base dataset is empty (actual no featured products)
+  const hasAnyProducts = (displayProducts || []).length > 0;
+  const hasFilteredResults = (filteredProducts || []).length > 0;
 
   return (
     <UniversalPageLayout pageId="top-picks" enableContentOverlays={false} enableFloatingOverlays={false}>
@@ -533,11 +578,37 @@ export default function TopPicks() {
       <div className="header-spacing">
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Sidebar */}
-        <Sidebar 
-          onCategoryChange={handleCategoryChange}
-          onPriceRangeChange={handlePriceRangeChange}
-          onRatingChange={handleRatingChange}
+        <UniversalFilterSidebar
+          showCurrency={true}
+          showPriceRange={true}
+          showGender={true}
+          showNetworks={false}
+          showCategories={true}
+          showRating={true}
+          showResultsCount={true}
+          showClearButton={true}
+
+          selectedCurrency={selectedCurrency}
+          setSelectedCurrency={setSelectedCurrency}
+          convertPrices={convertPrices}
+          setConvertPrices={setConvertPrices}
+          priceRange={priceRangeLabel}
+          setPriceRange={setPriceRangeLabel}
+
+          categorySelectionMode="single"
           availableCategories={availableCategories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+
+          availableGenders={availableGenders}
+          selectedGender={selectedGender}
+          setSelectedGender={handleGenderChange}
+
+          minRating={minRating}
+          setMinRating={setMinRating}
+
+          resultsCount={filteredProducts.length}
+          onClearFilters={clearFilters}
         />
 
         {/* Top Picks Grid with overlay anchor */}
@@ -560,8 +631,41 @@ export default function TopPicks() {
           </div>
 
           {/* Products Grid */}
+          {/* Conditional grid content based on data and filters */}
+          {(!error && !hasAnyProducts) && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-8 text-center">
+              <div className="mb-6">
+                <i className="fas fa-box-open text-4xl text-gray-400 dark:text-gray-600"></i>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Featured Products Yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Our team is curating the best deals. Please check back soon!</p>
+              <Link href="/admin" className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700">
+                <i className="fas fa-plus mr-2"></i>
+                Add Products (Admin)
+              </Link>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-2xl p-6">
+              <div className="font-semibold mb-2">Failed to load Top Picks</div>
+              <div className="text-sm">Please try again later.</div>
+            </div>
+          )}
+
+          {(!error && hasAnyProducts && !hasFilteredResults) && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-8 text-center">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No picks match your filters</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Try adjusting gender, category, price, or rating.</p>
+              <button onClick={clearFilters} className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800">
+                <i className="fas fa-undo mr-2"></i>
+                Clear filters
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {filteredProducts.map((product: Product, index: number) => (
+            {hasFilteredResults && filteredProducts.map((product: Product, index: number) => (
               <div 
                 key={product.id}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 overflow-hidden max-w-md mx-auto"
@@ -598,11 +702,23 @@ export default function TopPicks() {
                 <div className="p-5">
                   {/* Discount Badge and Action Icons */}
                   <div className="flex items-center justify-between mb-3">
-                    {product.discount ? (
-                      <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                        {product.discount}% OFF
-                      </span>
-                    ) : product.isNew ? (
+                    {(() => {
+                      const originalVal = Number((product as any).originalPrice || (product as any).original_price || 0);
+                      const currentVal = Number(product.price || 0);
+                      const hasValidPrices = originalVal > 0 && currentVal > 0 && originalVal > currentVal;
+                      if (hasValidPrices) {
+                        const pct = Math.round(((originalVal - currentVal) / originalVal) * 100);
+                        if (pct > 0) {
+                          return (
+                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                              {pct}% OFF
+                            </span>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                    {!product.discount && product.isNew ? (
                       <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                         NEW
                       </span>

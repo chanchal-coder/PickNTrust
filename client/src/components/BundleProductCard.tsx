@@ -7,6 +7,7 @@ import { useWishlist } from '@/hooks/use-wishlist';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import EnhancedPriceTag from './EnhancedPriceTag';
+import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
 
 interface Product {
   id: number | string;
@@ -195,10 +196,11 @@ export function BundleProductCard({
     }
   };
 
-  const formatPrice = (price?: string | number | number | undefined, currency: string = 'INR') => {
-    const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '₹';
-    const numPrice = typeof price === "string" ? parseFloat(price.replace(/[^\d.-]/g, "")) : price;
-    return `${symbol}${Math.round(numPrice || 0).toLocaleString()}`;
+  const formatPrice = (price?: string | number | undefined, currency?: string) => {
+    const numPrice = typeof price === "string" 
+      ? parseFloat(price.replace(/[^\d.-]/g, "")) || 0 
+      : (price || 0);
+    return formatCurrencyPrice(numPrice, (currency as any));
   };
 
   const getNumericValue = (value: string | number | undefined | undefined): number => {
@@ -216,7 +218,7 @@ export function BundleProductCard({
   // Single product display (current behavior)
   if (!isBundle) {
     return (
-      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 h-full flex flex-col">
         {/* Product Image */}
         <div className="relative">
           <img 
@@ -233,13 +235,18 @@ export function BundleProductCard({
               const currentPrice = getNumericValue(product.price);
               const originalPrice = getNumericValue(product.originalPrice);
               const dbDiscount = getNumericValue(product.discount);
-              
-              // Use database discount if available, otherwise calculate from prices
-              const discountPercentage = dbDiscount > 0 ? dbDiscount : 
-                (originalPrice > currentPrice && originalPrice > 0) ? 
-                  Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-              
-              return discountPercentage > 0 ? (
+
+              // Only show discount when both prices are present and valid
+              const hasValidPrices = originalPrice > 0 && currentPrice > 0 && originalPrice > currentPrice;
+
+              // Use database discount if available (and sane), otherwise calculate from prices
+              const discountPercentage = dbDiscount > 0 && dbDiscount < 100
+                ? dbDiscount
+                : hasValidPrices
+                  ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+                  : 0;
+
+              return discountPercentage > 0 && hasValidPrices ? (
                 <Badge className="bg-red-600 text-white text-xs font-bold px-2 py-1 shadow-lg">
                   -{discountPercentage}% OFF
                 </Badge>
@@ -286,7 +293,7 @@ export function BundleProductCard({
         </div>
 
         {/* Product Info */}
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
           {/* Product Name */}
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 leading-tight">
             {product.name}
@@ -340,7 +347,7 @@ export function BundleProductCard({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-2 mt-auto">
             <Button
               onClick={() => window.open((product.affiliateUrl || product.affiliate_url || ""), '_blank')}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
@@ -401,7 +408,7 @@ export function BundleProductCard({
   // Small bundle display (2-3 products) - Individual cards with grouping
   if (isSmallBundle) {
     return (
-      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 h-full flex flex-col">
         {/* Bundle Header */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-4 py-2 border-b">
           <div className="flex items-center justify-between">
@@ -607,7 +614,7 @@ export function BundleProductCard({
         </button>
       </div>
 
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
         {/* Primary Product Info */}
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2">
@@ -699,7 +706,7 @@ export function BundleProductCard({
         </div>
 
         {/* Primary Product Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-auto">
           <Button
             onClick={() => window.open((product.affiliateUrl || product.affiliate_url || ""), '_blank')}
             className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"

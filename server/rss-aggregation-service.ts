@@ -4,13 +4,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import RSSParserService from './rss-parser-service.js';
 import { ResilientApiClient } from './utils/circuit-breaker.js';
+import { getDatabasePath, getDatabaseOptions } from './config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Database setup
-const dbPath = path.join(__dirname, '..', '..', '..', 'database.sqlite');
-const db = new Database(dbPath);
+// Database setup (use centralized resolver to avoid dist path issues)
+const db = new Database(getDatabasePath(), getDatabaseOptions());
 
 export interface AggregationStats {
   totalFeeds: number;
@@ -175,10 +175,16 @@ export class RSSAggregationService {
       )`;
     }
 
-    query += ` ORDER BY last_fetched ASC NULLS FIRST`;
+    // SQLite does not support NULLS FIRST; emulate by sorting on IS NOT NULL
+    query += ` ORDER BY (last_fetched IS NOT NULL), last_fetched ASC`;
 
-    const stmt = db.prepare(query);
-    return stmt.all(...params) as RSSFeed[];
+    try {
+      const stmt = db.prepare(query);
+      return stmt.all(...params) as RSSFeed[];
+    } catch (error) {
+      console.error('RSS Aggregation Service: Failed to query feeds to update:', error);
+      return [] as RSSFeed[];
+    }
   }
 
   /**

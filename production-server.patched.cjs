@@ -567,7 +567,7 @@ app.get('/api/announcement/active', async (req, res) => {
 // Browse categories
 app.get('/api/categories/browse', async (req, res) => {
   try {
-    // Fetch active parent categories with expected fields
+    // Fetch parent categories with expected fields (no hard is_active reference to avoid missing-column errors)
     const catsResult = sqliteDb.prepare(`
       SELECT 
         id,
@@ -586,9 +586,8 @@ app.get('/api/categories/browse', async (req, res) => {
     `).all();
     const categories = (typeof catsResult?.then === 'function') ? await catsResult : catsResult;
 
-    // Filter by active flag only if present in row
+    // Filter by active flag only if present in row; default to active
     const filteredCategories = (Array.isArray(categories) ? categories : []).filter((c) => {
-      // Some schemas use is_active instead of isActive; rows may contain either
       const isActive = (typeof c.isActive !== 'undefined' ? c.isActive : (typeof c.is_active !== 'undefined' ? c.is_active : 1));
       return Number(isActive) === 1 || isActive === true;
     });
@@ -619,8 +618,45 @@ app.get('/api/categories/browse', async (req, res) => {
       countMap.set(key, Number(r.total) || 0);
     }
 
-    const sourceCats = (Array.isArray(filteredCategories) && filteredCategories.length > 0) ? filteredCategories : (Array.isArray(categories) ? categories : []);
-    const enriched = sourceCats.map((c) => {
+    let sourceCats = (Array.isArray(filteredCategories) && filteredCategories.length > 0)
+      ? filteredCategories
+      : (Array.isArray(categories) ? categories : []);
+
+    // Fallback: derive categories from unified_content when DB categories are empty
+    if (!Array.isArray(sourceCats) || sourceCats.length === 0) {
+      const ucCatsResult = sqliteDb.prepare(`
+        SELECT TRIM(COALESCE(category, '')) AS name
+        FROM unified_content
+        WHERE TRIM(COALESCE(category, '')) != ''
+          AND (
+            status IN ('active','published','ready','processed','completed') OR status IS NULL
+          )
+          AND (
+            visibility IN ('public','visible') OR visibility IS NULL
+          )
+          AND (
+            processing_status != 'archived' OR processing_status IS NULL
+          )
+        GROUP BY TRIM(COALESCE(category, ''))
+        ORDER BY name ASC
+      `).all();
+      const ucCats = (typeof ucCatsResult?.then === 'function') ? await ucCatsResult : ucCatsResult;
+      const ucList = Array.isArray(ucCats) ? ucCats.filter(r => (r && r.name && String(r.name).trim().length > 0)) : [];
+      sourceCats = ucList.map((r, idx) => ({
+        id: idx + 1,
+        name: r.name,
+        icon: 'fas fa-tags',
+        color: '#3B82F6',
+        description: '',
+        parentId: null,
+        isForProducts: true,
+        isForServices: false,
+        isForAIApps: false,
+        displayOrder: idx,
+      }));
+    }
+
+    const enriched = (Array.isArray(sourceCats) ? sourceCats : []).map((c) => {
       const key = String(c.name || '').toLowerCase();
       const total = countMap.get(key) || 0;
       return {
@@ -638,10 +674,34 @@ app.get('/api/categories/browse', async (req, res) => {
       };
     });
 
+    // Final fallback: static cats.json to avoid empty UI
+    if (!Array.isArray(enriched) || enriched.length === 0) {
+      try {
+        const p = path.join(__dirname, 'cats.json');
+        if (fs.existsSync(p)) {
+          const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+          const list = Array.isArray(data) ? data : [];
+          return res.json(list.map(c => ({
+            id: c.id || 0,
+            name: c.name || 'Category',
+            icon: c.icon || 'fas fa-tags',
+            color: c.color || '#3B82F6',
+            description: c.description || '',
+            parentId: c.parentId || null,
+            isForProducts: Boolean(c.isForProducts ?? 1),
+            isForServices: Boolean(c.isForServices ?? 0),
+            isForAIApps: Boolean(c.isForAIApps ?? 0),
+            displayOrder: c.displayOrder || 0,
+            total_products_count: Number(c.total_products_count ?? 0),
+          })));
+        }
+      } catch (_) {}
+    }
+
     res.json(enriched);
   } catch (error) {
     console.error('Error fetching categories:', error);
-    // Static fallback to avoid empty UI when DB schema is missing
+    // Static fallback to avoid empty UI when DB access fails
     try {
       const p = path.join(__dirname, 'cats.json');
       if (fs.existsSync(p)) {
@@ -838,6 +898,8 @@ app.get('/api/products/page/:page', async (req, res) => {
           imageUrl: toProxiedImage(product.imageUrl || product.image_url || null),
           affiliateUrl: product.affiliateUrl,
           category: product.category,
+          // Include gender for client-side filtering (normalize happens on client)
+          gender: product.gender,
           rating: product.rating || 0,
           reviewCount: product.reviewCount || 0,
           discount: product.discount,
@@ -857,6 +919,10 @@ app.get('/api/products/page/:page', async (req, res) => {
             out.rating = out.rating || c.rating || 0;
             out.reviewCount = out.reviewCount || c.reviewCount || 0;
             out.discount = out.discount || c.discount;
+            // Gender from embedded content if not already present
+            if (!out.gender && c.gender) {
+              out.gender = c.gender;
+            }
           } catch (e) {
             // ignore parse error
           }

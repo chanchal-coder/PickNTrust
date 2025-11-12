@@ -92,12 +92,33 @@ const server = http.createServer((req, res) => {
   }
 
   // API Routes
+  // Health and status endpoints for monitoring
+  if (pathname === '/health' || pathname === '/api/health') {
+    const payload = { ok: true, port: PORT };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(payload));
+    return;
+  }
+
+  if (pathname === '/api/status') {
+    const payload = {
+      ok: true,
+      port: PORT,
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(payload));
+    return;
+  }
+
   if (pathname.startsWith('/api/products/page/')) {
     const pageName = pathname.split('/').pop();
     const products = pageProducts[pageName] || [];
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ products }));
+    // Return raw array to match frontend expectations
+    res.end(JSON.stringify(products));
     return;
   }
 
@@ -129,6 +150,40 @@ const server = http.createServer((req, res) => {
     const category = pathname.split('/').pop();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ category, products: mockProducts.slice(0, 3) }));
+    return;
+  }
+
+  // Minimal services endpoint returning array
+  if (pathname === '/api/services') {
+    const services = [
+      {
+        id: 'service_1',
+        name: "Web Design Service",
+        description: "Professional web design and development",
+        price: "499.00",
+        currency: "USD",
+        category: "Services",
+        rating: "4.6",
+        reviewCount: 120,
+        imageUrl: "https://example.com/service.jpg",
+        affiliateUrl: "https://example.com/service-affiliate",
+        isFeatured: false,
+        isService: true,
+        pricingType: "one-time",
+        displayPages: ["services"]
+      }
+    ];
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(services));
+    return;
+  }
+
+  // Minimal banners endpoint to avoid frontend crashes
+  if (pathname.startsWith('/api/banners/')) {
+    const page = pathname.split('/').pop();
+    const banners = [];
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(banners));
     return;
   }
 

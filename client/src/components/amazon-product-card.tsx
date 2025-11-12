@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useWishlist } from '@/hooks/use-wishlist';
+import getSafeImageSrc from '@/utils/imageProxy';
 import { useToast } from '@/hooks/use-toast';
 import { ProductTimer } from '@/components/product-timer';
 import { CURRENCIES, CurrencyCode } from '@/contexts/CurrencyContext';
@@ -372,13 +373,13 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
   const pageId = typeof window !== 'undefined' ? (window.location.pathname.replace(/^\//, '') || 'home') : 'home';
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-lg transition-shadow cursor-pointer group max-w-xs">
+    <div className="bg-white dark:bg-gray-800 border border-gray-700 rounded-lg p-3 hover:shadow-lg transition-shadow cursor-pointer group w-full h-full flex flex-col">
       {/* Widget: Product Card Top */}
       <SafeWidgetRenderer page={pageId} position={'product-card-top'} />
       {/* Product Image */}
       <div className="relative mb-2">
         <img
-          src={imageError ? `https://picsum.photos/180/180?random=${product.id}` : (product.imageUrl || product.image_url || "")}
+          src={imageError ? '/api/placeholder/300/300?text=No+Image' : getSafeImageSrc(product.imageUrl || product.image_url || '', { width: 300, height: 300, quality: 85, format: 'webp' })}
           alt={product.name}
           className="w-full h-40 object-contain bg-gray-50 dark:bg-gray-700 rounded-md"
           onError={() => setImageError(true)}
@@ -405,20 +406,25 @@ export default function AmazonProductCard({ product, onAffiliateClick }: AmazonP
       </div>
 
       {/* Product Info */}
-      <div className="space-y-2">
+      <div className="space-y-2 flex-1 flex flex-col">
         {/* Badges */}
         <div className="flex flex-wrap gap-1 mb-2">
           {(() => {
             // Hybrid discount calculation: use database value or calculate fallback
             const dbDiscount = Number(product.discount || 0);
             const originalPrice = parseFloat(product.originalPrice || '0');
-            const currentPrice = parseFloat(String(product.price || product.price || 0));
-            const calculatedDiscount = originalPrice > currentPrice && originalPrice > 0 ? 
-              Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
+            const currentPrice = parseFloat(String(product.price || 0));
+
+            // Only valid when both prices exist and are positive
+            const hasValidPrices = originalPrice > 0 && currentPrice > 0 && originalPrice > currentPrice;
+
+            const calculatedDiscount = hasValidPrices
+              ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+              : 0;
             
-            const finalDiscount = dbDiscount > 0 ? dbDiscount : calculatedDiscount;
+            const finalDiscount = dbDiscount > 0 && dbDiscount < 100 ? dbDiscount : calculatedDiscount;
             
-            return finalDiscount > 0 ? (
+            return finalDiscount > 0 && hasValidPrices ? (
               <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-bold">
                 {Math.round(finalDiscount)}% off
               </span>

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 interface Widget {
   id: number;
@@ -136,11 +136,23 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
           }
         } catch {}
 
-        allWidgets = primaryWidgets;
+        // Apply client-side safety filter to avoid rendering seeded fallback banners
+        const noFallback = (w: any) => {
+          const n = (w?.name || '').toString().toLowerCase();
+          const c = (w?.code || '').toString().toLowerCase();
+          const b = (w?.body || '').toString().toLowerCase();
+          // Exclude any seeded fallback banners or loading placeholders
+          if (n.includes('fallback')) return false;
+          if (c.includes('fallback')) return false;
+          if (b.includes('fallback')) return false;
+          if (b.includes('loading')) return false;
+          return true;
+        };
+        allWidgets = (primaryWidgets || []).filter(noFallback);
 
         // Do not fall back to other pages; only render widgets for the current page
       }
-      
+
       // Transform snake_case API response to camelCase for frontend
       return allWidgets.map((widget: any): Widget => ({
         id: widget.id,
@@ -280,41 +292,42 @@ export default function WidgetRenderer({ page, position, className = '' }: Widge
 
 // Individual widget item component
 function WidgetItem({ widget, position, page }: { widget: Widget; position: string; page?: string }) {
-  // Execute inline widget scripts only when explicitly allowed in dev.
-  // In production, avoid running arbitrary scripts to prevent React hook misuse outside render.
-  const allowWidgetScripts = (import.meta.env.DEV && (
-    new URLSearchParams(window.location.search).get('allowWidgetScripts') === '1' ||
-    localStorage.getItem('widgetAllowScripts') === 'true'
-  ));
+  // Sandbox widget content via iframe to prevent page-wide overrides
+  const [iframeHeight, setIframeHeight] = useState<number>(300);
 
   useEffect(() => {
-    if (!allowWidgetScripts) {
-      return; // Skip executing scripts unless explicitly enabled in dev
-    }
-    try {
-      const container = document.getElementById(`widget-${widget.id}`);
-      if (!container) return;
-      const scripts = container.querySelectorAll('script');
-      scripts.forEach((script) => {
-        try {
-          const newScript = document.createElement('script');
-          Array.from(script.attributes).forEach((attr) => {
-            newScript.setAttribute(attr.name, attr.value);
-          });
-          if (script.src) {
-            newScript.src = script.src;
-          } else {
-            newScript.textContent = script.textContent;
-          }
-          script.parentNode?.replaceChild(newScript, script);
-        } catch (err) {
-          console.error(`Widget script execution error (widget ${widget.id}):`, err);
-        }
-      });
-    } catch (err) {
-      console.error(`Widget container processing error (widget ${widget.id}):`, err);
-    }
-  }, [widget.id, widget.code, widget.body, allowWidgetScripts]);
+    const onMessage = (e: MessageEvent) => {
+      const d: any = e.data;
+      if (d && d.type === 'WIDGET_IFRAME_HEIGHT' && d.id === widget.id && typeof d.h === 'number') {
+        const clamped = Math.min(Math.max(d.h, 60), 3000);
+        setIframeHeight(clamped);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [widget.id]);
+
+  const rawHtml = useMemo(() => {
+    const html = (widget.body && widget.body.trim().length > 0) ? widget.body : widget.code;
+    return html || '';
+  }, [widget.body, widget.code]);
+
+  const srcDoc = useMemo(() => {
+    if (!rawHtml) return '';
+    const customStyle = widget.customCss ? `<style>${widget.customCss}</style>` : '';
+    return `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />
+      <style>html,body{margin:0;padding:0;background:transparent}</style>${customStyle}</head>
+      <body>
+        ${rawHtml}
+        <script>(function(){
+          function send(){ try{ parent.postMessage({ type: 'WIDGET_IFRAME_HEIGHT', id: ${widget.id}, h: document.body.scrollHeight }, '*'); }catch(e){} }
+          var mo = new MutationObserver(function(){ send(); });
+          mo.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+          window.addEventListener('load', send);
+          setTimeout(send, 200);
+        })();</script>
+      </body></html>`;
+  }, [rawHtml, widget.customCss, widget.id]);
 
   // Basic click tracking for links inside widget content
   useEffect(() => {
@@ -394,26 +407,33 @@ function WidgetItem({ widget, position, page }: { widget: Widget; position: stri
       style={{ ...containerStyle, cursor: widget.externalLink ? 'pointer' : 'auto' }}
     >
       {/* Custom CSS */}
-      {widget.customCss && (
-        <style>
-          {`#widget-${widget.id} { ${widget.customCss} }`}
-        </style>
-      )}
-
       {isAdLike && (
         <span className="absolute top-2 right-2 z-10 text-xs px-2 py-0.5 rounded-full bg-black/50 text-white border border-white/20 select-none" aria-label="Advertisement">Ad</span>
       )}
       
-      {/* Widget Content */}
-      {(() => {
-        const html = (widget.body && widget.body.trim().length > 0) ? widget.body : widget.code;
-        return (
-          <div
-            dangerouslySetInnerHTML={{ __html: html }}
-            className="widget-content"
-          />
-        );
-      })()}
+      {/* Widget Content (sandboxed) */}
+      {widget.externalLink && /^https?:\/\//i.test(widget.externalLink) ? (
+        <iframe
+          src={widget.externalLink}
+          className="w-full rounded-md"
+          sandbox="allow-scripts allow-popups allow-forms"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          height={iframeHeight}
+          style={{ background: 'transparent' }}
+        />
+      ) : (rawHtml ? (
+        <iframe
+          srcDoc={srcDoc}
+          className="w-full rounded-md"
+          sandbox="allow-scripts allow-popups allow-forms"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          height={iframeHeight}
+          style={{ background: 'transparent' }}
+          title={`Widget ${widget.name}`}
+        />
+      ) : null)}
     </div>
   );
 }

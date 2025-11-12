@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAvailablePagesHybrid, type PageInfo } from '../../utils/pages';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +17,7 @@ import { bannerSlides } from '../hero-banner-slider';
 interface BannerButton {
   text: string;
   url: string;
-  style?: 'primary' | 'secondary' | 'outline';
+  style?: 'primary' | 'secondary' | 'outline' | 'none';
 }
 
   interface Banner {
@@ -36,7 +38,7 @@ interface BannerButton {
   iconType?: 'emoji' | 'fontawesome' | 'none';
   iconPosition?: 'left' | 'right' | 'top';
   // New styling properties
-  imageDisplayType?: 'image' | 'unsplash' | 'text-only';
+  imageDisplayType?: 'image' | 'unsplash' | 'text-only' | 'image-gradient';
   unsplashQuery?: string;
   fontFamily?: string;
   fontWeight?: string;
@@ -68,7 +70,7 @@ interface BannerButton {
   iconType?: 'emoji' | 'fontawesome' | 'none';
   iconPosition?: 'left' | 'right' | 'top';
   // New styling properties
-  imageDisplayType?: 'image' | 'unsplash' | 'text-only';
+  imageDisplayType?: 'image' | 'unsplash' | 'text-only' | 'image-gradient';
   unsplashQuery?: string;
   fontFamily?: string;
   fontWeight?: string;
@@ -103,6 +105,10 @@ const pages = [
   { value: 'categories', label: 'Categories Page' },
   { value: 'blog', label: 'Blog Page' },
   { value: 'videos', label: 'Videos Page' },
+  // Newly added dynamic pages
+  { value: 'fresh-picks', label: 'Fresh Picks' },
+  { value: 'artists-corner', label: "Artist's Corner" },
+  { value: 'ott-hub', label: 'OTT Hub' },
   { value: 'wishlist', label: 'Wishlist Page' },
   { value: 'contact', label: 'Contact Page' },
   { value: 'prime-picks', label: 'Prime Picks' },
@@ -119,6 +125,7 @@ const imageDisplayTypes = [
   { value: 'image', label: 'Custom Image' },
   { value: 'unsplash', label: 'Unsplash Image' },
   { value: 'text-only', label: 'Text Only' },
+  { value: 'image-gradient', label: 'Image + Gradient Overlay' },
 ];
 
 const fontFamilies = [
@@ -138,12 +145,30 @@ const fontWeights = [
 ];
 
 const gradientPresets = [
-  { value: 'bg-gradient-to-r from-blue-600 to-purple-600', label: 'Blue to Purple' },
-  { value: 'bg-gradient-to-r from-green-400 to-blue-500', label: 'Green to Blue' },
-  { value: 'bg-gradient-to-r from-purple-400 to-pink-400', label: 'Purple to Pink' },
-  { value: 'bg-gradient-to-r from-yellow-400 to-orange-500', label: 'Yellow to Orange' },
-  { value: 'bg-gradient-to-r from-red-400 to-pink-500', label: 'Red to Pink' },
-  { value: 'bg-gradient-to-r from-indigo-500 to-purple-600', label: 'Indigo to Purple' },
+  // Existing
+  { value: 'bg-gradient-to-r from-blue-600 to-purple-600', label: 'Blue → Purple' },
+  { value: 'bg-gradient-to-r from-green-400 to-blue-500', label: 'Green → Blue' },
+  { value: 'bg-gradient-to-r from-purple-400 to-pink-400', label: 'Purple → Pink' },
+  { value: 'bg-gradient-to-r from-yellow-400 to-orange-500', label: 'Yellow → Orange' },
+  { value: 'bg-gradient-to-r from-red-400 to-pink-500', label: 'Red → Pink' },
+  { value: 'bg-gradient-to-r from-indigo-500 to-purple-600', label: 'Indigo → Purple' },
+
+  // New — directional
+  { value: 'bg-gradient-to-l from-blue-600 to-purple-600', label: 'Blue ← Purple' },
+  { value: 'bg-gradient-to-b from-purple-600 to-pink-500', label: 'Purple ↓ Pink' },
+  { value: 'bg-gradient-to-t from-emerald-500 to-teal-600', label: 'Emerald ↑ Teal' },
+  { value: 'bg-gradient-to-br from-sky-500 to-indigo-700', label: 'Sky ↘ Indigo' },
+  { value: 'bg-gradient-to-tr from-fuchsia-500 to-rose-500', label: 'Fuchsia ↗ Rose' },
+  { value: 'bg-gradient-to-bl from-cyan-500 to-blue-700', label: 'Cyan ↙ Blue' },
+  { value: 'bg-gradient-to-tl from-orange-500 to-amber-400', label: 'Orange ↖ Amber' },
+
+  // New — with via stop
+  { value: 'bg-gradient-to-br from-rose-500 via-red-500 to-orange-500', label: 'Sunset' },
+  { value: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', label: 'Ocean' },
+  { value: 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500', label: 'Teal Emerald' },
+  { value: 'bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700', label: 'Indigo Violet' },
+  { value: 'bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500', label: 'Warm Amber' },
+  { value: 'bg-gradient-to-br from-gray-900 via-gray-800 to-slate-700', label: 'Charcoal' },
 ];
 
 const colorPalette = [
@@ -166,12 +191,30 @@ const standardColors = [
 ];
 
 const textGradientPresets = [
-  { value: 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent', label: 'Blue to Purple' },
-  { value: 'bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent', label: 'Green to Blue' },
-  { value: 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent', label: 'Purple to Pink' },
-  { value: 'bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent', label: 'Yellow to Orange' },
-  { value: 'bg-gradient-to-r from-red-400 to-pink-500 bg-clip-text text-transparent', label: 'Red to Pink' },
-  { value: 'bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent', label: 'Indigo to Purple' },
+  // Existing
+  { value: 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent', label: 'Blue → Purple' },
+  { value: 'bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent', label: 'Green → Blue' },
+  { value: 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent', label: 'Purple → Pink' },
+  { value: 'bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent', label: 'Yellow → Orange' },
+  { value: 'bg-gradient-to-r from-red-400 to-pink-500 bg-clip-text text-transparent', label: 'Red → Pink' },
+  { value: 'bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent', label: 'Indigo → Purple' },
+
+  // New — directional
+  { value: 'bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent', label: 'Blue ← Purple' },
+  { value: 'bg-gradient-to-b from-purple-600 to-pink-500 bg-clip-text text-transparent', label: 'Purple ↓ Pink' },
+  { value: 'bg-gradient-to-t from-emerald-500 to-teal-600 bg-clip-text text-transparent', label: 'Emerald ↑ Teal' },
+  { value: 'bg-gradient-to-br from-sky-500 to-indigo-700 bg-clip-text text-transparent', label: 'Sky ↘ Indigo' },
+  { value: 'bg-gradient-to-tr from-fuchsia-500 to-rose-500 bg-clip-text text-transparent', label: 'Fuchsia ↗ Rose' },
+  { value: 'bg-gradient-to-bl from-cyan-500 to-blue-700 bg-clip-text text-transparent', label: 'Cyan ↙ Blue' },
+  { value: 'bg-gradient-to-tl from-orange-500 to-amber-400 bg-clip-text text-transparent', label: 'Orange ↖ Amber' },
+
+  // New — with via stop
+  { value: 'bg-gradient-to-br from-rose-500 via-red-500 to-orange-500 bg-clip-text text-transparent', label: 'Sunset' },
+  { value: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600 bg-clip-text text-transparent', label: 'Ocean' },
+  { value: 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent', label: 'Teal Emerald' },
+  { value: 'bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 bg-clip-text text-transparent', label: 'Indigo Violet' },
+  { value: 'bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent', label: 'Warm Amber' },
+  { value: 'bg-gradient-to-br from-gray-900 via-gray-800 to-slate-700 bg-clip-text text-transparent', label: 'Charcoal' },
 ];
 
 // Icon and Emoji Support
@@ -287,6 +330,8 @@ const fontAwesomePresets = [
 ];
 
 export default function BannerManagement() {
+  const [allowDuplicates, setAllowDuplicates] = useState(false);
+  const [replaceExisting, setReplaceExisting] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPage, setSelectedPage] = useState('home');
@@ -365,59 +410,66 @@ export default function BannerManagement() {
     },
   });
 
-  // Fetch navigation tabs for dynamic pages
-  const { data: navTabs = [] } = useQuery<NavTab[]>({
-    queryKey: ['/api/nav-tabs'],
+  // Fetch available pages via hybrid approach (API first, fallback to static)
+  const { data: availablePages = [] } = useQuery<PageInfo[]>({
+    queryKey: ['available-pages'],
     queryFn: async () => {
-      // Use proxy for API calls
-      const response = await fetch('/api/nav-tabs');
-      
-      if (!response.ok) {
-        return [];
-      }
-      return response.json();
+      return await getAvailablePagesHybrid();
     },
-     staleTime: 0,
-     refetchOnWindowFocus: true, // Refetch when window gains focus
-     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
-   });
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
 
-  // Create dynamic pages array from navigation tabs with fallback
-  const dynamicPages = [
-    { value: 'home', label: 'Home Page' },
-    { value: 'top-picks', label: 'Top Picks' },
-    { value: 'services', label: 'Services Page' },
-    { value: 'apps', label: 'Apps & AI Apps' },
-    { value: 'categories', label: 'Categories Page' },
-    { value: 'blog', label: 'Blog Page' },
-    { value: 'videos', label: 'Videos Page' },
-    { value: 'wishlist', label: 'Wishlist Page' },
-    { value: 'contact', label: 'Contact Page' },
-    { value: 'travel-picks', label: 'Travel Picks' },
-    // Add navigation pages from API if available, otherwise use hardcoded fallback
-    ...(Array.isArray(navTabs) && navTabs.length > 0 
-      ? navTabs
-          .filter(tab => tab.is_active)
-          .sort((a, b) => a.display_order - b.display_order)
-          .map(tab => ({
-            value: tab.slug,
-            label: tab.name
-          }))
-      : [
-          { value: 'prime-picks', label: 'Prime Picks' },
-          { value: 'cue-picks', label: 'Cue Picks' },
-          { value: 'value-picks', label: 'Value Picks' },
-          { value: 'click-picks', label: 'Click Picks' },
-          { value: 'deals-hub', label: 'Deals Hub' },
-          { value: 'global-picks', label: 'Global Picks' },
-          { value: 'loot-box', label: 'Loot Box' },
-          { value: 'travel-picks', label: 'Travel Picks' }
-        ]
-    )
-  ];
+  // Create dynamic pages from available pages (API/static hybrid)
+  const dynamicPages = Array.isArray(availablePages) && availablePages.length > 0
+    ? availablePages
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(p => ({ value: p.id, label: p.name }))
+    : [
+        { value: 'home', label: 'Home Page' },
+        { value: 'top-picks', label: 'Top Picks' },
+        { value: 'services', label: 'Services Page' },
+        { value: 'apps', label: 'Apps & AI Apps' },
+        { value: 'categories', label: 'Categories Page' },
+        { value: 'blog', label: 'Blog Page' },
+        { value: 'videos', label: 'Videos Page' },
+        // Newly added dynamic pages (ensure availability on EC2 even if API is outdated)
+        { value: 'fresh-picks', label: 'Fresh Picks' },
+        { value: 'artists-corner', label: "Artist's Corner" },
+        { value: 'ott-hub', label: 'OTT Hub' },
+        { value: 'trending', label: 'Trending Page' },
+        { value: 'wishlist', label: 'Wishlist Page' },
+        { value: 'contact', label: 'Contact Page' },
+        { value: 'prime-picks', label: 'Prime Picks' },
+        { value: 'cue-picks', label: 'Cue Picks' },
+        { value: 'value-picks', label: 'Value Picks' },
+        { value: 'click-picks', label: 'Click Picks' },
+        { value: 'deals-hub', label: 'Deals Hub' },
+        { value: 'global-picks', label: 'Global Picks' },
+        { value: 'travel-picks', label: 'Travel Picks' },
+        { value: 'loot-box', label: 'Loot Box' },
+      ];
 
   // Filter banners by selected page
   const filteredBanners = (Array.isArray(banners) ? banners : []).filter((banner: Banner) => banner.page === selectedPage);
+
+  // Auto-select first page that has banners when data loads and current page has none
+  useEffect(() => {
+    try {
+      const flat = Array.isArray(banners) ? banners : [];
+      if (flat.length === 0) return;
+      const currentHasBanners = flat.some((b) => b.page === selectedPage);
+      if (!currentHasBanners) {
+        const pagesWithBanners = Array.from(new Set(flat.map((b) => b.page)));
+        // Prefer known order from `pages` list, otherwise first available
+        const preferredOrder = pages.map((p) => p.value);
+        const next = preferredOrder.find((p) => pagesWithBanners.includes(p)) || pagesWithBanners[0];
+        if (next && next !== selectedPage) {
+          setSelectedPage(next);
+        }
+      }
+    } catch {}
+  }, [banners]);
 
   // Create banner mutation
   const createBannerMutation = useMutation({
@@ -630,9 +682,16 @@ export default function BannerManagement() {
 
   // Import all static banners into dynamic database
   const importStaticBannersMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload?: { allowDuplicates?: boolean }) => {
       const response = await fetch('/api/admin/banners/import-static', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          allowDuplicates: payload?.allowDuplicates ?? false,
+          replaceExisting,
+        }),
       });
       if (!response.ok) {
         let errorMsg = 'Failed to import static banners';
@@ -649,7 +708,7 @@ export default function BannerManagement() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Refresh all banner queries
       queryClient.invalidateQueries({ queryKey: ['/api/admin/banners'] });
       queryClient.invalidateQueries({ queryKey: ['/api/banners'] });
@@ -665,6 +724,39 @@ export default function BannerManagement() {
         title: 'Success',
         description: 'Imported static banners into dynamic management',
       });
+
+      // Proactively switch to a page that has imported banners
+      try {
+        const resp = await fetch('/api/admin/banners');
+        if (resp.ok) {
+          const data = await resp.json();
+          let payload: any = data;
+          if (payload && typeof payload === 'object' && 'banners' in payload) {
+            payload = payload.banners;
+          }
+          const flat: Banner[] = Array.isArray(payload)
+            ? payload as Banner[]
+            : (payload && typeof payload === 'object'
+              ? Object.entries(payload).flatMap(([pageKey, list]) =>
+                  Array.isArray(list)
+                    ? (list as any[]).map((b: any) => ({ ...b, page: b?.page ?? (pageKey as string) }))
+                    : []
+                ) as Banner[]
+              : []);
+          if (flat.length > 0 && !flat.some((b) => b.page === selectedPage)) {
+            const pagesWithBanners = Array.from(new Set(flat.map((b) => b.page)));
+            const preferredOrder = pages.map((p) => p.value);
+            const next = preferredOrder.find((p) => pagesWithBanners.includes(p)) || pagesWithBanners[0];
+            if (next && next !== selectedPage) {
+              setSelectedPage(next);
+              toast({
+                title: 'Switched Page',
+                description: `Showing imported banners on "${next}"`,
+              });
+            }
+          }
+        }
+      } catch {}
     },
     onError: (error: any) => {
       toast({
@@ -1130,8 +1222,22 @@ export default function BannerManagement() {
             <Plus className="w-4 h-4 mr-2" />
             Add Banner
           </Button>
+          <div className="flex items-center gap-3 pr-2 border-r mr-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Allow duplicates</span>
+            <Switch
+              checked={allowDuplicates}
+              onCheckedChange={(val: boolean) => setAllowDuplicates(val)}
+            />
+          </div>
+          <div className="flex items-center gap-3 pr-2 border-r mr-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Replace existing</span>
+            <Switch
+              checked={replaceExisting}
+              onCheckedChange={(val: boolean) => setReplaceExisting(val)}
+            />
+          </div>
           <Button
-            onClick={() => importStaticBannersMutation.mutate()}
+            onClick={() => importStaticBannersMutation.mutate({ allowDuplicates })}
             disabled={importStaticBannersMutation.isPending}
             className="bg-emerald-600 hover:bg-emerald-700"
           >
@@ -1511,11 +1617,12 @@ export default function BannerManagement() {
                           value={button.style}
                           onChange={(e) => {
                             const newButtons = [...newBanner.buttons];
-                            newButtons[index].style = e.target.value as 'primary' | 'secondary' | 'outline';
+                            newButtons[index].style = e.target.value as 'primary' | 'secondary' | 'outline' | 'none';
                             setNewBanner({ ...newBanner, buttons: newButtons });
                           }}
                           className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
+                          <option value="none">None</option>
                           <option value="primary">Primary</option>
                           <option value="secondary">Secondary</option>
                           <option value="outline">Outline</option>
@@ -1537,7 +1644,7 @@ export default function BannerManagement() {
                     <select
                       id="imageDisplayType"
                       value={newBanner.imageDisplayType}
-                      onChange={(e) => setNewBanner({ ...newBanner, imageDisplayType: e.target.value as 'image' | 'unsplash' | 'text-only' })}
+                      onChange={(e) => setNewBanner({ ...newBanner, imageDisplayType: e.target.value as 'image' | 'unsplash' | 'text-only' | 'image-gradient' })}
                       className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       {imageDisplayTypes.map((type) => (
@@ -1717,6 +1824,19 @@ export default function BannerManagement() {
                               </option>
                             ))}
                           </select>
+                          <div className="grid grid-cols-6 gap-2 mt-2">
+                            {textGradientPresets.map((g) => (
+                              <button
+                                key={g.value}
+                                type="button"
+                                className={`h-10 rounded border-2 ${newBanner.textGradient === g.value ? 'border-gray-900 dark:border-white' : 'border-gray-300 dark:border-gray-600'} flex items-center justify-center bg-white dark:bg-gray-700`}
+                                onClick={() => setNewBanner({ ...newBanner, textGradient: g.value })}
+                                title={g.label}
+                              >
+                                <span className={`${g.value} font-semibold`}>Aa</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1802,6 +1922,19 @@ export default function BannerManagement() {
                             </option>
                           ))}
                         </select>
+                        <div className="grid grid-cols-6 gap-2 mt-2">
+                          {gradientPresets.map((g) => (
+                            <button
+                              key={g.value}
+                              type="button"
+                              className={`w-10 h-10 rounded border-2 ${newBanner.backgroundGradient === g.value ? 'border-gray-900 dark:border-white' : 'border-gray-300 dark:border-gray-600'} overflow-hidden`}
+                              onClick={() => setNewBanner({ ...newBanner, backgroundGradient: g.value })}
+                              title={g.label}
+                            >
+                              <div className={`w-full h-full ${g.value}`}></div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1863,33 +1996,50 @@ export default function BannerManagement() {
                       opacity: newBanner.imageDisplayType === 'text-only' ? ((newBanner.backgroundOpacity ?? 100) / 100) : undefined
                     }}
                   >
-                    {/* Background Image */}
-                    {newBanner.imageDisplayType !== 'text-only' && (
-                      <div className="absolute inset-0">
-                        {newBanner.imageDisplayType === 'unsplash' && newBanner.unsplashQuery ? (
-                          <img
-                            src={`https://picsum.photos/800/400?random=${encodeURIComponent(newBanner.unsplashQuery)}`}
-                            alt="Unsplash background"
-                            className="w-full h-full object-cover"
-                            style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
-                            onError={(e) => {
-                              // Fallback to a working placeholder
-                              e.currentTarget.src = 'https://picsum.photos/800/400?random=1';
-                            }}
-                          />
-                        ) : newBanner.imageDisplayType === 'image' && newBanner.imageUrl ? (
-                          <img
-                            src={newBanner.imageUrl}
-                            alt="Custom background"
-                            className="w-full h-full object-cover"
-                            style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://via.placeholder.com/800x400/6B7280/FFFFFF?text=Image+Not+Found';
-                            }}
-                          />
-                        ) : null}
-                      </div>
-                    )}
+                    {/* Background Image + Optional Gradient Overlay */}
+                    <div className="absolute inset-0">
+                      {(newBanner.imageDisplayType === 'image' || newBanner.imageDisplayType === 'unsplash' || newBanner.imageDisplayType === 'image-gradient') && (
+                        <>
+                          {newBanner.imageDisplayType === 'unsplash' && newBanner.unsplashQuery ? (
+                            <img
+                              src={`https://picsum.photos/800/400?random=${encodeURIComponent(newBanner.unsplashQuery)}`}
+                              alt="Unsplash background"
+                              className="w-full h-full object-cover"
+                              style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
+                              onError={(e) => {
+                                // Fallback to a working placeholder
+                                e.currentTarget.src = 'https://picsum.photos/800/400?random=1';
+                              }}
+                            />
+                          ) : (newBanner.imageDisplayType === 'image' || newBanner.imageDisplayType === 'image-gradient') && newBanner.imageUrl ? (
+                            <img
+                              src={newBanner.imageUrl}
+                              alt="Custom background"
+                              className="w-full h-full object-cover"
+                              style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://via.placeholder.com/800x400/6B7280/FFFFFF?text=Image+Not+Found';
+                              }}
+                            />
+                          ) : null}
+
+                          {/* Gradient overlay when enabled or explicitly chosen */}
+                          {(newBanner.imageDisplayType === 'image-gradient' || (newBanner.useGradient && (newBanner.imageDisplayType === 'image' || newBanner.imageDisplayType === 'unsplash'))) && (
+                            <div
+                              className={`absolute inset-0 ${newBanner.backgroundStyle === 'gradient' ? newBanner.backgroundGradient : 'bg-gradient-to-r from-black/40 to-transparent'}`}
+                              style={{ opacity: ((newBanner.backgroundOpacity ?? 60) / 100) }}
+                            ></div>
+                          )}
+                        </>
+                      )}
+                      {/* Pure gradient background if text-only */}
+                      {newBanner.imageDisplayType === 'text-only' && (
+                        <div
+                          className={`w-full h-full ${newBanner.backgroundStyle === 'gradient' ? newBanner.backgroundGradient : 'bg-gradient-to-r from-gray-600 to-gray-800'}`}
+                          style={{ opacity: ((newBanner.backgroundOpacity ?? 100) / 100) }}
+                        ></div>
+                      )}
+                    </div>
                     
                     {/* Content Overlay */}
                     <div className="relative z-10 text-center px-6">
@@ -1941,9 +2091,11 @@ export default function BannerManagement() {
                       )}
                       
                       {/* Multiple Buttons */}
-                      {newBanner.buttons.filter(btn => btn.text.trim()).length > 0 && (
+                      {newBanner.buttons.filter(btn => btn.text.trim() && (btn.style ?? 'primary') !== 'none').length > 0 && (
                         <div className="flex flex-wrap gap-3 justify-center">
-                          {newBanner.buttons.filter(btn => btn.text.trim()).map((button, index) => {
+                          {newBanner.buttons
+                            .filter(btn => btn.text.trim() && (btn.style ?? 'primary') !== 'none')
+                            .map((button, index) => {
                             const getButtonClasses = (style: string) => {
                               switch (style) {
                                 case 'primary':
@@ -1952,6 +2104,8 @@ export default function BannerManagement() {
                                   return 'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all';
                                 case 'outline':
                                   return 'px-4 py-2 bg-transparent border-2 border-current rounded-lg hover:bg-white hover:bg-opacity-20 transition-all';
+                                case 'none':
+                                  return 'hidden';
                                 default:
                                   return 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all';
                               }
@@ -1971,7 +2125,7 @@ export default function BannerManagement() {
                       )}
                       
                       {/* Legacy single button fallback */}
-                      {newBanner.buttonText && newBanner.buttons.filter(btn => btn.text.trim()).length === 0 && (
+                      {newBanner.buttonText && newBanner.buttons.filter(btn => btn.text.trim() && (btn.style ?? 'primary') !== 'none').length === 0 && (
                         <button 
                           className="px-4 py-2 bg-white bg-opacity-20 rounded-lg border border-current hover:bg-opacity-30 transition-all"
                           style={{ color: newBanner.textColor }}

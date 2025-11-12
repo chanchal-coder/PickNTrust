@@ -280,6 +280,22 @@ export default function Blog() {
                           className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors cursor-pointer z-10 relative"
                           title="Share to All Platforms"
                         >
+                          <i className="fas fa-share-alt text-xs pointer-events-none"></i>
+                        </button>
+
+                        {/* Edit Button: navigate to Admin Blog tab and preload edit */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              window.localStorage.setItem('pending-edit-blog-id', String(post.id));
+                            } catch {}
+                            window.location.href = '/admin/blog';
+                          }}
+                          className="bg-orange-500 hover:bg-orange-600 text-white rounded-full p-2 shadow-md transition-colors"
+                          title="Edit blog post"
+                        >
                           <i className="fas fa-edit text-xs pointer-events-none"></i>
                         </button>
                         

@@ -1,217 +1,123 @@
+// Minimal, production-safe Telegram bot that writes directly to unified_content
+// - Avoids channel_posts to prevent schema mismatches
+// - Conforms to current unified_content schema (requires content_type)
+// - Derives display_pages from channel title
+
 const TelegramBot = require('node-telegram-bot-api');
 const Database = require('better-sqlite3');
 const path = require('path');
 require('dotenv').config();
 
-// Bot configuration from environment
 const BOT_TOKEN = process.env.MASTER_BOT_TOKEN;
-
 if (!BOT_TOKEN) {
   console.error('❌ MASTER_BOT_TOKEN not found in environment variables');
   process.exit(1);
 }
 
-// Database setup
+// DB path (production: /var/www/pickntrust/database.sqlite)
 const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new Database(dbPath);
 
-// Channel configurations with actual IDs from .env
-const CHANNELS = {
-  'Prime Picks': process.env.PRIME_PICKS_CHANNEL_ID || '-1002955338551',
-  'Cue Links': process.env.CUELINKS_CHANNEL_ID || '-1002982344997', 
-  'Value Picks': process.env.VALUE_PICKS_CHANNEL_ID || '-1003017626269',
-  'Click Picks': process.env.CLICK_PICKS_CHANNEL_ID || '-1002981205504',
-  'Global Picks': process.env.GLOBAL_PICKS_CHANNEL_ID || '-1002902496654',
-  'Deals Hub': process.env.DEALS_HUB_CHANNEL_ID || '-1003029983162',
-  'Loot Box': process.env.LOOT_BOX_CHANNEL_ID || '-1002991047787'
+// Map known channel names to page slugs; fallback to slugified title
+const channelSlugMap = {
+  'Prime Picks': 'prime-picks',
+  'Value Picks': 'value-picks',
+  'Click Picks': 'click-picks',
+  'Global Picks': 'global-picks',
+  'Travel Picks': 'travel-picks',
+  'Deals Hub': 'deals-hub',
+  'Loot Box': 'loot-box',
+  'Trending': 'trending',
+  'Cue Links': 'cue-picks',
+  // Aliases seen in Telegram channels to ensure correct page tagging
+  'Amazon PNT': 'prime-picks',
+  'Cuelinks PNT': 'cue-picks',
+  'Dealshub PNT': 'deals-hub',
+  'Deodap pnt': 'loot-box',
+  'Deodap PNT': 'loot-box'
 };
 
-console.log('🚀 Starting Telegram Bot Manually for Testing...');
+const slugify = (s) => (s || '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 40) || 'value-picks';
 
-// Create bot instance
+// Prepare insert aligned with production unified_content schema
+// Required fields: title (NOT NULL), content_type (NOT NULL)
+// Useful defaults: status=active, visibility=public, processing_status=completed
+const insertContent = db.prepare(`
+  INSERT INTO unified_content (
+    title, description, price, image_url, affiliate_url,
+    category, content_type, status, visibility, processing_status, created_at,
+    display_pages
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+function firstUrl(text) {
+  const m = (text || '').match(/(https?:\/\/[^\s]+)/);
+  return m ? m[1] : null;
+}
+
+function firstImageUrl(text) {
+  const m = (text || '').match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/i);
+  return m ? m[1] : null;
+}
+
+function extractPrice(text) {
+  const m = (text || '').match(/\$[\d,]+(?:\.\d{2})?|₹[\d,]+(?:\.\d{2})?|£[\d,]+(?:\.\d{2})?/);
+  return m ? m[0] : null;
+}
+
+// Create bot instance with polling
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+console.log('🤖 Bot created; polling enabled (unified_content writer)');
 
-console.log('\n🤖 Bot created with polling enabled');
-console.log('📺 Monitoring channels:', Object.keys(CHANNELS).join(', '));
+bot.on('channel_post', (msg) => {
+  const chatId = msg.chat?.id?.toString();
+  const channelTitle = msg.chat?.title || '';
+  const messageId = msg.message_id;
+  const text = msg.text || msg.caption || '';
 
-// Message handler
-bot.on('message', (msg) => {
+  console.log(`\n📺 Channel post from ${channelTitle} (${chatId}), message ${messageId}`);
+
+  // Derive display page
+  const pageSlug = channelSlugMap[channelTitle] || slugify(channelTitle);
+  const displayPagesJson = JSON.stringify([pageSlug]);
+
+  // Basic field extraction
+  const title = (text.split('\n')[0] || '').substring(0, 80) || 'New Deal';
+  const description = text.substring(0, 280) || null;
+  const price = extractPrice(text);
+  // Prefer image URL in text; fallback to DEFAULT_IMAGE_URL or generic placeholder
+  const imageUrl = firstImageUrl(text) || process.env.DEFAULT_IMAGE_URL || 'https://via.placeholder.com/600x400?text=PickNTrust';
+  const affiliateUrl = firstUrl(text);
+
+  const createdAt = new Date().toISOString();
+
   try {
-    const chatId = msg.chat.id.toString();
-    const messageId = msg.message_id;
-    const text = msg.text || msg.caption || '';
-    
-    // Check if message is from a monitored channel
-    const channelName = Object.keys(CHANNELS).find(name => CHANNELS[name] === chatId);
-    
-    if (!channelName) {
-      console.log(`📝 Message from unmonitored chat: ${chatId}`);
-      return;
-    }
-    
-    console.log(`\n📨 NEW MESSAGE from ${channelName}:`);
-    console.log(`   Chat ID: ${chatId}`);
-    console.log(`   Message ID: ${messageId}`);
-    console.log(`   Text: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
-    
-    // Save to database with correct camelCase columns
-    const insertMessage = db.prepare(`
-      INSERT INTO channel_posts (channelId, messageId, originalText, processedText, isProcessed, isPosted, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    const now = new Date().toISOString();
-    const result = insertMessage.run(
-      chatId,
-      messageId,
-      text,
-      null, // processedText - will be filled during processing
-      0,    // isProcessed - false initially
-      0,    // isPosted - false initially
-      now,  // createdAt
-      now   // updatedAt
+    const result = insertContent.run(
+      title,
+      description,
+      price,
+      imageUrl,
+      affiliateUrl,
+      'deals',           // category
+      'product',         // content_type (NOT NULL)
+      'active',          // status
+      'public',          // visibility
+      'completed',       // processing_status
+      createdAt,         // created_at (TEXT)
+      displayPagesJson   // display_pages (TEXT JSON array)
     );
-    
-    console.log(`✅ Message saved to database with ID: ${result.lastInsertRowid}`);
-    
-    // Process the message (simulate affiliate link processing)
-    setTimeout(() => {
-      try {
-        console.log(`🔄 Processing message ${result.lastInsertRowid}...`);
-        
-        // Simple processing - look for URLs and convert them
-        let processedText = text;
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const urls = text.match(urlRegex) || [];
-        
-        if (urls.length > 0) {
-          console.log(`🔗 Found ${urls.length} URLs to process`);
-          // Loot Box requirement: do NOT convert links; keep exactly as posted
-          if (channelName === 'Loot Box') {
-            console.log('🎁 Loot Box channel detected — bypassing affiliate conversion, preserving original URLs');
-            // Leave processedText unchanged to preserve original URLs
-          } else {
-            urls.forEach(url => {
-              // Simple affiliate conversion (replace with your actual logic)
-              const affiliateUrl = url.includes('amazon') ? 
-                url + '?tag=youraffid' : 
-                `https://youraffiliatelink.com/redirect?url=${encodeURIComponent(url)}`;
-              processedText = processedText.replace(url, affiliateUrl);
-            });
-          }
-        }
-        
-        // Update as processed
-        const updateProcessed = db.prepare(`
-          UPDATE channel_posts 
-          SET processedText = ?, isProcessed = 1, updatedAt = ?
-          WHERE id = ?
-        `);
-        
-        updateProcessed.run(processedText, new Date().toISOString(), result.lastInsertRowid);
-        console.log(`✅ Message ${result.lastInsertRowid} marked as processed`);
-        
-        // Create unified content entry
-        const insertContent = db.prepare(`
-          INSERT INTO unified_content (
-            title, description, price, image_url, affiliate_url, 
-            category, status, source_channel, source_message_id, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        
-        // Extract title from message (first line or first 50 chars)
-        const title = text.split('\n')[0].substring(0, 50) || 'New Deal Alert';
-        const description = text.substring(0, 200);
-        
-        // Extract price if found
-        const priceMatch = text.match(/\$[\d,]+(?:\.\d{2})?|\₹[\d,]+(?:\.\d{2})?|£[\d,]+(?:\.\d{2})?/);
-        const price = priceMatch ? priceMatch[0] : 'Check Link';
-        
-        // Extract image URL if found
-        const imageMatch = text.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/i);
-        const imageUrl = imageMatch ? imageMatch[0] : null;
-        
-        // Get affiliate URL
-        // Loot Box: use original first URL; others: use first processed URL
-        const affiliateUrl = urls.length > 0 ? (
-          channelName === 'Loot Box' 
-            ? urls[0] 
-            : processedText.match(/(https?:\/\/[^\s]+)/)?.[0]
-        ) : null;
-        
-        const contentResult = insertContent.run(
-          title,
-          description,
-          price,
-          imageUrl,
-          affiliateUrl,
-          'deals', // category
-          'published', // status
-          chatId, // source_channel
-          messageId, // source_message_id
-          new Date().toISOString()
-        );
-        
-        console.log(`✅ Unified content created with ID: ${contentResult.lastInsertRowid}`);
-        
-        // Mark as posted
-        const markPosted = db.prepare(`
-          UPDATE channel_posts 
-          SET isPosted = 1, updatedAt = ?
-          WHERE id = ?
-        `);
-        
-        markPosted.run(new Date().toISOString(), result.lastInsertRowid);
-        console.log(`✅ Message ${result.lastInsertRowid} marked as POSTED`);
-        
-        console.log(`🎉 COMPLETE FLOW SUCCESS: Message → Database → Website`);
-        
-      } catch (processError) {
-        console.error('❌ Error processing message:', processError.message);
-      }
-    }, 2000); // Process after 2 seconds
-    
-  } catch (error) {
-    console.error('❌ Error handling message:', error.message);
-    console.error('Stack:', error.stack);
+    console.log(`✅ Saved unified_content id=${result.lastInsertRowid} pages=${displayPagesJson}`);
+  } catch (e) {
+    console.error('❌ Failed to save unified_content:', e.message);
   }
 });
 
-// Error handling
-bot.on('error', (error) => {
-  console.error('❌ Bot error:', error.message);
+bot.on('error', (err) => {
+  console.error('❌ Telegram bot error:', err?.message || err);
 });
 
-bot.on('polling_error', (error) => {
-  console.error('❌ Polling error:', error.message);
-});
-
-console.log('\n✅ Bot is now running and listening for messages...');
-console.log('💡 Send a message to any monitored channel to test');
-console.log('🛑 Press Ctrl+C to stop the bot');
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down bot...');
-  bot.stopPolling();
-  db.close();
-  process.exit(0);
-});
-
-// Keep the process alive and show activity
-setInterval(() => {
-  // Check database for recent entries every 30 seconds
-  try {
-    const recentCount = db.prepare(`
-      SELECT COUNT(*) as count 
-      FROM channel_posts 
-      WHERE createdAt >= datetime('now', '-1 minute')
-    `).get();
-    
-    if (recentCount.count > 0) {
-      console.log(`📊 ${recentCount.count} new entries in the last minute`);
-    }
-  } catch (error) {
-    // Ignore errors in monitoring query
-  }
-}, 30000);
+console.log('✅ Bot is running; send a message in your channel to test.');

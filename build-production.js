@@ -85,6 +85,33 @@ fs.writeFileSync(
   JSON.stringify(buildInfo, null, 2)
 );
 
+// Copy raw JS utility modules that are not emitted by TypeScript
+const rawJsFiles = [
+  path.join(__dirname, 'server', 'url-processing-service.js'),
+  path.join(__dirname, 'server', 'enhanced-smart-categorization.js'),
+  path.join(__dirname, 'server', 'rss-parser-service.js'),
+  path.join(__dirname, 'server', 'canva-automation.js'),
+  path.join(__dirname, 'server', 'category-manager.js'),
+  path.join(__dirname, 'server', 'utils', 'category-helper.js'),
+  path.join(__dirname, 'server', 'utils', 'category-validator.js'),
+  path.join(__dirname, 'server', 'utils', 'circuit-breaker.js'),
+];
+
+for (const src of rawJsFiles) {
+  try {
+    if (fs.existsSync(src)) {
+      const rel = path.relative(path.join(__dirname, 'server'), src);
+      const dest = path.join(__dirname, 'dist', 'server', 'server', rel);
+      const destDir = path.dirname(dest);
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.copyFileSync(src, dest);
+      console.log('📦 Copied raw JS module →', rel);
+    }
+  } catch (e) {
+    console.warn('⚠️ Failed to copy', src, '→', e?.message || e);
+  }
+}
+
 console.log('🎉 Production build completed successfully!');
 console.log('📁 Client files: dist/public/');
 console.log('📁 Server files: dist/server/');

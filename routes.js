@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import { sqliteDb } from './db.js';
 import travelCategoriesRouter from './travel-categories-routes.js';
 import currencyRouter from './routes/currency.js';
+import multer from 'multer';
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,6 +88,225 @@ async function retryDatabaseOperation(operation, maxRetries = 3, delay = 1000) {
     throw new Error('Max retries exceeded');
 }
 export function setupRoutes(app) {
+    // Lightweight CSV parser (handles quoted fields and commas)
+    function parseCSV(text) {
+        const input = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = input.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length === 0) return { headers: [], rows: [] };
+        const parseLine = (line) => {
+            const result = []; let current = ''; let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') { current += '"'; i++; }
+                    else { inQuotes = !inQuotes; }
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current); current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            result.push(current);
+            return result.map(v => v.trim());
+        };
+        const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
+        const rows = [];
+        for (let li = 1; li < lines.length; li++) {
+            const values = parseLine(lines[li]).map(v => v.replace(/^"|"$/g, ''));
+            const row = {};
+            headers.forEach((h, idx) => { row[h] = typeof values[idx] !== 'undefined' ? values[idx] : ''; });
+            rows.push(row);
+        }
+        return { headers, rows };
+    }
+
+    // CSV upload handler: in-memory, CSV-only, safe defaults
+    const csvUpload = multer({
+        storage: multer.memoryStorage(),
+        limits: { fileSize: 50 * 1024 * 1024, files: 1 },
+        fileFilter: (_req, file, cb) => {
+            const type = file.mimetype;
+            const name = (file.originalname || '').toLowerCase();
+            const isCsvExt = name.endsWith('.csv');
+            const allowed = type === 'text/csv' || type === 'application/vnd.ms-excel' || type === 'text/plain' || (type === 'application/octet-stream' && isCsvExt);
+            if (allowed) cb(null, true); else cb(new Error('Only CSV files are allowed'));
+        }
+    });
+
+    // Admin: Bulk product upload via CSV (map to camelCase and normalize pages)
+    app.post('/api/admin/products/bulk-upload', csvUpload.single('file'), async (req, res) => {
+        try {
+            const bodyPwd = typeof req.body?.password === 'string' ? req.body.password : undefined;
+            const headerPwd = (req.headers['x-admin-password'] || req.headers['X-Admin-Password'] || undefined);
+            const queryPwd = typeof req.query?.password === 'string' ? req.query.password : undefined;
+            const password = (bodyPwd || headerPwd || queryPwd || '').toString();
+            const isValid = await verifyAdminPassword(password);
+            if (!isValid) {
+                return res.status(401).json({ message: 'Unauthorized: Invalid admin password' });
+            }
+
+            if (!req.file || !req.file.buffer) {
+                return res.status(400).json({ message: 'No CSV file uploaded. Please upload with form field "file".' });
+            }
+
+            const csvText = req.file.buffer.toString('utf8');
+            const { headers, rows } = parseCSV(csvText);
+            if (headers.length === 0 || rows.length === 0) {
+                return res.status(400).json({ message: 'Empty or invalid CSV content' });
+            }
+
+            const normalizeKey = (k) => String(k || '').trim().toLowerCase().replace(/\s+/g, '_');
+            const keyMap = {};
+            headers.forEach(h => {
+                const norm = normalizeKey(h);
+                switch (norm) {
+                    case 'name':
+                    case 'title': keyMap['name'] = h; break;
+                    case 'description': keyMap['description'] = h; break;
+                    case 'price': keyMap['price'] = h; break;
+                    case 'original_price':
+                    case 'mrp': keyMap['original_price'] = h; break;
+                    case 'currency': keyMap['currency'] = h; break;
+                    case 'discount': keyMap['discount'] = h; break;
+                    case 'category': keyMap['category'] = h; break;
+                    case 'subcategory':
+                    case 'sub_category': keyMap['subcategory'] = h; break;
+                    case 'image_url':
+                    case 'image': keyMap['image_url'] = h; break;
+                    case 'affiliate_url':
+                    case 'url':
+                    case 'link': keyMap['affiliate_url'] = h; break;
+                    case 'brand': keyMap['brand'] = h; break;
+                    case 'gender': keyMap['gender'] = h; break;
+                    case 'is_featured':
+                    case 'featured': keyMap['is_featured'] = h; break;
+                    case 'is_service':
+                    case 'service': keyMap['is_service'] = h; break;
+                    case 'is_ai_app':
+                    case 'is_aiapp':
+                    case 'ai_app': keyMap['is_ai_app'] = h; break;
+                    case 'pricing_type': keyMap['pricing_type'] = h; break;
+                    case 'monthly_price': keyMap['monthly_price'] = h; break;
+                    case 'yearly_price': keyMap['yearly_price'] = h; break;
+                    case 'is_free': keyMap['is_free'] = h; break;
+                    case 'price_description': keyMap['price_description'] = h; break;
+                    case 'display_pages':
+                    case 'pages': keyMap['display_pages'] = h; break;
+                    case 'cookie_duration': keyMap['cookie_duration'] = h; break;
+                    default: break;
+                }
+            });
+
+            const toBool = (v) => {
+                const s = String(v || '').trim().toLowerCase();
+                return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+            };
+            const normalizeSlug = (val) => {
+                const s = String(val || '').trim().toLowerCase().replace(/\s+/g, '-');
+                switch (s) {
+                    case 'global':
+                    case 'globalpicks':
+                    case 'global-pick':
+                    case 'globals': return 'global-picks';
+                    case 'prime':
+                    case 'primepicks':
+                    case 'prime-pick': return 'prime-picks';
+                    case 'clickpicks':
+                    case 'click-pick': return 'click-picks';
+                    case 'cuepicks':
+                    case 'cue-pick': return 'cue-picks';
+                    case 'valuepicks':
+                    case 'value-pick': return 'value-picks';
+                    case 'apps-aiapps':
+                    case 'apps-aiapp':
+                    case 'ai-apps':
+                    case 'ai-app': return 'apps-ai-apps';
+                    default: return s;
+                }
+            };
+
+            let processed = 0; let inserted = 0; const errors = [];
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i]; processed++;
+                const val = (k) => {
+                    const orig = keyMap[k];
+                    return typeof r[orig] !== 'undefined' ? r[orig] : '';
+                };
+
+                // Required fields (validate early)
+                const name = String(val('name') || '').trim();
+                const imageUrl = String(val('image_url') || '').trim();
+                const affiliateUrl = String(val('affiliate_url') || '').trim();
+                const category = String(val('category') || '').trim();
+                if (!name || !imageUrl || !affiliateUrl || !category) {
+                    errors.push({ index: i + 1, error: 'Missing required fields: name/title, image_url, affiliate_url, category' });
+                    continue;
+                }
+
+                try {
+                    // Numbers: keep flexible parsing
+                    const toNumber = (numVal) => {
+                        if (numVal === null || numVal === undefined || numVal === '') return undefined;
+                        const n = typeof numVal === 'string' ? parseFloat(numVal.replace(/[^0-9.\-]/g, '')) : Number(numVal);
+                        return Number.isFinite(n) ? n : undefined;
+                    };
+
+                    // Normalize display pages into array of canonical slugs
+                    const rawPages = String(val('display_pages') || '').trim();
+                    const displayPages = rawPages
+                        ? Array.from(new Set(rawPages.split(',').map(s => normalizeSlug(s)).filter(Boolean)))
+                        : undefined;
+
+                    const mapped = {
+                        name,
+                        description: String(val('description') || '').trim(),
+                        price: toNumber(val('price')),
+                        originalPrice: toNumber(val('original_price')),
+                        currency: String(val('currency') || '').trim() || 'INR',
+                        discount: toNumber(val('discount')),
+                        category,
+                        subcategory: String(val('subcategory') || '').trim(),
+                        imageUrl,
+                        affiliateUrl,
+                        brand: String(val('brand') || '').trim(),
+                        gender: String(val('gender') || '').trim(),
+                        isFeatured: toBool(val('is_featured')),
+                        isService: toBool(val('is_service')),
+                        isAIApp: toBool(val('is_ai_app')),
+                        pricingType: String(val('pricing_type') || '').trim(),
+                        monthlyPrice: String(val('monthly_price') || '').trim(),
+                        yearlyPrice: String(val('yearly_price') || '').trim(),
+                        isFree: toBool(val('is_free')),
+                        priceDescription: String(val('price_description') || '').trim(),
+                        displayPages,
+                        cookieDuration: String(val('cookie_duration') || '').trim(),
+                    };
+
+                    await storage.addProduct(mapped);
+                    inserted++;
+                } catch (e) {
+                    errors.push({ index: i + 1, error: e?.message || String(e) });
+                }
+            }
+
+            return res.json({
+                message: 'Bulk upload completed',
+                totalRows: rows.length,
+                processed,
+                inserted,
+                failed: errors.length,
+                errors,
+                recognizedHeaders: headers,
+                expectedHeadersSample: [
+                    'name', 'description', 'price', 'original_price', 'currency', 'discount', 'category', 'subcategory', 'image_url', 'affiliate_url', 'brand', 'gender', 'is_featured', 'is_service', 'is_ai_app',
+                    'pricing_type', 'monthly_price', 'yearly_price', 'is_free', 'price_description', 'display_pages', 'cookie_duration'
+                ]
+            });
+        } catch (error) {
+            console.error('Bulk upload error:', error);
+            return handleDatabaseError(error, res, 'process bulk product CSV');
+        }
+    });
     // Helper to normalize product image URLs and route through proxy
     function toProxiedImage(url) {
         const u = typeof url === 'string' ? url.trim() : '';
@@ -110,20 +330,31 @@ export function setupRoutes(app) {
     app.get("/api/services", async (req, res) => {
         try {
             console.log('Getting services for homepage services section');
-            // Get products marked as services based on category or content_type
-            const services = sqliteDb.prepare(`
+            const { limit = 50, offset = 0 } = req.query;
+            const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+            const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+
+            // Mirror page-based selection used by /api/products/page/services for consistency
+            const query = `
         SELECT * FROM unified_content 
-        WHERE (category LIKE '%service%' OR category LIKE '%Service%' OR content_type = 'service')
-        AND status = 'active'
+        WHERE (status = 'completed' OR status = 'active' OR status = 'processed' OR status IS NULL)
+        AND (visibility = 'public' OR visibility IS NULL)
+        AND (
+          display_pages LIKE '%' || ? || '%' OR
+          display_pages = ?
+        )
         ORDER BY created_at DESC
-      `).all();
-            // Map database field names to frontend expected field names
+        LIMIT ? OFFSET ?
+      `;
+            const services = sqliteDb.prepare(query).all('services', 'services', parsedLimit, parsedOffset);
+
             const mappedServices = services.map((service) => ({
                 ...service,
-                name: service.title, // Map title to name for frontend compatibility
-                imageUrl: toProxiedImage(service.imageUrl || service.image_url), // Normalize and proxy image
-                isService: true // Add service flag for frontend logic
+                name: service.title,
+                imageUrl: toProxiedImage(service.imageUrl || service.image_url),
+                isService: true
             }));
+
             console.log(`Services: Returning ${mappedServices.length} service products with mapped fields`);
             res.json(mappedServices);
         }
@@ -135,22 +366,132 @@ export function setupRoutes(app) {
     // API endpoint for apps (used by AppsAIApps component)
     app.get("/api/products/apps", async (req, res) => {
         try {
-            console.log('Getting apps for homepage apps section');
-            // Get products marked as AI apps or apps based on category or content_type
-            const apps = sqliteDb.prepare(`
-        SELECT * FROM unified_content 
-        WHERE (category LIKE '%app%' OR category LIKE '%App%' OR category LIKE '%AI%' OR content_type = 'app' OR content_type = 'ai-app')
-        AND status = 'active'
-        ORDER BY created_at DESC
-      `).all();
-            // Map database field names to frontend expected field names
+            console.log('Getting apps with union of display_pages and is_ai_app');
+            const { limit = 50, offset = 0, category } = req.query;
+            const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+            const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+
+            // Union logic: items tagged for apps page OR flagged as AI/app
+            let query = `
+        SELECT * FROM unified_content
+        WHERE (
+          (
+            display_pages LIKE '%apps%'
+            OR display_pages LIKE '%apps-ai-apps%'
+            OR REPLACE(LOWER(display_pages), ' ', '-') LIKE '%apps%'
+            OR REPLACE(LOWER(display_pages), ' ', '-') LIKE '%apps-ai-apps%'
+            OR LOWER(page_type) IN ('apps','apps-ai-apps')
+          )
+          OR (
+            is_ai_app = 1
+            OR isAIApp = 1
+            OR CAST(is_ai_app AS TEXT) IN ('1','true','TRUE','yes','YES','y','Y','on','ON')
+            OR LOWER(content_type) IN ('app','ai-app')
+            OR LOWER(category) LIKE '%app%'
+          )
+        )`;
+
+            const params = [];
+
+            // Optional category filter with parent→child inclusion
+            if (category && category !== 'all') {
+                const categoryLower = String(category || '').toLowerCase();
+                let tokens = categoryLower
+                    .replace(/[^a-z0-9 &-]/g, ' ')
+                    .split(/[\s&/-]+/)
+                    .map(t => t.trim())
+                    .filter(Boolean);
+
+                const SYNONYM_TOKENS = {
+                    smartphones: ['smartphone', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    smartphone: ['smartphones', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    laptops: ['laptop', 'notebook', 'notebooks'],
+                    laptop: ['laptops', 'notebook', 'notebooks'],
+                    earphones: ['earbud', 'earbuds', 'headphone', 'headphones', 'headset'],
+                    headphones: ['earphone', 'earphones', 'earbud', 'earbuds', 'headset'],
+                    television: ['tv', 'smart tv', 'led tv', 'oled tv'],
+                    tv: ['television', 'smart tv', 'led tv', 'oled tv'],
+                    camera: ['cameras', 'dslr', 'mirrorless'],
+                    cameras: ['camera', 'dslr', 'mirrorless'],
+                    electronics: ['electronic', 'gadgets', 'tech']
+                };
+                const extraSynonyms = new Set();
+                for (const t of tokens) {
+                    const syns = SYNONYM_TOKENS[t];
+                    if (Array.isArray(syns)) {
+                        for (const s of syns) extraSynonyms.add(s);
+                    }
+                }
+                if (extraSynonyms.size > 0) {
+                    tokens = Array.from(new Set([...tokens, ...extraSynonyms]));
+                }
+
+                let childNames = [];
+                try {
+                    let parentRow = sqliteDb.prepare(
+                        `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                    ).get(category);
+                    if (!(parentRow && parentRow.id)) {
+                        const SYNONYMS_TO_CANONICAL = {
+                            electronics: 'Electronics & Gadgets',
+                            tech: 'Electronics & Gadgets',
+                            technology: 'Electronics & Gadgets',
+                            'home & kitchen': 'Home & Living',
+                            'home and kitchen': 'Home & Living',
+                            'beauty & personal care': 'Beauty',
+                            'personal care': 'Beauty',
+                            'apps and ai apps': 'Apps & AI Apps',
+                            'ai apps': 'Apps & AI Apps',
+                            services: 'Services'
+                        };
+                        const canonical = SYNONYMS_TO_CANONICAL[categoryLower];
+                        if (canonical) {
+                            parentRow = sqliteDb.prepare(
+                                `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                            ).get(canonical);
+                        }
+                    }
+                    if (parentRow && parentRow.id) {
+                        const childRows = sqliteDb.prepare(
+                            `SELECT name FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY display_order ASC, name ASC`
+                        ).all(parentRow.id);
+                        childNames = (childRows || []).map(r => r.name).filter(Boolean);
+                    }
+                } catch (e) {
+                    console.log('Parent-child detection failed (apps filter):', e);
+                }
+
+                const hasChildren = childNames.length > 0;
+                const childPlaceholders = hasChildren ? childNames.map(() => '?').join(',') : '';
+                const likeBlocksCat = tokens.map(() => `LOWER(category) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksSub = tokens.map(() => `LOWER(subcategory) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksTags = tokens.map(() => `LOWER(tags) LIKE '%' || ? || '%'`).join(' OR ');
+
+                query += ` AND ( LOWER(category) = LOWER(?) ${hasChildren ? ` OR category IN (${childPlaceholders}) OR subcategory IN (${childPlaceholders})` : ''} OR ${likeBlocksCat} OR ${likeBlocksSub} OR ${likeBlocksTags} )`;
+
+                params.push(category);
+                if (hasChildren) {
+                    params.push(...childNames);
+                    params.push(...childNames);
+                }
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
+            }
+
+            query += ` ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
+            params.push(parsedLimit, parsedOffset);
+
+            const apps = sqliteDb.prepare(query).all(...params);
+
             const mappedApps = apps.map((app) => ({
                 ...app,
-                name: app.title, // Map title to name for frontend compatibility
-                imageUrl: toProxiedImage(app.imageUrl || app.image_url), // Normalize and proxy image
-                isAIApp: true // Add AI app flag for frontend logic
+                name: app.title,
+                imageUrl: toProxiedImage(app.imageUrl || app.image_url),
+                isAIApp: true
             }));
-            console.log(`Apps: Returning ${mappedApps.length} app products with mapped fields`);
+
+            console.log(`Apps: Returning ${mappedApps.length} app products (union + category filters)`);
             res.json(mappedApps);
         }
         catch (error) {
@@ -177,7 +518,7 @@ export function setupRoutes(app) {
             const params = [];
             // Special handling: Top Picks should come from unified_content only
             if (page === 'top-picks') {
-                // Use unified_content with robust status/visibility and featured-only filter
+                // Use unified_content with robust status/visibility and page-tag filter
                 query = `
         SELECT * FROM unified_content 
         WHERE (
@@ -190,45 +531,76 @@ export function setupRoutes(app) {
           processing_status != 'archived' OR processing_status IS NULL
         )
         AND (
-          is_featured = 1
+          display_pages LIKE '%' || ? || '%' OR
+          display_pages = ?
         )
       `;
+                params.push('top-picks', 'top-picks');
             }
             else {
-                // Default: query unified_content for other pages
+                // Default: query unified_content for other pages with broader gating
                 query = `
         SELECT * FROM unified_content 
-        WHERE (status = 'completed' OR status = 'active' OR status = 'processed' OR status IS NULL)
-        AND (visibility = 'public' OR visibility IS NULL)
+        WHERE (
+          status IN ('active','published','ready','processed','completed') OR status IS NULL
+        )
+        AND (
+          visibility IN ('public','visible') OR visibility IS NULL
+        )
+        AND (
+          processing_status != 'archived' OR processing_status IS NULL
+        )
       `;
             }
             // Apply page-specific filtering
             if (page === 'top-picks') {
-                // Already handled by unified_content selection above (is_featured or display_pages)
+                // Already handled by unified_content selection above using display_pages
             }
             else if (page === 'services') {
-                // Services: Strictly use items tagged for the Services page
+                // Services: rely on service flags/type, not display_pages alone
                 query += ` AND (
-          display_pages LIKE '%' || ? || '%' OR
-          display_pages = ?
+          is_service = 1
+          OR LOWER(content_type) = 'service'
+          OR LOWER(category) LIKE '%service%'
         )`;
-                params.push(page, page);
             }
             else if (page === 'apps-ai-apps') {
-                // AI/Apps: Strictly use items tagged for the Apps & AI Apps page
+                // Apps & AI Apps: union of display_pages tags and AI/app flags
                 query += ` AND (
-          display_pages LIKE '%' || ? || '%' OR
-          display_pages = ?
+          (
+            display_pages LIKE '%apps%'
+            OR display_pages LIKE '%apps-ai-apps%'
+            OR REPLACE(LOWER(display_pages), ' ', '-') LIKE '%apps%'
+            OR REPLACE(LOWER(display_pages), ' ', '-') LIKE '%apps-ai-apps%'
+            OR LOWER(page_type) IN ('apps','apps-ai-apps')
+          )
+          OR (
+            is_ai_app = 1
+            OR isAIApp = 1
+            OR CAST(is_ai_app AS TEXT) IN ('1','true','TRUE','yes','YES','y','Y','on','ON')
+            OR LOWER(content_type) IN ('app','ai-app')
+            OR LOWER(category) LIKE '%app%'
+          )
         )`;
-                params.push(page, page);
             }
             else if (page === 'apps') {
-                // Apps: Strictly use items tagged for the Apps page
+                // Apps: union of display_pages tags and AI/app flags
                 query += ` AND (
-          display_pages LIKE '%' || ? || '%' OR
-          display_pages = ?
+          (
+            display_pages LIKE '%apps%'
+            OR display_pages LIKE '%apps-ai-apps%'
+            OR REPLACE(LOWER(display_pages), ' ', '-') LIKE '%apps%'
+            OR REPLACE(LOWER(display_pages), ' ', '-') LIKE '%apps-ai-apps%'
+            OR LOWER(page_type) IN ('apps','apps-ai-apps')
+          )
+          OR (
+            is_ai_app = 1
+            OR isAIApp = 1
+            OR CAST(is_ai_app AS TEXT) IN ('1','true','TRUE','yes','YES','y','Y','on','ON')
+            OR LOWER(content_type) IN ('app','ai-app')
+            OR LOWER(category) LIKE '%app%'
+          )
         )`;
-                params.push(page, page);
             }
             else if (page === 'click-picks') {
                 // Click Picks: Show products tagged for click-picks page
@@ -257,8 +629,90 @@ export function setupRoutes(app) {
                 params.push(page, page);
             }
             if (category && category !== 'all') {
-                query += ` AND category = ?`;
+                // Robust parent→child category inclusion and token-based matching
+                const categoryLower = String(category || '').toLowerCase();
+                let tokens = categoryLower
+                    .replace(/[^a-z0-9 &-]/g, ' ')
+                    .split(/[\s&/-]+/)
+                    .map(t => t.trim())
+                    .filter(Boolean);
+
+                const SYNONYM_TOKENS = {
+                    smartphones: ['smartphone', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    smartphone: ['smartphones', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    laptops: ['laptop', 'notebook', 'notebooks'],
+                    laptop: ['laptops', 'notebook', 'notebooks'],
+                    earphones: ['earbud', 'earbuds', 'headphone', 'headphones', 'headset'],
+                    headphones: ['earphone', 'earphones', 'earbud', 'earbuds', 'headset'],
+                    television: ['tv', 'smart tv', 'led tv', 'oled tv'],
+                    tv: ['television', 'smart tv', 'led tv', 'oled tv'],
+                    camera: ['cameras', 'dslr', 'mirrorless'],
+                    cameras: ['camera', 'dslr', 'mirrorless'],
+                    electronics: ['electronic', 'gadgets', 'tech']
+                };
+                const extraSynonyms = new Set();
+                for (const t of tokens) {
+                    const syns = SYNONYM_TOKENS[t];
+                    if (Array.isArray(syns)) {
+                        for (const s of syns) extraSynonyms.add(s);
+                    }
+                }
+                if (extraSynonyms.size > 0) {
+                    tokens = Array.from(new Set([...tokens, ...extraSynonyms]));
+                }
+
+                let childNames = [];
+                try {
+                    let parentRow = sqliteDb.prepare(
+                        `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                    ).get(category);
+                    if (!(parentRow && parentRow.id)) {
+                        const SYNONYMS_TO_CANONICAL = {
+                            electronics: 'Electronics & Gadgets',
+                            tech: 'Electronics & Gadgets',
+                            technology: 'Electronics & Gadgets',
+                            'home & kitchen': 'Home & Living',
+                            'home and kitchen': 'Home & Living',
+                            'beauty & personal care': 'Beauty',
+                            'personal care': 'Beauty',
+                            'apps and ai apps': 'Apps & AI Apps',
+                            'ai apps': 'Apps & AI Apps',
+                            services: 'Services'
+                        };
+                        const canonical = SYNONYMS_TO_CANONICAL[categoryLower];
+                        if (canonical) {
+                            parentRow = sqliteDb.prepare(
+                                `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                            ).get(canonical);
+                        }
+                    }
+                    if (parentRow && parentRow.id) {
+                        const childRows = sqliteDb.prepare(
+                            `SELECT name FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY display_order ASC, name ASC`
+                        ).all(parentRow.id);
+                        childNames = (childRows || []).map(r => r.name).filter(Boolean);
+                    }
+                } catch (e) {
+                    console.log('Parent-child detection failed (page filter):', e);
+                }
+
+                const hasChildren = childNames.length > 0;
+                const childPlaceholders = hasChildren ? childNames.map(() => '?').join(',') : '';
+                const likeBlocksCat = tokens.map(() => `LOWER(category) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksSub = tokens.map(() => `LOWER(subcategory) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksTags = tokens.map(() => `LOWER(tags) LIKE '%' || ? || '%'`).join(' OR ');
+
+                query += ` AND ( LOWER(category) = LOWER(?) ${hasChildren ? ` OR category IN (${childPlaceholders}) OR subcategory IN (${childPlaceholders})` : ''} OR ${likeBlocksCat} OR ${likeBlocksSub} OR ${likeBlocksTags} )`;
+
                 params.push(category);
+                if (hasChildren) {
+                    params.push(...childNames);
+                    params.push(...childNames);
+                }
+                // Push tokens: category, subcategory, tags
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
             }
             // Order and pagination
             query += ` ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
@@ -325,6 +779,7 @@ export function setupRoutes(app) {
                         imageUrl: product.imageUrl,
                         affiliateUrl: product.affiliateUrl,
                         category: product.category,
+                        gender: product.gender,
                         rating: product.rating || 0,
                         reviewCount: product.reviewCount || 0,
                         discount: product.discount,
@@ -343,6 +798,9 @@ export function setupRoutes(app) {
                             transformedProduct.rating = transformedProduct.rating || contentData.rating || 0;
                             transformedProduct.reviewCount = transformedProduct.reviewCount || contentData.reviewCount || 0;
                             transformedProduct.discount = transformedProduct.discount || contentData.discount;
+                            if (!transformedProduct.gender && contentData.gender) {
+                                transformedProduct.gender = contentData.gender;
+                            }
                         }
                         catch (e) {
                             console.warn(`Failed to parse content for product ${product.id}:`, e);
@@ -494,11 +952,11 @@ export function setupRoutes(app) {
             handleDatabaseError(error, res, "fetch categories");
         }
     });
-    // Get products by category with robust matching and fallbacks
+    // Get products by category with robust matching and true parent→child inclusion
     app.get("/api/products/category/:category", async (req, res) => {
         try {
             const { category } = req.params;
-            const { limit = 50, offset = 0 } = req.query;
+            const { limit = 50, offset = 0, gender } = req.query;
 
             console.log(`Getting products for category: "${category}"`);
 
@@ -552,6 +1010,42 @@ export function setupRoutes(app) {
             let query = '';
             const params = [];
 
+            // Detect if requested category is a parent and gather child subcategories
+            let childNames = [];
+            try {
+                let parentRow = sqliteDb.prepare(
+                    `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                ).get(category);
+                if (!(parentRow && parentRow.id)) {
+                    const SYNONYMS_TO_CANONICAL = {
+                        'electronics': 'Electronics & Gadgets',
+                        'tech': 'Electronics & Gadgets',
+                        'technology': 'Electronics & Gadgets',
+                        'home & kitchen': 'Home & Living',
+                        'home and kitchen': 'Home & Living',
+                        'beauty & personal care': 'Beauty',
+                        'personal care': 'Beauty',
+                        'apps and ai apps': 'Apps & AI Apps',
+                        'ai apps': 'Apps & AI Apps',
+                        'services': 'Services'
+                    };
+                    const canonical = SYNONYMS_TO_CANONICAL[categoryLower];
+                    if (canonical) {
+                        parentRow = sqliteDb.prepare(
+                            `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                        ).get(canonical);
+                    }
+                }
+                if (parentRow && parentRow.id) {
+                    const childRows = sqliteDb.prepare(
+                        `SELECT name FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY display_order ASC, name ASC`
+                    ).all(parentRow.id);
+                    childNames = (childRows || []).map(r => r.name).filter(Boolean);
+                }
+            } catch (e) {
+                console.log('Parent-child detection failed:', e);
+            }
+
             if (isAppsCategory) {
                 query = `
           SELECT * FROM unified_content
@@ -592,11 +1086,14 @@ export function setupRoutes(app) {
             )
         `;
             } else {
-                // Default: exact match first, then broaden by tokens across category/subcategory/tags
+                // Default: exact match plus parent→child inclusion, then broaden by tokens
+                const childPlaceholders = childNames.length > 0 ? childNames.map(() => '?').join(',') : '';
+                const hasChildren = childNames.length > 0;
                 query = `
           SELECT * FROM unified_content
           WHERE (
             LOWER(category) = LOWER(?)
+            ${hasChildren ? ` OR category IN (${childPlaceholders}) OR subcategory IN (${childPlaceholders})` : ''}
             OR ${tokens.map(() => `LOWER(category) LIKE '%' || ? || '%'`).join(' OR ')}
             OR ${tokens.map(() => `LOWER(subcategory) LIKE '%' || ? || '%'`).join(' OR ')}
             OR ${tokens.map(() => `LOWER(tags) LIKE '%' || ? || '%'`).join(' OR ')}
@@ -612,16 +1109,21 @@ export function setupRoutes(app) {
             )
         `;
                 params.push(category);
+                if (hasChildren) {
+                    // children for category and for subcategory
+                    params.push(...childNames);
+                    params.push(...childNames);
+                }
                 // Push tokens for category, subcategory, and tags (triplets)
-                for (const t of tokens) {
-                    params.push(t);
-                }
-                for (const t of tokens) {
-                    params.push(t);
-                }
-                for (const t of tokens) {
-                    params.push(t);
-                }
+                for (const t of tokens) params.push(t);
+                for (const t of tokens) params.push(t);
+                for (const t of tokens) params.push(t);
+            }
+
+            // Optional gender filter
+            if (typeof gender === 'string' && gender && String(gender).toLowerCase() !== 'all') {
+                query += ` AND LOWER(COALESCE(gender,'')) = LOWER(?)`;
+                params.push(String(gender));
             }
 
             query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
@@ -735,8 +1237,16 @@ export function setupRoutes(app) {
                         processing_status = 'completed' OR processing_status = 'active' OR processing_status IS NULL
                       )
                   `;
+                                // Optional gender filter in fallback path
+                                if (typeof gender === 'string' && gender && String(gender).toLowerCase() !== 'all') {
+                                    parentFallbackQuery += ` AND LOWER(COALESCE(gender,'')) = LOWER(?)`;
+                                }
                                 parentFallbackQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-                                const pParams = [...childNames, ...childNames, parseInt(String(limit)), parseInt(String(offset))];
+                                const pParams = [...childNames, ...childNames];
+                                if (typeof gender === 'string' && gender && String(gender).toLowerCase() !== 'all') {
+                                    pParams.push(String(gender));
+                                }
+                                pParams.push(parseInt(String(limit)), parseInt(String(offset)));
                                 products = sqliteDb.prepare(parentFallbackQuery).all(...pParams);
                             }
                         }
@@ -760,10 +1270,27 @@ export function setupRoutes(app) {
             if (!await verifyAdminPassword(password)) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
+
+            // Map boolean flags from the client to integer columns
+            const isForProducts = categoryData.isForProducts === true ? 1 : 0;
+            const isForServices = categoryData.isForServices === true ? 1 : 0;
+            const isForAIApps = categoryData.isForAIApps === true ? 1 : 0;
+
             const result = sqliteDb.prepare(`
-        INSERT INTO categories (name, description, display_order, is_active)
-        VALUES (?, ?, ?, ?)
-      `).run(categoryData.name, categoryData.description || '', categoryData.displayOrder || 0, categoryData.isActive !== false ? 1 : 0);
+        INSERT INTO categories (
+          name, description, display_order, is_active,
+          is_for_products, is_for_services, is_for_ai_apps
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+                categoryData.name,
+                categoryData.description || '',
+                categoryData.displayOrder || 0,
+                categoryData.isActive !== false ? 1 : 0,
+                isForProducts,
+                isForServices,
+                isForAIApps
+            );
             res.json({ id: result.lastInsertRowid, ...categoryData });
         }
         catch (error) {
@@ -778,11 +1305,33 @@ export function setupRoutes(app) {
             if (!await verifyAdminPassword(password)) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
+
+            // Map boolean flags from the client to integer columns
+            const isForProducts = categoryData.isForProducts === true ? 1 : 0;
+            const isForServices = categoryData.isForServices === true ? 1 : 0;
+            const isForAIApps = categoryData.isForAIApps === true ? 1 : 0;
+
             sqliteDb.prepare(`
         UPDATE categories 
-        SET name = ?, description = ?, display_order = ?, is_active = ?
+        SET 
+          name = ?,
+          description = ?,
+          display_order = ?,
+          is_active = ?,
+          is_for_products = ?,
+          is_for_services = ?,
+          is_for_ai_apps = ?
         WHERE id = ?
-      `).run(categoryData.name, categoryData.description || '', categoryData.displayOrder || 0, categoryData.isActive !== false ? 1 : 0, id);
+      `).run(
+                categoryData.name,
+                categoryData.description || '',
+                categoryData.displayOrder || 0,
+                categoryData.isActive !== false ? 1 : 0,
+                isForProducts,
+                isForServices,
+                isForAIApps,
+                id
+            );
             res.json({ id, ...categoryData });
         }
         catch (error) {
@@ -929,39 +1478,21 @@ export function setupRoutes(app) {
                 }
             }
 
-            // Fallback: derive subcategories from unified_content when categories table has no children
-            const tokens = parentLower.split(/[&/,\-,\s]+/).map(t => t.trim()).filter(Boolean);
-            let q = `
-                SELECT DISTINCT COALESCE(NULLIF(subcategory,''), category) as name
-                FROM unified_content
-                WHERE (status = 'active' OR status = 'published' OR status = 'completed' OR status IS NULL)
-                  AND (visibility = 'public' OR visibility = 'visible' OR visibility IS NULL)
-            `;
-            const params = [];
-            // Base match: exact category
-            q += ` AND (LOWER(category) = LOWER(?))`;
-            params.push(parentInput);
-            // Canonical exact match
+            // Fallback: derive subcategories strictly from unified_content by matching the parent category
+            // and only returning non-empty subcategory names. This prevents showing unrelated top-level parents.
             const canonical = SYNONYMS_TO_CANONICAL[parentLower];
-            if (canonical) {
-                q += ` OR LOWER(category) = LOWER(?)`;
-                params.push(canonical);
-            }
-            // Token partials to catch variants
-            for (const t of tokens) {
-                q += ` OR LOWER(category) LIKE ?`;
-                params.push(`%${t}%`);
-            }
-            // Exclude parent names themselves from the derived list
-            q += ` AND LOWER(COALESCE(NULLIF(subcategory,''), category)) != LOWER(?)`;
-            params.push(parentInput);
-            if (canonical) {
-                q += ` AND LOWER(COALESCE(NULLIF(subcategory,''), category)) != LOWER(?)`;
-                params.push(canonical);
-            }
-            q += ` ORDER BY name ASC LIMIT 100`;
-
-            const rows = sqliteDb.prepare(q).all(...params);
+            const variants = [parentInput];
+            if (canonical) variants.push(canonical);
+            const placeholders = variants.map(() => '?').join(', ');
+            let q = `
+                SELECT DISTINCT TRIM(subcategory) AS name
+                FROM unified_content
+                WHERE subcategory IS NOT NULL AND TRIM(subcategory) != ''
+                  AND LOWER(category) IN (${placeholders})
+                ORDER BY name ASC
+                LIMIT 100
+            `;
+            const rows = sqliteDb.prepare(q).all(...variants.map(v => v.toLowerCase()));
             const derived = (rows || [])
                 .map(r => ({ name: r.name, id: r.name }))
                 .filter(r => r.name && r.name.trim() !== '');
@@ -1190,8 +1721,87 @@ export function setupRoutes(app) {
       `;
             const params = [];
             if (category && category !== 'all') {
-                query += ` AND category = ?`;
+                const categoryLower = String(category || '').toLowerCase();
+                let tokens = categoryLower
+                    .replace(/[^a-z0-9 &-]/g, ' ')
+                    .split(/[\s&/-]+/)
+                    .map(t => t.trim())
+                    .filter(Boolean);
+
+                const SYNONYM_TOKENS = {
+                    smartphones: ['smartphone', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    smartphone: ['smartphones', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    laptops: ['laptop', 'notebook', 'notebooks'],
+                    laptop: ['laptops', 'notebook', 'notebooks'],
+                    earphones: ['earbud', 'earbuds', 'headphone', 'headphones', 'headset'],
+                    headphones: ['earphone', 'earphones', 'earbud', 'earbuds', 'headset'],
+                    television: ['tv', 'smart tv', 'led tv', 'oled tv'],
+                    tv: ['television', 'smart tv', 'led tv', 'oled tv'],
+                    camera: ['cameras', 'dslr', 'mirrorless'],
+                    cameras: ['camera', 'dslr', 'mirrorless'],
+                    electronics: ['electronic', 'gadgets', 'tech']
+                };
+                const extraSynonyms = new Set();
+                for (const t of tokens) {
+                    const syns = SYNONYM_TOKENS[t];
+                    if (Array.isArray(syns)) {
+                        for (const s of syns) extraSynonyms.add(s);
+                    }
+                }
+                if (extraSynonyms.size > 0) {
+                    tokens = Array.from(new Set([...tokens, ...extraSynonyms]));
+                }
+
+                let childNames = [];
+                try {
+                    let parentRow = sqliteDb.prepare(
+                        `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                    ).get(category);
+                    if (!(parentRow && parentRow.id)) {
+                        const SYNONYMS_TO_CANONICAL = {
+                            electronics: 'Electronics & Gadgets',
+                            tech: 'Electronics & Gadgets',
+                            technology: 'Electronics & Gadgets',
+                            'home & kitchen': 'Home & Living',
+                            'home and kitchen': 'Home & Living',
+                            'beauty & personal care': 'Beauty',
+                            'personal care': 'Beauty',
+                            'apps and ai apps': 'Apps & AI Apps',
+                            'ai apps': 'Apps & AI Apps',
+                            services: 'Services'
+                        };
+                        const canonical = SYNONYMS_TO_CANONICAL[categoryLower];
+                        if (canonical) {
+                            parentRow = sqliteDb.prepare(
+                                `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                            ).get(canonical);
+                        }
+                    }
+                    if (parentRow && parentRow.id) {
+                        const childRows = sqliteDb.prepare(
+                            `SELECT name FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY display_order ASC, name ASC`
+                        ).all(parentRow.id);
+                        childNames = (childRows || []).map(r => r.name).filter(Boolean);
+                    }
+                } catch (e) {
+                    console.log('Parent-child detection failed (admin products):', e);
+                }
+
+                const hasChildren = childNames.length > 0;
+                const childPlaceholders = hasChildren ? childNames.map(() => '?').join(',') : '';
+                const likeBlocksCat = tokens.map(() => `LOWER(category) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksSub = tokens.map(() => `LOWER(subcategory) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksTags = tokens.map(() => `LOWER(tags) LIKE '%' || ? || '%'`).join(' OR ');
+
+                query += ` AND ( LOWER(category) = LOWER(?) ${hasChildren ? ` OR category IN (${childPlaceholders}) OR subcategory IN (${childPlaceholders})` : ''} OR ${likeBlocksCat} OR ${likeBlocksSub} OR ${likeBlocksTags} )`;
                 params.push(category);
+                if (hasChildren) {
+                    params.push(...childNames);
+                    params.push(...childNames);
+                }
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
             }
             if (search) {
                 query += ` AND (title LIKE ? OR description LIKE ?)`;
@@ -1222,6 +1832,7 @@ export function setupRoutes(app) {
                     affiliateUrl: product.affiliate_url || '',
                     category: product.category || 'Uncategorized',
                     subcategory: product.subcategory || '',
+                    gender: product.gender,
                     rating: product.rating || '0',
                     reviewCount: product.reviewCount || 0,
                     discount: product.discount || 0,
@@ -1241,14 +1852,102 @@ export function setupRoutes(app) {
     app.get('/api/products/featured', async (req, res) => {
         try {
             console.log('Getting featured products for Today\'s Top Picks section');
-            // Get products marked as featured from unified_content table
-            const featuredProducts = sqliteDb.prepare(`
+            const { category } = req.query;
+            // Build query with optional category filter including parent→child inclusion
+            let query = `
         SELECT * FROM unified_content 
         WHERE is_featured = 1
-        AND status = 'active'
-        ORDER BY created_at DESC, id DESC
-        LIMIT 10
-      `).all();
+          AND status = 'active'
+      `;
+            const params = [];
+
+            if (category && category !== 'all') {
+                const categoryLower = String(category || '').toLowerCase();
+                let tokens = categoryLower
+                    .replace(/[^a-z0-9 &-]/g, ' ')
+                    .split(/[\s&/-]+/)
+                    .map(t => t.trim())
+                    .filter(Boolean);
+
+                const SYNONYM_TOKENS = {
+                    smartphones: ['smartphone', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    smartphone: ['smartphones', 'mobile', 'mobiles', 'mobile phone', 'mobile phones', 'cell phone', 'cell phones', 'phone', 'phones'],
+                    laptops: ['laptop', 'notebook', 'notebooks'],
+                    laptop: ['laptops', 'notebook', 'notebooks'],
+                    earphones: ['earbud', 'earbuds', 'headphone', 'headphones', 'headset'],
+                    headphones: ['earphone', 'earphones', 'earbud', 'earbuds', 'headset'],
+                    television: ['tv', 'smart tv', 'led tv', 'oled tv'],
+                    tv: ['television', 'smart tv', 'led tv', 'oled tv'],
+                    camera: ['cameras', 'dslr', 'mirrorless'],
+                    cameras: ['camera', 'dslr', 'mirrorless'],
+                    electronics: ['electronic', 'gadgets', 'tech']
+                };
+                const extraSynonyms = new Set();
+                for (const t of tokens) {
+                    const syns = SYNONYM_TOKENS[t];
+                    if (Array.isArray(syns)) {
+                        for (const s of syns) extraSynonyms.add(s);
+                    }
+                }
+                if (extraSynonyms.size > 0) {
+                    tokens = Array.from(new Set([...tokens, ...extraSynonyms]));
+                }
+
+                let childNames = [];
+                try {
+                    let parentRow = sqliteDb.prepare(
+                        `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                    ).get(category);
+                    if (!(parentRow && parentRow.id)) {
+                        const SYNONYMS_TO_CANONICAL = {
+                            electronics: 'Electronics & Gadgets',
+                            tech: 'Electronics & Gadgets',
+                            technology: 'Electronics & Gadgets',
+                            'home & kitchen': 'Home & Living',
+                            'home and kitchen': 'Home & Living',
+                            'beauty & personal care': 'Beauty',
+                            'personal care': 'Beauty',
+                            'apps and ai apps': 'Apps & AI Apps',
+                            'ai apps': 'Apps & AI Apps',
+                            services: 'Services'
+                        };
+                        const canonical = SYNONYMS_TO_CANONICAL[categoryLower];
+                        if (canonical) {
+                            parentRow = sqliteDb.prepare(
+                                `SELECT id, name FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1`
+                            ).get(canonical);
+                        }
+                    }
+                    if (parentRow && parentRow.id) {
+                        const childRows = sqliteDb.prepare(
+                            `SELECT name FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY display_order ASC, name ASC`
+                        ).all(parentRow.id);
+                        childNames = (childRows || []).map(r => r.name).filter(Boolean);
+                    }
+                } catch (e) {
+                    console.log('Parent-child detection failed (featured filter):', e);
+                }
+
+                const hasChildren = childNames.length > 0;
+                const childPlaceholders = hasChildren ? childNames.map(() => '?').join(',') : '';
+                const likeBlocksCat = tokens.map(() => `LOWER(category) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksSub = tokens.map(() => `LOWER(subcategory) LIKE '%' || ? || '%'`).join(' OR ');
+                const likeBlocksTags = tokens.map(() => `LOWER(tags) LIKE '%' || ? || '%'`).join(' OR ');
+
+                query += ` AND ( LOWER(category) = LOWER(?) ${hasChildren ? ` OR category IN (${childPlaceholders}) OR subcategory IN (${childPlaceholders})` : ''} OR ${likeBlocksCat} OR ${likeBlocksSub} OR ${likeBlocksTags} )`;
+
+                params.push(category);
+                if (hasChildren) {
+                    params.push(...childNames);
+                    params.push(...childNames);
+                }
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
+                for (const tok of tokens) params.push(tok);
+            }
+
+            query += ` ORDER BY created_at DESC, id DESC LIMIT 10`;
+            const featuredProducts = sqliteDb.prepare(query).all(...params);
             console.log(`Featured Products: Returning ${featuredProducts.length} featured products`);
             const transformed = featuredProducts.map((product) => {
                 const featured = (() => {
@@ -1660,12 +2359,27 @@ export function setupRoutes(app) {
                 ...video,
                 // Parse tags from JSON string to array if needed
                 tags: typeof video.tags === 'string' ?
-                    (video.tags.startsWith('[') ? JSON.parse(video.tags) : []) :
+                    (video.tags.startsWith('[') ? JSON.parse(video.tags) : video.tags.split(',').map((t) => t.trim()).filter(Boolean)) :
                     (Array.isArray(video.tags) ? video.tags : []),
                 // Parse pages from JSON string to array if needed
-                pages: typeof video.pages === 'string' ?
-                    (video.pages.startsWith('[') ? JSON.parse(video.pages) : []) :
-                    (Array.isArray(video.pages) ? video.pages : []),
+                pages: (() => {
+                    const normalizeSlug = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '-');
+                    const fromCsv = (str) => String(str || '')
+                        .split(',')
+                        .map((p) => normalizeSlug(p))
+                        .filter(Boolean);
+                    if (Array.isArray(video.pages)) return video.pages.map(normalizeSlug).filter(Boolean);
+                    if (typeof video.pages === 'string') {
+                        if (video.pages.startsWith('[')) {
+                            try {
+                                const arr = JSON.parse(video.pages);
+                                return Array.isArray(arr) ? arr.map(normalizeSlug).filter(Boolean) : fromCsv(video.pages);
+                            } catch { return fromCsv(video.pages); }
+                        }
+                        return fromCsv(video.pages);
+                    }
+                    return [];
+                })(),
                 // Ensure boolean fields are properly typed
                 showOnHomepage: Boolean(video.showOnHomepage),
                 hasTimer: Boolean(video.hasTimer),
@@ -1680,6 +2394,197 @@ export function setupRoutes(app) {
             res.status(500).json({ message: "Failed to fetch video content" });
         }
     });
+
+    // Admin: Add video content
+    app.post('/api/admin/video-content', async (req, res) => {
+        try {
+            const { password, ...videoData } = req.body;
+            if (!await verifyAdminPassword(password)) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            // Normalize/transform fields similar to storage.addVideoContent expectations
+            const payload = {
+                ...videoData,
+                hasTimer: Boolean(videoData.hasTimer),
+                timerDuration: videoData.hasTimer && videoData.timerDuration ? parseInt(videoData.timerDuration) : null,
+                tags: Array.isArray(videoData.tags) ? videoData.tags : (typeof videoData.tags === 'string' ? videoData.tags.split(',').map((t) => t.trim()).filter(Boolean) : []),
+                pages: (() => {
+                    const normalizeSlug = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '-');
+                    if (Array.isArray(videoData.pages)) return videoData.pages.map(normalizeSlug).filter(Boolean);
+                    if (typeof videoData.pages === 'string') {
+                        if (videoData.pages.trim().startsWith('[')) {
+                            try {
+                                const arr = JSON.parse(videoData.pages);
+                                return Array.isArray(arr) ? arr.map(normalizeSlug).filter(Boolean) : videoData.pages.split(',').map(normalizeSlug).filter(Boolean);
+                            } catch { return videoData.pages.split(',').map(normalizeSlug).filter(Boolean); }
+                        }
+                        return videoData.pages.split(',').map(normalizeSlug).filter(Boolean);
+                    }
+                    return [];
+                })(),
+                showOnHomepage: videoData.showOnHomepage !== undefined ? Boolean(videoData.showOnHomepage) : true,
+                ctaText: videoData.ctaText || null,
+                ctaUrl: videoData.ctaUrl || null
+            };
+            const created = await storage.addVideoContent(payload);
+            res.json({ message: 'Video content added successfully', video: created });
+        }
+        catch (error) {
+            console.error('Add video content error:', error);
+            res.status(500).json({ message: 'Failed to add video content' });
+        }
+    });
+
+    // Admin: Update video content
+    app.put('/api/admin/video-content/:id', async (req, res) => {
+        try {
+            const bodyAny = (req.body || {});
+            const queryAny = (req.query || {});
+            const srcPassword = bodyAny.adminPassword
+                ? 'body.adminPassword'
+                : bodyAny.password
+                ? 'body.password'
+                : req.headers['x-admin-password']
+                ? 'header.x-admin-password'
+                : queryAny.adminPassword
+                ? 'query.adminPassword'
+                : queryAny.password
+                ? 'query.password'
+                : 'none';
+            console.log('🛠️ PUT /api/admin/video-content/:id [routes.js] inbound', {
+                url: req.originalUrl,
+                idParam: req.params?.id,
+                srcPassword,
+                contentType: req.headers['content-type'],
+                contentLength: req.headers['content-length'],
+                bodyKeys: Object.keys(bodyAny || {}),
+                queryKeys: Object.keys(queryAny || {}),
+            });
+            const providedPassword = (bodyAny.password || req.headers['x-admin-password'] || queryAny.password || queryAny.adminPassword || '').toString();
+            if (!await verifyAdminPassword(String(providedPassword))) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            const id = parseInt(req.params.id);
+            if (!Number.isFinite(id)) {
+                return res.status(400).json({ message: 'Invalid id parameter' });
+            }
+
+            // Start with body updates; merge query fallbacks when proxies strip JSON bodies
+            const updates = { ...bodyAny };
+            delete updates.password;
+
+            // Merge in query parameters when present
+            if (typeof updates.title === 'undefined' && typeof queryAny.title !== 'undefined') updates.title = String(queryAny.title);
+            if (typeof updates.description === 'undefined' && typeof queryAny.description !== 'undefined') updates.description = String(queryAny.description);
+            if (typeof updates.videoUrl === 'undefined' && typeof queryAny.videoUrl !== 'undefined') updates.videoUrl = String(queryAny.videoUrl);
+            if (typeof updates.thumbnailUrl === 'undefined' && typeof queryAny.thumbnailUrl !== 'undefined') updates.thumbnailUrl = String(queryAny.thumbnailUrl);
+            if (typeof updates.platform === 'undefined' && typeof queryAny.platform !== 'undefined') updates.platform = String(queryAny.platform);
+            if (typeof updates.category === 'undefined' && typeof queryAny.category !== 'undefined') updates.category = String(queryAny.category);
+            if (typeof updates.duration === 'undefined' && typeof queryAny.duration !== 'undefined') updates.duration = String(queryAny.duration);
+
+            // Tags normalization
+            if (typeof updates.tags === 'undefined' && typeof queryAny.tags !== 'undefined') updates.tags = queryAny.tags;
+            if (typeof updates.tags !== 'undefined') {
+                if (Array.isArray(updates.tags)) {
+                    updates.tags = JSON.stringify(updates.tags);
+                } else if (typeof updates.tags === 'string') {
+                    // keep string; storage layer can parse CSV or JSON
+                    updates.tags = updates.tags;
+                }
+            }
+
+            // Pages normalization and merge
+            if (typeof updates.pages === 'undefined' && typeof queryAny.pages !== 'undefined') updates.pages = queryAny.pages;
+            if (typeof updates.pages !== 'undefined') {
+                if (Array.isArray(updates.pages)) {
+                    updates.pages = JSON.stringify(updates.pages);
+                } else if (typeof updates.pages === 'string') {
+                    updates.pages = updates.pages;
+                }
+            }
+
+            // Boolean fields with query fallback
+            const qHasTimer = typeof queryAny.hasTimer !== 'undefined' ? String(queryAny.hasTimer) : undefined;
+            const qShowOnHomepage = typeof queryAny.showOnHomepage !== 'undefined' ? String(queryAny.showOnHomepage) : undefined;
+
+            if (typeof updates.hasTimer !== 'undefined' || typeof qHasTimer !== 'undefined') {
+                const val = typeof updates.hasTimer !== 'undefined' ? updates.hasTimer : qHasTimer;
+                updates.hasTimer = (val === true || val === 'true' || val === '1' || val === 1 || val === 'yes' || val === 'on');
+            }
+            if (typeof updates.showOnHomepage !== 'undefined' || typeof qShowOnHomepage !== 'undefined') {
+                const val = typeof updates.showOnHomepage !== 'undefined' ? updates.showOnHomepage : qShowOnHomepage;
+                updates.showOnHomepage = (val === true || val === 'true' || val === '1' || val === 1 || val === 'yes' || val === 'on');
+            }
+
+            // Timer duration
+            const qTimerDuration = typeof queryAny.timerDuration !== 'undefined' ? String(queryAny.timerDuration) : undefined;
+            if (typeof updates.timerDuration !== 'undefined' || typeof qTimerDuration !== 'undefined') {
+                const val = typeof updates.timerDuration !== 'undefined' ? updates.timerDuration : qTimerDuration;
+                updates.timerDuration = (val === null || typeof val === 'undefined') ? null : parseInt(String(val));
+            }
+
+            console.log('🔎 PUT /api/admin/video-content/:id [routes.js] resolved fields', {
+                id,
+                hasTitle: typeof updates.title !== 'undefined',
+                hasDescription: typeof updates.description !== 'undefined',
+                hasVideoUrl: typeof updates.videoUrl !== 'undefined',
+                hasThumbnailUrl: typeof updates.thumbnailUrl !== 'undefined',
+                tagsPresent: typeof updates.tags !== 'undefined',
+                pagesPresent: typeof updates.pages !== 'undefined',
+                showOnHomepage: updates.showOnHomepage,
+                hasTimer: updates.hasTimer,
+                timerDuration: updates.timerDuration,
+            });
+
+            const updated = await storage.updateVideoContent(id, updates);
+            if (updated) {
+                res.json({ message: 'Video content updated successfully', video: updated });
+            } else {
+                res.status(404).json({ message: 'Video content not found' });
+            }
+        } catch (error) {
+            console.error('Update video content error:', error);
+            res.status(500).json({ message: 'Failed to update video content' });
+        }
+    });
+
+    // Admin: Delete a single video content item
+    app.delete('/api/admin/video-content/:id', async (req, res) => {
+        try {
+            const { password } = req.body;
+            if (!await verifyAdminPassword(password)) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            const id = parseInt(req.params.id);
+            const deleted = await storage.deleteVideoContent(id);
+            if (deleted) {
+                res.json({ message: 'Video content deleted successfully' });
+            }
+            else {
+                res.status(404).json({ message: 'Video content not found' });
+            }
+        }
+        catch (error) {
+            console.error('Delete video content error:', error);
+            res.status(500).json({ message: 'Failed to delete video content' });
+        }
+    });
+
+    // Admin: Bulk delete all video content
+    app.delete('/api/admin/video-content/bulk-delete', async (req, res) => {
+        try {
+            const { password } = req.body;
+            if (!await verifyAdminPassword(password)) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            const count = await storage.deleteAllVideoContent();
+            res.json({ message: 'All video content deleted successfully', count });
+        }
+        catch (error) {
+            console.error('Bulk delete video content error:', error);
+            res.status(500).json({ message: 'Failed to delete all video content' });
+        }
+    });
     // Use travel categories router
     app.use('/api', travelCategoriesRouter);
     // Use currency router
@@ -1687,7 +2592,10 @@ export function setupRoutes(app) {
     // Blog management routes
     app.post('/api/admin/blog', async (req, res) => {
         try {
-            const { password, ...blogPostData } = req.body;
+            const { password: bodyPassword, adminPassword, ...blogPostData } = req.body || {};
+            const headerPwd = (req.headers['x-admin-password'] || req.headers['X-Admin-Password'] || undefined);
+            const queryPwd = typeof req.query?.password === 'string' ? req.query.password : undefined;
+            const password = (bodyPassword || adminPassword || headerPwd || queryPwd || '').toString();
             if (!await verifyAdminPassword(password)) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
@@ -1729,7 +2637,11 @@ export function setupRoutes(app) {
     });
     app.delete('/api/admin/blog/:id', async (req, res) => {
         try {
-            const { password } = req.body;
+            const bodyPassword = typeof req.body?.password === 'string' ? req.body.password : undefined;
+            const adminPwd = typeof req.body?.adminPassword === 'string' ? req.body.adminPassword : undefined;
+            const headerPwd = (req.headers['x-admin-password'] || req.headers['X-Admin-Password'] || undefined);
+            const queryPwd = typeof req.query?.password === 'string' ? req.query.password : undefined;
+            const password = (bodyPassword || adminPwd || headerPwd || queryPwd || '').toString();
             if (!await verifyAdminPassword(password)) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
@@ -1749,7 +2661,10 @@ export function setupRoutes(app) {
     });
     app.put('/api/admin/blog/:id', async (req, res) => {
         try {
-            const { password, ...updates } = req.body;
+            const { password: bodyPassword, adminPassword, ...updates } = req.body || {};
+            const headerPwd = (req.headers['x-admin-password'] || req.headers['X-Admin-Password'] || undefined);
+            const queryPwd = typeof req.query?.password === 'string' ? req.query.password : undefined;
+            const password = (bodyPassword || adminPassword || headerPwd || queryPwd || '').toString();
             if (!await verifyAdminPassword(password)) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }

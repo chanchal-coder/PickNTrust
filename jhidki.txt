@@ -1,0 +1,167 @@
+PickNTrust — Deployment, Runtime, and Ops Summary (jhidki)
+
+Overview
+- Domain: pickntrust.com (HTTPS) and EC2 public IP http://16.171.161.251 (HTTP)
+- Stack: Nginx (SPA/static), Node.js backend, SQLite DB
+- Build outputs: client at `dist/public`, backend at `dist/server`
+- Canonical DB path: `/home/ec2-user/pickntrust/database.sqlite`
+
+Deployment Script Used
+- Script: `scripts/deploy-to-domain.ps1`
+- Example run: `powershell -File .\scripts\deploy-to-domain.ps1 -Server ec2-user@16.171.161.251 -KeyPath C:\Users\sharm\.ssh\pnt08.pem -Domain pickntrust.com`
+- What it does:
+  - Runs production build locally (`npm run build`)
+  - Packages client (`pickntrust-client.tar.gz`) and full dist (`dist-full.tar.gz`)
+  - Uploads artifacts and `ecosystem.config.cjs` to `/home/ec2-user/pickntrust/`
+  - Refreshes Nginx config and validates/reloads
+  - Seeds canonical form categories; verifies public API counts
+
+Nginx
+- Active config file: `/etc/nginx/conf.d/pickntrust.conf`
+- Root: `root /home/ec2-user/pickntrust/dist/public;`
+- Index: `index index.html;`
+- ACME challenge: `location ^~ /.well-known/acme-challenge/ { root /var/lib/letsencrypt; try_files $uri =404; }`
+- SPA fallback: `location / { try_files $uri $uri/ /index.html; add_header Cache-Control "no-store, no-cache, must-revalidate" always; }`
+- Static assets: `location /assets/ { expires 7d; add_header Cache-Control "public, immutable" always; }`
+- Health proxy: `location /health { proxy_pass http://127.0.0.1:5000/health; }`
+- API proxy: `location /api/ { proxy_pass http://127.0.0.1:5000/api/; }`
+- Notes:
+  - Nginx warnings indicate duplicate `server_name` entries for `www.pickntrust.com` and `_`. They are ignored but cleanup is recommended under `/etc/nginx/conf.d/`.
+
+Backend
+- Default port: `5000`
+- Server entry: `dist/server/server/index.js`
+- Process manager: PM2 recommended
+- Start via PM2:
+  - `pm2 start /home/ec2-user/pickntrust/dist/server/server/index.js --name pickntrust-backend`
+  - `pm2 save`
+  - `pm2 startup`
+
+Client (SPA)
+- Served from: `/home/ec2-user/pickntrust/dist/public`
+- Entry: `index.html`
+- Assets: `/assets/` with hashed bundle filenames (immutable caching)
+- SPA routing: all client routes fall back to `/index.html`
+
+Key Endpoints (Verified)
+- Site root: `https://pickntrust.com/` → 200
+- SPA route: `https://pickntrust.com/prime-picks` → 200
+- Health: `http://16.171.161.251/api/status` and `https://pickntrust.com/api/status` → 200
+- Placeholder image API: `https://pickntrust.com/api/placeholder/{width}/{height}?text=Banner` → 200
+
+File Paths
+- App directory (EC2): `/home/ec2-user/pickntrust/`
+- Nginx conf (EC2): `/etc/nginx/conf.d/pickntrust.conf`
+- Build outputs (EC2 after deploy):
+  - Client: `/home/ec2-user/pickntrust/dist/public/`
+  - Backend: `/home/ec2-user/pickntrust/dist/server/`
+- SQLite DB: `/home/ec2-user/pickntrust/database.sqlite`
+- Local source Nginx template: `pickntrust.conf` (repo root)
+
+Core Scripts in Repo
+- `scripts/deploy-to-domain.ps1`: Main deployment to EC2 + domain
+- `deploy-domain.sh`: Bash variant for domain deployment
+- `build-production.js`: Builds client/server, verifies outputs
+- `fix-nginx-final.ps1`, `fix-nginx-proxy.ps1`: Nginx helper fixes
+- `fix-pm2-path.ps1`: PM2 runtime path fix
+- `test-api-final.ps1`, `test-ec2-api.ps1`: API verification helpers
+
+Operational Checks
+- Nginx: `sudo nginx -t && sudo systemctl reload nginx`
+- Ports: `sudo ss -tlnp | grep :80` and `:443` and `:5000`
+- PM2 status: `pm2 status`
+- Logs: `pm2 logs pickntrust-backend`
+
+Local Development
+- Frontend dev server: `npm run dev` → `http://127.0.0.1:5173`
+- Backend dev server: `npm run dev:5000` → `http://127.0.0.1:5000`
+- Production test locally: `npm run build && npm start`
+
+Verification Steps Post-Deploy — Additions
+- Browse/Form categories: verify counts via `/api/categories/forms/products` = 13, `/services` = 19, `/aiapps` = 16.
+- If counts mismatch, run `scripts\deploy-seed-form-flags.ps1` with server/key/db and recheck.
+- HTTP IP root: `http://16.171.161.251/` → 200
+- HTTPS domain root: `https://pickntrust.com/` → 200
+- SPA route: `https://pickntrust.com/prime-picks` → 200
+- API status: `https://pickntrust.com/api/status` → 200
+- Placeholder image: `https://pickntrust.com/api/placeholder/1200/400?text=Banner` → 200
+
+Notes & Maintenance
+- Keep Nginx root pointed to `dist/public` to avoid 404s after builds
+- Ensure backend runs under PM2 for persistence across reboots
+- Asset filenames change per build; SPA caching rules handle immutability
+- TLS/ACME handled via webroot location; cert automation may exist in separate configs
+
+Homepage Sections (Limits, Rotation, Data Sources)
+- Featured Products
+  - Homepage preview limit: 8 items
+  - Rotation: daily, client-side offset (mod 10)
+  - Source page API: `/api/products/page/top-picks`
+  - Full page route: `/top-picks`
+  - Server selection: products marked `is_featured=1`; tagged to page `top-picks`
+
+- Cards & Services
+  - Homepage preview limit: 8 items
+  - Rotation: daily, client-side offset (mod 8)
+  - Source page API: `/api/products/page/services`
+  - Full page route: `/services`
+  - Server selection: `is_service=1` or category/content_type indicates services
+
+- Apps & AI Apps
+  - Homepage preview limit: 8 items
+  - Rotation: daily, client-side offset (mod 8)
+  - Source page API: `/api/products/page/apps-ai-apps`
+  - Full page route: `/apps`
+  - Server union filters:
+    - `display_pages` contains `apps` or `apps-ai-apps`
+    - or `page_type` equals `apps` or `apps-ai-apps`
+    - or `is_ai_app=1`
+    - or `content_type`/`category` contains `app` or `ai-app`
+
+UI Behavior
+- Desktop sections render as single-row horizontal scroll carousels; mobile uses compact horizontal scroll.
+- If a section’s source page returns no items, a "Coming Soon" message is shown.
+
+Admin Refresh Hooks
+- Admin actions invalidate homepage queries so sections refresh:
+  - Featured: `/api/products/page/top-picks`
+  - Services: `/api/products/page/services`
+  - Apps: `/api/products/apps` and `/api/apps/all-pages`
+
+Local Preview
+- Frontend dev server: `http://localhost:5180/` (Vite)
+- Verify home shows up to 8 items in Featured, Services, and Apps & AI Apps; Apps rotates daily client-side.
+Static Banners — Config & Import
+---------------------------------
+- Authoritative file: `client/src/config/banners.json` (edit before build)
+- Served file after build: `dist/public/config/banners.json`
+- Server resolves via env:
+  - `FRONTEND_STATIC_DIR=/home/ec2-user/pickntrust/dist/public`
+  - `STATIC_BANNERS_PATH=/home/ec2-user/pickntrust/dist/public/config/banners.json`
+  - Optional: `DEBUG_BANNERS=1`
+
+API Endpoints
+- Inspect static resolver: `GET /api/admin/banners/static-config`
+- Write static file remotely: `POST /api/admin/banners/static-config` with `{ config }`
+- Import static banners to DB: `POST /api/admin/banners/import-static` with `{ replaceExisting, allowDuplicates }`
+
+Operational Flow (post-deploy)
+1) Refresh PM2 with ecosystem envs:
+   - `powershell -File .\scripts\pm2-refresh-ecosystem.ps1`
+2) Confirm static config matches `dist/public/config/banners.json`:
+   - `powershell -File .\scripts\get-static-config.ps1`
+3) Align DB banners without duplicates:
+   - `powershell -File .\scripts\trigger-import-static.ps1` (uses `replaceExisting=true`, `allowDuplicates=false`)
+4) Verify dynamic banners:
+   - `GET /api/banners/home` shows smartphone/kitchen/fashion entries.
+
+Scope
+- Import affects only pages present in `banners.json`; pages missing won’t get banners.
+- Use Admin Banner Management UI to add or edit page-specific banners directly in DB.
+
+Troubleshooting
+- Fallback banners (“Welcome / Deals / Services”) appearing:
+  - Restart PM2 via ecosystem: `pm2 delete pickntrust-backend && pm2 start ecosystem.config.cjs --update-env && pm2 save`
+  - Check `/api/admin/banners/static-config` output and path.
+  - Ensure `dist/public/config/banners.json` exists with expected content.
+  - Re-run import with `replaceExisting=true`, `allowDuplicates=false`.

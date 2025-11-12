@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { ExternalLink, Tag, TrendingUp, Star } from 'lucide-react';
+import { formatPrice as formatCurrencyPrice } from '@/utils/currency';
 
 interface AffiliateProduct {
   id: number;
@@ -48,26 +49,29 @@ const AffiliateProductCard: FC<AffiliateProductCardProps> = ({
   };
 
   const formatPrice = (price: string | number, currency?: string) => {
-    const numericPrice = typeof price === 'string' ? parseFloat(price.replace(/[^0-9.]/g, '')) : price;
-    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return '';
-
-    const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
-    return `${currencySymbol}${Math.round(numericPrice).toLocaleString()}`; // Use whole numbers only
+    const numericPrice = typeof price === 'string' 
+      ? parseFloat(price.replace(/[^0-9.]/g, '')) 
+      : price;
+    if (!Number.isFinite(numericPrice) || (numericPrice as number) <= 0) return '';
+    return formatCurrencyPrice(numericPrice as number, (currency as any));
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
       {/* Product Image */}
       <div className="relative">
-        <img
-          src={product.image_url}
-          alt={product.name}
-          className="w-full h-48 object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = '/api/placeholder/300/200';
-          }}
-        />
+        {product.image_url ? (
+          <img
+            src={`/api/image-proxy?url=${encodeURIComponent(product.image_url)}&width=600&height=400&quality=80&format=webp`}
+            alt={product.name}
+            className="w-full h-48 object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <div className="text-gray-400 text-sm">No image available</div>
+          </div>
+        )}
         
         {/* Affiliate Network Badge */}
         <div className="absolute top-2 left-2">
@@ -93,7 +97,7 @@ const AffiliateProductCard: FC<AffiliateProductCardProps> = ({
               ? 'bg-green-100 text-green-800' 
               : 'bg-yellow-100 text-yellow-800'
           }`}>
-            {product.affiliate_tag_applied ? '<i className="fas fa-check"></i> Tagged' : '⚠ Pending'}
+            {product.affiliate_tag_applied ? 'Tagged' : '⚠ Pending'}
           </span>
         </div>
       </div>
